@@ -1,0 +1,1 @@
+# Protected C09 fixture; GateFormat invokes CMake, detector, control and FileCheck.

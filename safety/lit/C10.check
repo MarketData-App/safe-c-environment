@@ -1,0 +1,1 @@
+CHECK: LeakSanitizer: detected memory leaks

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 34,
+      "maxItems": 34,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "provenance_ref": {
+            "type": "string"
+          },
+          "incorporation_mode": {
+            "type": "string"
+          },
+          "adaptation_patch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "control_provenance_ref": {
+            "type": "string"
+          },
+          "bad_sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "good_sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_hashes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "required_detector": {
+            "type": "string"
+          },
+          "expected_rule_or_class": {
+            "type": "string"
+          },
+          "expected_source_function": {
+            "type": "string"
+          },
+          "trigger_input": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "baseline_profile": {
+            "type": "string"
+          },
+          "qualification_profile": {
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "required_repetitions": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fixture_only_warning_exceptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repair_contract": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "provenance_ref",
+          "incorporation_mode",
+          "adaptation_patch",
+          "control_provenance_ref",
+          "bad_sources",
+          "good_sources",
+          "source_hashes",
+          "required_detector",
+          "expected_rule_or_class",
+          "expected_source_function",
+          "trigger_input",
+          "baseline_profile",
+          "qualification_profile",
+          "timeout_seconds",
+          "required_repetitions",
+          "fixture_only_warning_exceptions",
+          "repair_contract",
+          "rationale"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "cases"
+  ]
+}

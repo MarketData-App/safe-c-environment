@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "authority": "independently supplied baseline, never candidate-side hashes",
+  "paths": [
+    "toolchain.lock.json",
+    "upstream.lock.json",
+    "starter.json",
+    "starter-export.json",
+    "starter-baseline.lock.json",
+    "safety/",
+    "tools/",
+    "cmake/",
+    "schemas/",
+    ".clang-tidy",
+    ".github/workflows/",
+    "ci/",
+    ".clusterfuzzlite/",
+    "fuzz/",
+    "CMakeLists.txt",
+    "CMakePresets.json"
+  ],
+  "exceptions": "safety/exceptions.json; independent authorization only"
+}

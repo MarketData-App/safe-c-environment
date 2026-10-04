@@ -1,36 +1,13 @@
-CC      ?= cc
-CFLAGS  ?= -std=c17 -O2 -g -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion \
-           -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -fstack-protector-strong \
-           -D_FORTIFY_SOURCE=2
-SANITIZE ?= -fsanitize=address,undefined -fno-omit-frame-pointer
-CPPFLAGS += -Iinclude
-
-BUILD   := build
-SRCS    := $(wildcard src/*.c)
-OBJS    := $(SRCS:src/%.c=$(BUILD)/%.o)
-TESTS   := $(wildcard tests/*.c)
-TEST_BINS := $(TESTS:tests/%.c=$(BUILD)/tests/%)
-
-.PHONY: all test check clean format
-
-all: $(OBJS)
-
-$(BUILD)/%.o: src/%.c | $(BUILD)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-
-$(BUILD)/tests/%: tests/%.c $(SRCS) | $(BUILD)/tests
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(SANITIZE) $< $(SRCS) -o $@
-
-$(BUILD) $(BUILD)/tests:
-	mkdir -p $@
-
-test: $(TEST_BINS)
-	@set -e; for t in $(TEST_BINS); do echo "== $$t"; $$t; done
-
-check: test
-
+# Original bootstrap skeleton is retained in docs/legacy-Makefile.txt.
+# Normal entrypoints now reach the enforced CMake safety gates.
+.PHONY: all test check selftest clean format
+all:
+	./tools/safety check-fast
+test check:
+	./tools/safety check-full
+selftest:
+	./tools/safety selftest
 format:
-	clang-format -i src/*.c include/*.h tests/*.c
-
+	./tools/safety check-fast
 clean:
-	rm -rf $(BUILD)
+	rm -rf build

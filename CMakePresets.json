@@ -1,0 +1,129 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "gcc-O0",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/gcc-O0",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "SAFETY_PROFILE": "strict",
+        "CMAKE_C_FLAGS": "-O0",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "gcc-O2",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/gcc-O2",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "SAFETY_PROFILE": "hardened",
+        "CMAKE_C_FLAGS": "-O2",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "clang-O0",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/clang-O0",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "strict",
+        "CMAKE_C_FLAGS": "-O0",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "clang-O2",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/clang-O2",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "hardened",
+        "CMAKE_C_FLAGS": "-O2",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "asan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/asan",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "asan",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "ubsan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ubsan",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "ubsan",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "integer",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/integer",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "integer",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "msan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/msan",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "msan",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "tsan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/tsan",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "tsan",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "coverage",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/coverage",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "coverage",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "fuzz",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/fuzz",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "fuzz",
+        "SAFETY_VARIANT": "good"
+      }
+    },
+    {
+      "name": "hardened",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/hardened",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "SAFETY_PROFILE": "hardened",
+        "SAFETY_VARIANT": "good"
+      }
+    }
+  ]
+}

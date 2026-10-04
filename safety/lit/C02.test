@@ -1,0 +1,1 @@
+# Protected C02 fixture; GateFormat invokes CMake, detector, control and FileCheck.

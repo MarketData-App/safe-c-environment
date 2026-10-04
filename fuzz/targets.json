@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "harness": "fuzz/harness.c",
+  "parser_bad": "fuzz/parser_bad.c",
+  "parser_good": "fuzz/parser_good.c",
+  "ordinary_driver": "fuzz/replay-main.c"
+}

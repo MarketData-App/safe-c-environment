@@ -1,0 +1,11 @@
+--- third_party/originals/google/clusterfuzzlite/actions/run_fuzzers/action.yml
++++ third_party/adapters/clusterfuzzlite-actions/run_fuzzers/action.yml
+@@ -74,7 +74,7 @@
+     default: true
+ runs:
+   using: 'docker'
+-  image: 'docker://gcr.io/oss-fuzz-base/clusterfuzzlite-run-fuzzers:v1'
++  image: 'docker://gcr.io/oss-fuzz-base/clusterfuzzlite-run-fuzzers@sha256:a042cc2d5b3416d231ca7b5f4df843e6012c7c718267fe026713fa0814911574'
+   env:
+     FUZZ_SECONDS: ${{ inputs.fuzz-seconds }}
+     MODE: ${{ inputs.mode }}

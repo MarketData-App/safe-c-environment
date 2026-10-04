@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "dataset_version": "juliet-1.3-curated-1",
+  "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+  "selection_criteria": "20 additional native C cases: five weakness classes and four control-flow variants; no post-result exclusions. Corrected 1.3.1 is not claimed.",
+  "cases": [
+    {
+      "id": "B01",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_02.c",
+      "upstream_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_02.c",
+      "weakness": "CWE-401",
+      "detector": "asan",
+      "expected": "detected memory leaks",
+      "status": "selected-before-observation",
+      "sha256": "234c052c8f4cd73c1fef81122ca481a4cede0443fde8f101d14ec555a36a1aff"
+    },
+    {
+      "id": "B02",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_03.c",
+      "upstream_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_03.c",
+      "weakness": "CWE-401",
+      "detector": "asan",
+      "expected": "detected memory leaks",
+      "status": "selected-before-observation",
+      "sha256": "cc7d0cc3678858c4ad86ae3f765d79d85b50165d8059cd0c803c511709f5dff4"
+    },
+    {
+      "id": "B03",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_04.c",
+      "upstream_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_04.c",
+      "weakness": "CWE-401",
+      "detector": "asan",
+      "expected": "detected memory leaks",
+      "status": "selected-before-observation",
+      "sha256": "67dc79775d315db1b3a15c8b6d5a0bbbef9bbd631f86dd4440c87dd507157bdd"
+    },
+    {
+      "id": "B04",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_05.c",
+      "upstream_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_05.c",
+      "weakness": "CWE-401",
+      "detector": "asan",
+      "expected": "detected memory leaks",
+      "status": "selected-before-observation",
+      "sha256": "202710fdf53162ed7eec1cfc3c61983912232425c77a7fc529a65eac2be97d73"
+    },
+    {
+      "id": "B05",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_02.c",
+      "upstream_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_02.c",
+      "weakness": "CWE-415",
+      "detector": "asan",
+      "expected": "double-free",
+      "status": "selected-before-observation",
+      "sha256": "9c42e4b5721052efc06a7757f6aed51055ac6a10a21b132b143dd0219643ab42"
+    },
+    {
+      "id": "B06",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_03.c",
+      "upstream_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_03.c",
+      "weakness": "CWE-415",
+      "detector": "asan",
+      "expected": "double-free",
+      "status": "selected-before-observation",
+      "sha256": "e909b1b249c5ea1eb729a310d5f5f78e3d11de136395ad037f5cf625173333da"
+    },
+    {
+      "id": "B07",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_04.c",
+      "upstream_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_04.c",
+      "weakness": "CWE-415",
+      "detector": "asan",
+      "expected": "double-free",
+      "status": "selected-before-observation",
+      "sha256": "b60fb619cb9a3d6beb5afc566165dff073dfde584f17a458724e1359e78c174a"
+    },
+    {
+      "id": "B08",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_05.c",
+      "upstream_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_05.c",
+      "weakness": "CWE-415",
+      "detector": "asan",
+      "expected": "double-free",
+      "status": "selected-before-observation",
+      "sha256": "2375d86ad5644aa70be2f7121efb039cda81d1fe8b97fb68a29888c5fe698102"
+    },
+    {
+      "id": "B09",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_02.c",
+      "upstream_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_02.c",
+      "weakness": "CWE-416",
+      "detector": "asan",
+      "expected": "heap-use-after-free",
+      "status": "selected-before-observation",
+      "sha256": "e25ffcbe3358f629b922ce5be4e7189ac2f6b71b39d7330013cbddd18addd34f"
+    },
+    {
+      "id": "B10",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_03.c",
+      "upstream_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_03.c",
+      "weakness": "CWE-416",
+      "detector": "asan",
+      "expected": "heap-use-after-free",
+      "status": "selected-before-observation",
+      "sha256": "6e804dc858060483d43e9aea94765071f4b0462f74e512557cd23996015f2b2d"
+    },
+    {
+      "id": "B11",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_04.c",
+      "upstream_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_04.c",
+      "weakness": "CWE-416",
+      "detector": "asan",
+      "expected": "heap-use-after-free",
+      "status": "selected-before-observation",
+      "sha256": "0ddef96fe43801c5daad897aac13d49ba89f4ae9f3e9f6834e34e90001354ffe"
+    },
+    {
+      "id": "B12",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_05.c",
+      "upstream_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_05.c",
+      "weakness": "CWE-416",
+      "detector": "asan",
+      "expected": "heap-use-after-free",
+      "status": "selected-before-observation",
+      "sha256": "b35ac0a7ec8db7b94a21fc46a33c4972419c7c9191d773e8b85d6cc72696dbfe"
+    },
+    {
+      "id": "B13",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_02.c",
+      "upstream_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_02.c",
+      "weakness": "CWE-476",
+      "detector": "asan",
+      "expected": "null pointer",
+      "status": "selected-before-observation",
+      "sha256": "ce600050c4e82ffa79d11df19122952a8f6555bb44cf4fb64185d89d6301d3e8"
+    },
+    {
+      "id": "B14",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_03.c",
+      "upstream_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_03.c",
+      "weakness": "CWE-476",
+      "detector": "asan",
+      "expected": "null pointer",
+      "status": "selected-before-observation",
+      "sha256": "a3d70d3befc42cd823c20b4d12603c43f77bead8e3b686751fe39650ad759b40"
+    },
+    {
+      "id": "B15",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_04.c",
+      "upstream_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_04.c",
+      "weakness": "CWE-476",
+      "detector": "asan",
+      "expected": "null pointer",
+      "status": "selected-before-observation",
+      "sha256": "4ca2d2fa9ea5fa15dba539914ab94a8574ee20fe67d09391c528f2690cbc1087"
+    },
+    {
+      "id": "B16",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_05.c",
+      "upstream_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_05.c",
+      "weakness": "CWE-476",
+      "detector": "asan",
+      "expected": "null pointer",
+      "status": "selected-before-observation",
+      "sha256": "5957a48805aa4ccb00344625c74c8975f144e31b8655bb5e595a4636f0cff50f"
+    },
+    {
+      "id": "B17",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_02.c",
+      "upstream_path": "testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_02.c",
+      "weakness": "CWE-775",
+      "detector": "gcc-analyzer",
+      "expected": "analyzer-file-leak",
+      "status": "selected-before-observation",
+      "sha256": "2b86f501296a7392d989f6020904159e5edadf7423dfe9a6e8dc70ce1a1011af"
+    },
+    {
+      "id": "B18",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_03.c",
+      "upstream_path": "testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_03.c",
+      "weakness": "CWE-775",
+      "detector": "gcc-analyzer",
+      "expected": "analyzer-file-leak",
+      "status": "selected-before-observation",
+      "sha256": "592b34a68807fad41dab30952551dd48e76f2ee6dbcf6c5e041e09dc3fd75926"
+    },
+    {
+      "id": "B19",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_04.c",
+      "upstream_path": "testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_04.c",
+      "weakness": "CWE-775",
+      "detector": "gcc-analyzer",
+      "expected": "analyzer-file-leak",
+      "status": "selected-before-observation",
+      "sha256": "5e97f5c68b71ca44ec9f64b049ed48ba697af3e3cce753a13a6471662d43fc0c"
+    },
+    {
+      "id": "B20",
+      "source": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_05.c",
+      "upstream_path": "testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_05.c",
+      "weakness": "CWE-775",
+      "detector": "gcc-analyzer",
+      "expected": "analyzer-file-leak",
+      "status": "selected-before-observation",
+      "sha256": "f0130e3df002955631ec2c8d6067720f29f5e0c7e9d1f32fc83a5086fb7b247b"
+    }
+  ]
+}

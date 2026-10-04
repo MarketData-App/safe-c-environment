@@ -1,0 +1,1 @@
+# Protected C14 fixture; GateFormat invokes CMake, detector, control and FileCheck.

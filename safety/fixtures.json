@@ -1,0 +1,1087 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "C01",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C01.patch",
+      "control_provenance_ref": "local-repair:C01",
+      "bad_sources": [
+        "safety/qualification/C01/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C01/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C01/bad.c": "68550f82e12b841f52723c5bbbe4216592bdea44fb95728c58986c255e4e53e4",
+        "safety/qualification/C01/good.c": "5ddec9eeeed4995b18419ac44acdfe5ced6991b90dc1a5a23ef42d0db93fbd88"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "heap-buffer-overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Check index before write.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C02",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C02.patch",
+      "control_provenance_ref": "local-repair:C02",
+      "bad_sources": [
+        "safety/qualification/C02/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C02/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C02/good.c": "a9bfe1e1799ba5a9776c880ed655931d357aba173b431abff62b4364aed2f339",
+        "safety/qualification/C02/bad.c": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "heap-buffer-overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Reject one-past read while retaining initialized buffer.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C03",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/stack-buffer-overflow.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C03.patch",
+      "control_provenance_ref": "local-repair:C03",
+      "bad_sources": [
+        "safety/qualification/C03/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C03/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C03/good.c": "2674f547d997efad179d1a7bdc760ced8a8dee3e794e57b8ede27900df6f1ec5",
+        "safety/qualification/C03/bad.c": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "stack-buffer-overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Check runtime index.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C04",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/global-overflow.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C04.patch",
+      "control_provenance_ref": "local-repair:C04",
+      "bad_sources": [
+        "safety/qualification/C04/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C04/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C04/bad.c": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C04/good.c": "dc0787a8da64aec8975a960f6447f72a81e9313b9539e65bfbed02619bdde035"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "global-buffer-overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Check global index.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C05",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-free.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C05.patch",
+      "control_provenance_ref": "local-repair:C05",
+      "bad_sources": [
+        "safety/qualification/C05/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C05/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C05/bad.c": "3a89ab60987694c093376746973b34c86d566d690792050c4b12bf4885eec383",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C05/good.c": "db3d890d4c97218d31d43f3d4babbec8bff297ebff0a453b8d963555eb405b8c"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "heap-use-after-free",
+      "expected_source_function": "fixture_read",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Read while owned; instrument both translation units.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C06",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/double-free.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C06.patch",
+      "control_provenance_ref": "local-repair:C06",
+      "bad_sources": [
+        "safety/qualification/C06/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C06/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C06/bad.c": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C06/good.c": "bc900ddc9df6e29deaf6195c929c956bf92aabe75057d4796f64dec79013a76c"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "double-free",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Release ownership exactly once after observable read.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C07",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/invalid-free.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C07.patch",
+      "control_provenance_ref": "local-repair:C07",
+      "bad_sources": [
+        "safety/qualification/C07/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C07/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C07/good.c": "1a9ef4cbbe335de9f4c5166dc026f8c37ccebb2a7ae9491e539a07a267e147c6",
+        "safety/qualification/C07/bad.c": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "attempting free on address which was not malloc",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Retain allocation base for free.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C08",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-scope.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C08.patch",
+      "control_provenance_ref": "local-repair:C08",
+      "bad_sources": [
+        "safety/qualification/C08/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C08/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C08/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
+        "safety/qualification/C08/bad.c": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "stack-use-after-scope",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Keep object in scope until borrowed read.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C09",
+      "category": "runtime",
+      "provenance_ref": "first-party:C09",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C09",
+      "bad_sources": [
+        "safety/qualification/C09/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C09/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C09/bad.c": "ceb1a81fc2750799b7bf41163a5cd8573fc7da983732032a0cfe4f270c6d8931",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C09/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "stack-use-after-return",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Caller owns automatic object until final read.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C10",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_01.c",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C10.patch",
+      "control_provenance_ref": "local-repair:C10",
+      "bad_sources": [
+        "safety/qualification/C10/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C10/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C10/good.c": "84f51035be05c94579c2af768c5a2bae532f0ee91319a964b596cc8b5f7d59c6",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C10/bad.c": "130e4ef4e3c7ff31e10f08d057929a3d759ddcf834571a63c7876d83cc8ee888"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "LeakSanitizer: detected memory leaks",
+      "expected_source_function": "fixture_leak",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Keep owner and release allocation after read.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C11",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/msan/heap-origin.cpp",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C11.patch",
+      "control_provenance_ref": "local-repair:C11",
+      "bad_sources": [
+        "safety/qualification/C11/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C11/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C11/good.c": "a50a528e1d980fd80039ffb84395f99a4e29b22ae1aa8c0b6ccd56c37b684dfd",
+        "safety/qualification/C11/bad.c": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a"
+      },
+      "required_detector": "msan",
+      "expected_rule_or_class": "use-of-uninitialized-value",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "msan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Initialize value before branch; retain heap origin.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C12",
+      "category": "runtime",
+      "provenance_ref": "first-party:C12",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C12",
+      "bad_sources": [
+        "safety/qualification/C12/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C12/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C12/good.c": "cc2b93a6b989836f3e48dae451be520391d3037ffac57004d76a527f7bbe99ce",
+        "safety/qualification/C12/bad.c": "4a3cf63632b65e6018ae37b2487d3dd0314b7b4e1db6a3bb272d6b30cbacd605"
+      },
+      "required_detector": "msan",
+      "expected_rule_or_class": "use-of-uninitialized-value",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "msan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Initialize domain member, not struct padding.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C13",
+      "category": "runtime",
+      "provenance_ref": "first-party:C13",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C13",
+      "bad_sources": [
+        "safety/qualification/C13/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C13/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C13/good.c": "09a05b8fc4a480bb4ccb5366eb6624c02b16a24d3c38161c91686d1f395e40fe",
+        "safety/qualification/C13/bad.c": "400d6277673b5a04d059a3a792dc3e1ee7a9cb95444eddbeb9e610ca306619a9"
+      },
+      "required_detector": "ubsan",
+      "expected_rule_or_class": "signed integer overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ubsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Check representable addition before operation.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C14",
+      "category": "runtime",
+      "provenance_ref": "first-party:C14",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C14",
+      "bad_sources": [
+        "safety/qualification/C14/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C14/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C14/bad.c": "eca7e50bb1641edbdfc6d8fd66c26e861c8a44921b124f11d1c61bdead2847f7",
+        "safety/qualification/C14/good.c": "58175ea2ff63b7031f5ab7bd2b502314dafbfc428ffa70797d456470c5b19209"
+      },
+      "required_detector": "ubsan",
+      "expected_rule_or_class": "shift exponent",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ubsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Reject invalid shift count.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C15",
+      "category": "runtime",
+      "provenance_ref": "first-party:C15",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C15",
+      "bad_sources": [
+        "safety/qualification/C15/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C15/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C15/good.c": "57e3a6374bd98afbf79a42b38e38ce2755bf341a1d6c606a3c073e1c4498f75f",
+        "safety/qualification/C15/bad.c": "2a81a274dc5073de5c2e4c6857966f9c16bb9b552c152e12074022cd5a266947"
+      },
+      "required_detector": "ubsan",
+      "expected_rule_or_class": "division by zero",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ubsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Reject zero divisor.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C16",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_01.c",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C16.patch",
+      "control_provenance_ref": "local-repair:C16",
+      "bad_sources": [
+        "safety/qualification/C16/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C16/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C16/bad.c": "a4195e727119ac87764521d1abb599cbf353383bbc315328223dcbacca65873a",
+        "safety/qualification/C16/good.c": "45b71985dd7881ef9530b61d1526845b634d1ef98c4cdb2a4c9751f13799fbb1"
+      },
+      "required_detector": "ubsan",
+      "expected_rule_or_class": "load of null pointer",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ubsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Supply valid owned value.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C17",
+      "category": "runtime",
+      "provenance_ref": "first-party:C17",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C17",
+      "bad_sources": [
+        "safety/qualification/C17/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C17/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C17/bad.c": "7c38bb97becdcc985597026d7a5744d24e7a21694b519912ce64df73a19f9c6c",
+        "safety/qualification/C17/good.c": "867729680e5af5fad4f095f4d3be93908890097665cf66c10a75ce0ed48a4fc1"
+      },
+      "required_detector": "ubsan",
+      "expected_rule_or_class": "misaligned address",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ubsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Copy representation instead of misaligned typed access.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C18",
+      "category": "runtime",
+      "provenance_ref": "first-party:C18",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C18",
+      "bad_sources": [
+        "safety/qualification/C18/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C18/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C18/bad.c": "4904076f5bc3327ae28f9107710dc24edca8514b3b6590db9bede8ad441388d4",
+        "safety/qualification/C18/good.c": "c84d3af4081b580ce7b6ffcd176f0ec8db860ba429cce9f6561e20d686ff9add"
+      },
+      "required_detector": "integer",
+      "expected_rule_or_class": "unsigned integer overflow",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "integer",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Check multiplication before allocation.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C19",
+      "category": "runtime",
+      "provenance_ref": "first-party:C19",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C19",
+      "bad_sources": [
+        "safety/qualification/C19/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C19/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C19/good.c": "f8da52a44d2009b03bde140d1fc71fd233aba5729f00d07cce1e66f9f2a0f76e",
+        "safety/qualification/C19/bad.c": "15376150010f6c127803586bee62d9e9dd8fabd17b9807c404625c02679122cc"
+      },
+      "required_detector": "integer",
+      "expected_rule_or_class": "implicit conversion",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "integer",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "conversion",
+        "sign-conversion"
+      ],
+      "repair_contract": "Check narrowing range.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C20",
+      "category": "runtime",
+      "provenance_ref": "first-party:C20",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C20",
+      "bad_sources": [
+        "safety/qualification/C20/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C20/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C20/good.c": "740ec43eb4b58bea9eb48d38ffba179b6f399d8a0c71ed4a2ae168b15156aa92",
+        "safety/qualification/C20/bad.c": "f5780cab3169e0e6968110a4ab809582d2a5079d4f0be235bf483f31a3f213f5"
+      },
+      "required_detector": "integer",
+      "expected_rule_or_class": "implicit conversion",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "integer",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "conversion",
+        "sign-conversion"
+      ],
+      "repair_contract": "Reject negative length before conversion.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C21",
+      "category": "runtime",
+      "provenance_ref": "third_party/originals/llvm/llvm-project/compiler-rt/test/tsan/simple_race.c",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C21.patch",
+      "control_provenance_ref": "local-repair:C21",
+      "bad_sources": [
+        "safety/qualification/C21/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C21/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C21/good.c": "d7dc5aa3d47acff6697344fefc97d7f1e5860c3ee84556007901f3d54f652040",
+        "safety/qualification/C21/bad.c": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed"
+      },
+      "required_detector": "tsan",
+      "expected_rule_or_class": "ThreadSanitizer: data race",
+      "expected_source_function": "fixture_threads",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "tsan",
+      "timeout_seconds": 10,
+      "required_repetitions": 3,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Use mutex around both worker accesses.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C22",
+      "category": "static-resource",
+      "provenance_ref": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_01.c",
+      "incorporation_mode": "adapted-fixture",
+      "adaptation_patch": "third_party/patches/C22.patch",
+      "control_provenance_ref": "local-repair:C22",
+      "bad_sources": [
+        "safety/qualification/C22/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C22/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C22/good.c": "d54c4fb5d82abb872968b93932c9b47f762e6f74ed4686898c416a82bd11fdb2",
+        "safety/qualification/C22/bad.c": "a77590ff29a6f292ff3570ecc301731d230db0ebf89350899226193e2040040b"
+      },
+      "required_detector": "gcc-analyzer",
+      "expected_rule_or_class": "analyzer-file-leak",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "gcc-analyzer",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Close file also on error branch.",
+      "rationale": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch."
+    },
+    {
+      "id": "C23",
+      "category": "static-resource",
+      "provenance_ref": "first-party:C23",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C23",
+      "bad_sources": [
+        "safety/qualification/C23/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C23/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C23/good.c": "360299bc4dc5608b598c1d9b97b66793da9395a7ca2830924196c11772a76d2e",
+        "safety/qualification/C23/bad.c": "02509a796f29f20831e20cc74cf1acc84c85226a135c750266c82c0a9f5d0599"
+      },
+      "required_detector": "gcc-analyzer",
+      "expected_rule_or_class": "analyzer-double-fclose",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "gcc-analyzer",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Close exactly once.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C24",
+      "category": "static-resource",
+      "provenance_ref": "first-party:C24",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C24",
+      "bad_sources": [
+        "safety/qualification/C24/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C24/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C24/good.c": "cb34fb4b3f190c60769aa51deb38bd1b1f9017d4430dd41706d7688d655425fd",
+        "safety/qualification/C24/bad.c": "e570000bdabdb10ce1e350abaed66c3e072a9b9b5622aa55b58807e049deef58"
+      },
+      "required_detector": "csa",
+      "expected_rule_or_class": "core.NullDereference",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "csa",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Keep valid pointer on selected branch.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C25",
+      "category": "policy",
+      "provenance_ref": "first-party:C25",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C25",
+      "bad_sources": [
+        "safety/qualification/C25/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C25/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C25/bad.c": "f932bd5f9e1bbd026a9e31ba424874394fc363c61ecec8fde5484a14a42859de",
+        "safety/qualification/C25/good.c": "cf3aee22cfde2cbeda9fe4703fa393dc6bfc4398c98e3a86e2455f3d49040055"
+      },
+      "required_detector": "tidy",
+      "expected_rule_or_class": "bugprone-sizeof-expression",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "tidy",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Use intended object size, not sizeof size result.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C26",
+      "category": "policy",
+      "provenance_ref": "first-party:C26",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C26",
+      "bad_sources": [
+        "safety/qualification/C26/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C26/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C26/bad.c": "9d10c76ee3babba51177379efc33c16f636f1cae73b35674c3e7e3cdddb36a14",
+        "safety/qualification/C26/good.c": "0217553186bc94c6fb0e7586bf1abdacba6edc6682eb67b15ebfd5f3134912a8"
+      },
+      "required_detector": "warnings",
+      "expected_rule_or_class": "format-security",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "warnings",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Use literal format for same input.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C27",
+      "category": "policy",
+      "provenance_ref": "first-party:C27",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C27",
+      "bad_sources": [
+        "safety/qualification/C27/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C27/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C27/good.c": "9f13a1974553dc94f88804a3434626bcbce8dd2ab77c7eb16f01d6e63ebb8adc",
+        "safety/qualification/C27/bad.c": "be1f92aed30d9fd3021e0e9a778a10a1543170c172a234a97d22b07e6ede2805"
+      },
+      "required_detector": "warnings",
+      "expected_rule_or_class": "vla",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "warnings",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Use bounded fixed storage.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C28",
+      "category": "policy",
+      "provenance_ref": "first-party:C28",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C28",
+      "bad_sources": [
+        "safety/qualification/C28/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C28/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C28/good.c": "0d494d29bb0b70e6afe819b0603fff5a774a61a70949d4ac972ab39314e33473",
+        "safety/qualification/C28/bad.c": "ef78d3255bc86dc058bd797e2d51dfe5196b02a9ab726aa01955ccb8a3c526d8"
+      },
+      "required_detector": "ast",
+      "expected_rule_or_class": "strcpy",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "ast",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Use capacity-checked fixed copy, including macro expansion.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C29",
+      "category": "policy",
+      "provenance_ref": "first-party:C29",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C29",
+      "bad_sources": [
+        "safety/qualification/C29/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C29/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C29/bad.c": "6634197a0a20f2cb15bcf1f11e39b929f3d09aaceae37b8391e0ce8b2067c84f",
+        "safety/qualification/C29/good.c": "7e6780c393005f5a4181bbd42907f1c3a64e52a0f34f8632aca66320ecc28b8e"
+      },
+      "required_detector": "warnings",
+      "expected_rule_or_class": "unused-result",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "warnings",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Handle annotated error result.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C30",
+      "category": "runtime",
+      "provenance_ref": "first-party:C30",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C30",
+      "bad_sources": [
+        "safety/qualification/C30/bad.c",
+        "safety/qualification/support.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C30/good.c",
+        "safety/qualification/support.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C30/good.c": "951e0ec9b5ea84921e9c6de7bef8bb3148a56a45f789d6d0b75bf5fd63354095",
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C30/bad.c": "fa30928948269a45638e10ac4ddcfcbaaef221a3c8b36244091c502e48f783ad"
+      },
+      "required_detector": "asan",
+      "expected_rule_or_class": "LeakSanitizer: detected memory leaks",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "asan",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [
+        "return-local-addr/return-stack-address",
+        "use-after-free",
+        "uninitialized",
+        "maybe-uninitialized"
+      ],
+      "repair_contract": "Temporary owner handles deterministic realloc failure.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C31",
+      "category": "functional",
+      "provenance_ref": "first-party:C31",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C31",
+      "bad_sources": [
+        "safety/qualification/C31/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C31/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C31/good.c": "7c27f49576d2b575055e207f793238fcced1f3af96b5f6a6950cdbe35acc206e",
+        "safety/qualification/C31/bad.c": "37f1b07601b4557141ec17506ed9df96add32951d0d64680512c02cbf588726b"
+      },
+      "required_detector": "functional",
+      "expected_rule_or_class": "CONTRACT short-io",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "functional",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Loop until partial operation completes.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C32",
+      "category": "parser",
+      "provenance_ref": "first-party:C32",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C32",
+      "bad_sources": [
+        "fuzz/harness.c",
+        "fuzz/parser_bad.c"
+      ],
+      "good_sources": [
+        "fuzz/harness.c",
+        "fuzz/parser_good.c"
+      ],
+      "source_hashes": {
+        "fuzz/parser_bad.c": "a21cec658fc1758914bb8cac53f4f15a8c2fd1e9c7332e67eed6f3d7821c44fa",
+        "fuzz/harness.c": "c21a43a9d8c05454df36caa9e3c78a6911e3a1d085f93d11edb770b263b644eb",
+        "fuzz/parser_good.c": "b047be60a8036e00d0e08816dce5a05272ecef6f2bf572e3b3d1b2873ffdedc0"
+      },
+      "required_detector": "fuzz",
+      "expected_rule_or_class": "heap-buffer-overflow",
+      "expected_source_function": "demo_parse",
+      "trigger_input": "fuzz/regressions/C32",
+      "baseline_profile": "ordinary",
+      "qualification_profile": "fuzz",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Reject declared payload longer than available bytes before indexing.",
+      "rationale": "Project-specific length-prefixed parser to exercise both real adapters and deterministic replay."
+    },
+    {
+      "id": "C33",
+      "category": "functional",
+      "provenance_ref": "first-party:C33",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C33",
+      "bad_sources": [
+        "safety/qualification/C33/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C33/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C33/bad.c": "7e6a95a71a8cec9949f68a75af23ed1df0669a0a0300905473a91b7378c06d90",
+        "safety/qualification/C33/good.c": "947b827b4ca7c5b3a39e4ff5fd1cf0a8ff0c1a2619c4d95899dfcfef134dd43b"
+      },
+      "required_detector": "functional",
+      "expected_rule_or_class": "PROPERTY exact-bound",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "functional",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Accept exact capacity; reject one-past.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    },
+    {
+      "id": "C34",
+      "category": "functional",
+      "provenance_ref": "first-party:C34",
+      "incorporation_mode": "project-specific",
+      "adaptation_patch": null,
+      "control_provenance_ref": "local-repair:C34",
+      "bad_sources": [
+        "safety/qualification/C34/bad.c"
+      ],
+      "good_sources": [
+        "safety/qualification/C34/good.c"
+      ],
+      "source_hashes": {
+        "safety/qualification/C34/bad.c": "3293d2648365d6f09ab7ff51f8b368d525a6d2b6104e0d16e1f36138e756c749",
+        "safety/qualification/C34/good.c": "be9609e969a62cc301735b063a25b0c48400796c584b4d5670cb25517288210e"
+      },
+      "required_detector": "functional",
+      "expected_rule_or_class": "PROPERTY round-trip",
+      "expected_source_function": "main",
+      "trigger_input": null,
+      "baseline_profile": "ordinary",
+      "qualification_profile": "functional",
+      "timeout_seconds": 10,
+      "required_repetitions": 1,
+      "fixture_only_warning_exceptions": [],
+      "repair_contract": "Validate representable output range before explicit cast.",
+      "rationale": "Small project-specific fixture: upstream candidates require C++/support or do not preserve the required policy, runtime input, or repaired behavior."
+    }
+  ]
+}

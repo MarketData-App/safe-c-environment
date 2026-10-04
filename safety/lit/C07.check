@@ -1,0 +1,1 @@
+CHECK: attempting free on address which was not malloc

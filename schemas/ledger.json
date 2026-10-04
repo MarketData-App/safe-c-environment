@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "source_identity": {
+      "type": "string"
+    },
+    "units": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "source_identity": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "reproducer": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "OPEN",
+              "UNRESOLVED",
+              "VERIFIED",
+              "REJECTED",
+              "DUPLICATE",
+              "BLOCKED"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "verification": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "origin",
+          "source_identity",
+          "location",
+          "property",
+          "severity",
+          "rationale",
+          "reproducer",
+          "state",
+          "attempts",
+          "history",
+          "verification"
+        ]
+      }
+    },
+    "review": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "unit": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "locations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "required": [
+          "unit",
+          "question",
+          "locations"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source_identity",
+    "units",
+    "findings",
+    "review"
+  ]
+}

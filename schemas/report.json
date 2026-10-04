@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "overall_state": {
+      "enum": [
+        "BLOCKED",
+        "FAILED",
+        "VALIDATED_UNSEALED",
+        "BOOTSTRAP_ACCEPTED"
+      ]
+    },
+    "local_state": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "enforcement_state": {
+      "enum": [
+        "UNSEALED",
+        "VERIFIED",
+        "BLOCKED"
+      ]
+    },
+    "source_identity": {
+      "type": "string"
+    },
+    "source_inventory": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "policy_identity": {
+      "type": "string"
+    },
+    "baseline_identity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "image_id": {
+      "type": "string"
+    },
+    "runner": {
+      "type": "object"
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "details": {
+            "type": "object"
+          },
+          "evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "details",
+          "evidence_paths"
+        ]
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 34,
+      "maxItems": 34,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "classification": {
+            "enum": [
+              "DETECTED_EXPECTED",
+              "MISSED",
+              "WRONG_DIAGNOSTIC",
+              "FIXTURE_INVALID",
+              "TOOL_FAILURE",
+              "TIMEOUT",
+              "CONTROL_FAILED",
+              "NOT_RUN"
+            ]
+          },
+          "detector": {
+            "type": "string"
+          },
+          "bad": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "control": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "baseline": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "matching_diagnostic": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repetitions": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "classification",
+          "detector",
+          "bad",
+          "control",
+          "baseline",
+          "matching_diagnostic",
+          "evidence_paths",
+          "repetitions"
+        ]
+      }
+    },
+    "sabotage": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "control": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "subcases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "BLOCKED",
+                    "NOT_APPLICABLE"
+                  ]
+                },
+                "control": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "BLOCKED",
+                    "NOT_APPLICABLE"
+                  ]
+                },
+                "evidence_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "status",
+                "control",
+                "evidence_paths",
+                "reason"
+              ]
+            }
+          },
+          "evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "control",
+          "subcases",
+          "evidence_paths",
+          "reason"
+        ]
+      }
+    },
+    "benchmark": {
+      "type": "object"
+    },
+    "starter": {
+      "type": "object"
+    },
+    "reuse": {
+      "type": "object"
+    },
+    "review_protocol": {
+      "type": "object"
+    },
+    "fuzz": {
+      "type": "object"
+    },
+    "application_release_ready": {
+      "const": false
+    },
+    "application_coverage": {
+      "const": "NOT_APPLICABLE"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "started_at",
+    "finished_at",
+    "overall_state",
+    "local_state",
+    "enforcement_state",
+    "source_identity",
+    "source_inventory",
+    "policy_identity",
+    "baseline_identity",
+    "image_id",
+    "runner",
+    "gates",
+    "cases",
+    "sabotage",
+    "benchmark",
+    "starter",
+    "reuse",
+    "review_protocol",
+    "fuzz",
+    "application_release_ready",
+    "application_coverage",
+    "blockers",
+    "commands",
+    "limitations"
+  ]
+}

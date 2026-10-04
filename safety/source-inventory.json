@@ -1,0 +1,613 @@
+{
+  "schema_version": 1,
+  "files": {
+    "safety/qualification/support.c": {
+      "sha256": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+      "role": "qualification-only",
+      "targets": [
+        "C03_bad",
+        "C03_good",
+        "C04_bad",
+        "C04_good",
+        "C05_bad",
+        "C05_good",
+        "C06_bad",
+        "C06_good",
+        "C08_bad",
+        "C08_good",
+        "C09_bad",
+        "C09_good",
+        "C10_bad",
+        "C10_good",
+        "C21_bad",
+        "C21_good",
+        "C30_bad",
+        "C30_good"
+      ]
+    },
+    "safety/qualification/C21/good.c": {
+      "sha256": "d7dc5aa3d47acff6697344fefc97d7f1e5860c3ee84556007901f3d54f652040",
+      "role": "qualification-only",
+      "targets": [
+        "C21_good"
+      ]
+    },
+    "safety/qualification/C21/bad.c": {
+      "sha256": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed",
+      "role": "qualification-only",
+      "targets": [
+        "C21_bad"
+      ]
+    },
+    "safety/qualification/C01/good.c": {
+      "sha256": "5ddec9eeeed4995b18419ac44acdfe5ced6991b90dc1a5a23ef42d0db93fbd88",
+      "role": "qualification-only",
+      "targets": [
+        "C01_good"
+      ]
+    },
+    "safety/qualification/C01/bad.c": {
+      "sha256": "68550f82e12b841f52723c5bbbe4216592bdea44fb95728c58986c255e4e53e4",
+      "role": "qualification-only",
+      "targets": [
+        "C01_bad"
+      ]
+    },
+    "safety/qualification/C15/good.c": {
+      "sha256": "57e3a6374bd98afbf79a42b38e38ce2755bf341a1d6c606a3c073e1c4498f75f",
+      "role": "qualification-only",
+      "targets": [
+        "C15_good"
+      ]
+    },
+    "safety/qualification/C15/bad.c": {
+      "sha256": "2a81a274dc5073de5c2e4c6857966f9c16bb9b552c152e12074022cd5a266947",
+      "role": "qualification-only",
+      "targets": [
+        "C15_bad"
+      ]
+    },
+    "safety/qualification/C07/good.c": {
+      "sha256": "1a9ef4cbbe335de9f4c5166dc026f8c37ccebb2a7ae9491e539a07a267e147c6",
+      "role": "qualification-only",
+      "targets": [
+        "C07_good"
+      ]
+    },
+    "safety/qualification/C07/bad.c": {
+      "sha256": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610",
+      "role": "qualification-only",
+      "targets": [
+        "C07_bad"
+      ]
+    },
+    "safety/qualification/C29/good.c": {
+      "sha256": "7e6780c393005f5a4181bbd42907f1c3a64e52a0f34f8632aca66320ecc28b8e",
+      "role": "qualification-only",
+      "targets": [
+        "C29_good"
+      ]
+    },
+    "safety/qualification/C29/bad.c": {
+      "sha256": "6634197a0a20f2cb15bcf1f11e39b929f3d09aaceae37b8391e0ce8b2067c84f",
+      "role": "qualification-only",
+      "targets": [
+        "C29_bad"
+      ]
+    },
+    "safety/qualification/C08/good.c": {
+      "sha256": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
+      "role": "qualification-only",
+      "targets": [
+        "C08_good"
+      ]
+    },
+    "safety/qualification/C08/bad.c": {
+      "sha256": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5",
+      "role": "qualification-only",
+      "targets": [
+        "C08_bad"
+      ]
+    },
+    "safety/qualification/C17/good.c": {
+      "sha256": "867729680e5af5fad4f095f4d3be93908890097665cf66c10a75ce0ed48a4fc1",
+      "role": "qualification-only",
+      "targets": [
+        "C17_good"
+      ]
+    },
+    "safety/qualification/C17/bad.c": {
+      "sha256": "7c38bb97becdcc985597026d7a5744d24e7a21694b519912ce64df73a19f9c6c",
+      "role": "qualification-only",
+      "targets": [
+        "C17_bad"
+      ]
+    },
+    "safety/qualification/C13/good.c": {
+      "sha256": "09a05b8fc4a480bb4ccb5366eb6624c02b16a24d3c38161c91686d1f395e40fe",
+      "role": "qualification-only",
+      "targets": [
+        "C13_good"
+      ]
+    },
+    "safety/qualification/C13/bad.c": {
+      "sha256": "400d6277673b5a04d059a3a792dc3e1ee7a9cb95444eddbeb9e610ca306619a9",
+      "role": "qualification-only",
+      "targets": [
+        "C13_bad"
+      ]
+    },
+    "safety/qualification/C14/good.c": {
+      "sha256": "58175ea2ff63b7031f5ab7bd2b502314dafbfc428ffa70797d456470c5b19209",
+      "role": "qualification-only",
+      "targets": [
+        "C14_good"
+      ]
+    },
+    "safety/qualification/C14/bad.c": {
+      "sha256": "eca7e50bb1641edbdfc6d8fd66c26e861c8a44921b124f11d1c61bdead2847f7",
+      "role": "qualification-only",
+      "targets": [
+        "C14_bad"
+      ]
+    },
+    "safety/qualification/C26/good.c": {
+      "sha256": "0217553186bc94c6fb0e7586bf1abdacba6edc6682eb67b15ebfd5f3134912a8",
+      "role": "qualification-only",
+      "targets": [
+        "C26_good"
+      ]
+    },
+    "safety/qualification/C26/bad.c": {
+      "sha256": "9d10c76ee3babba51177379efc33c16f636f1cae73b35674c3e7e3cdddb36a14",
+      "role": "qualification-only",
+      "targets": [
+        "C26_bad"
+      ]
+    },
+    "safety/qualification/C31/good.c": {
+      "sha256": "7c27f49576d2b575055e207f793238fcced1f3af96b5f6a6950cdbe35acc206e",
+      "role": "qualification-only",
+      "targets": [
+        "C31_good"
+      ]
+    },
+    "safety/qualification/C31/bad.c": {
+      "sha256": "37f1b07601b4557141ec17506ed9df96add32951d0d64680512c02cbf588726b",
+      "role": "qualification-only",
+      "targets": [
+        "C31_bad"
+      ]
+    },
+    "safety/qualification/C05/good.c": {
+      "sha256": "db3d890d4c97218d31d43f3d4babbec8bff297ebff0a453b8d963555eb405b8c",
+      "role": "qualification-only",
+      "targets": [
+        "C05_good"
+      ]
+    },
+    "safety/qualification/C05/bad.c": {
+      "sha256": "3a89ab60987694c093376746973b34c86d566d690792050c4b12bf4885eec383",
+      "role": "qualification-only",
+      "targets": [
+        "C05_bad"
+      ]
+    },
+    "safety/qualification/C23/good.c": {
+      "sha256": "360299bc4dc5608b598c1d9b97b66793da9395a7ca2830924196c11772a76d2e",
+      "role": "qualification-only",
+      "targets": [
+        "C23_good"
+      ]
+    },
+    "safety/qualification/C23/bad.c": {
+      "sha256": "02509a796f29f20831e20cc74cf1acc84c85226a135c750266c82c0a9f5d0599",
+      "role": "qualification-only",
+      "targets": [
+        "C23_bad"
+      ]
+    },
+    "safety/qualification/C30/good.c": {
+      "sha256": "951e0ec9b5ea84921e9c6de7bef8bb3148a56a45f789d6d0b75bf5fd63354095",
+      "role": "qualification-only",
+      "targets": [
+        "C30_good"
+      ]
+    },
+    "safety/qualification/C30/bad.c": {
+      "sha256": "fa30928948269a45638e10ac4ddcfcbaaef221a3c8b36244091c502e48f783ad",
+      "role": "qualification-only",
+      "targets": [
+        "C30_bad"
+      ]
+    },
+    "safety/qualification/C10/good.c": {
+      "sha256": "84f51035be05c94579c2af768c5a2bae532f0ee91319a964b596cc8b5f7d59c6",
+      "role": "qualification-only",
+      "targets": [
+        "C10_good"
+      ]
+    },
+    "safety/qualification/C10/bad.c": {
+      "sha256": "130e4ef4e3c7ff31e10f08d057929a3d759ddcf834571a63c7876d83cc8ee888",
+      "role": "qualification-only",
+      "targets": [
+        "C10_bad"
+      ]
+    },
+    "safety/qualification/C19/good.c": {
+      "sha256": "f8da52a44d2009b03bde140d1fc71fd233aba5729f00d07cce1e66f9f2a0f76e",
+      "role": "qualification-only",
+      "targets": [
+        "C19_good"
+      ]
+    },
+    "safety/qualification/C19/bad.c": {
+      "sha256": "15376150010f6c127803586bee62d9e9dd8fabd17b9807c404625c02679122cc",
+      "role": "qualification-only",
+      "targets": [
+        "C19_bad"
+      ]
+    },
+    "safety/qualification/C12/good.c": {
+      "sha256": "cc2b93a6b989836f3e48dae451be520391d3037ffac57004d76a527f7bbe99ce",
+      "role": "qualification-only",
+      "targets": [
+        "C12_good"
+      ]
+    },
+    "safety/qualification/C12/bad.c": {
+      "sha256": "4a3cf63632b65e6018ae37b2487d3dd0314b7b4e1db6a3bb272d6b30cbacd605",
+      "role": "qualification-only",
+      "targets": [
+        "C12_bad"
+      ]
+    },
+    "safety/qualification/C33/good.c": {
+      "sha256": "947b827b4ca7c5b3a39e4ff5fd1cf0a8ff0c1a2619c4d95899dfcfef134dd43b",
+      "role": "qualification-only",
+      "targets": [
+        "C33_good"
+      ]
+    },
+    "safety/qualification/C33/bad.c": {
+      "sha256": "7e6a95a71a8cec9949f68a75af23ed1df0669a0a0300905473a91b7378c06d90",
+      "role": "qualification-only",
+      "targets": [
+        "C33_bad"
+      ]
+    },
+    "safety/qualification/C34/good.c": {
+      "sha256": "be9609e969a62cc301735b063a25b0c48400796c584b4d5670cb25517288210e",
+      "role": "qualification-only",
+      "targets": [
+        "C34_good"
+      ]
+    },
+    "safety/qualification/C34/bad.c": {
+      "sha256": "3293d2648365d6f09ab7ff51f8b368d525a6d2b6104e0d16e1f36138e756c749",
+      "role": "qualification-only",
+      "targets": [
+        "C34_bad"
+      ]
+    },
+    "safety/qualification/C25/good.c": {
+      "sha256": "cf3aee22cfde2cbeda9fe4703fa393dc6bfc4398c98e3a86e2455f3d49040055",
+      "role": "qualification-only",
+      "targets": [
+        "C25_good"
+      ]
+    },
+    "safety/qualification/C25/bad.c": {
+      "sha256": "f932bd5f9e1bbd026a9e31ba424874394fc363c61ecec8fde5484a14a42859de",
+      "role": "qualification-only",
+      "targets": [
+        "C25_bad"
+      ]
+    },
+    "safety/qualification/C16/good.c": {
+      "sha256": "45b71985dd7881ef9530b61d1526845b634d1ef98c4cdb2a4c9751f13799fbb1",
+      "role": "qualification-only",
+      "targets": [
+        "C16_good"
+      ]
+    },
+    "safety/qualification/C16/bad.c": {
+      "sha256": "a4195e727119ac87764521d1abb599cbf353383bbc315328223dcbacca65873a",
+      "role": "qualification-only",
+      "targets": [
+        "C16_bad"
+      ]
+    },
+    "safety/qualification/C06/good.c": {
+      "sha256": "bc900ddc9df6e29deaf6195c929c956bf92aabe75057d4796f64dec79013a76c",
+      "role": "qualification-only",
+      "targets": [
+        "C06_good"
+      ]
+    },
+    "safety/qualification/C06/bad.c": {
+      "sha256": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
+      "role": "qualification-only",
+      "targets": [
+        "C06_bad"
+      ]
+    },
+    "safety/qualification/C11/good.c": {
+      "sha256": "a50a528e1d980fd80039ffb84395f99a4e29b22ae1aa8c0b6ccd56c37b684dfd",
+      "role": "qualification-only",
+      "targets": [
+        "C11_good"
+      ]
+    },
+    "safety/qualification/C11/bad.c": {
+      "sha256": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a",
+      "role": "qualification-only",
+      "targets": [
+        "C11_bad"
+      ]
+    },
+    "safety/qualification/C22/good.c": {
+      "sha256": "d54c4fb5d82abb872968b93932c9b47f762e6f74ed4686898c416a82bd11fdb2",
+      "role": "qualification-only",
+      "targets": [
+        "C22_good"
+      ]
+    },
+    "safety/qualification/C22/bad.c": {
+      "sha256": "a77590ff29a6f292ff3570ecc301731d230db0ebf89350899226193e2040040b",
+      "role": "qualification-only",
+      "targets": [
+        "C22_bad"
+      ]
+    },
+    "safety/qualification/C20/good.c": {
+      "sha256": "740ec43eb4b58bea9eb48d38ffba179b6f399d8a0c71ed4a2ae168b15156aa92",
+      "role": "qualification-only",
+      "targets": [
+        "C20_good"
+      ]
+    },
+    "safety/qualification/C20/bad.c": {
+      "sha256": "f5780cab3169e0e6968110a4ab809582d2a5079d4f0be235bf483f31a3f213f5",
+      "role": "qualification-only",
+      "targets": [
+        "C20_bad"
+      ]
+    },
+    "safety/qualification/C03/good.c": {
+      "sha256": "2674f547d997efad179d1a7bdc760ced8a8dee3e794e57b8ede27900df6f1ec5",
+      "role": "qualification-only",
+      "targets": [
+        "C03_good"
+      ]
+    },
+    "safety/qualification/C03/bad.c": {
+      "sha256": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8",
+      "role": "qualification-only",
+      "targets": [
+        "C03_bad"
+      ]
+    },
+    "safety/qualification/C09/good.c": {
+      "sha256": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
+      "role": "qualification-only",
+      "targets": [
+        "C09_good"
+      ]
+    },
+    "safety/qualification/C09/bad.c": {
+      "sha256": "ceb1a81fc2750799b7bf41163a5cd8573fc7da983732032a0cfe4f270c6d8931",
+      "role": "qualification-only",
+      "targets": [
+        "C09_bad"
+      ]
+    },
+    "safety/qualification/C24/good.c": {
+      "sha256": "cb34fb4b3f190c60769aa51deb38bd1b1f9017d4430dd41706d7688d655425fd",
+      "role": "qualification-only",
+      "targets": [
+        "C24_good"
+      ]
+    },
+    "safety/qualification/C24/bad.c": {
+      "sha256": "e570000bdabdb10ce1e350abaed66c3e072a9b9b5622aa55b58807e049deef58",
+      "role": "qualification-only",
+      "targets": [
+        "C24_bad"
+      ]
+    },
+    "safety/qualification/C18/good.c": {
+      "sha256": "c84d3af4081b580ce7b6ffcd176f0ec8db860ba429cce9f6561e20d686ff9add",
+      "role": "qualification-only",
+      "targets": [
+        "C18_good"
+      ]
+    },
+    "safety/qualification/C18/bad.c": {
+      "sha256": "4904076f5bc3327ae28f9107710dc24edca8514b3b6590db9bede8ad441388d4",
+      "role": "qualification-only",
+      "targets": [
+        "C18_bad"
+      ]
+    },
+    "safety/qualification/C27/good.c": {
+      "sha256": "9f13a1974553dc94f88804a3434626bcbce8dd2ab77c7eb16f01d6e63ebb8adc",
+      "role": "qualification-only",
+      "targets": [
+        "C27_good"
+      ]
+    },
+    "safety/qualification/C27/bad.c": {
+      "sha256": "be1f92aed30d9fd3021e0e9a778a10a1543170c172a234a97d22b07e6ede2805",
+      "role": "qualification-only",
+      "targets": [
+        "C27_bad"
+      ]
+    },
+    "safety/qualification/C28/good.c": {
+      "sha256": "0d494d29bb0b70e6afe819b0603fff5a774a61a70949d4ac972ab39314e33473",
+      "role": "qualification-only",
+      "targets": [
+        "C28_good"
+      ]
+    },
+    "safety/qualification/C28/bad.c": {
+      "sha256": "ef78d3255bc86dc058bd797e2d51dfe5196b02a9ab726aa01955ccb8a3c526d8",
+      "role": "qualification-only",
+      "targets": [
+        "C28_bad"
+      ]
+    },
+    "safety/qualification/C02/good.c": {
+      "sha256": "a9bfe1e1799ba5a9776c880ed655931d357aba173b431abff62b4364aed2f339",
+      "role": "qualification-only",
+      "targets": [
+        "C02_good"
+      ]
+    },
+    "safety/qualification/C02/bad.c": {
+      "sha256": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2",
+      "role": "qualification-only",
+      "targets": [
+        "C02_bad"
+      ]
+    },
+    "safety/qualification/C04/good.c": {
+      "sha256": "dc0787a8da64aec8975a960f6447f72a81e9313b9539e65bfbed02619bdde035",
+      "role": "qualification-only",
+      "targets": [
+        "C04_good"
+      ]
+    },
+    "safety/qualification/C04/bad.c": {
+      "sha256": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
+      "role": "qualification-only",
+      "targets": [
+        "C04_bad"
+      ]
+    },
+    "tests/integration/hardening.c": {
+      "sha256": "10ce6f6b7d69aafad68e3852be3f6c60306f782c28aa525463654d543d298748",
+      "role": "isolated-demo",
+      "targets": [
+        "hardening_probe"
+      ]
+    },
+    "tests/integration/demo.c": {
+      "sha256": "414328c14a21118ad6ad926c03e558d8056f00ba3f2053360d1aefe4e5720a01",
+      "role": "isolated-demo",
+      "targets": [
+        "infrastructure_demo"
+      ]
+    },
+    "fuzz/harness.c": {
+      "sha256": "c21a43a9d8c05454df36caa9e3c78a6911e3a1d085f93d11edb770b263b644eb",
+      "role": "isolated-demo",
+      "targets": [
+        "C32_bad",
+        "C32_good"
+      ]
+    },
+    "fuzz/parser_bad.c": {
+      "sha256": "a21cec658fc1758914bb8cac53f4f15a8c2fd1e9c7332e67eed6f3d7821c44fa",
+      "role": "isolated-demo",
+      "targets": [
+        "C32_bad"
+      ]
+    },
+    "fuzz/replay-main.c": {
+      "sha256": "e5a238a4f6f41a3d51215e15cfa73ba93f3adc1b8bfacd6be9ff5582a7effa8d",
+      "role": "isolated-demo",
+      "targets": [
+        "C32_bad:ordinary",
+        "C32_good:ordinary"
+      ]
+    },
+    "fuzz/parser_good.c": {
+      "sha256": "b047be60a8036e00d0e08816dce5a05272ecef6f2bf572e3b3d1b2873ffdedc0",
+      "role": "isolated-demo",
+      "targets": [
+        "C32_good",
+        "infrastructure_demo"
+      ]
+    }
+  },
+  "format_files": [
+    "fuzz/harness.c",
+    "fuzz/parser.h",
+    "fuzz/parser_bad.c",
+    "fuzz/parser_good.c",
+    "fuzz/replay-main.c",
+    "safety/qualification/C01/bad.c",
+    "safety/qualification/C01/good.c",
+    "safety/qualification/C02/bad.c",
+    "safety/qualification/C02/good.c",
+    "safety/qualification/C03/bad.c",
+    "safety/qualification/C03/good.c",
+    "safety/qualification/C04/bad.c",
+    "safety/qualification/C04/good.c",
+    "safety/qualification/C05/bad.c",
+    "safety/qualification/C05/good.c",
+    "safety/qualification/C06/bad.c",
+    "safety/qualification/C06/good.c",
+    "safety/qualification/C07/bad.c",
+    "safety/qualification/C07/good.c",
+    "safety/qualification/C08/bad.c",
+    "safety/qualification/C08/good.c",
+    "safety/qualification/C09/bad.c",
+    "safety/qualification/C09/good.c",
+    "safety/qualification/C10/bad.c",
+    "safety/qualification/C10/good.c",
+    "safety/qualification/C11/bad.c",
+    "safety/qualification/C11/good.c",
+    "safety/qualification/C12/bad.c",
+    "safety/qualification/C12/good.c",
+    "safety/qualification/C13/bad.c",
+    "safety/qualification/C13/good.c",
+    "safety/qualification/C14/bad.c",
+    "safety/qualification/C14/good.c",
+    "safety/qualification/C15/bad.c",
+    "safety/qualification/C15/good.c",
+    "safety/qualification/C16/bad.c",
+    "safety/qualification/C16/good.c",
+    "safety/qualification/C17/bad.c",
+    "safety/qualification/C17/good.c",
+    "safety/qualification/C18/bad.c",
+    "safety/qualification/C18/good.c",
+    "safety/qualification/C19/bad.c",
+    "safety/qualification/C19/good.c",
+    "safety/qualification/C20/bad.c",
+    "safety/qualification/C20/good.c",
+    "safety/qualification/C21/bad.c",
+    "safety/qualification/C21/good.c",
+    "safety/qualification/C22/bad.c",
+    "safety/qualification/C22/good.c",
+    "safety/qualification/C23/bad.c",
+    "safety/qualification/C23/good.c",
+    "safety/qualification/C24/bad.c",
+    "safety/qualification/C24/good.c",
+    "safety/qualification/C25/bad.c",
+    "safety/qualification/C25/good.c",
+    "safety/qualification/C26/bad.c",
+    "safety/qualification/C26/good.c",
+    "safety/qualification/C27/bad.c",
+    "safety/qualification/C27/good.c",
+    "safety/qualification/C28/bad.c",
+    "safety/qualification/C28/good.c",
+    "safety/qualification/C29/bad.c",
+    "safety/qualification/C29/good.c",
+    "safety/qualification/C30/bad.c",
+    "safety/qualification/C30/good.c",
+    "safety/qualification/C31/bad.c",
+    "safety/qualification/C31/good.c",
+    "safety/qualification/C33/bad.c",
+    "safety/qualification/C33/good.c",
+    "safety/qualification/C34/bad.c",
+    "safety/qualification/C34/good.c",
+    "safety/qualification/support.c",
+    "safety/qualification/support.h",
+    "tests/integration/demo.c",
+    "tests/integration/hardening.c"
+  ]
+}

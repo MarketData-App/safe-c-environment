@@ -1,0 +1,1 @@
+# Protected C20 fixture; GateFormat invokes CMake, detector, control and FileCheck.

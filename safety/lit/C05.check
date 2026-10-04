@@ -1,0 +1,1 @@
+CHECK: heap-use-after-free

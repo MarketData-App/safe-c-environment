@@ -1,0 +1,11 @@
+--- third_party/originals/google/clusterfuzzlite/actions/build_fuzzers/action.yml
++++ third_party/adapters/clusterfuzzlite-actions/build_fuzzers/action.yml
+@@ -53,7 +53,7 @@
+     required: false
+ runs:
+   using: 'docker'
+-  image: 'docker://gcr.io/oss-fuzz-base/clusterfuzzlite-build-fuzzers:v1'
++  image: 'docker://gcr.io/oss-fuzz-base/clusterfuzzlite-build-fuzzers@sha256:b531c8ae8bdd91727c180d4d5c903c3d6be6c76820cd155acf50e6d47e43de2b'
+   env:
+     ALLOWED_BROKEN_TARGETS_PERCENTAGE: ${{ inputs.allowed-broken-targets-percentage}}
+     BAD_BUILD_CHECK: ${{ inputs.bad-build-check }}

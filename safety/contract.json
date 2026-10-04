@@ -1,0 +1,359 @@
+{
+  "schema_version": 1,
+  "policy_version": "2.0",
+  "mode": "bootstrap",
+  "cases": [
+    {
+      "id": "C01",
+      "defect": "Heap buffer write beyond the allocation",
+      "mandatory_evidence": "ASan heap-buffer-overflow at the intended write."
+    },
+    {
+      "id": "C02",
+      "defect": "Heap buffer read beyond the allocation",
+      "mandatory_evidence": "ASan heap-buffer-overflow at the intended read."
+    },
+    {
+      "id": "C03",
+      "defect": "Stack array overrun with a runtime index",
+      "mandatory_evidence": "ASan stack-buffer-overflow."
+    },
+    {
+      "id": "C04",
+      "defect": "Global array overrun with a runtime index",
+      "mandatory_evidence": "ASan global-buffer-overflow."
+    },
+    {
+      "id": "C05",
+      "defect": "Use-after-free across separately compiled functions",
+      "mandatory_evidence": "ASan heap-use-after-free; instrument both translation units."
+    },
+    {
+      "id": "C06",
+      "defect": "Freeing the same allocation twice",
+      "mandatory_evidence": "ASan double-free."
+    },
+    {
+      "id": "C07",
+      "defect": "Freeing an interior/non-allocation pointer",
+      "mandatory_evidence": "ASan invalid-free/bad-free with the relevant frame."
+    },
+    {
+      "id": "C08",
+      "defect": "Access after an automatic object's scope ends",
+      "mandatory_evidence": "ASan stack-use-after-scope."
+    },
+    {
+      "id": "C09",
+      "defect": "Escaped stack pointer accessed after return",
+      "mandatory_evidence": "ASan stack-use-after-return with the qualified mode enabled."
+    },
+    {
+      "id": "C10",
+      "defect": "Allocation made unreachable without release",
+      "mandatory_evidence": "LeakSanitizer leak report identifying the allocation."
+    },
+    {
+      "id": "C11",
+      "defect": "Uninitialized heap value influences control flow",
+      "mandatory_evidence": "MSan uninitialized-value report with origin information."
+    },
+    {
+      "id": "C12",
+      "defect": "Reading an uninitialized struct member",
+      "mandatory_evidence": "MSan uninitialized-value report; do not use mere padding as the fixture."
+    },
+    {
+      "id": "C13",
+      "defect": "Runtime signed integer overflow",
+      "mandatory_evidence": "UBSan signed-overflow report."
+    },
+    {
+      "id": "C14",
+      "defect": "Runtime invalid shift count",
+      "mandatory_evidence": "UBSan shift report."
+    },
+    {
+      "id": "C15",
+      "defect": "Runtime integer division by zero",
+      "mandatory_evidence": "UBSan divide-by-zero report."
+    },
+    {
+      "id": "C16",
+      "defect": "Null pointer access",
+      "mandatory_evidence": "UBSan null-access report in a dedicated UBSan profile."
+    },
+    {
+      "id": "C17",
+      "defect": "Misaligned typed access to otherwise allocated memory",
+      "mandatory_evidence": "UBSan alignment report; avoid volatile-qualified pointer accesses that evade this check."
+    },
+    {
+      "id": "C18",
+      "defect": "Unsigned allocation-size multiplication wraps",
+      "mandatory_evidence": "Explicit unsigned-overflow instrumentation reports the wrap before allocation."
+    },
+    {
+      "id": "C19",
+      "defect": "Value-losing implicit integer narrowing",
+      "mandatory_evidence": "Explicit implicit-conversion instrumentation reports the conversion."
+    },
+    {
+      "id": "C20",
+      "defect": "Negative signed length implicitly becomes an unsigned size",
+      "mandatory_evidence": "Explicit sign-change/conversion instrumentation reports the change."
+    },
+    {
+      "id": "C21",
+      "defect": "Two pthread workers race on shared non-atomic state",
+      "mandatory_evidence": "TSan data-race report with both relevant access stacks."
+    },
+    {
+      "id": "C22",
+      "defect": "File resource leaked on an error path",
+      "mandatory_evidence": "GCC analyzer file-leak diagnostic from the pinned checker set."
+    },
+    {
+      "id": "C23",
+      "defect": "Same file stream closed twice",
+      "mandatory_evidence": "GCC analyzer double-close/double-fclose diagnostic."
+    },
+    {
+      "id": "C24",
+      "defect": "Simple path-sensitive null dereference or double-free",
+      "mandatory_evidence": "Clang Static Analyzer finding with the configured checker ID. Freeze the selected defect during bootstrap."
+    },
+    {
+      "id": "C25",
+      "defect": "Suspicious nested `sizeof` expression",
+      "mandatory_evidence": "clang-tidy `bugprone-sizeof-expression` finding. Label this a lint/policy defect, not guaranteed undefined behavior. [S9]"
+    },
+    {
+      "id": "C26",
+      "defect": "Nonliteral user-controlled format string",
+      "mandatory_evidence": "Compiler format-security diagnostic treated as an error."
+    },
+    {
+      "id": "C27",
+      "defect": "Variable-length automatic array",
+      "mandatory_evidence": "Compiler VLA policy diagnostic treated as an error."
+    },
+    {
+      "id": "C28",
+      "defect": "Forbidden raw string-copy call, including a macro-wrapped variant",
+      "mandatory_evidence": "AST/API policy rejection naming the banned callee, not a comment/filename match."
+    },
+    {
+      "id": "C29",
+      "defect": "Ignored result from an annotated error-bearing function",
+      "mandatory_evidence": "Compiler unused-result diagnostic treated as an error."
+    },
+    {
+      "id": "C30",
+      "defect": "Direct owner overwrite by failed `realloc` loses the old allocation",
+      "mandatory_evidence": "Deterministic failure-injection test plus LeakSanitizer leak evidence; repaired control preserves and frees the original."
+    },
+    {
+      "id": "C31",
+      "defect": "Incorrect handling of a short write/read",
+      "mandatory_evidence": "A named functional contract test fails; safe control handles the partial operation correctly."
+    },
+    {
+      "id": "C32",
+      "defect": "Truncated length-prefixed parser input causes out-of-bounds access",
+      "mandatory_evidence": "A committed trigger replayed through libFuzzer produces ASan evidence; repaired parser rejects the input cleanly."
+    },
+    {
+      "id": "C33",
+      "defect": "Incorrect bounds/length decision without memory corruption",
+      "mandatory_evidence": "A named property test fails on a concrete boundary counterexample; demonstrates a sanitizer-clean logic defect."
+    },
+    {
+      "id": "C34",
+      "defect": "Explicit narrowing cast silently changes a validated-domain value",
+      "mandatory_evidence": "A range/round-trip property test fails; do not claim implicit-conversion sanitizer detects every explicit cast."
+    }
+  ],
+  "sabotage": [
+    {
+      "id": "P01",
+      "mutation": "Remove/replace a mandatory analyzer or runtime",
+      "outcome": "`doctor`/CI blocks; no silent skip or fake version-only success."
+    },
+    {
+      "id": "P02",
+      "mutation": "Drop instrumentation from one first-party translation unit",
+      "outcome": "Build-coverage audit or runtime integration probe rejects the build."
+    },
+    {
+      "id": "P03",
+      "mutation": "Remove required sanitizer settings from the final link",
+      "outcome": "Build/qualification fails; no stale previously instrumented executable is reused."
+    },
+    {
+      "id": "P04",
+      "mutation": "Add a sanitizer suppression, `no_sanitize`, unauthorized runtime override, or sanitizer-detected dummy success path",
+      "outcome": "Policy/integrity gate rejects it outside the exact fixture-only allowance."
+    },
+    {
+      "id": "P05",
+      "mutation": "Cause a detector startup failure, timeout, or unrelated abort",
+      "outcome": "Classified as infrastructure/wrong failure, never as the expected C detection."
+    },
+    {
+      "id": "P06",
+      "mutation": "Print sanitizer-like text and exit nonzero without the required instrumented finding",
+      "outcome": "The decoy fails evidence validation using the fixture/build identity and expected rule/location."
+    },
+    {
+      "id": "P07",
+      "mutation": "Disable test discovery, filter out required tests, or select bootstrap mode despite application sources",
+      "outcome": "Zero/missing-test and mode enforcement fail. Exercise each subcase."
+    },
+    {
+      "id": "P08",
+      "mutation": "Delete a required fixture, duplicate an ID, skip a case, or change its expectation",
+      "outcome": "Contract/inventory/integrity validation fails. Exercise each subcase."
+    },
+    {
+      "id": "P09",
+      "mutation": "Add first-party C that is absent from the target/analysis inventory",
+      "outcome": "Source-to-build completeness enforcement fails."
+    },
+    {
+      "id": "P10",
+      "mutation": "Reuse a green report or build artifact from different source/toolchain/policy inputs",
+      "outcome": "Input fingerprint and freshness validation fails."
+    },
+    {
+      "id": "P11",
+      "mutation": "Mask a failing tool behind `tee`, a wrapper returning zero, or equivalent",
+      "outcome": "Aggregate evidence still fails; process status is not lost."
+    },
+    {
+      "id": "P12",
+      "mutation": "Misspell a clang-tidy check or weaken required warning/check configuration",
+      "outcome": "Configuration/contract verification fails before an empty analysis can pass."
+    },
+    {
+      "id": "P13",
+      "mutation": "Corrupt a repaired control with a known defect",
+      "outcome": "Control validation fails; the evaluator cannot certify a detector that rejects both versions."
+    },
+    {
+      "id": "P14",
+      "mutation": "Compile a deliberately failing test with `NDEBUG`",
+      "outcome": "The test assertion framework still rejects it."
+    },
+    {
+      "id": "P15",
+      "mutation": "Reduce coverage/fuzz budgets, modify protected gates, or remove a required CI job",
+      "outcome": "Independently enforced policy refuses acceptance or reports the trust boundary unsealed."
+    },
+    {
+      "id": "P16",
+      "mutation": "Turn the fuzz target into a no-op or omit the parser from fuzz instrumentation",
+      "outcome": "Replay/coverage/build audits fail, even if the fuzzer process exits zero."
+    }
+  ],
+  "subcases": [
+    {
+      "parent": "P01",
+      "name": "upstream-tool-missing",
+      "mutation": "Remove lit, FileCheck, or a required pinned helper",
+      "outcome": "Required-tool verification fails; no custom imitation silently takes over."
+    },
+    {
+      "parent": "P02",
+      "name": "adapter-object-uninstrumented",
+      "mutation": "Compile the demo parser without instrumentation inside the ClusterFuzzLite build",
+      "outcome": "Build audit/replay fails even if the harness remains instrumented."
+    },
+    {
+      "parent": "P04",
+      "name": "inherited-options",
+      "mutation": "Supply a prohibited lit/FileCheck/sanitizer override through inherited environment",
+      "outcome": "The protected wrapper rejects or eliminates the override and still executes all mandatory checks; it must never accept a bypassed run."
+    },
+    {
+      "parent": "P07",
+      "name": "lit-skip-or-dry-run",
+      "mutation": "Attempt XFAIL/unsupported/excluded status, a zero-test filter, or no-execute mode for a mandatory case",
+      "outcome": "Aggregate refuses acceptance. Exercise these variants individually."
+    },
+    {
+      "parent": "P08",
+      "name": "altered-upstream-or-notice",
+      "mutation": "Modify a retained original/patch, remove required provenance/license evidence, or move a mandatory case into the benchmark",
+      "outcome": "Hash/inventory/provenance validation fails; changed expectations cannot self-approve."
+    },
+    {
+      "parent": "P10",
+      "name": "copied-parent-evidence",
+      "mutation": "Give a fresh child the parent's report or an artifact from a different baseline/image",
+      "outcome": "Child input binding and provenance checks fail."
+    },
+    {
+      "parent": "P11",
+      "name": "pre-existing-crash-filter",
+      "mutation": "Simulate the fuzz adapter reporting no new crash while a committed regression still reproduces",
+      "outcome": "Independent replay keeps acceptance red."
+    },
+    {
+      "parent": "P15",
+      "name": "child-policy-or-floating-pin",
+      "mutation": "Weaken a protected file during instantiation or replace a locked dependency identity with a floating ref",
+      "outcome": "Starter/integrity verification fails or the trust boundary remains explicitly unsealed."
+    },
+    {
+      "parent": "P16",
+      "name": "adapter-no-op",
+      "mutation": "Export a no-op adapter target or omit the real parser from its source list",
+      "outcome": "Actual adapter replay, build inventory, and coverage checks reject it."
+    }
+  ],
+  "budgets": {
+    "repair_attempts": 5,
+    "smoke_executions": 10000,
+    "merge_seconds": 60,
+    "extended_seconds": 900,
+    "timeout_seconds": 10,
+    "memory_mb": 2048,
+    "pids": 128,
+    "output_bytes": 4194304,
+    "scratch_mb": 2048
+  },
+  "coverage": {
+    "line": 90,
+    "branch": 85
+  },
+  "required_gates": [
+    "inventory",
+    "upstream",
+    "doctor",
+    "format",
+    "gcc-O0",
+    "gcc-O2",
+    "clang-O0",
+    "clang-O2",
+    "tidy",
+    "csa",
+    "gcc-analyzer",
+    "asan",
+    "integer",
+    "ubsan",
+    "msan",
+    "tsan",
+    "coverage",
+    "hardened",
+    "unit",
+    "integration",
+    "fuzz-replay",
+    "fuzz-exploration",
+    "clusterfuzzlite",
+    "lit",
+    "selftest",
+    "benchmark",
+    "starter"
+  ]
+}
