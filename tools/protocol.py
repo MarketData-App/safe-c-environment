@@ -32,20 +32,20 @@ def run_protocol(q):
 
     add('SIM-GENUINE')
     verified = ledger.repair('SIM-GENUINE', before_failed=exposed, after_passed=clean,
-                             regression_identity=regression, source_identity=after['binary_sha256'])
+                             regression_identity=regression, source_identity=identity)
     add('SIM-WRONG', 'exact-capacity should always be rejected')
     ledger.reject('SIM-WRONG', 'The contract permits exact capacity; the genuine repaired binary passes this boundary: ' + after['evidence_path'])
     add('SIM-CLAIMED-FIX')
     unresolved = ledger.repair('SIM-CLAIMED-FIX', before_failed=exposed, after_passed=passed(still_bad),
-                              regression_identity=regression, source_identity=still_bad['binary_sha256'])
+                              regression_identity=regression, source_identity=identity)
     add('SIM-REPEATED')
     for _ in range(3):
         blocked = ledger.repair('SIM-REPEATED', before_failed=exposed, after_passed=passed(still_bad),
-                                regression_identity=regression, source_identity=still_bad['binary_sha256'])
+                                regression_identity=regression, source_identity=identity)
     stopped = False
     try:
         ledger.repair('SIM-REPEATED', before_failed=exposed, after_passed=clean,
-                      regression_identity=regression, source_identity=after['binary_sha256'])
+                      regression_identity=regression, source_identity=identity)
     except GateError:
         stopped = True
     ledger.account([{'unit': unit, 'question': question, 'locations': [15]} for question in units[unit]], identity)
@@ -56,6 +56,8 @@ def run_protocol(q):
     atomic_json(path, payload)
     ok = verified == 'VERIFIED' and unresolved == 'UNRESOLVED' and blocked == 'BLOCKED' and stopped
     return {'status': 'PASS' if ok else 'FAIL', 'mode': 'protocol tests with simulated agent responses against real C33 bad/good binaries',
+            'whole_source_identity': identity,
+            'variant_sources': {'original_sha256': file_hash(q.root / unit), 'repaired_sha256': file_hash(q.root / 'safety/qualification/C33/good.c')},
             'live_review': 'NOT_RUN; no provider enabled', 'counterexample': regression,
             'outcomes': {identifier: row['state'] for identifier, row in ledger.findings.items()},
             'required_reviewer_policy': 'An unavailable reviewer required by a future application contract blocks that review step.',
