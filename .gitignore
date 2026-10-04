@@ -1,0 +1,56 @@
+# Local environment (pins a personal account; never commit)
+.envrc
+.env
+.env.local
+.direnv/
+
+# Build output
+build/
+out/
+bin/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.d
+*.gch
+*.pch
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+
+# Coverage / profiling / sanitizers
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+coverage/
+
+# Debugging
+core
+core.*
+vgcore.*
+*.dSYM/
+
+# Tooling
+.cache/
+.clangd/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
