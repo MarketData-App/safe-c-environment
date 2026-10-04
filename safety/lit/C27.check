@@ -1,1 +1,2 @@
-CHECK: vla
+CHECK-DAG: vla
+CHECK-DAG: /src/safety/qualification/C27/bad.c

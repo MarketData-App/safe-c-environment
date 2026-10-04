@@ -1,1 +1,3 @@
-CHECK: heap-buffer-overflow
+CHECK-DAG: heap-buffer-overflow
+CHECK-DAG: /src/safety/qualification/C02/bad.c
+CHECK-DAG: main

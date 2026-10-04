@@ -67,13 +67,97 @@
           "history": {
             "type": "array",
             "items": {
-              "type": "object"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "attempt",
+                    "before_failed",
+                    "after_passed",
+                    "regression_identity",
+                    "source_identity"
+                  ],
+                  "properties": {
+                    "attempt": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "before_failed": {
+                      "type": "boolean"
+                    },
+                    "after_passed": {
+                      "type": "boolean"
+                    },
+                    "regression_identity": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "source_identity": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reason",
+                    "duplicate_of"
+                  ],
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "duplicate_of": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           },
           "verification": {
-            "type": [
-              "object",
-              "null"
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "attempt",
+                  "before_failed",
+                  "after_passed",
+                  "regression_identity",
+                  "source_identity"
+                ],
+                "properties": {
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "before_failed": {
+                    "type": "boolean"
+                  },
+                  "after_passed": {
+                    "type": "boolean"
+                  },
+                  "regression_identity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source_identity": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },

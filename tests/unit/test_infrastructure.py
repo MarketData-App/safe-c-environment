@@ -6,7 +6,7 @@ import tempfile
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tools'))
 from evidence import GateError, bounded, environment_gate, read_json, atomic_json
-from policy import exact_ids, C_IDS, P_IDS, validate_fresh_report, lit_accounting, build_audit
+from policy import exact_ids, C_IDS, P_IDS, validate_fresh_report, lit_accounting, build_audit, gate_accounting
 from qualification import ast_banned_calls
 from ledger import Ledger
 from schema_check import validate
@@ -38,6 +38,10 @@ class EvidenceTests(unittest.TestCase):
         environment_gate({})
 
 class AccountingTests(unittest.TestCase):
+    def test_mandatory_gate_reconciliation(self):
+        gate_accounting([{'name':'compile'},{'name':'run'}],['compile','run'])
+        for rows in [[{'name':'compile'}],[{'name':'compile'},{'name':'run'},{'name':'run'}]]:
+            with self.assertRaises(GateError):gate_accounting(rows,['compile','run'])
     def test_all_fixed_ids(self):
         exact_ids([{'id':i} for i in C_IDS],C_IDS)
         for ids in [C_IDS[:-1],C_IDS+[C_IDS[0]],[]]:
@@ -54,10 +58,17 @@ class AccountingTests(unittest.TestCase):
             with self.assertRaises(GateError):lit_accounting(broken,C_IDS)
         with self.assertRaises(GateError):lit_accounting({'tests':[]},C_IDS)
     def test_missing_object_instrumentation(self):
-        commands=[{'file':'/src/src/a.c','arguments':['clang','-std=c17','-fsanitize=address,undefined','-c','/src/src/a.c']}]
-        build_audit(commands,['src/a.c'],'asan')
+        commands=[{'file':'/src/safety/qualification/C01/bad.c','arguments':['clang','-std=c17','-fsanitize=address,undefined','-c','/src/safety/qualification/C01/bad.c']}]
+        build_audit(commands,['safety/qualification/C01/bad.c'],'asan')
         commands[0]['arguments'].remove('-fsanitize=address,undefined')
-        with self.assertRaises(GateError):build_audit(commands,['src/a.c'],'asan')
+        with self.assertRaises(GateError):build_audit(commands,['safety/qualification/C01/bad.c'],'asan')
+    def test_manifests_reject_unknown_fields_and_wrong_types(self):
+        for kind,relative in [('contract','safety/contract.json'),('toolchain','toolchain.lock.json'),('upstream','upstream.lock.json'),('source-inventory','safety/source-inventory.json'),('starter-export','starter-export.json'),('benchmark','safety/benchmark-manifest.json')]:
+            value=read_json(ROOT/relative);validate(ROOT,kind,value)
+            broken=copy.deepcopy(value);broken['unknown']=True
+            with self.assertRaises(GateError):validate(ROOT,kind,broken)
+            broken=copy.deepcopy(value);broken['schema_version']='1'
+            with self.assertRaises(GateError):validate(ROOT,kind,broken)
     def test_ast_uses_callee_not_comment(self):
         self.assertEqual(ast_banned_calls({'kind':'StringLiteral','value':'strcpy'}),[])
         self.assertEqual(ast_banned_calls({'kind':'CallExpr','inner':[{'kind':'DeclRefExpr','referencedDecl':{'name':'strcpy'}}]}),['strcpy'])
@@ -91,6 +102,16 @@ class SimulatedProtocolTests(unittest.TestCase):
         ledger=self.ledger();ledger.add(finding())
         for i in range(5):state=ledger.repair('F1',before_failed=True,after_passed=False,regression_identity='exact-bound-input',source_identity=str(i)*64)
         self.assertEqual(state,'BLOCKED')
+    def test_oscillation_and_terminal_blocker(self):
+        ledger=self.ledger();ledger.add(finding())
+        for source in ['a','b','a','b']:
+            state=ledger.repair('F1',before_failed=True,after_passed=False,regression_identity='same-bound',source_identity=source*64)
+        self.assertEqual(state,'BLOCKED')
+        with self.assertRaises(GateError):ledger.repair('F1',before_failed=True,after_passed=True,regression_identity='same-bound',source_identity='c'*64)
+    def test_invalid_attempt_does_not_consume_budget(self):
+        ledger=self.ledger();ledger.add(finding())
+        with self.assertRaises(GateError):ledger.repair('F1',before_failed='yes',after_passed=True,regression_identity='same-bound',source_identity='b'*64)
+        self.assertEqual(ledger.findings['F1']['attempts'],0)
     def test_duplicate_and_source_mismatch(self):
         ledger=self.ledger();ledger.add(finding())
         with self.assertRaises(GateError):ledger.add(finding())

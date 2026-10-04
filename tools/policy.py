@@ -33,6 +33,13 @@ def source_identity(root):
 def inventory_gate(root, expected_contract=None):
     contract = read_json(root/'safety/contract.json')
     fixtures = read_json(root/'safety/fixtures.json')
+    from schema_check import validate
+    validate(root, 'contract', contract)
+    validate(root, 'source-inventory', read_json(root/'safety/source-inventory.json'))
+    validate(root, 'benchmark', read_json(root/'safety/benchmark-manifest.json'))
+    validate(root, 'starter-export', read_json(root/'starter-export.json'))
+    validate(root, 'toolchain', read_json(root/'toolchain.lock.json'))
+    configuration_gate(root)
     exact_ids(contract['cases'], C_IDS)
     exact_ids(contract['sabotage'], P_IDS)
     exact_ids(fixtures['cases'], C_IDS)
@@ -68,6 +75,8 @@ def inventory_gate(root, expected_contract=None):
 
 def upstream_gate(root):
     lock = read_json(root/'upstream.lock.json')
+    from schema_check import validate
+    validate(root, 'upstream', lock)
     if not lock['files']:
         raise GateError('empty upstream inventory')
     for row in lock['files']:
@@ -79,10 +88,16 @@ def upstream_gate(root):
         if not row['license_evidence'] or any(not (root/e).is_file() for e in row['license_evidence']):
             raise GateError('missing license evidence: ' + row['id'])
     for row in lock['adaptations']:
-        for field, hashfield in [('local_path','local_sha256'),('patch_path','patch_sha256')]:
+        for field, hashfield in [('original_path','original_sha256'),('local_path','local_sha256'),('patch_path','patch_sha256')]:
             if file_hash(root/row[field]) != row[hashfield]:
                 raise GateError('adaptation modified: ' + row[field])
-    if not (root/'third_party/NOTICE.md').is_file():
+        if set(row['control_sources']) != set(row['control_hashes']):raise GateError('adaptation control inventory changed')
+        for source, expected in row['control_hashes'].items():
+            if file_hash(root/source)!=expected:raise GateError('adaptation control changed: '+source)
+    for distribution in lock['distributions']:
+        if file_hash(root/distribution['retained_path']) != distribution['sha256']:raise GateError('retained Python distribution changed')
+    if any(not re.fullmatch(r'.+@sha256:[0-9a-f]{64}',value) for value in lock['remote_images'].values()):raise GateError('floating remote compiler/runtime image')
+    if not (root/'third_party/NOTICE.md').is_file() or file_hash(root/'third_party/NOTICE.md')!=lock['notice_sha256']:
         raise GateError('missing NOTICE')
     return {'status':'PASS','originals':len(lock['files']),'adaptations':len(lock['adaptations'])}
 
@@ -130,6 +145,15 @@ def validate_fresh_report(report, source_hash, image, policy_hash):
     exact_ids(report['sabotage'],P_IDS)
     return True
 
+def gate_accounting(rows, required):
+    names = [row['name'] for row in rows]
+    if len(names) != len(set(names)):
+        raise GateError('duplicate gate execution')
+    missing = sorted(set(required) - set(names))
+    if missing:
+        raise GateError('mandatory gates missing: ' + ', '.join(missing))
+    return {'status': 'PASS', 'expected': list(required), 'executed': names}
+
 def build_audit(commands, sources, profile):
     flags={'asan':'-fsanitize=address,undefined','ubsan':'-fsanitize=undefined','integer':'-fsanitize=undefined,unsigned-integer-overflow,implicit-integer-conversion','msan':'-fsanitize=memory','tsan':'-fsanitize=thread','fuzz':'-fsanitize=address,undefined,fuzzer-no-link','coverage':'-fcoverage-mapping'}
     found=set()
@@ -139,6 +163,9 @@ def build_audit(commands, sources, profile):
         found.add(rel)
         if '-std=c17' not in argv:
             raise GateError('non-C17 translation unit: '+rel)
+        if profile!='ordinary' and not rel.startswith('safety/qualification/'):
+            required=['-Wall','-Wextra','-Wpedantic','-Werror','-Wconversion','-Wsign-conversion','-Wshadow','-Wformat=2','-Wformat-security','-Wundef','-Wstrict-prototypes','-Wmissing-prototypes','-Wvla','-Wcast-qual','-Wwrite-strings','-Werror=implicit-function-declaration','-Werror=incompatible-pointer-types']
+            if any(flag not in argv for flag in required):raise GateError('mandatory warning flags missing: '+rel)
         if profile in flags and flags[profile] not in argv:
             raise GateError('uninstrumented translation unit: '+rel)
         if any(x.startswith('-fno-sanitize') and x!='-fno-sanitize-recover=all' for x in argv):

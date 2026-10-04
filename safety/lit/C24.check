@@ -1,1 +1,2 @@
-CHECK: core.NullDereference
+CHECK-DAG: core.NullDereference
+CHECK-DAG: /src/safety/qualification/C24/bad.c

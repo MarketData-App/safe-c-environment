@@ -1,1 +1,3 @@
-CHECK: double-free
+CHECK-DAG: double-free
+CHECK-DAG: /src/safety/qualification/C06/bad.c
+CHECK-DAG: main

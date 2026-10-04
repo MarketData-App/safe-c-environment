@@ -1411,6 +1411,23 @@
         "curated benchmark"
       ],
       "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/template.py",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/template.py",
+      "original_sha256": "48467330da2b3f1ed6a7242f1aaf2aa121ad017775d3d367b8b981f1509d371c",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/template.py",
+      "local_sha256": "48467330da2b3f1ed6a7242f1aaf2aa121ad017775d3d367b8b981f1509d371c",
+      "license": "GPL-3.0-or-later",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
     }
   ],
   "adaptations": [
@@ -1659,6 +1676,18 @@
       "reason": "Pin upstream action container by observed registry manifest digest; configured only, not remotely executed",
       "control_sources": [],
       "control_hashes": {}
+    },
+    {
+      "case_id": "template-prelude",
+      "original_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/common/cmake/prelude.cmake",
+      "original_sha256": "b30cb8a6a01a34b04ad37812f629ab3d4e89b37843540d1904bf87ae4696de09",
+      "local_path": "cmake/prelude.cmake",
+      "local_sha256": "4ad068623f3c69718930eabee63fef6d6d153a6d340bef2a0ad58e4add91d99b",
+      "patch_path": "third_party/patches/cmake-prelude.patch",
+      "patch_sha256": "df0273440c658e8ddc6ffdbeaed2635b3e7fef085cd008ccacbb08662c7ddc92",
+      "reason": "Retain the small in-source guard; replace the upstream BUILDING-file advice with the starter out-of-source instruction. Unlicense template; no generator code copied.",
+      "control_sources": [],
+      "control_hashes": {}
     }
   ],
   "juliet_release": "NIST-derived 1.3; not corrected 1.3.1",
@@ -1676,5 +1705,6 @@
     "clusterfuzzlite-build-fuzzers": "gcr.io/oss-fuzz-base/clusterfuzzlite-build-fuzzers@sha256:b531c8ae8bdd91727c180d4d5c903c3d6be6c76820cd155acf50e6d47e43de2b",
     "clusterfuzzlite-run-fuzzers": "gcr.io/oss-fuzz-base/clusterfuzzlite-run-fuzzers@sha256:a042cc2d5b3416d231ca7b5f4df843e6012c7c718267fe026713fa0814911574",
     "base-builder": "gcr.io/oss-fuzz-base/base-builder@sha256:4d95d77396ce573bbfca794166cd2f1e28df5b3445a45132e52ef0e4ff7f566b"
-  }
+  },
+  "notice_sha256": "9cc3e40cc39ccd8e434270fe118cbf73f553cbbb33c438b184036cdb279aa0cc"
 }

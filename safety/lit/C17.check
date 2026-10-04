@@ -1,1 +1,3 @@
-CHECK: misaligned address
+CHECK-DAG: misaligned address
+CHECK-DAG: /src/safety/qualification/C17/bad.c
+CHECK-DAG: main

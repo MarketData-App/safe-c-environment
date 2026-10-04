@@ -1,1 +1,2 @@
-CHECK: bugprone-sizeof-expression
+CHECK-DAG: bugprone-sizeof-expression
+CHECK-DAG: /src/safety/qualification/C25/bad.c

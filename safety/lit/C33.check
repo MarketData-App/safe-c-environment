@@ -1,1 +1,3 @@
-CHECK: PROPERTY exact-bound
+CHECK-DAG: PROPERTY exact-bound
+CHECK-DAG: /src/safety/qualification/C33/bad.c
+CHECK-DAG: main

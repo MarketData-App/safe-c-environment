@@ -1,1 +1,2 @@
-CHECK: unused-result
+CHECK-DAG: unused-result
+CHECK-DAG: /src/safety/qualification/C29/bad.c

@@ -1,1 +1,3 @@
-CHECK: heap-buffer-overflow
+CHECK-DAG: heap-buffer-overflow
+CHECK-DAG: /src/fuzz/parser_bad.c
+CHECK-DAG: demo_parse

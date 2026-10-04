@@ -1,1 +1,3 @@
-CHECK: PROPERTY round-trip
+CHECK-DAG: PROPERTY round-trip
+CHECK-DAG: /src/safety/qualification/C34/bad.c
+CHECK-DAG: main

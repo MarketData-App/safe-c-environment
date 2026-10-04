@@ -1,1 +1,2 @@
-CHECK: format-security
+CHECK-DAG: format-security
+CHECK-DAG: /src/safety/qualification/C26/bad.c

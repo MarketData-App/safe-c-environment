@@ -1,1 +1,3 @@
-CHECK: load of null pointer
+CHECK-DAG: load of null pointer
+CHECK-DAG: /src/safety/qualification/C16/bad.c
+CHECK-DAG: main

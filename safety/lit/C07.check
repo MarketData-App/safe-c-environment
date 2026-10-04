@@ -1,1 +1,3 @@
-CHECK: attempting free on address which was not malloc
+CHECK-DAG: attempting free on address which was not malloc
+CHECK-DAG: /src/safety/qualification/C07/bad.c
+CHECK-DAG: main

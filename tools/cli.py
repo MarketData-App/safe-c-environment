@@ -8,8 +8,8 @@ import platform
 import shutil
 import tempfile
 import uuid
-from evidence import GateError, Runner, atomic_json, environment_gate, file_hash, read_json, passed
-from policy import C_IDS, P_IDS, inventory_gate, upstream_gate, source_identity, baseline_identity, baseline_gate, validate_fresh_report
+from evidence import GateError, Runner, atomic_json, environment_gate, file_hash, read_json, passed, bounded
+from policy import C_IDS, P_IDS, inventory_gate, upstream_gate, source_identity, baseline_identity, baseline_gate, validate_fresh_report, gate_accounting
 from qualification import Qualifier, INFRA
 from schema_check import validate
 
@@ -20,9 +20,12 @@ def gate(name, status='PASS', details=None, evidence=()):
 
 def initial_report(root, lock):
     identity, files=source_identity(root)
+    status=bounded(['git','-C',str(root),'status','--porcelain=v1','--untracked-files=all']) if (root/'.git').exists() else {'exit_code':1,'failure':None,'output':''}
+    source_control={'status':'RECORDED' if passed(status) else 'NO_GIT_CHECKOUT','porcelain':status['output'] if passed(status) else '', 'dirty_and_untracked_file_bytes_included':True}
     return {'schema_version':1,'run_id':uuid.uuid4().hex,'started_at':datetime.now(timezone.utc).isoformat(),'finished_at':'',
         'overall_state':'BLOCKED','local_state':'BLOCKED','enforcement_state':'UNSEALED',
-        'source_identity':identity,'source_inventory':files,'policy_identity':file_hash(root/'safety/contract.json'),
+        'source_identity':identity,'source_inventory':files,'source_control':source_control,'policy_identity':file_hash(root/'safety/contract.json'),
+        'mandatory_gates':{'expected':read_json(root/'safety/contract.json')['required_gates'],'executed':[]},
         'baseline_identity':baseline_identity(root) if (root/'starter-export.json').exists() else None,
         'image_id':lock['image_id'],'runner':{'architecture':platform.machine(),'kernel':platform.release(),'platform':platform.system(),'image_libc':lock['libc'],'network':'none','source_mount':'read-only','scratch':'2 GiB tmpfs','memory':'3 GiB cgroup','pids':128,'cpus':2},
         'gates':[], 'cases':[{'id':cid,'status':'BLOCKED','classification':'NOT_RUN','detector':'pending','bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0} for cid in C_IDS],
@@ -105,23 +108,33 @@ def production_checks(q, full):
                     merged=q.runner.run(['llvm-profdata','merge','-sparse','/work/coverage-infrastructure_demo.profraw','-o','/work/demo.profdata'],label='coverage-merge')
                     cov=q.runner.run(['llvm-cov','export','/work/'+b['directory']+'/infrastructure_demo','-instr-profile=/work/demo.profdata'],label='coverage-export')
                     try:
-                        value=json.loads(cov['output']);summary=value['data'][0]['totals'];covered=summary['lines']['covered'];total=summary['lines']['count'];ok=ok and passed(merged) and passed(cov) and 0<covered<total
+                        value=json.loads(cov['output']);summary=value['data'][0]['totals'];covered=summary['lines']['covered'];total=summary['lines']['count'];branches=summary['branches'];ok=ok and passed(merged) and passed(cov) and 0<covered<total and 0<branches['covered']<branches['count']
                     except (KeyError,ValueError):summary={};ok=False
                     evidence.extend([merged['evidence_path'],cov['evidence_path']])
                 if profile=='hardened':
-                    elf=q.runner.run(['readelf','-h','-l','-d','-s','/work/'+b['directory']+'/hardening_probe'],label='hardening-ELF')
-                    text=elf['output'];ok=ok and passed(elf) and all(x in text for x in ['DYN','GNU_RELRO','BIND_NOW','__stack_chk_fail']) and bool(__import__('re').search(r'GNU_STACK[^\n]*\n[^\n]*RW\s',text))
+                    elf=q.runner.run(['readelf','--wide','-h','-l','-d','-s','/work/'+b['directory']+'/hardening_probe'],label='hardening-ELF')
+                    text=elf['output'];ok=ok and passed(elf) and all(x in text for x in ['DYN','GNU_RELRO','BIND_NOW','__stack_chk_fail']) and bool(__import__('re').search(r'__(?:v)?snprintf_chk',text)) and bool(__import__('re').search(r'GNU_STACK[^\n]*\bRW\b',text))
                     evidence.append(elf['evidence_path'])
-            results.append(gate(profile,'PASS' if ok else 'FAIL',{'build_audit':b['audit']},evidence))
+            details={'build_audit':b['audit']}
+            if profile=='coverage':details['demonstration_totals']=summary if ok else {}
+            results.append(gate(profile,'PASS' if ok else 'FAIL',details,evidence))
+    results.append(gate('integration','PASS' if all(r['status']=='PASS' for r in results[:4]) else 'FAIL',{'ctest_required':['infrastructure.boundaries','infrastructure.hardening'],'compiler_variants':4,'executed_tests':8}))
     return results
 
 def finish(root, report, runner, command):
     report['finished_at']=datetime.now(timezone.utc).isoformat()
     report['commands'].append('./tools/safety '+command)
+    report['mandatory_gates']['executed']=[row['name'] for row in report['gates']]
+    if command=='ci':
+        try:
+            accounting=gate_accounting(report['gates'],report['mandatory_gates']['expected'])
+            report['gates'].append(gate('gate-inventory',details=accounting))
+        except GateError as exc:
+            report['gates'].append(gate('gate-inventory','FAIL',{'reason':str(exc)}))
     report['local_state']='PASS' if report['gates'] and all(r['status']=='PASS' for r in report['gates']) else 'FAIL'
     # Only complete CI can receive the unsealed local qualification state.
     complete = command=='ci' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
-    report['overall_state']='VALIDATED_UNSEALED' if complete else 'BLOCKED' if report['blockers'] else 'FAILED'
+    report['overall_state']='VALIDATED_UNSEALED' if complete else 'FAILED' if any(r['status']=='FAIL' for r in report['gates']) else 'BLOCKED'
     if command!='ci':report['blockers'].append('This command is scoped; final aggregate qualification has not passed.')
     validate(root,'report',report)
     current,_=source_identity(root)
@@ -135,7 +148,8 @@ def finish(root, report, runner, command):
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
     lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz']},indent=2),'```']
-    (out/'bootstrap-report.md').write_text('\n\n'.join(lines)+'\n')
+    (out/'bootstrap-report.md').write_text('\n'.join(lines)+'\n')
+    atomic_json(runner.run_dir/'bootstrap-report.json',report)
     print(f"{report['overall_state']}: C {counted}/34, controls {controls}/34, P {pcount}/16; artifacts/bootstrap-report.json",flush=True)
     return 0 if complete or (command!='ci' and report['local_state']=='PASS') else 1
 
@@ -157,6 +171,7 @@ def main(argv=None):
     args=parser.parse_args(argv);root=args.candidate.resolve()
     try:
         environment_gate()
+        if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
         if args.command=='report':
             report=read_json(root/'artifacts/bootstrap-report.json');validate(root,'report',report)
             current,_=source_identity(root);validate_fresh_report(report,current,read_json(root/'toolchain.lock.json')['image_id'],file_hash(root/'safety/contract.json'))
@@ -195,9 +210,12 @@ def main(argv=None):
                 report['gates'].append(gate('selftest','PASS' if all(x['status']=='PASS' for x in report['sabotage']) else 'FAIL'))
             if args.command in ['ci','fuzz']:
                 from fuzzing import run_fuzz
-                report['fuzz']=run_fuzz(q,args.profile if args.command=='fuzz' else 'smoke')
+                report['fuzz']=run_fuzz(q,args.profile if args.command=='fuzz' else 'merge')
                 report['reuse']['clusterfuzzlite']=report['fuzz']['clusterfuzzlite']
                 report['gates'].append(gate('fuzz',report['fuzz']['status']))
+                report['gates'].append(gate('fuzz-replay','PASS' if all(v=='PASS' for v in report['fuzz']['regression_replay'].values()) else 'FAIL'))
+                report['gates'].append(gate('fuzz-exploration',report['fuzz']['exploration']['status']))
+                report['gates'].append(gate('clusterfuzzlite',report['fuzz']['clusterfuzzlite']['local_adapter_execution']))
             if args.command in ['ci','benchmark']:
                 from benchmark import run_benchmark
                 report['benchmark']=run_benchmark(q);report['gates'].append(gate('benchmark',report['benchmark']['execution_status']))
@@ -208,7 +226,11 @@ def main(argv=None):
                 tests=runner.run(['python3','-m','unittest','discover','-s','/src/tests/unit','-v'],label='python-unit-tests')
                 ok=passed(tests) and __import__('re').search(r'Ran [1-9][0-9]* tests',tests['output']) is not None
                 report['gates'].append(gate('unit','PASS' if ok else 'FAIL',evidence=[tests['evidence_path']]))
-                report['review_protocol']={'status':'PASS' if ok else 'FAIL','mode':'protocol tests with simulated agent responses','evidence':tests['evidence_path'],'live_review':'NOT_RUN; no provider enabled'}
+                report['gates'][-1]['details']={'executed_tests':int(__import__('re').search(r'Ran ([1-9][0-9]*) tests',tests['output']).group(1)) if ok else 0}
+                if args.command in ['selftest','ci']:
+                    from protocol import run_protocol
+                    report['review_protocol']=run_protocol(q)
+                    report['gates'].append(gate('review-protocol',report['review_protocol']['status'],evidence=report['review_protocol']['evidence_paths']))
             upstream=upstream_gate(root);report['reuse']['upstream_integrity']=upstream
             report['gates'].append(gate('upstream',details=upstream))
             return finish(root,report,runner,args.command)

@@ -1,0 +1,15 @@
+--- third_party/originals/friendlyanon/cmake-init/cmake-init/templates/common/cmake/prelude.cmake
++++ cmake/prelude.cmake
+@@ -1,10 +1,4 @@
+-# ---- In-source guard ----
+-
++# Adapted from friendlyanon/cmake-init's Unlicense template. See upstream.lock.json.
+ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+-  message(
+-      FATAL_ERROR
+-      "In-source builds are not supported. "
+-      "Please read the BUILDING document before trying to build this project. "
+-      "You may need to delete 'CMakeCache.txt' and 'CMakeFiles/' first."
+-  )
++  message(FATAL_ERROR "In-source builds are not supported; use a separate build directory.")
+ endif()

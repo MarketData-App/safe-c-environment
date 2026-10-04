@@ -1,0 +1,433 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tools",
+    "architecture",
+    "libc",
+    "kernel",
+    "schema_version",
+    "image_id",
+    "image_manifest",
+    "base_image",
+    "package_inventory",
+    "package_inventory_sha256",
+    "package_source",
+    "rebuild_limitations",
+    "lit_distribution"
+  ],
+  "properties": {
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gcc",
+        "clang",
+        "clang++",
+        "clang-tidy",
+        "clang-format",
+        "FileCheck",
+        "cmake",
+        "ctest",
+        "ninja",
+        "llvm-symbolizer",
+        "llvm-cov",
+        "llvm-profdata",
+        "readelf",
+        "python3",
+        "git",
+        "lit"
+      ],
+      "properties": {
+        "gcc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "clang": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "clang++": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "clang-tidy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "clang-format": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "FileCheck": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "cmake": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "ctest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "ninja": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "llvm-symbolizer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "llvm-cov": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "llvm-profdata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "readelf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "python3": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "lit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "version",
+            "module"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "architecture": {
+      "type": "string"
+    },
+    "libc": {
+      "type": "string"
+    },
+    "kernel": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "image_id": {
+      "type": "string"
+    },
+    "image_manifest": {
+      "type": "string"
+    },
+    "base_image": {
+      "type": "string"
+    },
+    "package_inventory": {
+      "type": "string"
+    },
+    "package_inventory_sha256": {
+      "type": "string"
+    },
+    "package_source": {
+      "type": "string"
+    },
+    "rebuild_limitations": {
+      "type": "string"
+    },
+    "lit_distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "url",
+        "sha256",
+        "retained_path",
+        "dependencies"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "retained_path": {
+          "type": "string"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

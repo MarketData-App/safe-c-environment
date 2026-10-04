@@ -1,7 +1,7 @@
 """Deterministic regression replay remains independent of new-crash filtering."""
 import json
 import re
-from evidence import passed
+from evidence import passed, GateError, read_json, file_hash, atomic_json
 
 def adapter_build(q, variant):
     directory='adapter/'+variant
@@ -34,14 +34,24 @@ def run_fuzz(q, profile):
     exploration={'status':'BLOCKED'}
     if builds['good']['audit']:
         q.runner.run(['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/exploration-corpus");p.mkdir(exist_ok=True);[shutil.copyfile(x,p/x.name) for x in pathlib.Path("/src/fuzz/corpus").iterdir() if x.is_file()];pathlib.Path("/work/fuzz-failures").mkdir(exist_ok=True)'],label='fuzz-corpus')
-        budget=['-runs=10000'] if profile=='smoke' else ['-max_total_time=900']
-        r=q.runner.run(['/work/'+builds['good']['directory']+'/parser_fuzzer','/work/exploration-corpus',*budget,'-seed=12345','-max_len=256','-timeout=3','-rss_limit_mb=1024','-artifact_prefix=/work/fuzz-failures/'],timeout=45 if profile=='smoke' else 930,label='adapter-exploration-'+profile)
+        limits=read_json(q.root/'safety/contract.json')['budgets']
+        amount=limits['smoke_executions'] if profile=='smoke' else limits['merge_seconds'] if profile=='merge' else limits['extended_seconds']
+        budget=['-runs='+str(amount)] if profile=='smoke' else ['-max_total_time='+str(amount)]
+        r=q.runner.run(['/work/'+builds['good']['directory']+'/parser_fuzzer','/work/exploration-corpus',*budget,'-seed=12345','-max_len=256','-timeout=3','-rss_limit_mb=1024','-artifact_prefix=/work/fuzz-failures/'],timeout=45 if profile=='smoke' else amount+30,label='adapter-exploration-'+profile)
         records.append(r['evidence_path'])
         executions=re.findall(r'#(\d+)\s+DONE',r['output']);coverage=re.findall(r'cov: (\d+)',r['output']);features=re.findall(r'ft: (\d+)',r['output'])
         failures=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps([str(p) for p in pathlib.Path("/work/fuzz-failures").iterdir()]))'],label='fuzz-failure-inventory')
         crashed=json.loads(failures['output']) if passed(failures) else ['missing evidence']
-        complete=passed(r) and not crashed and executions and coverage and int(coverage[-1])>1 and (int(executions[-1])>=10000 if profile=='smoke' else True)
-        exploration={'status':'PASS' if complete else 'FAIL','profile':profile,'executions':int(executions[-1]) if executions else 0,'coverage_edges':int(coverage[-1]) if coverage else 0,'features':int(features[-1]) if features else 0,'seed':12345,'budget':10000 if profile=='smoke' else 900,'budget_unit':'executions' if profile=='smoke' else 'seconds','failure_artifacts':crashed,'evidence_path':r['evidence_path'],'known_trigger_excluded_from_initial_corpus':True}
+        complete=passed(r) and not crashed and executions and coverage and int(coverage[-1])>1 and (int(executions[-1])>=amount if profile=='smoke' else r['seconds']>=amount)
+        saved=[]
+        listing=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps([str(p.relative_to("/work")) for folder in ["exploration-corpus","fuzz-failures"] for p in pathlib.Path("/work",folder).iterdir() if p.is_file() and not p.is_symlink() and p.stat().st_size<=256]))'],label='fuzz-retained-inputs')
+        if not passed(listing):complete=False
+        else:
+            for relative in json.loads(listing['output']):
+                if not re.fullmatch(r'(exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe corpus artifact name')
+                path=q.runner.fetch(relative,q.runner.run_dir/'fuzz-inputs'/relative)
+                saved.append({'path':str(path),'sha256':file_hash(path),'bytes':path.stat().st_size})
+        exploration={'status':'PASS' if complete else 'FAIL','profile':profile,'executions':int(executions[-1]) if executions else 0,'coverage_edges':int(coverage[-1]) if coverage else 0,'features':int(features[-1]) if features else 0,'seed':12345,'budget':amount,'budget_unit':'executions' if profile=='smoke' else 'seconds','wall_seconds':r['seconds'],'failure_artifacts':crashed,'retained_corpus':saved,'evidence_path':r['evidence_path'],'known_trigger_excluded_from_initial_corpus':True}
         ok=ok and bool(complete)
         # Every committed safe-corpus item must replay cleanly too.
         for path in sorted((q.root/'fuzz/corpus').iterdir()):

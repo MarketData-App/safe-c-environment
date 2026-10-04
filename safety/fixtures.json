@@ -44,8 +44,8 @@
         "safety/qualification/C02/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C02/good.c": "a9bfe1e1799ba5a9776c880ed655931d357aba173b431abff62b4364aed2f339",
-        "safety/qualification/C02/bad.c": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2"
+        "safety/qualification/C02/bad.c": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2",
+        "safety/qualification/C02/good.c": "a9bfe1e1799ba5a9776c880ed655931d357aba173b431abff62b4364aed2f339"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "heap-buffer-overflow",
@@ -75,9 +75,9 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C03/good.c": "2674f547d997efad179d1a7bdc760ced8a8dee3e794e57b8ede27900df6f1ec5",
         "safety/qualification/C03/bad.c": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8",
-        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3"
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C03/good.c": "2674f547d997efad179d1a7bdc760ced8a8dee3e794e57b8ede27900df6f1ec5"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "stack-buffer-overflow",
@@ -112,8 +112,8 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C04/bad.c": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
         "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C04/bad.c": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
         "safety/qualification/C04/good.c": "dc0787a8da64aec8975a960f6447f72a81e9313b9539e65bfbed02619bdde035"
       },
       "required_detector": "asan",
@@ -186,9 +186,9 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
+        "safety/qualification/C06/good.c": "bc900ddc9df6e29deaf6195c929c956bf92aabe75057d4796f64dec79013a76c",
         "safety/qualification/C06/bad.c": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
-        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
-        "safety/qualification/C06/good.c": "bc900ddc9df6e29deaf6195c929c956bf92aabe75057d4796f64dec79013a76c"
+        "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "double-free",
@@ -221,8 +221,8 @@
         "safety/qualification/C07/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C07/good.c": "1a9ef4cbbe335de9f4c5166dc026f8c37ccebb2a7ae9491e539a07a267e147c6",
-        "safety/qualification/C07/bad.c": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610"
+        "safety/qualification/C07/bad.c": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610",
+        "safety/qualification/C07/good.c": "1a9ef4cbbe335de9f4c5166dc026f8c37ccebb2a7ae9491e539a07a267e147c6"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "attempting free on address which was not malloc",
@@ -257,9 +257,9 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
+        "safety/qualification/C08/bad.c": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5",
         "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
-        "safety/qualification/C08/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
-        "safety/qualification/C08/bad.c": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5"
+        "safety/qualification/C08/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "stack-use-after-scope",
@@ -294,9 +294,9 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C09/bad.c": "ceb1a81fc2750799b7bf41163a5cd8573fc7da983732032a0cfe4f270c6d8931",
+        "safety/qualification/C09/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
         "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
-        "safety/qualification/C09/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690"
+        "safety/qualification/C09/bad.c": "ceb1a81fc2750799b7bf41163a5cd8573fc7da983732032a0cfe4f270c6d8931"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "stack-use-after-return",
@@ -366,8 +366,8 @@
         "safety/qualification/C11/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C11/good.c": "a50a528e1d980fd80039ffb84395f99a4e29b22ae1aa8c0b6ccd56c37b684dfd",
-        "safety/qualification/C11/bad.c": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a"
+        "safety/qualification/C11/bad.c": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a",
+        "safety/qualification/C11/good.c": "a50a528e1d980fd80039ffb84395f99a4e29b22ae1aa8c0b6ccd56c37b684dfd"
       },
       "required_detector": "msan",
       "expected_rule_or_class": "use-of-uninitialized-value",
@@ -434,8 +434,8 @@
         "safety/qualification/C13/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C13/good.c": "09a05b8fc4a480bb4ccb5366eb6624c02b16a24d3c38161c91686d1f395e40fe",
-        "safety/qualification/C13/bad.c": "400d6277673b5a04d059a3a792dc3e1ee7a9cb95444eddbeb9e610ca306619a9"
+        "safety/qualification/C13/bad.c": "400d6277673b5a04d059a3a792dc3e1ee7a9cb95444eddbeb9e610ca306619a9",
+        "safety/qualification/C13/good.c": "09a05b8fc4a480bb4ccb5366eb6624c02b16a24d3c38161c91686d1f395e40fe"
       },
       "required_detector": "ubsan",
       "expected_rule_or_class": "signed integer overflow",
@@ -521,8 +521,8 @@
         "safety/qualification/C16/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C16/bad.c": "a4195e727119ac87764521d1abb599cbf353383bbc315328223dcbacca65873a",
-        "safety/qualification/C16/good.c": "45b71985dd7881ef9530b61d1526845b634d1ef98c4cdb2a4c9751f13799fbb1"
+        "safety/qualification/C16/good.c": "45b71985dd7881ef9530b61d1526845b634d1ef98c4cdb2a4c9751f13799fbb1",
+        "safety/qualification/C16/bad.c": "a4195e727119ac87764521d1abb599cbf353383bbc315328223dcbacca65873a"
       },
       "required_detector": "ubsan",
       "expected_rule_or_class": "load of null pointer",
@@ -550,8 +550,8 @@
         "safety/qualification/C17/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C17/bad.c": "7c38bb97becdcc985597026d7a5744d24e7a21694b519912ce64df73a19f9c6c",
-        "safety/qualification/C17/good.c": "867729680e5af5fad4f095f4d3be93908890097665cf66c10a75ce0ed48a4fc1"
+        "safety/qualification/C17/good.c": "867729680e5af5fad4f095f4d3be93908890097665cf66c10a75ce0ed48a4fc1",
+        "safety/qualification/C17/bad.c": "7c38bb97becdcc985597026d7a5744d24e7a21694b519912ce64df73a19f9c6c"
       },
       "required_detector": "ubsan",
       "expected_rule_or_class": "misaligned address",
@@ -579,8 +579,8 @@
         "safety/qualification/C18/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C18/bad.c": "4904076f5bc3327ae28f9107710dc24edca8514b3b6590db9bede8ad441388d4",
-        "safety/qualification/C18/good.c": "c84d3af4081b580ce7b6ffcd176f0ec8db860ba429cce9f6561e20d686ff9add"
+        "safety/qualification/C18/good.c": "c84d3af4081b580ce7b6ffcd176f0ec8db860ba429cce9f6561e20d686ff9add",
+        "safety/qualification/C18/bad.c": "4904076f5bc3327ae28f9107710dc24edca8514b3b6590db9bede8ad441388d4"
       },
       "required_detector": "integer",
       "expected_rule_or_class": "unsigned integer overflow",
@@ -640,8 +640,8 @@
         "safety/qualification/C20/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C20/good.c": "740ec43eb4b58bea9eb48d38ffba179b6f399d8a0c71ed4a2ae168b15156aa92",
-        "safety/qualification/C20/bad.c": "f5780cab3169e0e6968110a4ab809582d2a5079d4f0be235bf483f31a3f213f5"
+        "safety/qualification/C20/bad.c": "f5780cab3169e0e6968110a4ab809582d2a5079d4f0be235bf483f31a3f213f5",
+        "safety/qualification/C20/good.c": "740ec43eb4b58bea9eb48d38ffba179b6f399d8a0c71ed4a2ae168b15156aa92"
       },
       "required_detector": "integer",
       "expected_rule_or_class": "implicit conversion",
@@ -674,9 +674,9 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
+        "safety/qualification/C21/bad.c": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed",
         "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
-        "safety/qualification/C21/good.c": "d7dc5aa3d47acff6697344fefc97d7f1e5860c3ee84556007901f3d54f652040",
-        "safety/qualification/C21/bad.c": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed"
+        "safety/qualification/C21/good.c": "d7dc5aa3d47acff6697344fefc97d7f1e5860c3ee84556007901f3d54f652040"
       },
       "required_detector": "tsan",
       "expected_rule_or_class": "ThreadSanitizer: data race",
@@ -709,12 +709,12 @@
         "safety/qualification/C22/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C22/good.c": "d54c4fb5d82abb872968b93932c9b47f762e6f74ed4686898c416a82bd11fdb2",
-        "safety/qualification/C22/bad.c": "a77590ff29a6f292ff3570ecc301731d230db0ebf89350899226193e2040040b"
+        "safety/qualification/C22/bad.c": "a77590ff29a6f292ff3570ecc301731d230db0ebf89350899226193e2040040b",
+        "safety/qualification/C22/good.c": "d54c4fb5d82abb872968b93932c9b47f762e6f74ed4686898c416a82bd11fdb2"
       },
       "required_detector": "gcc-analyzer",
       "expected_rule_or_class": "analyzer-file-leak",
-      "expected_source_function": "main",
+      "expected_source_function": "fixture_file_error",
       "trigger_input": null,
       "baseline_profile": "ordinary",
       "qualification_profile": "gcc-analyzer",
@@ -767,8 +767,8 @@
         "safety/qualification/C24/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C24/good.c": "cb34fb4b3f190c60769aa51deb38bd1b1f9017d4430dd41706d7688d655425fd",
-        "safety/qualification/C24/bad.c": "e570000bdabdb10ce1e350abaed66c3e072a9b9b5622aa55b58807e049deef58"
+        "safety/qualification/C24/bad.c": "e570000bdabdb10ce1e350abaed66c3e072a9b9b5622aa55b58807e049deef58",
+        "safety/qualification/C24/good.c": "cb34fb4b3f190c60769aa51deb38bd1b1f9017d4430dd41706d7688d655425fd"
       },
       "required_detector": "csa",
       "expected_rule_or_class": "core.NullDereference",
@@ -796,8 +796,8 @@
         "safety/qualification/C25/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C25/bad.c": "f932bd5f9e1bbd026a9e31ba424874394fc363c61ecec8fde5484a14a42859de",
-        "safety/qualification/C25/good.c": "cf3aee22cfde2cbeda9fe4703fa393dc6bfc4398c98e3a86e2455f3d49040055"
+        "safety/qualification/C25/good.c": "cf3aee22cfde2cbeda9fe4703fa393dc6bfc4398c98e3a86e2455f3d49040055",
+        "safety/qualification/C25/bad.c": "f932bd5f9e1bbd026a9e31ba424874394fc363c61ecec8fde5484a14a42859de"
       },
       "required_detector": "tidy",
       "expected_rule_or_class": "bugprone-sizeof-expression",
@@ -825,8 +825,8 @@
         "safety/qualification/C26/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C26/bad.c": "9d10c76ee3babba51177379efc33c16f636f1cae73b35674c3e7e3cdddb36a14",
-        "safety/qualification/C26/good.c": "0217553186bc94c6fb0e7586bf1abdacba6edc6682eb67b15ebfd5f3134912a8"
+        "safety/qualification/C26/good.c": "0217553186bc94c6fb0e7586bf1abdacba6edc6682eb67b15ebfd5f3134912a8",
+        "safety/qualification/C26/bad.c": "9d10c76ee3babba51177379efc33c16f636f1cae73b35674c3e7e3cdddb36a14"
       },
       "required_detector": "warnings",
       "expected_rule_or_class": "format-security",
@@ -854,8 +854,8 @@
         "safety/qualification/C27/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C27/good.c": "9f13a1974553dc94f88804a3434626bcbce8dd2ab77c7eb16f01d6e63ebb8adc",
-        "safety/qualification/C27/bad.c": "be1f92aed30d9fd3021e0e9a778a10a1543170c172a234a97d22b07e6ede2805"
+        "safety/qualification/C27/bad.c": "be1f92aed30d9fd3021e0e9a778a10a1543170c172a234a97d22b07e6ede2805",
+        "safety/qualification/C27/good.c": "9f13a1974553dc94f88804a3434626bcbce8dd2ab77c7eb16f01d6e63ebb8adc"
       },
       "required_detector": "warnings",
       "expected_rule_or_class": "vla",
@@ -883,8 +883,8 @@
         "safety/qualification/C28/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C28/good.c": "0d494d29bb0b70e6afe819b0603fff5a774a61a70949d4ac972ab39314e33473",
-        "safety/qualification/C28/bad.c": "ef78d3255bc86dc058bd797e2d51dfe5196b02a9ab726aa01955ccb8a3c526d8"
+        "safety/qualification/C28/bad.c": "ef78d3255bc86dc058bd797e2d51dfe5196b02a9ab726aa01955ccb8a3c526d8",
+        "safety/qualification/C28/good.c": "0d494d29bb0b70e6afe819b0603fff5a774a61a70949d4ac972ab39314e33473"
       },
       "required_detector": "ast",
       "expected_rule_or_class": "strcpy",
@@ -912,8 +912,8 @@
         "safety/qualification/C29/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C29/bad.c": "6634197a0a20f2cb15bcf1f11e39b929f3d09aaceae37b8391e0ce8b2067c84f",
-        "safety/qualification/C29/good.c": "7e6780c393005f5a4181bbd42907f1c3a64e52a0f34f8632aca66320ecc28b8e"
+        "safety/qualification/C29/good.c": "7e6780c393005f5a4181bbd42907f1c3a64e52a0f34f8632aca66320ecc28b8e",
+        "safety/qualification/C29/bad.c": "6634197a0a20f2cb15bcf1f11e39b929f3d09aaceae37b8391e0ce8b2067c84f"
       },
       "required_detector": "warnings",
       "expected_rule_or_class": "unused-result",
@@ -943,8 +943,8 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C30/good.c": "951e0ec9b5ea84921e9c6de7bef8bb3148a56a45f789d6d0b75bf5fd63354095",
         "safety/qualification/support.c": "43d30fc419bc2250cf8513a12d07af87b9a17dd75bf533bea44388116ffc34c3",
+        "safety/qualification/C30/good.c": "951e0ec9b5ea84921e9c6de7bef8bb3148a56a45f789d6d0b75bf5fd63354095",
         "safety/qualification/C30/bad.c": "fa30928948269a45638e10ac4ddcfcbaaef221a3c8b36244091c502e48f783ad"
       },
       "required_detector": "asan",
@@ -979,7 +979,7 @@
       ],
       "source_hashes": {
         "safety/qualification/C31/good.c": "7c27f49576d2b575055e207f793238fcced1f3af96b5f6a6950cdbe35acc206e",
-        "safety/qualification/C31/bad.c": "37f1b07601b4557141ec17506ed9df96add32951d0d64680512c02cbf588726b"
+        "safety/qualification/C31/bad.c": "8f734f753feb3c30a190bb8afdb307b4aa26d263ed7b1a36389b857f1eba44ed"
       },
       "required_detector": "functional",
       "expected_rule_or_class": "CONTRACT short-io",
@@ -1009,9 +1009,9 @@
         "fuzz/parser_good.c"
       ],
       "source_hashes": {
-        "fuzz/parser_bad.c": "a21cec658fc1758914bb8cac53f4f15a8c2fd1e9c7332e67eed6f3d7821c44fa",
+        "fuzz/parser_good.c": "b047be60a8036e00d0e08816dce5a05272ecef6f2bf572e3b3d1b2873ffdedc0",
         "fuzz/harness.c": "c21a43a9d8c05454df36caa9e3c78a6911e3a1d085f93d11edb770b263b644eb",
-        "fuzz/parser_good.c": "b047be60a8036e00d0e08816dce5a05272ecef6f2bf572e3b3d1b2873ffdedc0"
+        "fuzz/parser_bad.c": "a21cec658fc1758914bb8cac53f4f15a8c2fd1e9c7332e67eed6f3d7821c44fa"
       },
       "required_detector": "fuzz",
       "expected_rule_or_class": "heap-buffer-overflow",
@@ -1039,7 +1039,7 @@
         "safety/qualification/C33/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C33/bad.c": "7e6a95a71a8cec9949f68a75af23ed1df0669a0a0300905473a91b7378c06d90",
+        "safety/qualification/C33/bad.c": "0ee5d9b62b6232bb869388f5bf44d013168f5f39c7aed97ff5a12c4f9fddd835",
         "safety/qualification/C33/good.c": "947b827b4ca7c5b3a39e4ff5fd1cf0a8ff0c1a2619c4d95899dfcfef134dd43b"
       },
       "required_detector": "functional",
@@ -1068,7 +1068,7 @@
         "safety/qualification/C34/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C34/bad.c": "3293d2648365d6f09ab7ff51f8b368d525a6d2b6104e0d16e1f36138e756c749",
+        "safety/qualification/C34/bad.c": "a1c2ba285ff5b491c0f1419d247ced06d691290d4b844d78759f70cef1094717",
         "safety/qualification/C34/good.c": "be9609e969a62cc301735b063a25b0c48400796c584b4d5670cb25517288210e"
       },
       "required_detector": "functional",

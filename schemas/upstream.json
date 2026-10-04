@@ -1,0 +1,1131 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "components",
+    "files",
+    "adaptations",
+    "juliet_release",
+    "nist_131_acquisition",
+    "distributions",
+    "remote_images",
+    "notice_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "llvm/llvm-project",
+        "google/clusterfuzzlite",
+        "friendlyanon/cmake-init",
+        "arichardson/juliet-test-suite-c",
+        "trailofbits/skills",
+        "mull-project/mull",
+        "model-checking/cbmc-starter-kit",
+        "google/oss-fuzz-gen",
+        "trailofbits/buttercup",
+        "actions/checkout",
+        "actions/upload-artifact"
+      ],
+      "properties": {
+        "llvm/llvm-project": {
+          "type": "string"
+        },
+        "google/clusterfuzzlite": {
+          "type": "string"
+        },
+        "friendlyanon/cmake-init": {
+          "type": "string"
+        },
+        "arichardson/juliet-test-suite-c": {
+          "type": "string"
+        },
+        "trailofbits/skills": {
+          "type": "string"
+        },
+        "mull-project/mull": {
+          "type": "string"
+        },
+        "model-checking/cbmc-starter-kit": {
+          "type": "string"
+        },
+        "google/oss-fuzz-gen": {
+          "type": "string"
+        },
+        "trailofbits/buttercup": {
+          "type": "string"
+        },
+        "actions/checkout": {
+          "type": "string"
+        },
+        "actions/upload-artifact": {
+          "type": "string"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "url",
+              "revision",
+              "original_path",
+              "original_sha256",
+              "mode",
+              "local_path",
+              "local_sha256",
+              "license",
+              "license_evidence",
+              "used_by",
+              "checked_on"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string"
+              },
+              "license_evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "used_by": {
+                "type": "array",
+                "items": {}
+              },
+              "checked_on": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "url",
+              "revision",
+              "original_path",
+              "original_sha256",
+              "mode",
+              "local_path",
+              "local_sha256",
+              "license",
+              "license_evidence",
+              "used_by",
+              "checked_on"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string"
+              },
+              "license_evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "used_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "checked_on": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "adaptations": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C01/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C01/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C02/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C02/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C03/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C03/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C04/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C04/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C05/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C05/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C06/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C06/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C07/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C07/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C08/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C08/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C10/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C10/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C11/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C11/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C16/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C16/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C21/good.c",
+                  "safety/qualification/support.c"
+                ],
+                "properties": {
+                  "safety/qualification/C21/good.c": {
+                    "type": "string"
+                  },
+                  "safety/qualification/support.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "safety/qualification/C22/good.c"
+                ],
+                "properties": {
+                  "safety/qualification/C22/good.c": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "original_path",
+              "original_sha256",
+              "local_path",
+              "local_sha256",
+              "patch_path",
+              "patch_sha256",
+              "reason",
+              "control_sources",
+              "control_hashes"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "original_path": {
+                "type": "string"
+              },
+              "original_sha256": {
+                "type": "string"
+              },
+              "local_path": {
+                "type": "string"
+              },
+              "local_sha256": {
+                "type": "string"
+              },
+              "patch_path": {
+                "type": "string"
+              },
+              "patch_sha256": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "control_sources": {
+                "type": "array",
+                "items": {}
+              },
+              "control_hashes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        ]
+      }
+    },
+    "juliet_release": {
+      "type": "string"
+    },
+    "nist_131_acquisition": {
+      "type": "string"
+    },
+    "distributions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "url",
+          "sha256",
+          "retained_path",
+          "dependencies"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "retained_path": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {}
+          }
+        }
+      }
+    },
+    "remote_images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clusterfuzzlite-build-fuzzers",
+        "clusterfuzzlite-run-fuzzers",
+        "base-builder"
+      ],
+      "properties": {
+        "clusterfuzzlite-build-fuzzers": {
+          "type": "string"
+        },
+        "clusterfuzzlite-run-fuzzers": {
+          "type": "string"
+        },
+        "base-builder": {
+          "type": "string"
+        }
+      }
+    },
+    "notice_sha256": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

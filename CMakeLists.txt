@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
+include(cmake/prelude.cmake)
 project(safe_c_starter VERSION 0.1.0 LANGUAGES C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SAFETY_PROFILE "ordinary" CACHE STRING "Protected profile selected by outer evaluator")

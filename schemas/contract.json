@@ -1,0 +1,178 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_version",
+    "mode",
+    "cases",
+    "sabotage",
+    "subcases",
+    "budgets",
+    "coverage",
+    "required_gates"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "defect",
+          "mandatory_evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "defect": {
+            "type": "string"
+          },
+          "mandatory_evidence": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sabotage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "mutation",
+          "outcome"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mutation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "subcases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parent",
+          "name",
+          "mutation",
+          "outcome"
+        ],
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mutation": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repair_attempts",
+        "smoke_executions",
+        "merge_seconds",
+        "extended_seconds",
+        "timeout_seconds",
+        "memory_mb",
+        "pids",
+        "output_bytes",
+        "scratch_mb"
+      ],
+      "properties": {
+        "repair_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "smoke_executions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "merge_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extended_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pids": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scratch_mb": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "branch"
+      ],
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "branch": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "required_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

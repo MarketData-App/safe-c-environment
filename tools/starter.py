@@ -5,8 +5,23 @@ import os
 import re
 import shutil
 import tempfile
+import gzip
+import tarfile
 from evidence import GateError, atomic_json, bounded, file_hash, read_json
 from policy import export_inventory, baseline_identity, baseline_gate, source_identity, validate_fresh_report
+
+def package_candidate(root, identity):
+    version=read_json(root/'starter.json')['version']
+    release=root/'artifacts/releases'/('safe-c-'+version+'-'+identity[:16]+'.tar.gz')
+    release.parent.mkdir(parents=True,exist_ok=True)
+    with release.open('wb') as raw, gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='') as zipped, tarfile.open(fileobj=zipped,mode='w') as archive:
+        for relative in export_inventory(root):
+            info=archive.gettarinfo(str(root/relative),arcname=relative)
+            info.uid=info.gid=info.mtime=0;info.uname=info.gname=''
+            with (root/relative).open('rb') as source:archive.addfile(info,source)
+    result={'path':str(release),'sha256':file_hash(release),'payload_digest':identity,'version':version,'exported_files':len(export_inventory(root)),'source_identity':source_identity(root)[0],'state':'CANDIDATE_UNSEALED'}
+    atomic_json(release.with_suffix('.manifest.json'),result)
+    return result
 
 def instantiate(root, destination, name, *, baseline=None, expected=None, maintenance=False):
     if not re.fullmatch(r'[a-z][a-z0-9-]{1,62}',name):
@@ -53,6 +68,7 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
         if origin['kind']!='project-instance' or origin['origin_digest']!=expected:raise GateError('child origin binding changed')
         return {'status':'PASS','scope':'project-instance; maintenance export checks belong to starter CI','baseline_binding':value,'origin':origin,'independent_enforcement':'UNSEALED'}
     identity=baseline_identity(root)
+    bundle=package_candidate(root,identity)
     instance_root=root/'artifacts/instances'/run_dir.name
     instance_root.mkdir(parents=True,exist_ok=True)
     first=instance_root/'first project with space';second=instance_root/'second-project'
@@ -95,4 +111,4 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     try:validate_fresh_report(copied,source_identity(second)[0],lock['image_id'],file_hash(root/'safety/contract.json'))
     except GateError:copied_parent_rejected=True
     ok=bool(full_ok) and pair['status']=='PASS' and tamper_rejected and copied_parent_rejected and unchanged
-    return {'status':'PASS' if ok else 'FAIL','starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':'UNSEALED; owner licensing and independent approval pending','evidence_paths':[str(run_dir/'starter-child-command.json')]}
+    return {'status':'PASS' if ok else 'FAIL','starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'bundle':bundle,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':'UNSEALED; owner licensing and independent approval pending','evidence_paths':[str(run_dir/'starter-child-command.json')]}

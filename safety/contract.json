@@ -318,7 +318,7 @@
     "merge_seconds": 60,
     "extended_seconds": 900,
     "timeout_seconds": 10,
-    "memory_mb": 2048,
+    "memory_mb": 3072,
     "pids": 128,
     "output_bytes": 4194304,
     "scratch_mb": 2048
@@ -354,6 +354,9 @@
     "lit",
     "selftest",
     "benchmark",
-    "starter"
+    "starter",
+    "ast",
+    "qualification",
+    "review-protocol"
   ]
 }

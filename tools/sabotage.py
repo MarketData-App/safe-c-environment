@@ -57,6 +57,7 @@ def run_sabotage(root,q,report):
             if control:
                 try:control(scratch)
                 except (GateError,OSError,ValueError,KeyError):control_ok=False
+            scratch.runner.close()
             mutate(scratch)
             scratch.q.builds={}
             if scratch.runner.alive:
@@ -144,8 +145,24 @@ def run_sabotage(root,q,report):
         p10.append({'name':name,'status':'PASS' if rejected else 'FAIL','control':'PASS','evidence_paths':[],'reason':reason})
     from_rows('P10',p10)
     # Wrapper exit status is not a substitute for separately captured worker status.
-    bad=q.qualify_case('C32');masked={'exit_code':0,'new_crashes':0}
-    p11=[{'name':name,'status':'PASS' if bad['bad']=='PASS' and bad['control']=='PASS' and masked['exit_code']==0 else 'FAIL','control':bad['control'],'evidence_paths':bad['evidence_paths'],'reason':'independent real regression replay remains rejecting even when adapter summary says no new crashes / wrapper exits zero'} for name in ['zero-exit-wrapper','pre-existing-crash-filter']]
+    p11=[]
+    builds={variant:adapter_build(q,variant) for variant in ['bad','good']}
+    wrapper='''set +e
+"$1" /src/fuzz/regressions/C32 -runs=1 2>&1 | tee /work/masked-output
+status=${PIPESTATUS[0]}
+printf '%s\\n' "$status" > /work/masked-worker-status
+exit 0
+'''
+    evidence=[];outcomes={}
+    for variant,b in builds.items():
+        r=q.runner.run(['bash','-c',wrapper,'masked-wrapper','/work/'+b['directory']+'/parser_fuzzer'],label='masked-'+variant)
+        status=q.runner.run(['cat','/work/masked-worker-status'],label='masked-'+variant+'-worker-status')
+        evidence.extend([b['result']['evidence_path'],r['evidence_path'],status['evidence_path']])
+        outcomes[variant]=passed(r) and passed(status) and (int(status['output'])!=0 and 'AddressSanitizer: heap-buffer-overflow' in r['output'] if variant=='bad' else int(status['output'])==0)
+    p11.append({'name':'zero-exit-wrapper','status':'PASS' if all(outcomes.values()) else 'FAIL','control':'PASS' if outcomes['good'] else 'FAIL','evidence_paths':evidence,'reason':'Actual tee wrapper exits zero; independently captured bad worker status is nonzero with ASan finding; good worker status is zero.'})
+    replay=adapter_replay(q,builds['bad'],'pre-existing-independent-replay')
+    rejected=replay['exit_code']!=0 and replay['failure'] is None and 'AddressSanitizer: heap-buffer-overflow' in replay['output'] and 'demo_parse' in replay['output']
+    p11.append({'name':'pre-existing-crash-filter','status':'PASS' if rejected and outcomes['good'] else 'FAIL','control':'PASS' if outcomes['good'] else 'FAIL','evidence_paths':evidence+[replay['evidence_path']],'reason':'Simulated no-new-crash summary cannot erase a separately executed committed regression through the actual adapter.'})
     from_rows('P11',p11)
     from_rows('P12',[simple('P12','tidy-check-misspelled','.clang-tidy',lambda s:s.replace('bugprone-sizeof-expression','bugprone-sizeof-expresion'),configuration_gate),simple('P12','warning-weakened','cmake/Safety.cmake',lambda s:s.replace('-Wvla',''),configuration_gate)])
     def corrupt_control(s):(s.root/'safety/qualification/C01/good.c').write_text((s.root/'safety/qualification/C01/bad.c').read_text())

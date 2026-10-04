@@ -21,15 +21,15 @@ class Ledger:
 
     def repair(self, identifier, *, before_failed, after_passed, regression_identity, source_identity):
         row = self.findings[identifier]
-        if row['state'] in {'VERIFIED','REJECTED','DUPLICATE'}:
+        if row['state'] in {'VERIFIED','REJECTED','DUPLICATE','BLOCKED'}:
             raise GateError('terminal finding cannot be silently reopened')
+        if type(before_failed) is not bool or type(after_passed) is not bool or not regression_identity or not source_identity:
+            raise GateError('invalid behavioral verification evidence')
         row['attempts'] += 1
         row['history'].append({'attempt':row['attempts'],'before_failed':before_failed,'after_passed':after_passed,'regression_identity':regression_identity,'source_identity':source_identity})
-        if type(before_failed) is not bool or type(after_passed) is not bool or not regression_identity:
-            raise GateError('invalid behavioral verification evidence')
         if before_failed and after_passed:
             row['state']='VERIFIED'; row['verification']=row['history'][-1]
-        elif row['attempts']>=self.budget or (len(row['history'])>=3 and len({x['source_identity'] for x in row['history'][-3:]})==1):
+        elif row['attempts']>=self.budget or (len(row['history'])>=3 and len({x['source_identity'] for x in row['history'][-3:]})==1) or (len(row['history'])>=4 and [x['source_identity'] for x in row['history'][-4:-2]]==[x['source_identity'] for x in row['history'][-2:]]):
             row['state']='BLOCKED'
         else:
             row['state']='UNRESOLVED'

@@ -1,1 +1,3 @@
-CHECK: stack-use-after-return
+CHECK-DAG: stack-use-after-return
+CHECK-DAG: /src/safety/qualification/C09/bad.c
+CHECK-DAG: main

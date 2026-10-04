@@ -1,1 +1,3 @@
-CHECK: stack-use-after-scope
+CHECK-DAG: stack-use-after-scope
+CHECK-DAG: /src/safety/qualification/C08/bad.c
+CHECK-DAG: main

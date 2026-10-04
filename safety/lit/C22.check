@@ -1,1 +1,2 @@
-CHECK: analyzer-file-leak
+CHECK-DAG: analyzer-file-leak
+CHECK-DAG: /src/safety/qualification/C22/bad.c

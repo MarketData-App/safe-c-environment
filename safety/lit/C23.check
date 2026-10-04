@@ -1,1 +1,2 @@
-CHECK: analyzer-double-fclose
+CHECK-DAG: analyzer-double-fclose
+CHECK-DAG: /src/safety/qualification/C23/bad.c

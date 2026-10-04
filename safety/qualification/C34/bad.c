@@ -10,7 +10,8 @@ int main(int argc, char **argv) {
     unsigned input = 256U;
     uint8_t out = (uint8_t)input;
     if ((unsigned)out != input) {
-        fprintf(stderr, "PROPERTY round-trip: 256 becomes %u\n", (unsigned)out);
+        fprintf(stderr, "PROPERTY round-trip: 256 becomes %u at %s:%d main\n", (unsigned)out,
+                __FILE__, __LINE__);
         return 1;
     }
     return 0;

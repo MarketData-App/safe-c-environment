@@ -1,1 +1,3 @@
-CHECK: implicit conversion
+CHECK-DAG: implicit conversion
+CHECK-DAG: /src/safety/qualification/C20/bad.c
+CHECK-DAG: main

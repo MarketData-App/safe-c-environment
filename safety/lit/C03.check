@@ -1,1 +1,3 @@
-CHECK: stack-buffer-overflow
+CHECK-DAG: stack-buffer-overflow
+CHECK-DAG: /src/safety/qualification/C03/bad.c
+CHECK-DAG: main

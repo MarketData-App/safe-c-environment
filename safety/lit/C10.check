@@ -1,1 +1,3 @@
-CHECK: LeakSanitizer: detected memory leaks
+CHECK-DAG: LeakSanitizer: detected memory leaks
+CHECK-DAG: /src/safety/qualification/C10/bad.c
+CHECK-DAG: fixture_leak

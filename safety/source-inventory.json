@@ -173,7 +173,7 @@
       ]
     },
     "safety/qualification/C31/bad.c": {
-      "sha256": "37f1b07601b4557141ec17506ed9df96add32951d0d64680512c02cbf588726b",
+      "sha256": "8f734f753feb3c30a190bb8afdb307b4aa26d263ed7b1a36389b857f1eba44ed",
       "role": "qualification-only",
       "targets": [
         "C31_bad"
@@ -271,7 +271,7 @@
       ]
     },
     "safety/qualification/C33/bad.c": {
-      "sha256": "7e6a95a71a8cec9949f68a75af23ed1df0669a0a0300905473a91b7378c06d90",
+      "sha256": "0ee5d9b62b6232bb869388f5bf44d013168f5f39c7aed97ff5a12c4f9fddd835",
       "role": "qualification-only",
       "targets": [
         "C33_bad"
@@ -285,7 +285,7 @@
       ]
     },
     "safety/qualification/C34/bad.c": {
-      "sha256": "3293d2648365d6f09ab7ff51f8b368d525a6d2b6104e0d16e1f36138e756c749",
+      "sha256": "a1c2ba285ff5b491c0f1419d247ced06d691290d4b844d78759f70cef1094717",
       "role": "qualification-only",
       "targets": [
         "C34_bad"
@@ -488,7 +488,7 @@
       ]
     },
     "tests/integration/hardening.c": {
-      "sha256": "10ce6f6b7d69aafad68e3852be3f6c60306f782c28aa525463654d543d298748",
+      "sha256": "24c5ce9bf2d9f0776ef3e7df62fb685e189148e40eced43ebec4a0b6b34026c6",
       "role": "isolated-demo",
       "targets": [
         "hardening_probe"

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import shutil
 import signal
 import subprocess
 import time
@@ -105,6 +106,19 @@ class Runner:
     def start(self):
         if self.alive:
             return
+        # Copy only fingerprinted, non-secret inputs. Never expose repository
+        # history, local environment files or prior reports to native programs.
+        from policy import source_files
+        snapshot = self.scratch / 'source-snapshot'
+        if snapshot.exists():
+            shutil.rmtree(snapshot)
+        snapshot.mkdir()
+        for relative in source_files(self.root):
+            destination = snapshot / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(self.root / relative, destination)
+        for directory in ['src', 'include']:
+            (snapshot / directory).mkdir(exist_ok=True)
         argv = ['docker', 'run', '-d', '--pull=never', '--name', self.name,
                 '--network=none', '--read-only', '--cap-drop=ALL',
                 '--security-opt=no-new-privileges', '--memory=3g', '--memory-swap=3g',
@@ -113,7 +127,7 @@ class Runner:
                 '--user', f'{os.getuid()}:{os.getgid()}',
                 '--tmpfs', '/tmp:rw,nosuid,nodev,size=256m',
                 '--tmpfs', f'/work:rw,exec,nosuid,nodev,size=2g,uid={os.getuid()},gid={os.getgid()}',
-                '--mount', f'type=bind,src={self.root},dst=/src,readonly',
+                '--mount', f'type=bind,src={snapshot},dst=/src,readonly',
                 '--workdir', '/work', self.lock['image_id'],
                 'python3', '-c', 'import time; time.sleep(43200)']
         result = bounded(argv, timeout=30)

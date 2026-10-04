@@ -1,0 +1,1782 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "files",
+    "format_files"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safety/qualification/support.c",
+        "safety/qualification/C21/good.c",
+        "safety/qualification/C21/bad.c",
+        "safety/qualification/C01/good.c",
+        "safety/qualification/C01/bad.c",
+        "safety/qualification/C15/good.c",
+        "safety/qualification/C15/bad.c",
+        "safety/qualification/C07/good.c",
+        "safety/qualification/C07/bad.c",
+        "safety/qualification/C29/good.c",
+        "safety/qualification/C29/bad.c",
+        "safety/qualification/C08/good.c",
+        "safety/qualification/C08/bad.c",
+        "safety/qualification/C17/good.c",
+        "safety/qualification/C17/bad.c",
+        "safety/qualification/C13/good.c",
+        "safety/qualification/C13/bad.c",
+        "safety/qualification/C14/good.c",
+        "safety/qualification/C14/bad.c",
+        "safety/qualification/C26/good.c",
+        "safety/qualification/C26/bad.c",
+        "safety/qualification/C31/good.c",
+        "safety/qualification/C31/bad.c",
+        "safety/qualification/C05/good.c",
+        "safety/qualification/C05/bad.c",
+        "safety/qualification/C23/good.c",
+        "safety/qualification/C23/bad.c",
+        "safety/qualification/C30/good.c",
+        "safety/qualification/C30/bad.c",
+        "safety/qualification/C10/good.c",
+        "safety/qualification/C10/bad.c",
+        "safety/qualification/C19/good.c",
+        "safety/qualification/C19/bad.c",
+        "safety/qualification/C12/good.c",
+        "safety/qualification/C12/bad.c",
+        "safety/qualification/C33/good.c",
+        "safety/qualification/C33/bad.c",
+        "safety/qualification/C34/good.c",
+        "safety/qualification/C34/bad.c",
+        "safety/qualification/C25/good.c",
+        "safety/qualification/C25/bad.c",
+        "safety/qualification/C16/good.c",
+        "safety/qualification/C16/bad.c",
+        "safety/qualification/C06/good.c",
+        "safety/qualification/C06/bad.c",
+        "safety/qualification/C11/good.c",
+        "safety/qualification/C11/bad.c",
+        "safety/qualification/C22/good.c",
+        "safety/qualification/C22/bad.c",
+        "safety/qualification/C20/good.c",
+        "safety/qualification/C20/bad.c",
+        "safety/qualification/C03/good.c",
+        "safety/qualification/C03/bad.c",
+        "safety/qualification/C09/good.c",
+        "safety/qualification/C09/bad.c",
+        "safety/qualification/C24/good.c",
+        "safety/qualification/C24/bad.c",
+        "safety/qualification/C18/good.c",
+        "safety/qualification/C18/bad.c",
+        "safety/qualification/C27/good.c",
+        "safety/qualification/C27/bad.c",
+        "safety/qualification/C28/good.c",
+        "safety/qualification/C28/bad.c",
+        "safety/qualification/C02/good.c",
+        "safety/qualification/C02/bad.c",
+        "safety/qualification/C04/good.c",
+        "safety/qualification/C04/bad.c",
+        "tests/integration/hardening.c",
+        "tests/integration/demo.c",
+        "fuzz/harness.c",
+        "fuzz/parser_bad.c",
+        "fuzz/replay-main.c",
+        "fuzz/parser_good.c"
+      ],
+      "properties": {
+        "safety/qualification/support.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C21/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C21/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C01/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C01/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C15/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C15/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C07/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C07/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C29/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C29/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C08/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C08/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C17/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C17/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C13/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C13/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C14/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C14/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C26/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C26/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C31/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C31/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C05/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C05/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C23/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C23/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C30/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C30/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C10/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C10/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C19/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C19/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C12/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C12/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C33/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C33/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C34/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C34/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C25/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C25/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C16/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C16/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C06/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C06/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C11/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C11/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C22/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C22/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C20/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C20/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C03/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C03/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C09/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C09/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C24/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C24/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C18/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C18/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C27/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C27/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C28/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C28/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C02/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C02/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C04/good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "safety/qualification/C04/bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "tests/integration/hardening.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "tests/integration/demo.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fuzz/harness.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fuzz/parser_bad.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fuzz/replay-main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fuzz/parser_good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "format_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

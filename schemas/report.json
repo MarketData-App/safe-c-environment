@@ -316,6 +316,53 @@
       "items": {
         "type": "string"
       }
+    },
+    "source_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "porcelain",
+        "dirty_and_untracked_file_bytes_included"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "RECORDED",
+            "NO_GIT_CHECKOUT"
+          ]
+        },
+        "porcelain": {
+          "type": "string"
+        },
+        "dirty_and_untracked_file_bytes_included": {
+          "const": true
+        }
+      }
+    },
+    "mandatory_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected",
+        "executed"
+      ],
+      "properties": {
+        "expected": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "executed": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
@@ -344,6 +391,8 @@
     "application_coverage",
     "blockers",
     "commands",
-    "limitations"
+    "limitations",
+    "source_control",
+    "mandatory_gates"
   ]
 }

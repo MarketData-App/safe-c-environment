@@ -1,1 +1,3 @@
-CHECK: heap-use-after-free
+CHECK-DAG: heap-use-after-free
+CHECK-DAG: /src/safety/qualification/C05/bad.c
+CHECK-DAG: fixture_read

@@ -11,7 +11,8 @@ int main(int argc, char **argv) {
     size_t length = 4;
     int allowed = length < capacity;
     if (!allowed) {
-        fprintf(stderr, "PROPERTY exact-bound: length=4 capacity=4\n");
+        fprintf(stderr, "PROPERTY exact-bound: length=4 capacity=4 at %s:%d main\n", __FILE__,
+                __LINE__);
         return 1;
     }
     return 0;

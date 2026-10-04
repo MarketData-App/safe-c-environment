@@ -101,11 +101,15 @@ class Qualifier:
                     result=self.runner.run(['clang-tidy','--config-file=/src/.clang-tidy','/src/'+f[variant+'_sources'][0],'--','-std=c17'],label=label)
                 elif det=='ast':
                     raw=self.runner.run(['clang','-std=c17','-Xclang','-ast-dump=json','-fsyntax-only','/src/'+f[variant+'_sources'][0]],label=label+'-ast')
+                    row['evidence_paths'].append(raw['evidence_path'])
                     result=dict(raw)
                     if passed(raw):
-                        banned=ast_banned_calls(json.loads(raw['output']))
+                        tree=json.loads(raw['output']);banned=ast_banned_calls(tree)
                         result['exit_code']=1 if banned else 0
-                        result['output']='AST/API policy banned callee: '+', '.join(banned) if banned else 'AST/API policy clean'
+                        sites=ast_call_sites(tree)
+                        result['output']='\n'.join('AST/API policy banned callee: '+name+' in '+function+' /src/'+f[variant+'_sources'][0]+(' macro expansion' if macro else ' direct call') for name,function,macro in sites) if banned else 'AST/API policy clean'
+                        if cid=='C28' and variant=='bad' and not (any(x[2] for x in sites) and any(not x[2] for x in sites)):
+                            result['failure']='MISSING_RAW_OR_MACRO_POLICY_PROBE'
                         result['evidence_path']=str(Path(raw['evidence_path']).with_name(label+'-policy.json'))
                         atomic_json(Path(result['evidence_path']),result)
                 else:
@@ -203,3 +207,22 @@ def ast_banned_calls(node):
             for child in value:walk(child,in_call)
     walk(node)
     return sorted(result)
+
+def ast_call_sites(node):
+    sites=[]
+    def callee(value):
+        if value.get('kind')=='DeclRefExpr':return value.get('referencedDecl',{}).get('name')
+        for child in value.get('inner',[]):
+            name=callee(child)
+            if name:return name
+    def walk(value,function=''):
+        if not isinstance(value,dict):return
+        if value.get('kind')=='FunctionDecl':function=value.get('name','')
+        if value.get('kind')=='CallExpr' and value.get('inner'):
+            name=callee(value['inner'][0])
+            if name in {'gets','strcpy','strcat','sprintf','atoi','system','popen','alloca'}:
+                begin=value.get('range',{}).get('begin',{})
+                sites.append((name,function,'expansionLoc' in begin))
+        for child in value.get('inner',[]):walk(child,function)
+    walk(node)
+    return sites

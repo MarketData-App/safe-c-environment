@@ -1,1 +1,3 @@
-CHECK: CONTRACT short-io
+CHECK-DAG: CONTRACT short-io
+CHECK-DAG: /src/safety/qualification/C31/bad.c
+CHECK-DAG: main

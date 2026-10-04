@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_version",
+    "revision",
+    "selection_criteria",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "string"
+    },
+    "selection_criteria": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "upstream_path",
+          "weakness",
+          "detector",
+          "expected",
+          "status",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "upstream_path": {
+            "type": "string"
+          },
+          "weakness": {
+            "type": "string"
+          },
+          "detector": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

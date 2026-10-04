@@ -1,1 +1,3 @@
-CHECK: strcpy
+CHECK-DAG: strcpy
+CHECK-DAG: /src/safety/qualification/C28/bad.c
+CHECK-DAG: main

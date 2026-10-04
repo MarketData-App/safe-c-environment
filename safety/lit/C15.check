@@ -1,1 +1,3 @@
-CHECK: division by zero
+CHECK-DAG: division by zero
+CHECK-DAG: /src/safety/qualification/C15/bad.c
+CHECK-DAG: main

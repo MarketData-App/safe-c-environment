@@ -10,7 +10,8 @@ int main(int argc, char **argv) {
     (void)argv;
     size_t total = fixture_partial_write(4);
     if (total != 4) {
-        fprintf(stderr, "CONTRACT short-io: expected 4 actual %zu\n", total);
+        fprintf(stderr, "CONTRACT short-io: expected 4 actual %zu at %s:%d main\n", total, __FILE__,
+                __LINE__);
         return 1;
     }
     return 0;

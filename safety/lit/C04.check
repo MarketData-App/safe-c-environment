@@ -1,1 +1,3 @@
-CHECK: global-buffer-overflow
+CHECK-DAG: global-buffer-overflow
+CHECK-DAG: /src/safety/qualification/C04/bad.c
+CHECK-DAG: main
