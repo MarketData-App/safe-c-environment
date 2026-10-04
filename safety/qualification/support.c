@@ -38,34 +38,53 @@ static volatile int shared;
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static atomic_int ready;
 static int synchronized;
-static void *worker(void *unused) {
-    (void)unused;
+static int observed;
+static void start_workers(void) {
     atomic_fetch_add_explicit(&ready, 1, memory_order_relaxed);
     while (atomic_load_explicit(&ready, memory_order_relaxed) < 2) {
     }
+}
+static void *writer_worker(void *unused) {
+    (void)unused;
+    start_workers();
+    for (int i = 1; i <= 10000; ++i) {
+        if (synchronized)
+            pthread_mutex_lock(&lock);
+        shared = i;
+        if (synchronized)
+            pthread_mutex_unlock(&lock);
+        if ((i % 256) == 0)
+            (void)sched_yield();
+    }
+    return NULL;
+}
+static void *reader_worker(void *unused) {
+    (void)unused;
+    start_workers();
     for (int i = 0; i < 10000; ++i) {
         if (synchronized)
             pthread_mutex_lock(&lock);
-        ++shared;
-        if ((i % 256) == 0)
-            (void)sched_yield();
+        observed = shared;
         if (synchronized)
             pthread_mutex_unlock(&lock);
+        if ((i % 256) == 0)
+            (void)sched_yield();
     }
     return NULL;
 }
 int fixture_threads(int safe) {
     pthread_t threads[2];
     shared = 0;
+    observed = 0;
     synchronized = safe;
     atomic_store(&ready, 0);
-    if (pthread_create(&threads[0], NULL, worker, NULL) != 0)
+    if (pthread_create(&threads[0], NULL, writer_worker, NULL) != 0)
         return 2;
-    if (pthread_create(&threads[1], NULL, worker, NULL) != 0)
+    if (pthread_create(&threads[1], NULL, reader_worker, NULL) != 0)
         exit(2);
     if (pthread_join(threads[0], NULL) != 0)
         return 2;
     if (pthread_join(threads[1], NULL) != 0)
         return 2;
-    return shared != 20000 ? 1 : 0;
+    return shared != 10000 || observed < 0 || observed > 10000 ? 1 : 0;
 }
