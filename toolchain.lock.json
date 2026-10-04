@@ -1,0 +1,103 @@
+{
+  "tools": {
+    "gcc": {
+      "path": "/usr/bin/gcc",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "version": "gcc (Debian 14.2.0-19) 14.2.0"
+    },
+    "clang": {
+      "path": "/usr/lib/llvm-19/bin/clang",
+      "sha256": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a",
+      "version": "Debian clang version 19.1.7 (3+b1)"
+    },
+    "clang++": {
+      "path": "/usr/lib/llvm-19/bin/clang++",
+      "sha256": "0a3c55936ac43954fbe4914e6e73b577ca9e35e75d89ef13d3e28c187f41ca1a",
+      "version": "Debian clang version 19.1.7 (3+b1)"
+    },
+    "clang-tidy": {
+      "path": "/usr/lib/llvm-19/bin/clang-tidy",
+      "sha256": "9ebd2c4f2a123c058f4744e9a02a8000ab9ba22f9b835958dfda7c4d7de2527c",
+      "version": "Debian LLVM version 19.1.7"
+    },
+    "clang-format": {
+      "path": "/usr/lib/llvm-19/bin/clang-format",
+      "sha256": "1f3dfb3ab441c398f7235af92093a94ab817f729d88d9af20952f2ce14b42d23",
+      "version": "Debian clang-format version 19.1.7 (3+b1)"
+    },
+    "FileCheck": {
+      "path": "/usr/lib/llvm-19/bin/FileCheck",
+      "sha256": "4880cbfea92e2ef34ec1529f76c8b520293130f96a06d511601d5b22375f61ac",
+      "version": "Debian LLVM version 19.1.7"
+    },
+    "cmake": {
+      "path": "/usr/bin/cmake",
+      "sha256": "9a2692f4d712265eb29c90c3366bfc40df400ea586b0477edabbcf3bae745dc1",
+      "version": "cmake version 3.31.6"
+    },
+    "ctest": {
+      "path": "/usr/bin/ctest",
+      "sha256": "1ddd40c3d50e0662e98413f06d2742f5839f56c8b25e2035043066d6a047eeba",
+      "version": "ctest version 3.31.6"
+    },
+    "ninja": {
+      "path": "/usr/bin/ninja",
+      "sha256": "e8e646527e23aa7a66d0f04b86b89f1bb2f25edcc1c5e402a0989e5364c8779b",
+      "version": "1.12.1"
+    },
+    "llvm-symbolizer": {
+      "path": "/usr/lib/llvm-19/bin/llvm-symbolizer",
+      "sha256": "3e6e368a778787eda7cefc0ad6a08573fdc2ee5fd14823de05c34d36bcdb1ae8",
+      "version": "llvm-symbolizer"
+    },
+    "llvm-cov": {
+      "path": "/usr/lib/llvm-19/bin/llvm-cov",
+      "sha256": "8421a134d7c6bc9ca8dc1fb5b9ef40adc6457b78f5066b6202b2072256f83866",
+      "version": "Debian LLVM version 19.1.7"
+    },
+    "llvm-profdata": {
+      "path": "/usr/lib/llvm-19/bin/llvm-profdata",
+      "sha256": "37768e7a46a090f7af39a1490d14f6f1c7b2567c31030069b3caa74d5c429531",
+      "version": "Debian LLVM version 19.1.7"
+    },
+    "readelf": {
+      "path": "/usr/bin/readelf",
+      "sha256": "4a387d80a70e6e97ef940a666fab59d5c38e7cf19ff907192fa983cb8505a7de",
+      "version": "GNU readelf (GNU Binutils for Debian) 2.44"
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "889c603f0d17cb54060951bcf4c4f9b8c9ebd9e52b392c70209bbb9755d797d9",
+      "version": "Python 3.13.5"
+    },
+    "git": {
+      "path": "/usr/bin/git",
+      "sha256": "356db14e102d68a1a37d8a1ac577dfd678d45d46e92f468bef8b7154e7bfdc60",
+      "version": "git version 2.47.3"
+    },
+    "lit": {
+      "path": "/opt/lit/lit/__init__.py",
+      "sha256": "34585f385979d8fe3dc6a46cc223ab981cab4f7b504acf148459219105321858",
+      "version": "23.1.2",
+      "module": "lit.main"
+    }
+  },
+  "architecture": "x86_64",
+  "libc": "glibc 2.41",
+  "kernel": "6.12.107+deb13-cloud-amd64",
+  "schema_version": 1,
+  "image_id": "sha256:258f16bc894d8c5d1672d57bc52cc1b11430e912b51ec4d66a4445fb75caac0f",
+  "image_manifest": "sha256:258f16bc894d8c5d1672d57bc52cc1b11430e912b51ec4d66a4445fb75caac0f",
+  "base_image": "debian@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a",
+  "package_inventory": "container/packages.lock",
+  "package_inventory_sha256": "ede98a1de3cbbfd7573a52207bdb261c7a2cb1f3e2c51b3c7e221890c5d995c2",
+  "package_source": "https://deb.debian.org/debian trixie; debian-security trixie-security",
+  "rebuild_limitations": "Transitive packages retained in exact built image and inventory; APT recipe is not a snapshot-complete rebuild. Offline qualification uses image_id only; upgrades require acquisition and full requalification.",
+  "lit_distribution": {
+    "version": "23.1.2",
+    "url": "https://files.pythonhosted.org/packages/e1/6c/ecdb7232f8a54acca1fc5d08e7277a2ae425b7d332bf410ffbdb5d9d321b/lit-23.1.2-py3-none-any.whl",
+    "sha256": "d3b90c32edf5d4f2686d387ac58f35e2f5eb9c87e62ca00d360fb6b7bde080ce",
+    "retained_path": "container/lit-23.1.2-py3-none-any.whl",
+    "dependencies": []
+  }
+}

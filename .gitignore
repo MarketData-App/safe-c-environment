@@ -54,3 +54,8 @@ vgcore.*
 *.swp
 *~
 .DS_Store
+
+# Safety qualification evidence; never export previous passing status
+artifacts/
+__pycache__/
+*.pyc

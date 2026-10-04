@@ -1,0 +1,1016 @@
+{
+  "schema_version": 1,
+  "components": {
+    "llvm/llvm-project": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+    "google/clusterfuzzlite": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+    "friendlyanon/cmake-init": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+    "arichardson/juliet-test-suite-c": "f88433e3443648a17671398797a04ea1f8e1a274",
+    "trailofbits/skills": "82fe8226252622fa807643bdca1710901198553a",
+    "mull-project/mull": "ec4a9d3e876a6e8404cc405f170a37ad912176a1",
+    "model-checking/cbmc-starter-kit": "283e811a537270011c68cd59f77191aa36a9ef9c",
+    "google/oss-fuzz-gen": "c0982c5d40a7e93ce70fd319705804b9a29954d0",
+    "trailofbits/buttercup": "298c01fbff3bf0bf166c87856acd7e42f94f7157",
+    "actions/checkout": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+    "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+  },
+  "files": [
+    {
+      "id": "actions/checkout:LICENSE",
+      "url": "https://github.com/actions/checkout",
+      "revision": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+      "original_path": "LICENSE",
+      "original_sha256": "3e855ffa704114a51628ef8f0bf3aeb41728adf9d9070e263bf58aa5640b0eb5",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/actions/checkout/LICENSE",
+      "local_sha256": "3e855ffa704114a51628ef8f0bf3aeb41728adf9d9070e263bf58aa5640b0eb5",
+      "license": "MIT",
+      "license_evidence": [
+        "third_party/originals/actions/checkout/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "actions/checkout:README.md",
+      "url": "https://github.com/actions/checkout",
+      "revision": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+      "original_path": "README.md",
+      "original_sha256": "3df94d90d0df6df603a549cc779bc6cab4b21f8deef82eb6fef1f4d88b788174",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/actions/checkout/README.md",
+      "local_sha256": "3df94d90d0df6df603a549cc779bc6cab4b21f8deef82eb6fef1f4d88b788174",
+      "license": "MIT",
+      "license_evidence": [
+        "third_party/originals/actions/checkout/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "actions/upload-artifact:LICENSE",
+      "url": "https://github.com/actions/upload-artifact",
+      "revision": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+      "original_path": "LICENSE",
+      "original_sha256": "3e855ffa704114a51628ef8f0bf3aeb41728adf9d9070e263bf58aa5640b0eb5",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/actions/upload-artifact/LICENSE",
+      "local_sha256": "3e855ffa704114a51628ef8f0bf3aeb41728adf9d9070e263bf58aa5640b0eb5",
+      "license": "MIT",
+      "license_evidence": [
+        "third_party/originals/actions/upload-artifact/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "actions/upload-artifact:README.md",
+      "url": "https://github.com/actions/upload-artifact",
+      "revision": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+      "original_path": "README.md",
+      "original_sha256": "82e3d7226dabea938b107b93e015aa816150d6894fff631064aa2884c26771f7",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/actions/upload-artifact/README.md",
+      "local_sha256": "82e3d7226dabea938b107b93e015aa816150d6894fff631064aa2884c26771f7",
+      "license": "MIT",
+      "license_evidence": [
+        "third_party/originals/actions/upload-artifact/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:CMakeLists.txt",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "CMakeLists.txt",
+      "original_sha256": "4ce7117236df5131cd310cf5812a8cea29765a3db834c1ab8999edcc83f98920",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/CMakeLists.txt",
+      "local_sha256": "4ce7117236df5131cd310cf5812a8cea29765a3db834c1ab8999edcc83f98920",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:LICENSE",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "LICENSE",
+      "original_sha256": "e2cedbc8f50278fce600d9e4996b153c91f3d49124acf98c43c3c02c418f4afa",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/LICENSE",
+      "local_sha256": "e2cedbc8f50278fce600d9e4996b153c91f3d49124acf98c43c3c02c418f4afa",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:README.md",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "README.md",
+      "original_sha256": "1082b21b5affc92c1fa9c44dd930471031bf574f610f9857ed3575f0fe7fa819",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/README.md",
+      "local_sha256": "1082b21b5affc92c1fa9c44dd930471031bf574f610f9857ed3575f0fe7fa819",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE121_Stack_Based_Buffer_Overflow/s01/CWE121_Stack_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE121_Stack_Based_Buffer_Overflow/s01/CWE121_Stack_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "original_sha256": "af233bbbf5f9109c5cac4792cbf81c1c19cd81ce9b0cf9389fc45f9fe2a97d1f",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE121_Stack_Based_Buffer_Overflow/s01/CWE121_Stack_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "local_sha256": "af233bbbf5f9109c5cac4792cbf81c1c19cd81ce9b0cf9389fc45f9fe2a97d1f",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE122_Heap_Based_Buffer_Overflow/s01/CWE122_Heap_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE122_Heap_Based_Buffer_Overflow/s01/CWE122_Heap_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "original_sha256": "ef8ca10e78af970e05ddba8d8b08611abd92ff4b4ae721795ce5e41736d7fa4a",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE122_Heap_Based_Buffer_Overflow/s01/CWE122_Heap_Based_Buffer_Overflow__char_type_overrun_memcpy_01.c",
+      "local_sha256": "ef8ca10e78af970e05ddba8d8b08611abd92ff4b4ae721795ce5e41736d7fa4a",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_calloc_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_calloc_01.c",
+      "original_sha256": "7d9870716c196843fd77e84c4ce46535707753353be94a0fc7a589fba3c7cee1",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_calloc_01.c",
+      "local_sha256": "7d9870716c196843fd77e84c4ce46535707753353be94a0fc7a589fba3c7cee1",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_01.c",
+      "original_sha256": "602cbb00e0d93e50698adc9fbc55bdfa9d50b70ddefdf76f4f43be76bf08e0a2",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE401_Memory_Leak/s01/CWE401_Memory_Leak__char_malloc_01.c",
+      "local_sha256": "602cbb00e0d93e50698adc9fbc55bdfa9d50b70ddefdf76f4f43be76bf08e0a2",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_01.c",
+      "original_sha256": "01449e5f54ffd353aefba62efd39ba0afe2f4052be6a7dfe222823712948b97a",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_char_01.c",
+      "local_sha256": "01449e5f54ffd353aefba62efd39ba0afe2f4052be6a7dfe222823712948b97a",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_int64_t_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_int64_t_01.c",
+      "original_sha256": "c7da5fa367c11d053b3c810a2dc82fc836147d7fd892fc6a16ff3cd85ed76dda",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE415_Double_Free/s01/CWE415_Double_Free__malloc_free_int64_t_01.c",
+      "local_sha256": "c7da5fa367c11d053b3c810a2dc82fc836147d7fd892fc6a16ff3cd85ed76dda",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_01.c",
+      "original_sha256": "fa84a6bb9df36a8a1ab4d33a7064746d9037247f7599d3cd39659478d4b7f42e",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_char_01.c",
+      "local_sha256": "fa84a6bb9df36a8a1ab4d33a7064746d9037247f7599d3cd39659478d4b7f42e",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_int64_t_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_int64_t_01.c",
+      "original_sha256": "d90dee01e1dd1070f227731d41425ac6225a2576463399840fc6d3f621a2a6a7",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE416_Use_After_Free/CWE416_Use_After_Free__malloc_free_int64_t_01.c",
+      "local_sha256": "d90dee01e1dd1070f227731d41425ac6225a2576463399840fc6d3f621a2a6a7",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__char_pointer_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__char_pointer_01.c",
+      "original_sha256": "a9cffd8b42a25f52346298107b6c9102c59e79268cc56e422aa2fdf5db30f8eb",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__char_pointer_01.c",
+      "local_sha256": "a9cffd8b42a25f52346298107b6c9102c59e79268cc56e422aa2fdf5db30f8eb",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__double_array_malloc_no_init_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__double_array_malloc_no_init_01.c",
+      "original_sha256": "3dbfdd5c4a229b78902b5129ea421984b99b26032b2c8116df2159f42f8ccf11",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE457_Use_of_Uninitialized_Variable/s01/CWE457_Use_of_Uninitialized_Variable__double_array_malloc_no_init_01.c",
+      "local_sha256": "3dbfdd5c4a229b78902b5129ea421984b99b26032b2c8116df2159f42f8ccf11",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__char_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__char_01.c",
+      "original_sha256": "ea6bfbde949d7d456d8324ebd52d4fa946c3ec341a7cdb86b003f4b2f7cd5070",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__char_01.c",
+      "local_sha256": "ea6bfbde949d7d456d8324ebd52d4fa946c3ec341a7cdb86b003f4b2f7cd5070",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_01.c",
+      "original_sha256": "202407bf5b3847ccbbaa8e8b1fa78f7d53742472e7ffbf0e4d07e745a0ac5097",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE476_NULL_Pointer_Dereference/CWE476_NULL_Pointer_Dereference__int_01.c",
+      "local_sha256": "202407bf5b3847ccbbaa8e8b1fa78f7d53742472e7ffbf0e4d07e745a0ac5097",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_01.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_01.c",
+      "original_sha256": "8640a557238fe74e959e1a9a2dff0fa27453a2cf5771c4f516907b03eaeebb25",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcases/CWE775_Missing_Release_of_File_Descriptor_or_Handle/CWE775_Missing_Release_of_File_Descriptor_or_Handle__fopen_no_close_01.c",
+      "local_sha256": "8640a557238fe74e959e1a9a2dff0fa27453a2cf5771c4f516907b03eaeebb25",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcasesupport/io.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcasesupport/io.c",
+      "original_sha256": "50ace91d0f9cd9f281d5d8ff3a9ca879ee2779d737030ae84e8e4be3df5b299c",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcasesupport/io.c",
+      "local_sha256": "50ace91d0f9cd9f281d5d8ff3a9ca879ee2779d737030ae84e8e4be3df5b299c",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcasesupport/std_testcase.h",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcasesupport/std_testcase.h",
+      "original_sha256": "a78aaf3a54a6210260ad70123c09c3c283c6edf7808b6244205e00b8f2d9b8d0",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcasesupport/std_testcase.h",
+      "local_sha256": "a78aaf3a54a6210260ad70123c09c3c283c6edf7808b6244205e00b8f2d9b8d0",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcasesupport/std_thread.c",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcasesupport/std_thread.c",
+      "original_sha256": "73877517d64e002c9602fdb726c8cbbf0a15a5ba39b8cd07f2d99daf758a2f1f",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcasesupport/std_thread.c",
+      "local_sha256": "73877517d64e002c9602fdb726c8cbbf0a15a5ba39b8cd07f2d99daf758a2f1f",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "arichardson/juliet-test-suite-c:testcasesupport/std_thread.h",
+      "url": "https://github.com/arichardson/juliet-test-suite-c",
+      "revision": "f88433e3443648a17671398797a04ea1f8e1a274",
+      "original_path": "testcasesupport/std_thread.h",
+      "original_sha256": "3a0512cfccb90e30811399876066c23077be53990f57f205749a6a591a7eee5a",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/arichardson/juliet-test-suite-c/testcasesupport/std_thread.h",
+      "local_sha256": "3a0512cfccb90e30811399876066c23077be53990f57f205749a6a591a7eee5a",
+      "license": "CC0-1.0",
+      "license_evidence": [
+        "third_party/originals/arichardson/juliet-test-suite-c/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:COPYING",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "COPYING",
+      "original_sha256": "ccda4da12e3a1bd00fc1edeac392a6484c755453cf781cdf98ab8f40bd92ab49",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/COPYING",
+      "local_sha256": "ccda4da12e3a1bd00fc1edeac392a6484c755453cf781cdf98ab8f40bd92ab49",
+      "license": "GPL-3.0-or-later",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:README.md",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "README.md",
+      "original_sha256": "9eff7d0a747c7342ac08ebaf9029a279cef3d48eea5bf0d4279c3698d1d1f1e5",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/README.md",
+      "local_sha256": "9eff7d0a747c7342ac08ebaf9029a279cef3d48eea5bf0d4279c3698d1d1f1e5",
+      "license": "GPL-3.0-or-later",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/templates/LICENSE",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/templates/LICENSE",
+      "original_sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE",
+      "local_sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+      "license": "Unlicense",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/templates/c/executable/CMakeLists.txt",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/templates/c/executable/CMakeLists.txt",
+      "original_sha256": "2cee83570d392947fb0ee1fb7c1ee88452e6d1db03bdb683f4731d6e0b4530fe",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/c/executable/CMakeLists.txt",
+      "local_sha256": "2cee83570d392947fb0ee1fb7c1ee88452e6d1db03bdb683f4731d6e0b4530fe",
+      "license": "Unlicense",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/templates/common/CMakePresets.json",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/templates/common/CMakePresets.json",
+      "original_sha256": "403764100f85c324583cd80c37aba19a0a29d5f4b6a7a1dcb9a397b9a595c0b7",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/common/CMakePresets.json",
+      "local_sha256": "403764100f85c324583cd80c37aba19a0a29d5f4b6a7a1dcb9a397b9a595c0b7",
+      "license": "Unlicense",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/templates/common/cmake/prelude.cmake",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/templates/common/cmake/prelude.cmake",
+      "original_sha256": "b30cb8a6a01a34b04ad37812f629ab3d4e89b37843540d1904bf87ae4696de09",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/common/cmake/prelude.cmake",
+      "local_sha256": "b30cb8a6a01a34b04ad37812f629ab3d4e89b37843540d1904bf87ae4696de09",
+      "license": "Unlicense",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "friendlyanon/cmake-init:cmake-init/templates/common/test/CMakeLists.txt",
+      "url": "https://github.com/friendlyanon/cmake-init",
+      "revision": "7e0c52fc73f235b073501407b71a27a94b5f7e42",
+      "original_path": "cmake-init/templates/common/test/CMakeLists.txt",
+      "original_sha256": "4973248a6ec36db69f7446b582ddbb759dffcc09e1265e8daa12dffb21bef5b1",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/common/test/CMakeLists.txt",
+      "local_sha256": "4973248a6ec36db69f7446b582ddbb759dffcc09e1265e8daa12dffb21bef5b1",
+      "license": "Unlicense",
+      "license_evidence": [
+        "third_party/originals/friendlyanon/cmake-init/COPYING",
+        "third_party/originals/friendlyanon/cmake-init/cmake-init/templates/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:LICENSE",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "LICENSE",
+      "original_sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/LICENSE",
+      "local_sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:README.md",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "README.md",
+      "original_sha256": "ba03171109eeeb3a48f6a31bea54ae5ecd31f77e16599cd394717a1861d8d819",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/README.md",
+      "local_sha256": "ba03171109eeeb3a48f6a31bea54ae5ecd31f77e16599cd394717a1861d8d819",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:actions/build_fuzzers/action.yml",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "actions/build_fuzzers/action.yml",
+      "original_sha256": "adb58e981a0348eaac2771a222441a4d0df16f241462e9a3b5de05dd6402274f",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/actions/build_fuzzers/action.yml",
+      "local_sha256": "adb58e981a0348eaac2771a222441a4d0df16f241462e9a3b5de05dd6402274f",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:actions/run_fuzzers/action.yml",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "actions/run_fuzzers/action.yml",
+      "original_sha256": "093527616d6fa1f5fb19ed378d57c7955f5a073caf40c33edd2448db42e2f7f9",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/actions/run_fuzzers/action.yml",
+      "local_sha256": "093527616d6fa1f5fb19ed378d57c7955f5a073caf40c33edd2448db42e2f7f9",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:docs/build_integration.md",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "docs/build_integration.md",
+      "original_sha256": "4fc9270533833dcfecdcbdf4b8e1e6f820d85bc507f31d00e393481eb751c925",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/docs/build_integration.md",
+      "local_sha256": "4fc9270533833dcfecdcbdf4b8e1e6f820d85bc507f31d00e393481eb751c925",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/clusterfuzzlite:docs/running-clusterfuzzlite/github_actions.md",
+      "url": "https://github.com/google/clusterfuzzlite",
+      "revision": "52ecc61cb587ee99c26825a112a21abf19c7448c",
+      "original_path": "docs/running-clusterfuzzlite/github_actions.md",
+      "original_sha256": "f95681aea7e29a11b50298c50a1452815a8db9fd93921906bf14f9c181f1201f",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/clusterfuzzlite/docs/running-clusterfuzzlite/github_actions.md",
+      "local_sha256": "f95681aea7e29a11b50298c50a1452815a8db9fd93921906bf14f9c181f1201f",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/clusterfuzzlite/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/oss-fuzz-gen:LICENSE",
+      "url": "https://github.com/google/oss-fuzz-gen",
+      "revision": "c0982c5d40a7e93ce70fd319705804b9a29954d0",
+      "original_path": "LICENSE",
+      "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/oss-fuzz-gen/LICENSE",
+      "local_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/oss-fuzz-gen/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "google/oss-fuzz-gen:README.md",
+      "url": "https://github.com/google/oss-fuzz-gen",
+      "revision": "c0982c5d40a7e93ce70fd319705804b9a29954d0",
+      "original_path": "README.md",
+      "original_sha256": "90e52e397f7ca547122981c52b03fb4e7366f137c6237169ba4c72e55f3f522e",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/google/oss-fuzz-gen/README.md",
+      "local_sha256": "90e52e397f7ca547122981c52b03fb4e7366f137c6237169ba4c72e55f3f522e",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/google/oss-fuzz-gen/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/LICENSE.TXT",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/LICENSE.TXT",
+      "original_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+      "local_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/double-free.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/double-free.cpp",
+      "original_sha256": "e340398cb8ca81b01312e627af07df438f2e9a440db5bbed51ce2e99f81fd854",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/double-free.cpp",
+      "local_sha256": "e340398cb8ca81b01312e627af07df438f2e9a440db5bbed51ce2e99f81fd854",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/global-overflow.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/global-overflow.cpp",
+      "original_sha256": "9dd56b114e9b5912c4fd98028ccf6b1d751546acd4aad54ab2924a0359ee671d",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/global-overflow.cpp",
+      "local_sha256": "9dd56b114e9b5912c4fd98028ccf6b1d751546acd4aad54ab2924a0359ee671d",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/heap-overflow.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/heap-overflow.cpp",
+      "original_sha256": "37fce1c623f958f11f25dfb7fad9c1de85e117783f779c47ac898f5a5d81fe85",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp",
+      "local_sha256": "37fce1c623f958f11f25dfb7fad9c1de85e117783f779c47ac898f5a5d81fe85",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/invalid-free.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/invalid-free.cpp",
+      "original_sha256": "d7fea86032f99d88d18f16df413ad54235c375b63025ea5c634b67f5426e7782",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/invalid-free.cpp",
+      "local_sha256": "d7fea86032f99d88d18f16df413ad54235c375b63025ea5c634b67f5426e7782",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/leaks.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/leaks.cpp",
+      "original_sha256": "19e0c0615b30d2ef3b8662a1d3d2e296a2630b37d0b91ad925e21da79f3a993d",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/leaks.cpp",
+      "local_sha256": "19e0c0615b30d2ef3b8662a1d3d2e296a2630b37d0b91ad925e21da79f3a993d",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/stack-buffer-overflow.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/stack-buffer-overflow.cpp",
+      "original_sha256": "0c05c918fd14d916fe515486ed7f41e4b1eb23c8b863304072807c672d1a3095",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/stack-buffer-overflow.cpp",
+      "local_sha256": "0c05c918fd14d916fe515486ed7f41e4b1eb23c8b863304072807c672d1a3095",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/use-after-free.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/use-after-free.cpp",
+      "original_sha256": "d42ad779e7f563dbc1d6dd1a55b0a6cad17f7f8d50de529fb05b49b5b6c3e6f5",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-free.cpp",
+      "local_sha256": "d42ad779e7f563dbc1d6dd1a55b0a6cad17f7f8d50de529fb05b49b5b6c3e6f5",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/asan/TestCases/use-after-scope.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/asan/TestCases/use-after-scope.cpp",
+      "original_sha256": "05b6ba8230eb727524ae4abb0d5931bbf5ba9c06e114d460a47a7f71d1a4e0bd",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-scope.cpp",
+      "local_sha256": "05b6ba8230eb727524ae4abb0d5931bbf5ba9c06e114d460a47a7f71d1a4e0bd",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/msan/heap-origin.cpp",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/msan/heap-origin.cpp",
+      "original_sha256": "5e189b2704a19c7e8fe84b2a29f402a58829799f7c076494f45a18998025a543",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/msan/heap-origin.cpp",
+      "local_sha256": "5e189b2704a19c7e8fe84b2a29f402a58829799f7c076494f45a18998025a543",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:compiler-rt/test/tsan/simple_race.c",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "compiler-rt/test/tsan/simple_race.c",
+      "original_sha256": "a96d8a5b394e45324f3eedafc548a323801b0b32e214e31a7f2aa4f628f0dda5",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/tsan/simple_race.c",
+      "local_sha256": "a96d8a5b394e45324f3eedafc548a323801b0b32e214e31a7f2aa4f628f0dda5",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "llvm/llvm-project:llvm/LICENSE.TXT",
+      "url": "https://github.com/llvm/llvm-project",
+      "revision": "cd708029e0b2869e80abe31ddb175f7c35361f90",
+      "original_path": "llvm/LICENSE.TXT",
+      "original_sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT",
+      "local_sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "license_evidence": [
+        "third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT",
+        "third_party/originals/llvm/llvm-project/llvm/LICENSE.TXT"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "model-checking/cbmc-starter-kit:LICENSE",
+      "url": "https://github.com/model-checking/cbmc-starter-kit",
+      "revision": "283e811a537270011c68cd59f77191aa36a9ef9c",
+      "original_path": "LICENSE",
+      "original_sha256": "3177f983b5cee2b5406de23fcb894dd002a29582d54306064ece5ab8a37a7f5b",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/model-checking/cbmc-starter-kit/LICENSE",
+      "local_sha256": "3177f983b5cee2b5406de23fcb894dd002a29582d54306064ece5ab8a37a7f5b",
+      "license": "MIT-0",
+      "license_evidence": [
+        "third_party/originals/model-checking/cbmc-starter-kit/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "model-checking/cbmc-starter-kit:README.md",
+      "url": "https://github.com/model-checking/cbmc-starter-kit",
+      "revision": "283e811a537270011c68cd59f77191aa36a9ef9c",
+      "original_path": "README.md",
+      "original_sha256": "30a5aafd645ea5f7605a368556006551d16183f0756915cb6e0cd65c81b731dd",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/model-checking/cbmc-starter-kit/README.md",
+      "local_sha256": "30a5aafd645ea5f7605a368556006551d16183f0756915cb6e0cd65c81b731dd",
+      "license": "MIT-0",
+      "license_evidence": [
+        "third_party/originals/model-checking/cbmc-starter-kit/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "mull-project/mull:LICENSE",
+      "url": "https://github.com/mull-project/mull",
+      "revision": "ec4a9d3e876a6e8404cc405f170a37ad912176a1",
+      "original_path": "LICENSE",
+      "original_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/mull-project/mull/LICENSE",
+      "local_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/mull-project/mull/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "mull-project/mull:README.md",
+      "url": "https://github.com/mull-project/mull",
+      "revision": "ec4a9d3e876a6e8404cc405f170a37ad912176a1",
+      "original_path": "README.md",
+      "original_sha256": "3576b65431dfb119bc5deea16d9e33176178f5d6465a0fa78e3b78a31610d8c2",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/mull-project/mull/README.md",
+      "local_sha256": "3576b65431dfb119bc5deea16d9e33176178f5d6465a0fa78e3b78a31610d8c2",
+      "license": "Apache-2.0",
+      "license_evidence": [
+        "third_party/originals/mull-project/mull/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/buttercup:LICENSE",
+      "url": "https://github.com/trailofbits/buttercup",
+      "revision": "298c01fbff3bf0bf166c87856acd7e42f94f7157",
+      "original_path": "LICENSE",
+      "original_sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/buttercup/LICENSE",
+      "local_sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+      "license": "AGPL-3.0-only",
+      "license_evidence": [
+        "third_party/originals/trailofbits/buttercup/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/buttercup:README.md",
+      "url": "https://github.com/trailofbits/buttercup",
+      "revision": "298c01fbff3bf0bf166c87856acd7e42f94f7157",
+      "original_path": "README.md",
+      "original_sha256": "9657d41e3e1a3303195480eca6fd2f76f9a033c08a6e85def727add8c8f5f0c3",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/buttercup/README.md",
+      "local_sha256": "9657d41e3e1a3303195480eca6fd2f76f9a033c08a6e85def727add8c8f5f0c3",
+      "license": "AGPL-3.0-only",
+      "license_evidence": [
+        "third_party/originals/trailofbits/buttercup/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/skills:LICENSE",
+      "url": "https://github.com/trailofbits/skills",
+      "revision": "82fe8226252622fa807643bdca1710901198553a",
+      "original_path": "LICENSE",
+      "original_sha256": "7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/skills/LICENSE",
+      "local_sha256": "7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297",
+      "license": "CC-BY-SA-4.0",
+      "license_evidence": [
+        "third_party/originals/trailofbits/skills/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/skills:plugins/c-review/AGENTS.md",
+      "url": "https://github.com/trailofbits/skills",
+      "revision": "82fe8226252622fa807643bdca1710901198553a",
+      "original_path": "plugins/c-review/AGENTS.md",
+      "original_sha256": "92e9e1d8765494b65efebccbb4b5c8468ba2790eef14fd6e85e855502bf301c6",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/skills/plugins/c-review/AGENTS.md",
+      "local_sha256": "92e9e1d8765494b65efebccbb4b5c8468ba2790eef14fd6e85e855502bf301c6",
+      "license": "CC-BY-SA-4.0",
+      "license_evidence": [
+        "third_party/originals/trailofbits/skills/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/skills:plugins/c-review/skills/c-review/SKILL.md",
+      "url": "https://github.com/trailofbits/skills",
+      "revision": "82fe8226252622fa807643bdca1710901198553a",
+      "original_path": "plugins/c-review/skills/c-review/SKILL.md",
+      "original_sha256": "3fc2fc7f3dba9decd2dd9e449150395cf62ee156c8dd1c48d09a233318f4dc69",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/skills/plugins/c-review/skills/c-review/SKILL.md",
+      "local_sha256": "3fc2fc7f3dba9decd2dd9e449150395cf62ee156c8dd1c48d09a233318f4dc69",
+      "license": "CC-BY-SA-4.0",
+      "license_evidence": [
+        "third_party/originals/trailofbits/skills/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    },
+    {
+      "id": "trailofbits/skills:plugins/code-improver/README.md",
+      "url": "https://github.com/trailofbits/skills",
+      "revision": "82fe8226252622fa807643bdca1710901198553a",
+      "original_path": "plugins/code-improver/README.md",
+      "original_sha256": "1406e7b8061d861b2b268271b3dc422b47740803fc8346b3e8d7aeff13b340d6",
+      "mode": "retained-reference",
+      "local_path": "third_party/originals/trailofbits/skills/plugins/code-improver/README.md",
+      "local_sha256": "1406e7b8061d861b2b268271b3dc422b47740803fc8346b3e8d7aeff13b340d6",
+      "license": "CC-BY-SA-4.0",
+      "license_evidence": [
+        "third_party/originals/trailofbits/skills/LICENSE"
+      ],
+      "used_by": [],
+      "checked_on": "2026-10-04"
+    }
+  ],
+  "adaptations": [],
+  "juliet_release": "NIST-derived 1.3; not corrected 1.3.1",
+  "nist_131_acquisition": "BLOCKED: endpoint returned HTTP 403"
+}

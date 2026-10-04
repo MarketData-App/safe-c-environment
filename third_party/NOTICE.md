@@ -1,0 +1,3 @@
+# Retained upstream notices
+
+Exact revisions and hashes are in upstream.lock.json. Original license and file notices are retained alongside the minimal files. LLVM: Apache-2.0 WITH LLVM-exception, including historical file-scope terms in compiler-rt/LICENSE.TXT. Juliet 1.3: NIST public domain / CC0-1.0; 1.3.1 is not claimed. cmake-init templates: Unlicense; generator: GPL-3.0-or-later, not executed or incorporated into first-party code. Trail of Bits material: CC-BY-SA-4.0 retained for reference only, attributed to Trail of Bits; first-party protocol is independently written from the assignment. ClusterFuzzLite and actions: see their retained LICENSE files. First-party publication licensing awaits the owner.

@@ -1,0 +1,20 @@
+# Bounded reuse plan
+
+Written before infrastructure implementation. The original Makefile and local environment are preserved. No first-party publication license was supplied; owner licensing is a release blocker. Native Linux x86-64/glibc is the selected target. Revisions are acquisition identities, not independent approval.
+
+| Component | Source / actual revision | Role | License / evidence | Decision and integration |
+|---|---|---|---|---|
+| GCC / LLVM / compiler-rt / CMake / Ninja / CTest | Debian 13 packages (versions resolved during image acquisition) `package versions pending acquisition; no passing claim` | required toolchain | GCC GPL-3.0 with runtime exceptions; LLVM Apache-2.0 WITH LLVM-exception; CMake BSD-3-Clause; Ninja Apache-2.0; retained evidence will be in third_party | isolated retained image; record full package inventory |
+| LLVM lit / FileCheck | llvm/llvm-project `cd708029e0b2869e80abe31ddb175f7c35361f90` | required runner and diagnostic matcher | Apache-2.0 WITH LLVM-exception; retained evidence will be in third_party | Debian LLVM19 FileCheck and retained lit source; outer evaluator owns acceptance |
+| compiler-rt selected tests | llvm/llvm-project `cd708029e0b2869e80abe31ddb175f7c35361f90` | required fixtures | Apache-2.0 WITH LLVM-exception / file-specific notices; retained evidence will be in third_party | adapt real operations to C17; retain originals and diffs |
+| Juliet C | arichardson/juliet-test-suite-c `f88433e3443648a17671398797a04ea1f8e1a274` | required curated defect/control source | CC0-1.0; retain NIST notice; retained evidence will be in third_party | pin NIST-derived 1.3 subset; corrected 1.3.1 acquisition currently HTTP403, never conflate releases |
+| Juliet Unix build approach | arichardson/juliet-test-suite-c `f88433e3443648a17671398797a04ea1f8e1a274` | assessed | CC0-1.0 for corpus; build file scope to inspect; retained evidence will be in third_party | adopt separate bad/good target structure; reject exit-only certification |
+| cmake-init | friendlyanon/cmake-init `7e0c52fc73f235b073501407b71a27a94b5f7e42` | preferred scaffolding | generator GPL; templates Unlicense; retained evidence will be in third_party | inspect C templates and generated output in scratch; omit application and package-manager pieces |
+| ClusterFuzzLite | google/clusterfuzzlite `52ecc61cb587ee99c26825a112a21abf19c7448c` | required adapter / CI | Apache-2.0; retained evidence will be in third_party | build.sh interface with external compiler flags and C++ runtime link; locally executed offline; image identity tracked |
+| c-review / code-improver | trailofbits/skills `82fe8226252622fa807643bdca1710901198553a` | concept only | CC-BY-SA-4.0; retained evidence will be in third_party | no copied substantive implementation or prompts; original provider-neutral ledger; Claude-specific loop not adopted |
+| Mull | mull-project/mull `ec4a9d3e876a6e8404cc405f170a37ad912176a1` | deferred | Apache-2.0; retained evidence will be in third_party | activate only after real application tests |
+| CBMC starter kit | model-checking/cbmc-starter-kit `283e811a537270011c68cd59f77191aa36a9ef9c` | deferred | Apache-2.0 (verify retained evidence); retained evidence will be in third_party | activate selected bounded kernels later |
+| OSS-Fuzz-Gen | google/oss-fuzz-gen `c0982c5d40a7e93ce70fd319705804b9a29954d0` | later evaluation | Apache-2.0; retained evidence will be in third_party | no model calls |
+| Buttercup | trailofbits/buttercup `298c01fbff3bf0bf166c87856acd7e42f94f7157` | later evaluation | selected LICENSE retained for owner review; retained evidence will be in third_party | no deployment |
+
+Proposed source mapping: compiler-rt for C01–C21 sanitizer semantics where suitable; Juliet for C22–C24 and selected memory/data-flow cases; upstream lint examples for C25; bespoke policy/property/fault-injection cases C26–C34 when upstream semantics do not match. Exact accepted mappings, rejected candidates, hashes and patches are recorded in docs/upstream-map.md before acceptance. Missing imports or adapter execution remain blockers. Acquisition may use network; qualification must not.
