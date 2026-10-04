@@ -5,8 +5,9 @@ exported files; project_name/namespace in starter.json are the only substitution
 Starter verification writes a versioned candidate archive and a separate manifest
 with the archive hash, normalized payload identity and current whole-source identity
 under artifacts/releases. It carries no inherited passing report or release authority.
-The payload digest excludes starter-baseline.lock.json and the manifest itself;
-export inventory is compared against the trusted baseline. Names are validated and
+The payload digest includes starter-export.json and excludes only the per-instance
+origin record. The complete export manifest is compared against the trusted baseline;
+origin fields must match the exact allowed candidate/child metadata with no self-approval. Names are validated and
 are never executed. Nonempty or symlink destinations are refused without edits.
 No history, credentials, machine home paths, build binaries or passing reports are
 exported. Deliberate defects remain development-only sources, never install targets.

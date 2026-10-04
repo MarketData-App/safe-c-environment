@@ -115,7 +115,7 @@ def export_inventory(root):
 def payload_hashes(root):
     hashes = {}
     for rel in export_inventory(root):
-        if rel in ['starter-baseline.lock.json', 'starter-export.json']:
+        if rel == 'starter-baseline.lock.json':
             continue
         if rel == 'starter.json':
             value = read_json(root/rel)
@@ -131,8 +131,14 @@ def baseline_identity(root):
 def baseline_gate(candidate, baseline, expected):
     if not expected or baseline_identity(baseline) != expected:
         raise GateError('external expected baseline identity missing or mismatched')
-    if export_inventory(candidate) != export_inventory(baseline):
+    if read_json(candidate/'starter-export.json') != read_json(baseline/'starter-export.json'):
         raise GateError('export manifest changed')
+    starter=read_json(candidate/'starter.json')
+    origin=read_json(candidate/'starter-baseline.lock.json')
+    expected_origin={'schema_version':1,'kind':'starter-candidate','origin_digest':None,'independent_approval':False,'substitutions':{}}
+    if origin.get('kind')=='project-instance':
+        expected_origin.update(kind='project-instance',origin_digest=expected,substitutions={key:starter[key] for key in ['project_name','namespace']})
+    if origin!=expected_origin:raise GateError('unauthorized origin / substitution metadata')
     actual, trusted = payload_hashes(candidate), payload_hashes(baseline)
     if actual != trusted:
         raise GateError('protected baseline payload changed: ' + ', '.join(k for k in trusted if actual.get(k)!=trusted[k]))
