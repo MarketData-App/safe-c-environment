@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+: "${SAFETY_BASELINE_DIRECTORY:?independent trusted evaluator directory required}"
+: "${SAFETY_EXPECTED_BASELINE:?external immutable identity required}"
+: "${SAFETY_CANDIDATE_DIRECTORY:?candidate checkout required}"
+exec "$SAFETY_BASELINE_DIRECTORY/tools/safety" --candidate "$SAFETY_CANDIDATE_DIRECTORY" --baseline "$SAFETY_BASELINE_DIRECTORY" --expected-baseline "$SAFETY_EXPECTED_BASELINE" ci

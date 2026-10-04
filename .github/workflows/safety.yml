@@ -1,0 +1,41 @@
+name: safety
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualification:
+    runs-on: [self-hosted, linux, x64, safe-c-qualified]
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          repository: ${{ vars.SAFETY_BASELINE_REPOSITORY }}
+          ref: ${{ vars.SAFETY_BASELINE_REF }}
+          path: baseline
+          persist-credentials: false
+      - name: Trusted aggregate qualification
+        env:
+          EXPECTED_BASELINE: ${{ vars.SAFETY_BASELINE_DIGEST }}
+        run: |
+          test -n "$EXPECTED_BASELINE"
+          baseline/tools/safety --candidate "$GITHUB_WORKSPACE/candidate" --baseline "$GITHUB_WORKSPACE/baseline" --expected-baseline "$EXPECTED_BASELINE" ci
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: bounded-safety-evidence
+          path: candidate/artifacts
+          retention-days: 7
+  aggregate:
+    if: always()
+    needs: [qualification]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require completed qualification
+        env:
+          RESULT: ${{ needs.qualification.result }}
+        run: test "$RESULT" = success

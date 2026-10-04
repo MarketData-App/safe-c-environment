@@ -1,0 +1,40 @@
+# Copy into an independently protected workflow only after remote qualification.
+# Local adapted action files retain notices and pin upstream container digests.
+name: ClusterFuzzLite evaluation
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [code-change, batch, prune, coverage]
+        default: batch
+permissions:
+  contents: read
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    steps:
+      # Use the immutable checkout revision from upstream.lock.json here.
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          persist-credentials: false
+      - uses: ./third_party/adapters/clusterfuzzlite-actions/build_fuzzers
+        with:
+          language: c
+          sanitizer: address
+          allowed-broken-targets-percentage: 0
+          dry-run: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./third_party/adapters/clusterfuzzlite-actions/run_fuzzers
+        with:
+          mode: ${{ inputs.mode || 'code-change' }}
+          sanitizer: address
+          fuzz-seconds: 900
+          report-unreproducible-crashes: true
+          report-timeouts: true
+          report-ooms: true
+          dry-run: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Mandatory replay still runs through independently trusted safety CI;
+      # existing-crash filtering can never close an unresolved regression.

@@ -18,3 +18,15 @@ Written before infrastructure implementation. The original Makefile and local en
 | Buttercup | trailofbits/buttercup `298c01fbff3bf0bf166c87856acd7e42f94f7157` | later evaluation | selected LICENSE retained for owner review; retained evidence will be in third_party | no deployment |
 
 Proposed source mapping: compiler-rt for C01–C21 sanitizer semantics where suitable; Juliet for C22–C24 and selected memory/data-flow cases; upstream lint examples for C25; bespoke policy/property/fault-injection cases C26–C34 when upstream semantics do not match. Exact accepted mappings, rejected candidates, hashes and patches are recorded in docs/upstream-map.md before acceptance. Missing imports or adapter execution remain blockers. Acquisition may use network; qualification must not.
+
+## Acquisition outcome
+
+The initial plan above is preserved as the pre-implementation assessment. Actual
+versions are GCC 14.2.0, LLVM/compiler-rt/FileCheck 19.1.7, stable lit 23.1.2,
+CMake 3.31.6 and Ninja 1.12.1, locked with executable hashes and the retained
+image/package inventory. The kit license resolved to MIT-0; Buttercup to AGPL-3.0.
+Both remain reference-only deferred integrations. Actual C-mode template rendering
+and adoption decisions are in docs/template-assessment.md. LLVM-derived C ports
+and NIST-derived Juliet 1.3 cases execute through the mandatory suite; the separate
+20-pair benchmark preserves original broader data-flow candidates. The corrected
+NIST 1.3.1 endpoint remained inaccessible, so that release is not claimed.
