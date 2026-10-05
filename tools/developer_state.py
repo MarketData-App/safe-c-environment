@@ -67,7 +67,10 @@ def restore(build, incoming, namespace, limits):
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(data)
                 destination.chmod(item.mode & 0o777)
-                __import__('os').utime(destination, (item.mtime, item.mtime))
+                stamp=record.get('mtime_ns')
+                if type(stamp) is not int or not 0<=stamp<2**63:
+                    raise GateError('developer cached timestamp identity rejected')
+                __import__('os').utime(destination, ns=(stamp,stamp))
     if seen != set(expected):
         raise GateError('developer cache missing input file')
     return manifest
@@ -98,7 +101,8 @@ def pack(build, output, namespace, limits, source):
             group, chunk = [], 0
         group.append(path)
         chunk += size + 2048
-        inventory[relative] = {'bytes': size, 'sha256': file_hash(path)}
+        inventory[relative] = {'bytes': size, 'sha256': file_hash(path),
+                               'mtime_ns':path.stat().st_mtime_ns}
     if group:
         groups.append(group)
     archives = []

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import shlex
 
 from evidence import GateError, atomic_json, file_hash, read_json, RUNTIME_ENV
 from policy import source_identity
@@ -84,6 +85,22 @@ def capture(root, runner, result, request, executed=None):
                 'reason': None if selected else 'No executable selected test was produced; source bytes retained for investigation.'}
     validate(root, 'developer-bundle', manifest)
     atomic_json(directory / 'manifest.json', manifest)
+    if manifest['finding_id']:
+        from ledger import Ledger
+        units={'tools/developer_bundle.py':['detector receipt accounting; independent review not claimed']}
+        ledger=Ledger(identity,units)
+        ledger.add({'id':manifest['finding_id'],'origin':'developer selected operation detector',
+            'source_identity':identity,'location':('CTest/'+selected['id'] if selected else request['operation']),
+            'property':'Selected operation preserves its actual incomplete or failed outcome.',
+            'severity':'investigation','rationale':'Advisory feedback requires investigation; no application acceptance claim.',
+            'reproducer':'./tools/safety dev replay --run-id '+result['run_id']+' --snapshot original',
+            'state':'OPEN','attempts':0,'history':[],'verification':None})
+        ledger.account([{'unit':'tools/developer_bundle.py','question':units['tools/developer_bundle.py'][0],
+                         'locations':[81]}],identity)
+        finding={'schema_version':1,'source_identity':identity,'units':ledger.units,
+                 'findings':list(ledger.findings.values()),'review':ledger.review}
+        validate(root,'ledger',finding)
+        atomic_json(directory.parent/'findings.json',finding)
     return {'path': str(directory/'manifest.json'), 'sha256': file_hash(directory/'manifest.json'),
             'original_replay_available': manifest['original_replay_available'],
             'finding_id': manifest['finding_id']}
@@ -200,9 +217,26 @@ def diagnose(root, manifest, directory):
         path=Path(raw)
         if path.is_relative_to(root/'artifacts') and path.is_file() and path.suffix=='.json':
             summaries.extend(reduce_file(path,'DEV_DIAGNOSE'))
+    follow_up=['./tools/safety dev replay --run-id '+manifest['run_id']+' --snapshot original',
+               './tools/safety dev debug --run-id '+manifest['run_id']+' --recipe crash']
+    comparison={'available':False,'reason':'No selected CTest regression; current-source finite fuzz comparison is not exposed.'}
+    if manifest['test']:
+        protected=[p for p in manifest['source_files'] if p.startswith(('foundation/tests/','tests/',
+                   'safety/qualification/developer/')) or p in {'CMakeLists.txt','cmake/Developer.cmake',
+                   'cmake/Foundation.cmake','cmake/Safety.cmake','safety/contract.json'}]
+        unchanged=bool(protected) and all((root/p).is_file() and
+            file_hash(root/p)==manifest['source_files'][p]['sha256'] for p in protected)
+        if unchanged:
+            argv=['./tools/safety','dev','test','--id',manifest['test']['id'],'--profile',manifest['profile']]
+            if manifest['request'].get('demo_workspace'):
+                argv+=['--demo-workspace',manifest['request']['demo_workspace']]
+            comparison={'available':True,'argv':argv,'command':shlex.join(argv),
+                        'scope':'current saved candidate; separate new run and binary identity',
+                        'regression_contract_unchanged':True,'original_run_id':manifest['run_id']}
+            follow_up.append(comparison['command'])
+        else:comparison={'available':False,'reason':'Current test/contract/build inputs differ from the frozen regression.'}
     return {'finding_id':manifest['finding_id'],'original_source_identity':manifest['source_identity'],
             'original_profile':manifest['profile'],'original_outcome':manifest['observed'],
             'diagnostics':summaries[:64], 'bundle':str(directory/'manifest.json'),
             'original_replay_available':manifest['original_replay_available'],
-            'follow_up': ['./tools/safety dev replay --run-id '+manifest['run_id']+' --snapshot original',
-                          './tools/safety dev debug --run-id '+manifest['run_id']+' --recipe crash']}
+            'current_candidate_comparison':comparison,'follow_up':follow_up}

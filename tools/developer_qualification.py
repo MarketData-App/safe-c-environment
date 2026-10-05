@@ -32,6 +32,10 @@ class Suite:
         self.native_calls={}
         self.report={'schema_version':1,'status':'BLOCKED','run_id':out.name,
             'source_identity':self.identity,'image_id':lock['image_id'],
+            'binding':{'worktree':hashlib.sha256(str(root.resolve()).encode()).hexdigest(),
+                       'inputs':{p:file_hash(root/p) for p in ['developer.lock.json','toolchain.lock.json',
+                            'foundation.lock.json','safety/developer-policy.json','safety/developer-fixtures.json',
+                            'safety/container-policy.json']}},'receipt_hashes':{},
             'cases':[{'id':r['id'],'status':'BLOCKED','control':'BLOCKED',
                      'subchecks':[{'name':name,'status':'BLOCKED','control':'BLOCKED',
                          'evidence_paths':[],'reason':'not executed'} for name in r['subchecks']]} for r in self.inventory['cases']],
@@ -109,6 +113,11 @@ class Suite:
             case['control']='FAIL' if 'FAIL' in controls else 'BLOCKED' if 'BLOCKED' in controls else 'PASS'
         statuses=[r['status'] for r in self.report['cases']+self.report['pipeline_variants']]
         self.report['status']='FAIL' if 'FAIL' in statuses else 'BLOCKED' if 'BLOCKED' in statuses else 'PASS'
+        paths={p for case in self.report['cases'] for row in case['subchecks'] for p in row['evidence_paths']}
+        paths.update(p for row in self.report['pipeline_variants'] for p in row['evidence_paths'])
+        paths.update(row['evidence_path'] for row in self.report['commands'])
+        self.report['receipt_hashes']={p:file_hash(Path(p)) for p in sorted(paths)}
+        validate(self.root,'developer-report',self.report)
         qualification(self.report,self.inventory,self.identity,self.lock['image_id'])
         atomic_json(self.out/'qualification.json',self.report)
 
@@ -179,13 +188,15 @@ class Suite:
             '--location',point['file']+':'+str(point['line']),'--value',point['value'])
         state=investigation['value'].get('result',{}).get('debugger',{})
         candidate.write_bytes(self.template)
-        passing=self.call('test','--id','developer.pair',demo=True)
+        comparison=diagnosed['value']['result']['current_candidate_comparison']
+        passing=self.call('test',*comparison['argv'][3:])
         replay_after=self.call('replay','--run-id',failed_id,'--snapshot','original')
         self.observe('E07','original-input-replay',all(r['exit_code']!=0 and
             r['value'].get('result',{}).get('test_result',{}).get('binary_sha256')==
             failed['value']['result']['test_result']['binary_sha256'] for r in [replay,replay_after]),
             [failed,replay,replay_after],control)
-        self.observe('E07','current-repair-comparison',self.good(passing) and
+        self.observe('E07','current-repair-comparison',comparison['available'] and
+            comparison['original_run_id']==failed['value']['run_id'] and self.good(passing) and
             passing['value'].get('demo_source_identity')!=failed['value'].get('demo_source_identity'),[failed,passing],control)
         self.observe('E07','nonzero-preserved',all(r['exit_code']!=0 and r['value'].get('status')=='FAIL'
             for r in [failed,replay,replay_after]),[failed,replay,replay_after],control)
@@ -273,8 +284,13 @@ class Suite:
         public.write_bytes(public.read_bytes()+b'\n/* public-header qualification revision */\n')
         header=self.call('prepare',demo=True,root=clone)
         self.observe('E06','public-header-edit',self.good(header) and len(self.rebuilt(header))>=2,[different,header],control)
-        # Disposable copied worktree and its private feedback are data, not an
-        # exported child or acceptance evidence. Keep the summarized receipts.
+        # Retain copied-scope receipts before deleting the disposable worktree.
+        # They cannot stand in for a child's independently executed CI.
+        retained=self.out/'alternate-worktree-evidence'
+        shutil.copytree(clone/'artifacts',retained)
+        atomic_json(self.out/'alternate-worktree-path-map.json',
+            {'original':str(clone/'artifacts'),'retained':str(retained),
+             'source_identity':source_identity(clone)[0],'acceptance':False})
         shutil.rmtree(clone)
 
     def fuzz_regressions(self,control):

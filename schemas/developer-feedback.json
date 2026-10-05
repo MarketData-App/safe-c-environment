@@ -105,7 +105,10 @@
         },
         "compile_commands_sha256": {},
         "selected_test": {
-          "type": "object"
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "debugger": {
           "type": "object"
@@ -151,19 +154,49 @@
         "configuration": {
           "type": "object"
         },
-        "developer_tooling": {},
-        "combined_local_checks": {},
-        "independent_enforcement": {},
-        "scripted_workflow_trial": {},
-        "live_agent_trial": {},
+        "developer_tooling": {
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "BLOCKED"
+          ]
+        },
+        "combined_local_checks": {
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "BLOCKED"
+          ]
+        },
+        "independent_enforcement": {
+          "enum": [
+            "VERIFIED",
+            "PENDING",
+            "FAILED"
+          ]
+        },
+        "scripted_workflow_trial": {
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "NOT_EXECUTED"
+          ]
+        },
+        "live_agent_trial": {
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "NOT_EXECUTED"
+          ]
+        },
         "handoff_ready": {
           "type": "boolean"
         },
         "application_started": {
-          "type": "boolean"
+          "const": false
         },
         "production_authorized": {
-          "type": "boolean"
+          "const": false
         },
         "finding_id": {},
         "original_source_identity": {},
@@ -226,6 +259,35 @@
         "limitations": {
           "type": "array",
           "maxItems": 4096
+        },
+        "index_freshness": {
+          "enum": [
+            "CURRENT",
+            "STALE",
+            "MISSING"
+          ]
+        },
+        "debugger_recipes": {
+          "type": "array"
+        },
+        "last_results": {
+          "type": "array",
+          "maxItems": 8
+        },
+        "binding": {
+          "type": "object"
+        },
+        "receipt_hashes": {
+          "type": "object"
+        },
+        "runtime": {
+          "type": "object"
+        },
+        "starter": {
+          "type": "object"
+        },
+        "current_candidate_comparison": {
+          "type": "object"
         }
       }
     },

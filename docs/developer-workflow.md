@@ -53,8 +53,27 @@ qualification.
 
 ## Current limitations
 
-Developer tooling is incomplete; no E case or debugger capability is claimed as
-passed. Independent enforcement remains pending. `handoff_ready` is false.
+The pinned development-only image now runs real clangd and GDB under unchanged
+confinement. Targeted checks verified semantic indexing, literal argv, nanosecond
+Ninja-state preservation, original fuzz outcomes and cancellation cleanup. The
+combined evaluator now includes the complete E inventory, all 40 developer P
+variants, actual runtime exclusion and source-bound fresh-child evidence. Those
+changes require a fresh combined qualification before technical completion is
+claimed. Independent enforcement remains pending. `handoff_ready` is false.
 Acquisition, policy amendment and later consumer migration are distinct from
 ordinary offline checks. Required unavailable capabilities must remain visible
 as blockers while independent safe implementation proceeds.
+
+Standalone `dev selftest` deliberately leaves five E12 maintenance observations
+pending: two exports, combined fresh child, no grandchildren, portable payload
+and runtime exclusion. Only combined maintenance CI supplies those actual
+observations. The child runs its own developer suite first, then its clean CI
+validates that exact receipt digest and all current source/lock/worktree inputs.
+The existing 1200-second child CI deadline is preserved. This uses no parent
+acceptance report or development build cache as child evidence.
+
+The selected debugger needs a fixed exec bridge to preserve literal spaces with
+shell startup disabled. Its executable hash, observed argv, real source stop and
+loaded GLib profile are checked independently. MI and inferior terminal channels
+stay separate. Every retained incomplete/failed operation has a findings ledger;
+successful investigation does not clear its original outcome.

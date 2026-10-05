@@ -75,6 +75,12 @@ def qualification(value,inventory,expected_source,expected_image):
                      r['evidence_paths'] for r in case['subchecks'])
         if case['status']=='PASS' and not complete:
             raise GateError('developer case omitted a required control or observation')
+        states=[r['status'] for r in case['subchecks']]
+        controls=[r['control'] for r in case['subchecks']]
+        expected_status='FAIL' if 'FAIL' in states else 'BLOCKED' if 'BLOCKED' in states else 'PASS'
+        expected_control='FAIL' if 'FAIL' in controls else 'BLOCKED' if 'BLOCKED' in controls else 'PASS'
+        if case['status']!=expected_status or case['control']!=expected_control:
+            raise GateError('developer aggregate masks a subcheck outcome')
     expected={(r['parent'],r['name'],v) for r in inventory['pipeline_subcases'] for v in r['variants']}
     rows=value['pipeline_variants']
     actual=[(r['parent'],r['name'],r['variant']) for r in rows]
@@ -82,10 +88,15 @@ def qualification(value,inventory,expected_source,expected_image):
         raise GateError('developer pipeline variant inventory mismatch')
     for row in rows:
         if (not {'parent','name','variant','status','control','evidence_paths','reason'}.issubset(row) or
+                row['status'] not in {'PASS','FAIL','BLOCKED'} or row['control'] not in {'PASS','FAIL','BLOCKED'} or
                 (row['status']=='PASS' and (row['control']!='PASS' or not row['evidence_paths']))):
             raise GateError('developer pipeline control/evidence incomplete')
     complete=all(c['status']=='PASS' for c in value['cases']) and all(r['status']=='PASS' and
         r['control']=='PASS' and r['evidence_paths'] for r in rows)
     if value['status']=='PASS' and not complete:
         raise GateError('unexecuted mandatory developer experiment cannot pass')
+    statuses=[r['status'] for r in value['cases']+rows]
+    expected_status='FAIL' if 'FAIL' in statuses else 'BLOCKED' if 'BLOCKED' in statuses else 'PASS'
+    if value['status']!=expected_status:
+        raise GateError('developer qualification masks a required outcome')
     return True

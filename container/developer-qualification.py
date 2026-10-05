@@ -103,9 +103,16 @@ def main(case):
         stripped=job.run(['objcopy','--strip-debug',str(binary)],'strip-debug-symbols')
         if not passed(stripped):raise GateError('actual stripped-symbol experiment unavailable')
     elif case=='wrong-loaded-profile':
-        data=binary.read_bytes();before=b'/opt/foundation/clang-O0/lib'
-        if data.count(before)!=1:raise GateError('bounded profile experiment requires one exact RPATH')
-        binary.write_bytes(data.replace(before,b'/opt/foundation/clang-O2/lib'))
+        strings=Path('/work/dependency-profile.dynstr')
+        dumped=job.run(['objcopy','--dump-section','.dynstr='+str(strings),str(binary)],'read-profile-rpath')
+        if not passed(dumped) or strings.stat().st_size>65536:raise GateError('bounded dynamic string inventory unavailable')
+        data=strings.read_bytes()
+        old=b'/opt/foundation/clang-O0/lib'
+        if data.count(old)!=1:raise GateError('dynamic string experiment requires one exact RPATH')
+        strings.write_bytes(data.replace(old,b'/opt/foundation/clang-O2/lib'))
+        updated=job.run(['objcopy','--update-section','.dynstr='+str(strings),str(binary)],'wrong-profile-rpath')
+        if not passed(updated):raise GateError('bounded profile experiment could not update dynamic string section')
+
     elif case in {'missing-gdb','denied-tracing'}:
         import developer_gdb
         original=developer_gdb.subprocess.Popen

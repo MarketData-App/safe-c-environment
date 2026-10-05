@@ -101,3 +101,33 @@ scripted-trial and live-trial axes. Required unexecuted cases remain BLOCKED;
 trials remain NOT_EXECUTED until actually run. `handoff_ready` is false until all
 specified current evidence, independent enforcement and a live fresh-worker trial
 pass. Application-started and production-authorized remain false.
+
+## Combined qualification and fresh-instance evidence
+
+Baseline qualification executes the complete local E inventory and all added P
+variants once per actual worktree. The five E12 maintenance observations are
+completed only by trusted outer starter/runtime results. A project instance
+verifies its inherited payload, local workflow, complete local C/P/D/F/E gates
+and absence of grandchildren; its outer parent verifies the two exports and
+actual child completion. These scopes must be explicit in each observation.
+
+The trusted parent executes the child developer suite immediately before the
+child combined CI. That separate finite operation uses the child's own sources,
+image, worktree namespace and fresh containers. The existing child CI deadline
+remains 1200 seconds. Only instance CI with an independently selected baseline
+may consume that child's prequalification path plus its exact outer SHA-256.
+Validate source, development image, locks/policies, command and native receipts,
+all required controls and unchanged evidence digests. Parent evidence, paths
+outside the child's owned run area, symlinks and partial local suites fail.
+Development state never enters the clean acceptance build path.
+
+Readiness exposes index freshness, available debugger recipes and recent feedback
+separately from acceptance. A stale report stays pending and cannot grant a pass.
+Live trial evidence binds all relevant adapter, specification, schema, quickstart
+and frozen-test inputs; changes to those inputs invalidate its usability claim.
+
+Diagnosis offers a copyable current-candidate selected-test command only when the
+frozen test, contract and build-definition inputs still match. It uses the same
+selection/profile and a new run/binary identity; it never changes original replay.
+Changed regression inputs make that comparison unavailable. Finite current-source
+fuzz comparison is not exposed; original finite fuzz replay remains supported.

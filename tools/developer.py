@@ -218,6 +218,21 @@ def request(args, policy):
     return value
 
 
+@contextmanager
+def cancellation_receipt(path,rows):
+    marker=path.with_suffix('.cancelling')
+    atomic_json(marker,{'status':'CANCELLING'})
+    first=len(rows);complete=False
+    try:
+        yield
+        complete=True
+    finally:
+        atomic_json(path.with_suffix('.cancelled'),
+            {'status':'CANCELLED' if complete else 'FAILED','containers':rows[first:]})
+        marker.unlink(missing_ok=True)
+        if complete:path.unlink(missing_ok=True)
+
+
 def stop(root, out, lock):
     from container_policy import Launcher, LABEL
     launcher = Launcher(root, out, dict(read_json(root/'toolchain.lock.json'),image_id=lock['image_id']),
@@ -230,45 +245,45 @@ def stop(root, out, lock):
         if len(paths)>16 or any(p.is_symlink() for p in [active,*active.parents,*paths]):
             raise GateError('development registration inventory bound or link rejected')
         for path in paths:
-            row=read_json(path)
+            try:row=read_json(path)
+            except FileNotFoundError:continue
             if (row.get('worktree')!=launcher.worktree_scope or
                     not __import__('re').fullmatch(r'[0-9a-f]{32}',row.get('run_id','')) or
                     row.get('image_id') not in allowed_images):
                 raise GateError('development registration scope/image rejected')
-            listed=launcher.docker(['ps','--all','--filter','label=org.safe-c.worktree='+launcher.worktree_scope,
-                '--filter','label=org.safe-c.purpose=development',
-                '--filter','label=org.safe-c.run='+row['run_id'],'--format','{{.ID}}'])
-            if not passed(listed):raise GateError('development stop inventory unavailable')
-            for identifier in listed['output'].splitlines():
-                actual=launcher.json(['inspect',identifier])[0]
-                labels=actual['Config'].get('Labels',{})
-                host=actual['HostConfig']
-                profile=labels.get('org.safe-c.profile')
-                if (labels.get(LABEL)!='1' or labels.get('org.safe-c.worktree')!=launcher.worktree_scope or
-                        labels.get('org.safe-c.purpose')!='development' or
-                        labels.get('org.safe-c.run')!=row['run_id'] or actual['Image']!=row['image_id'] or
-                        profile not in launcher.value['profiles'] or
-                        host.get('Privileged') or host.get('CapAdd') or host.get('CapDrop')!=['ALL'] or
-                        host.get('PidMode')!='' or host.get('CgroupnsMode')!='private' or
-                        not host.get('ReadonlyRootfs') or actual['Config'].get('User')!='1001:1001' or
-                        host.get('NetworkMode')!='none' or
-                        sorted(host.get('SecurityOpt',[]))!=['apparmor=docker-default','no-new-privileges'] or
-                        host.get('Memory')!=launcher.value['profiles'].get(profile,{}).get('memory_bytes') or
-                        host.get('PidsLimit')!=launcher.value['profiles'].get(profile,{}).get('pids')):
-                    raise GateError('development stop refused a foreign or mismatched container')
-                before=actual['State']
-                if before['Running']:
-                    killed=launcher.docker(['kill',actual['Id']],timeout=15)
-                    if not passed(killed):raise GateError('registered development cancellation failed')
-                after=launcher.json(['inspect',actual['Id']])[0]['State']
-                removed=launcher.docker(['rm',actual['Id']],timeout=15)
-                absent=not passed(launcher.docker(['inspect',actual['Id']],timeout=15))
-                complete=passed(removed) and absent and not after['Running'] and after['Pid']==0
-                rows.append({'container_id':actual['Id'],'state_before':before,'state_after':after,
-                             'removed':complete,'children_reaped':not after['Running'] and after['Pid']==0})
-                if not complete:raise GateError('development cancellation cleanup incomplete')
-            atomic_json(active/(row['run_id']+'.cancelled'),{'status':'CANCELLED','containers':rows})
-            path.unlink()
+            with cancellation_receipt(path,rows):
+                listed=launcher.docker(['ps','--all','--filter','label=org.safe-c.worktree='+launcher.worktree_scope,
+                    '--filter','label=org.safe-c.purpose=development',
+                    '--filter','label=org.safe-c.run='+row['run_id'],'--format','{{.ID}}'])
+                if not passed(listed):raise GateError('development stop inventory unavailable')
+                for identifier in listed['output'].splitlines():
+                    actual=launcher.json(['inspect',identifier])[0]
+                    labels=actual['Config'].get('Labels',{})
+                    host=actual['HostConfig']
+                    profile=labels.get('org.safe-c.profile')
+                    if (labels.get(LABEL)!='1' or labels.get('org.safe-c.worktree')!=launcher.worktree_scope or
+                            labels.get('org.safe-c.purpose')!='development' or
+                            labels.get('org.safe-c.run')!=row['run_id'] or actual['Image']!=row['image_id'] or
+                            profile not in launcher.value['profiles'] or
+                            host.get('Privileged') or host.get('CapAdd') or host.get('CapDrop')!=['ALL'] or
+                            host.get('PidMode')!='' or host.get('CgroupnsMode')!='private' or
+                            not host.get('ReadonlyRootfs') or actual['Config'].get('User')!='1001:1001' or
+                            host.get('NetworkMode')!='none' or
+                            sorted(host.get('SecurityOpt',[]))!=['apparmor=docker-default','no-new-privileges'] or
+                            host.get('Memory')!=launcher.value['profiles'].get(profile,{}).get('memory_bytes') or
+                            host.get('PidsLimit')!=launcher.value['profiles'].get(profile,{}).get('pids')):
+                        raise GateError('development stop refused a foreign or mismatched container')
+                    before=actual['State']
+                    if before['Running']:
+                        killed=launcher.docker(['kill',actual['Id']],timeout=15)
+                        if not passed(killed):raise GateError('registered development cancellation failed')
+                    after=launcher.json(['inspect',actual['Id']])[0]['State']
+                    removed=launcher.docker(['rm',actual['Id']],timeout=15)
+                    absent=not passed(launcher.docker(['inspect',actual['Id']],timeout=15))
+                    complete=passed(removed) and absent and not after['Running'] and after['Pid']==0
+                    rows.append({'container_id':actual['Id'],'state_before':before,'state_after':after,
+                                 'removed':complete,'children_reaped':not after['Running'] and after['Pid']==0})
+                    if not complete:raise GateError('development cancellation cleanup incomplete')
         return {'status':'PASS','stopped_containers':len(rows),'cleanup':rows,'global_cleanup':False}
     finally:launcher.close()
 
@@ -310,13 +325,9 @@ def execute(root, args, *, emit=True):
         result['result']=view(root,original,bundle_directory,identity)
         result['status']='PASS'
     elif args.operation in {'status', 'readiness'}:
-        result['result'] = {'worktree': fields['worktree'], 'configuration': fields,
-                            'developer_tooling': 'BLOCKED', 'combined_local_checks': 'BLOCKED',
-                            'independent_enforcement': 'PENDING',
-                            'scripted_workflow_trial': 'NOT_EXECUTED',
-                            'live_agent_trial': 'NOT_EXECUTED', 'handoff_ready': False,
-                            'application_started': False, 'production_authorized': False,
-                            'reason': 'Developer deterministic suite and workflow trials are incomplete.'}
+        from developer_acceptance import readiness
+        result['result'] = readiness(root,context,fields,selected,identity)
+        result['status'] = 'PASS' if result['result']['handoff_ready'] else 'BLOCKED'
     elif args.operation=='stop':
         result['result']=stop(root,out,lock)
         result['status']=result['result']['status']
@@ -449,6 +460,12 @@ def execute(root, args, *, emit=True):
                 complete_capture=False)
         finally:
             cancelled=registered.with_suffix('.cancelled')
+            cancelling=registered.with_suffix('.cancelling')
+            if cancelling.is_file():
+                import time
+                deadline=time.monotonic()+20
+                while cancelling.is_file() and not cancelled.is_file() and time.monotonic()<deadline:
+                    time.sleep(.02)
             if cancelled.is_file():
                 receipt=read_json(cancelled)
                 by_id={r['container_id']:r for r in receipt['containers']}
@@ -460,7 +477,7 @@ def execute(root, args, *, emit=True):
                 runner.close()
             finally:
                 shutil.rmtree(scratch, ignore_errors=True)
-                if registered.is_file():registered.unlink()
+                registered.unlink(missing_ok=True)
                 admitted.__exit__(None,None,None)
     else:
         result['result'] = {'reason': 'This developer responsibility is not implemented yet.'}

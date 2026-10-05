@@ -89,11 +89,27 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     if not unchanged:raise GateError('nonempty destination was not safely refused')
     # Full fresh child qualification uses this exact trusted evaluator and immutable
     # external identity. --instance removes only recursive maintenance export work.
-    args=[str(root/'tools/safety'),'--candidate',str(first),'--baseline',str(root),'--expected-baseline',identity,'--instance','ci']
+    developer_args=[str(root/'tools/safety'),'--candidate',str(first),'dev','selftest','--format','json']
+    developer_result=bounded(developer_args,timeout=1200,limit=4*1024*1024)
+    atomic_json(run_dir/'starter-child-developer-command.opaque.json',developer_result)
+    try:
+        developer_feedback=json.loads(developer_result['output'])
+        developer_path=first/'artifacts/developer/runs'/developer_feedback['run_id']/'qualification.json'
+        from developer_acceptance import load as developer_load
+        developer_digest=file_hash(developer_path)
+        developer_load(first,developer_path,developer_digest)
+        # Standalone developer selftest honestly leaves the five outer E12 rows
+        # pending; only this actual child's subsequent combined CI completes them.
+        developer_ok=developer_result['failure'] is None and developer_feedback['status']=='BLOCKED'
+    except (GateError,KeyError,ValueError,OSError):developer_ok=False
+    if not developer_ok:raise GateError('fresh child local developer prequalification did not complete')
+    args=[str(root/'tools/safety'),'--candidate',str(first),'--baseline',str(root),'--expected-baseline',identity,
+          '--instance','--developer-evidence',str(developer_path),'--developer-evidence-sha256',developer_digest,'ci']
     result=bounded(args,timeout=1200,limit=4*1024*1024)
     atomic_json(run_dir/'starter-child-command.json',result)
     child_report=read_json(first/'artifacts/bootstrap-report.json') if (first/'artifacts/bootstrap-report.json').exists() else None
     full_ok=result['exit_code']==0 and result['failure'] is None and child_report and child_report['local_state']=='PASS'
+    no_grandchildren=not list((first/'artifacts/instances').glob('*/*/starter-baseline.lock.json'))
     # Second child must exercise its actual normal defect/control adapters too.
     from evidence import Runner
     from qualification import Qualifier
@@ -112,5 +128,5 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     copied_parent_rejected=False
     try:validate_fresh_report(copied,source_identity(second)[0],lock['image_id'],file_hash(root/'safety/contract.json'))
     except GateError:copied_parent_rejected=True
-    ok=bool(full_ok) and pair['status']=='PASS' and tamper_rejected and copied_parent_rejected and unchanged
-    return {'status':'PASS' if ok else 'FAIL','starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'bundle':bundle,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':'UNSEALED; owner licensing and independent approval pending','evidence_paths':[str(run_dir/'starter-child-command.json')]}
+    ok=bool(full_ok) and no_grandchildren and pair['status']=='PASS' and tamper_rejected and copied_parent_rejected and unchanged
+    return {'status':'PASS' if ok else 'FAIL','starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'bundle':bundle,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_no_grandchildren':no_grandchildren,'first_child_developer_prequalification':{'path':str(developer_path),'sha256':developer_digest},'first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':'UNSEALED; owner licensing and independent approval pending','evidence_paths':[str(run_dir/'starter-child-command.json'),str(run_dir/'starter-child-developer-command.opaque.json')]}

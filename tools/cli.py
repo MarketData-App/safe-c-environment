@@ -162,6 +162,11 @@ def finish(root, report, runner, command):
         lines += ['', 'Foundation-only coverage: '+json.dumps(foundation['coverage'].get('totals',{})),
                   'Foundation fuzz: '+foundation['fuzz']['status']+'; runtime: '+foundation['runtime']['status']+'.',
                   'Detailed foundation profiles, identities, allocation experiment and scope: `artifacts/foundation-qualification-report.json` and `.md`.']
+    developer=report['developer']
+    lines += ['', 'Developer tooling: '+developer['status']+'. Independent enforcement and live-trial evidence are separate.',
+              '', '| Developer | Status | Control | Observations |', '|---|---|---|---|']
+    lines += ['| '+r['id']+' | '+r['status']+' | '+r['control']+' | '+
+              '; '.join(s['name']+': '+s['status'] for s in r['subchecks'])+' |' for r in developer.get('cases',[])]
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
     lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz','containment']},indent=2),'```']
@@ -177,6 +182,8 @@ def main(argv=None):
     parser.add_argument('--baseline',type=Path)
     parser.add_argument('--expected-baseline')
     parser.add_argument('--instance',action='store_true',help='Externally selected instance contract; requires trusted baseline and identity')
+    parser.add_argument('--developer-evidence',type=Path,help='Trusted outer receipt from this instance immediately preceding CI')
+    parser.add_argument('--developer-evidence-sha256')
     subs=parser.add_subparsers(dest='command',required=True)
     for name in ['bootstrap','doctor','check-fast','check-full','selftest','ci']:subs.add_parser(name)
     f=subs.add_parser('fuzz');f.add_argument('--profile',choices=['smoke','extended'],required=True)
@@ -201,6 +208,10 @@ def main(argv=None):
             from developer import execute
             return execute(root,args)
         if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
+        if args.developer_evidence or args.developer_evidence_sha256:
+            if (not args.instance or args.command!='ci' or not args.developer_evidence or
+                    not __import__('re').fullmatch('[0-9a-f]{64}',args.developer_evidence_sha256 or '')):
+                raise GateError('child developer prequalification requires instance CI and its exact outer digest')
         if args.command=='report':
             report=read_json(root/'artifacts/bootstrap-report.json');validate(root,'report',report)
             current,_=source_identity(root);validate_fresh_report(report,current,read_json(root/'toolchain.lock.json')['image_id'],file_hash(root/'safety/contract.json'))
@@ -234,6 +245,9 @@ def main(argv=None):
             validate(root,'fixtures',read_json(root/'safety/fixtures.json'))
             if args.command in ['bootstrap','doctor','check-fast','check-full','selftest','ci']:
                 d=doctor(q,probes=args.command in ['bootstrap','doctor'] and not sandbox_doctor);report['gates'].append(gate('doctor',d['status'],d,[d['tool_evidence']]))
+                from developer_acceptance import doctor as developer_doctor
+                development=developer_doctor(root,run_dir)
+                report['gates'].append(gate('developer-doctor',development['status'],development,development['evidence_paths']))
             if args.command in ['check-fast','check-full','ci']:
                 report['gates']+=production_checks(q,args.command!='check-fast')
             if args.command in ['bootstrap','doctor','check-fast','check-full','selftest','ci','foundation']:
@@ -276,6 +290,15 @@ def main(argv=None):
                 from containment import new_report,Suite
                 report['containment']=new_report(q)
                 Suite(q,report['containment']).run()
+                from developer import inputs as developer_inputs
+                from developer_qualification import run as developer_suite
+                from developer_acceptance import load as developer_load
+                if args.developer_evidence:
+                    report['developer']=developer_load(root,args.developer_evidence.absolute(),args.developer_evidence_sha256)
+                else:
+                    policy,development_lock,_=developer_inputs(root)
+                    directory=root/'artifacts/developer/runs'/uuid.uuid4().hex;directory.mkdir(parents=True)
+                    report['developer']=developer_suite(root,policy,development_lock,directory)
             if args.command=='runtime':
                 from runtime import runtime_smoke
                 value=runtime_smoke(q);report['gates'].append(gate('runtime-demo',value['status'],value))
@@ -322,6 +345,17 @@ def main(argv=None):
                 report['gates'].append(gate('containment',report['containment']['status']))
                 report['gates'].append(gate('container-sabotage','PASS' if all(r['status']=='PASS' for r in added) else 'FAIL'))
                 report['gates'].append(gate('runtime-demo',report['containment']['runtime_demo'].get('status','BLOCKED')))
+                from developer_acceptance import project as developer_project
+                developer_project(root,report['developer'],report,instance=args.instance)
+                report['gates'].append(gate('developer-selftest',report['developer']['status']))
+                additions=report['developer']['pipeline_variants']
+                report['gates'].append(gate('developer-sabotage','PASS' if all(r['status']==r['control']=='PASS' for r in additions) else 'FAIL'))
+                report['gates'].append(gate('developer-workflow','PASS' if report['developer']['scripted_workflow_trial']=='PASSED' else 'FAIL'))
+                for parent in report['sabotage']:
+                    parent['subcases'] += [{'name':r['name']+'/'+r['variant'],'status':r['status'],'control':r['control'],
+                        'evidence_paths':r['evidence_paths'],'reason':r['reason'] or ''} for r in additions if r['parent']==parent['id']]
+                    parent['control']='PASS' if all(s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
+                    parent['status']='PASS' if all(s['status']==s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
             upstream=upstream_gate(root);report['reuse']['upstream_integrity']=upstream
             report['gates'].append(gate('upstream',details=upstream))
             return finish(root,report,runner,args.command)

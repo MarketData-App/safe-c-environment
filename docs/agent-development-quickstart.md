@@ -78,6 +78,39 @@ Read `debug_session_status`, `inspection_requirements_met`, `complete_capture`,
 and `inferior_outcome` separately. Collecting a signal or nonzero exit can be a
 successful investigation of a failed program. It does not clear the failure.
 
+Always redirect debugger JSON to an opaque artifact. An exclusion filter is
+insufficient: structured `frames`, `threads` and their nested stacks are also
+backtraces and must stay out of agent context. Use an explicit allowlist for
+the requested scalar state, verdicts, counts and paths. For example, this real
+registered recipe target permits a source stop:
+
+```sh
+./tools/safety dev debug --target foundation_recipes --recipe breakpoint --location foundation/tests/recipes.c:24 --format json > artifacts/recipe-debug.opaque.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+try:
+    result = json.loads(Path('artifacts/recipe-debug.opaque.json').read_text())
+    debug = result.get('result', {}).get('debugger', {})
+    print(json.dumps({
+        'status': result['status'], 'run_id': result['run_id'],
+        'debug_session_status': debug.get('debug_session_status'),
+        'inspection_requirements_met': debug.get('inspection_requirements_met'),
+        'complete_capture': debug.get('complete_capture'),
+        'values': debug.get('values', {}),
+        'inferior_outcome': debug.get('inferior_outcome'),
+        'frame_count': len(debug.get('frames', [])),
+        'thread_count': len(debug.get('threads', [])),
+        'evidence_paths': result['evidence_paths'],
+    }))
+except Exception as error:
+    print('python error:', type(error).__name__)
+PY
+```
+
+Use the same allowlist for demo debugging, adding only the task's requested
+scalar values. Keep the complete debugger receipt for later authorized inspection.
+
 ## Retained failures and coverage
 
 Every selected test produces a run ID and a retained bundle. Use the actual ID
@@ -86,6 +119,10 @@ from its JSON result for `dev diagnose --run-id`,
 recipe. Replay uses the original executable, source bytes, input, instrumentation,
 environment, and normal test/fuzz profile. A failed replay stays nonzero. A debug
 variant is labeled as a separate investigation of the recorded source.
+Diagnosis also provides a copyable current-candidate test command when its frozen
+regression contract and build inputs still match. It produces a new run and binary
+identity; changed test inputs make the comparison unavailable. Current-source
+finite fuzz comparison is not exposed. Original finite fuzz replay is supported.
 
 Coverage requires a successful selected test with `--profile coverage`, followed
 by `dev coverage --run-id` using that run ID. Its uncovered lines and branches
@@ -106,6 +143,12 @@ Read `./tools/safety dev readiness --format json` for the separate developer,
 combined-check, independent-enforcement, scripted-trial, and live-trial axes.
 Missing evidence never becomes a pass. `handoff_ready` remains false until all
 required evidence and independent enforcement are present.
+`index_freshness` describes the current namespace's saved build/source state;
+navigation still reports its observed local indexing scope separately. Available
+debugger recipes and recent matching feedback appear in status/readiness output.
+Standalone `dev selftest` leaves the five outer E12 maintenance checks BLOCKED;
+run maintenance `ci` to evaluate actual exports, child qualification and runtime
+contents. This pending outer work is distinct from a local tool failure.
 
 `./tools/safety dev stop --format json` stops only registered development jobs
 for this worktree. It verifies ownership and confinement before cleanup; it does

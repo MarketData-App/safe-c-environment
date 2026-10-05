@@ -10,7 +10,7 @@ from developer import admission
 from developer_lsp import position, scalar_position, uri
 from developer_gdb import parse
 from developer_state import pack, restore
-from developer_bundle import relative_path
+from developer_bundle import relative_path,diagnose
 from developer_report import feedback,qualification
 from developer_workspace import descriptor
 import copy
@@ -20,6 +20,26 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DeveloperInputTests(unittest.TestCase):
+    def test_current_comparison_refuses_changed_regression_contract(self):
+        with tempfile.TemporaryDirectory(dir='/work') as temporary:
+            root=Path(temporary);control=root/'foundation/tests/control.c'
+            control.parent.mkdir(parents=True);control.write_bytes(b'frozen control')
+            from evidence import file_hash
+            manifest={'run_id':'a'*32,'finding_id':'DEV-RUN-'+'a'*32,'source_identity':'b'*64,
+                'profile':'debug','observed':{'status':'FAIL'},'evidence_paths':[],
+                'original_replay_available':True,'test':{'id':'foundation.recipes'},'request':{},
+                'source_files':{'foundation/tests/control.c':{'sha256':file_hash(control)}}}
+            result=diagnose(root,manifest,root/'bundle')
+            comparison=result['current_candidate_comparison']
+            self.assertTrue(comparison['available'])
+            self.assertEqual(comparison['original_run_id'],manifest['run_id'])
+            self.assertIn(comparison['command'],result['follow_up'])
+            control.write_bytes(b'changed expectation')
+            changed=diagnose(root,manifest,root/'bundle')['current_candidate_comparison']
+            self.assertFalse(changed['available'])
+            control.unlink()
+            self.assertFalse(diagnose(root,manifest,root/'bundle')['current_candidate_comparison']['available'])
+
     def test_debugger_outcome_contradictions_are_rejected(self):
         debug={'debug_session_status':'PASS','inspection_requirements_met':True,'complete_capture':True,
                'frames':[{'frame':{'func':'control'}}],'stop':{'reason':'breakpoint-hit','bkptno':'1'},
@@ -58,6 +78,10 @@ class DeveloperInputTests(unittest.TestCase):
         with self.assertRaises(GateError):qualification(duplicate,inventory,'source','image')
         incomplete=copy.deepcopy(value);incomplete['status']='PASS'
         with self.assertRaises(GateError):qualification(incomplete,inventory,'source','image')
+        masked=copy.deepcopy(value);masked['cases'][0]['subchecks'][0]['status']='FAIL'
+        with self.assertRaises(GateError):qualification(masked,inventory,'source','image')
+        unknown=copy.deepcopy(value);unknown['pipeline_variants'][0]['status']='UNKNOWN'
+        with self.assertRaises(GateError):qualification(unknown,inventory,'source','image')
 
     def test_bundle_paths_and_required_retained_byte_fields(self):
         self.assertEqual(str(relative_path('foundation/include/sc-foundation.h')),'foundation/include/sc-foundation.h')
@@ -79,10 +103,13 @@ class DeveloperInputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir='/work') as temporary:
             root=Path(temporary);build=root/'build';build.mkdir()
             (build/'entry.o').write_bytes(b'object bytes')
+            stamp=1791220000123456789
+            __import__('os').utime(build/'entry.o',ns=(stamp,stamp))
             limits=read_json(ROOT/'safety/developer-policy.json')['limits']
             pack(build,root/'packed','context',limits,{'source.c':'fingerprint'})
             result=restore(root/'restored',root/'packed','context',limits)
             self.assertEqual((root/'restored/entry.o').read_bytes(),b'object bytes')
+            self.assertEqual((root/'restored/entry.o').stat().st_mtime_ns,stamp)
             self.assertEqual(result['source_files'],{'source.c':'fingerprint'})
             with self.assertRaises(GateError):restore(root/'wrong',root/'packed','other',limits)
             archive=root/'packed'/result['archives'][0]['path']

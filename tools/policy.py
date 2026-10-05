@@ -74,6 +74,9 @@ def inventory_gate(root, expected_contract=None):
             raise GateError('source fingerprint changed: ' + p)
     from foundation import input_gate, fixture_inventory as foundation_fixtures, boundary_inventory
     input_gate(root, artifacts=False);foundation_fixtures(root);boundary_inventory(root)
+    from developer import inputs as developer_inputs
+    developer_inputs(root)
+    validate(root,'developer-fixtures',read_json(root/'safety/developer-fixtures.json'))
     if read_json(root/'safety/exceptions.json')['approved_exceptions']:
         raise GateError('no independently authorized exceptions supplied')
     return {'status':'PASS','sources':sorted(actual),'cases':len(fixtures['cases'])}
@@ -104,7 +107,11 @@ def upstream_gate(root):
     if any(not re.fullmatch(r'.+@sha256:[0-9a-f]{64}',value) for value in lock['remote_images'].values()):raise GateError('floating remote compiler/runtime image')
     if not (root/'third_party/NOTICE.md').is_file() or file_hash(root/'third_party/NOTICE.md')!=lock['notice_sha256']:
         raise GateError('missing NOTICE')
-    return {'status':'PASS','originals':len(lock['files']),'adaptations':len(lock['adaptations'])}
+    from developer import inputs as developer_inputs
+    developer_policy,developer_lock,_=developer_inputs(root)
+    return {'status':'PASS','originals':len(lock['files']),'adaptations':len(lock['adaptations']),
+            'developer_payload':{'image_id':developer_lock['image_id'],'inputs':len(developer_lock['inputs']),
+                                 'notices':len(developer_lock['notices']),'license_review':developer_lock['license_review']}}
 
 def export_inventory(root):
     manifest = read_json(root/'starter-export.json')
@@ -122,6 +129,18 @@ def export_inventory(root):
         required.update(lock['notices'])
         if not required <= set(files):
             raise GateError('foundation runtime/policy/input/notice export missing')
+    if (root/'developer.lock.json').exists():
+        lock=read_json(root/'developer.lock.json')
+        required={str(p.relative_to(root)) for directory in ['tools','schemas','safety/qualification/developer']
+                  for p in (root/directory).glob('*') if p.is_file() and
+                  (p.name.startswith('developer') or directory=='safety/qualification/developer')}
+        required.update({'developer.lock.json','safety/developer-policy.json','safety/developer-fixtures.json',
+            'cmake/Developer.cmake','docs/agent-development-quickstart.md','prompts/developer-handoff.md',
+            'prompts/developer-usability-trial.md'})
+        required.update(str(p.relative_to(root)) for p in (root/'container').glob('developer*') if p.is_file())
+        required.update(row['path'] for row in lock['inputs'])
+        required.update(row['path'] for row in lock['notices'].values())
+        if not required<=set(files):raise GateError('developer payload/adapter/notice export missing')
     for rel in files:
         p = Path(rel)
         if p.is_absolute() or '..' in p.parts or not (root/p).is_file() or (root/p).is_symlink():
@@ -168,6 +187,13 @@ def validate_fresh_report(report, source_hash, image, policy_hash):
     foundation=report.get('foundation',{})
     if 'binding' in foundation and (foundation['binding'].get('source')!=source_hash or foundation['binding'].get('image')!=image):
         raise GateError('foundation evidence source/image identity mismatch')
+    developer=report.get('developer',{})
+    if 'cases' in developer:
+        if developer.get('source_identity')!=source_hash:
+            raise GateError('developer evidence source identity mismatch')
+        if developer.get('status')=='PASS' and (not developer.get('cases') or
+                any(r['status']!='PASS' for r in developer['cases']+developer['pipeline_variants'])):
+            raise GateError('developer report omitted or masked mandatory observations')
     return True
 
 def gate_accounting(rows, required):
