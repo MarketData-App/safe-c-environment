@@ -75,6 +75,7 @@ def bounded(argv, timeout=30, limit=4*1024*1024, env=None, cwd=None):
     process.stdout.close()
     return {'argv': list(argv), 'exit_code': code, 'failure': cause,
             'seconds': round(time.monotonic()-started, 4),
+            'evidence_complete':cause is None,
             'output': bytes(output[:limit]).decode('utf-8', errors='replace')}
 
 PROHIBITED_ENV = ('LIT_OPTS', 'FILECHECK_OPTS', 'ASAN_OPTIONS', 'LSAN_OPTIONS',
@@ -168,14 +169,22 @@ print(base64.b64encode(p.read_bytes()).decode())"""
         inputs=self.scratch/('native-input-'+str(self.counter));inputs.mkdir()
         shutil.copy2(path,inputs/'target')
         (inputs/'target').chmod(0o555)
-        profile='fuzz' if binary.startswith('adapter/') or 'fuzz' in binary.split('/')[1] else 'test-'+binary.split('/')[1].split('-')[0] if binary.startswith('build/') else 'test-ordinary'
+        profile='test-asan' if binary.startswith('benchmark') else 'fuzz' if binary.startswith('adapter/') or 'fuzz' in binary.split('/')[1] else 'test-'+binary.split('/')[1].split('-')[0] if binary.startswith('build/') else 'test-ordinary'
         if profile not in self.launcher.value['profiles']:profile='test-ordinary'
         session=self.launcher.create(profile,{'/src':self.snapshot,'/inputs':inputs})
         try:
             if '/work/exploration-corpus' in args:
                 setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/exploration-corpus");p.mkdir();[shutil.copyfile(x,p/x.name) for x in pathlib.Path("/src/fuzz/corpus").iterdir() if x.is_file()];pathlib.Path("/work/fuzz-failures").mkdir()'],timeout=10)
                 if not passed(setup):raise GateError('fresh fuzz scratch preparation failed')
+            before_events=self.launcher.counters(session['effective']['cgroup_path'])
             result=self.launcher.execute(session,['/inputs/target',*args[1:]],timeout=min(timeout,self.launcher.value['profiles'][profile]['wall_seconds']),env=settings)
+            after_events=session['lifecycle']['counters_after'] if session['lifecycle'] else self.launcher.counters(session['effective']['cgroup_path'])
+            from containment import counters
+            if counters(after_events['memory.events'])['oom']>counters(before_events['memory.events'])['oom']:
+                result['failure']='CGROUP_OOM';result['evidence_complete']=False
+            if counters(after_events['pids.events'])['max']>counters(before_events['pids.events'])['max']:
+                result['failure']='PID_LIMIT';result['evidence_complete']=False
+            result['cgroup_events']={'before':before_events,'after':after_events}
             result['binary_sha256']=file_hash(inputs/'target');result['binary_unchanged']=file_hash(inputs/'target')==file_hash(path)
             if result['failure'] is None:
                 if settings.get('LLVM_PROFILE_FILE'):
@@ -188,6 +197,8 @@ print(base64.b64encode(p.read_bytes()).decode())"""
                         if not __import__('re').fullmatch(r'(exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe fuzz output name')
                         collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
             result['lifecycle']=self.launcher.dispose(session)
+            from container_policy import completion_gate
+            completion_gate(result,result['lifecycle'])
             return result
         finally:
             self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
@@ -208,6 +219,8 @@ print(base64.b64encode(p.read_bytes()).decode())"""
             if not passed(setup):raise GateError('fresh CTest scratch preparation failed')
             result=self.launcher.execute(session,argv,timeout=min(timeout,10),env=settings)
             result['test_binary_hashes']=hashes;result['lifecycle']=self.launcher.dispose(session)
+            from container_policy import completion_gate
+            completion_gate(result,result['lifecycle'])
             return result
         finally:self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
 

@@ -16,6 +16,8 @@ def fixture_inventory(root):
     spec=read_json(root/'safety/containment-fixtures.json')
     from schema_check import validate
     validate(root,'containment-fixtures',spec);exact_ids(spec['cases'],D_IDS)
+    variants=[(r['parent'],r['name']) for r in spec['sabotage_variants']]
+    if len(variants)!=len(set(variants)):raise GateError('duplicate Docker sabotage variant')
     if file_hash(root/spec['helper'])!=spec['helper_sha256']:raise GateError('finite containment helper changed')
     return spec
 
@@ -27,7 +29,30 @@ def validate_containment(root,value,*,complete=True):
         names=[r['name'] for r in row['subchecks']]
         if len(names)!=len(set(names)) or sorted(names)!=sorted(expected[row['id']]['subchecks']):raise GateError('D subcheck inventory missing/duplicate/mismatched')
         if row['status']=='PASS' and (row['control']!='PASS' or any(r['status']!='PASS' for r in row['subchecks']) or not row['evidence_paths'] or not row['observations']):raise GateError('D pass lacks complete control/evidence')
+    wanted={(r['parent'],r['name']) for r in fixture_inventory(root)['sabotage_variants']}
+    actual=[(r['parent'],r['name']) for r in value['sabotage']]
+    if len(actual)!=len(set(actual)) or set(actual)!=wanted:raise GateError('Docker sabotage inventory missing/duplicate/mismatched')
     if complete and value['status']=='PASS' and any(r['status']!='PASS' for r in value['cases']+value['sabotage']):raise GateError('containment aggregate omits a failed case/subcase')
+    return True
+
+def container_binding_gate(value,expected):
+    actual={'kernel':value['runner'].get('KernelVersion'),'runtime':value['runner'].get('ServerVersion'),'daemon':value['runner'].get('ID'),'image':value['image_id'],'source':value['source_identity'],'profile':value['policy_hash'],'instance':value['instance_identity']}
+    if actual!=expected:raise GateError('stale container evidence binding')
+    return True
+
+def expected_binding(root,runner,image,value):
+    identity=source_identity(root)[0]
+    from evidence import digest
+    instance=digest(json.dumps({'root':str(root.resolve()),'source':identity},sort_keys=True).encode())
+    return {'kernel':runner['KernelVersion'],'runtime':runner['ServerVersion'],'daemon':runner['ID'],'image':image,'source':identity,'profile':policy_hash(value),'instance':instance}
+
+def fresh_container_evidence(root,report,lock):
+    if report['commands'][-1].endswith('ci') and report['local_state']=='PASS':
+        value=report['containment'];validate_containment(root,value)
+        if value['status']!='PASS':raise GateError('amended CI requires complete container qualification')
+        l=Launcher(root,root/'artifacts',lock)
+        try:container_binding_gate(value,expected_binding(root,l.preflight(),lock['image_id'],l.value))
+        finally:l.close()
     return True
 
 def counters(text):return {line.split()[0]:int(line.split()[1]) for line in text.splitlines()}
@@ -35,7 +60,8 @@ def counters(text):return {line.split()[0]:int(line.split()[1]) for line in text
 def new_report(q):
     l=q.runner.launcher
     spec=fixture_inventory(q.root)
-    return {'schema_version':1,'status':'BLOCKED','policy_hash':policy_hash(l.value),'source_identity':source_identity(q.root)[0],'image_id':q.runner.lock['image_id'],'runner':l.preflight(),'cases':[{'id':r['id'],'status':'BLOCKED','control':'BLOCKED','classification':'BLOCKED','subchecks':[{'name':n,'status':'BLOCKED'} for n in r['subchecks']],'observations':{},'evidence_paths':[],'reproduce':r['reproduce']} for r in spec['cases']], 'runtime_demo':{},'storage_scope':{'scratch':'explicit sized tmpfs; work/tmp/run/dev-shm included in memory accounting','artifacts':'bounded live collector; fixed byte/file-count retention admission','images':'existing pinned toolchain; bounded <=8 MiB runtime assemblies, no ordinary acquisition/build cache','logs':'local rotating driver plus finite outer capture','daemon_shared_storage':'No global daemon disk quota claimed. Admission is a free-space check; project writable bounds come from tmpfs, collector, finite import inputs and log rotation. Other projects/daemon metadata are outside this project quota.','host_overhead':'8 GiB memory and 8 GiB disk admission headroom, max 4 active project jobs, max 12 GiB reserved container memory. Operator must protect host-wide capacity against unrelated workload changes.'},'sabotage':[],'application_release_ready':False,'independent_enforcement':'UNSEALED','remote_ci_execution':'NOT_RUN','production_approval':'NOT_REQUESTED'}
+    binding=expected_binding(q.root,l.preflight(),q.runner.lock['image_id'],l.value)
+    return {'schema_version':1,'status':'BLOCKED','policy_hash':policy_hash(l.value),'source_identity':source_identity(q.root)[0],'instance_identity':binding['instance'],'image_id':q.runner.lock['image_id'],'runner':l.preflight(),'cases':[{'id':r['id'],'status':'BLOCKED','control':'BLOCKED','classification':'BLOCKED','subchecks':[{'name':n,'status':'BLOCKED'} for n in r['subchecks']],'observations':{},'evidence_paths':[],'reproduce':r['reproduce']} for r in spec['cases']], 'runtime_demo':{},'storage_scope':{'scratch':'explicit sized tmpfs; work/tmp/run/dev-shm included in memory accounting','artifacts':'bounded live collector; fixed byte/file-count retention admission','images':'existing pinned toolchain; bounded <=8 MiB runtime assemblies, no ordinary acquisition/build cache','logs':'local rotating driver plus finite outer capture','daemon_shared_storage':'No global daemon disk quota claimed. Admission is a free-space check; project writable bounds come from tmpfs, collector, finite import inputs and log rotation. Other projects/daemon metadata are outside this project quota.','host_overhead':'8 GiB memory and 8 GiB disk admission headroom, max 4 active project jobs, max 12 GiB reserved container memory. Operator must protect host-wide capacity against unrelated workload changes.'},'sabotage':[{**r,'status':'BLOCKED','control':'BLOCKED','evidence_paths':[],'reason':'not executed'} for r in spec['sabotage_variants']],'application_release_ready':False,'independent_enforcement':'UNSEALED','remote_ci_execution':'NOT_RUN','production_approval':'NOT_REQUESTED'}
 
 class Suite:
     def __init__(self,q,value):
@@ -47,6 +73,7 @@ class Suite:
         self.fixture=self.directory/'fixture';self.fixture.mkdir(exist_ok=True)
         (self.fixture/'input-canary').write_text('input-safe');(self.fixture/'input-canary').chmod(0o666)
         self.outside=self.directory/'outside-canary';self.outside.write_text('outside-safe')
+        self.source_before=source_identity(q.root)[0]
         self.hashes={str(p):file_hash(p) for p in [self.source/'containment-canary',self.fixture/'input-canary',self.outside]}
     def launch(self,profile='probe',**kw):return self.l.create(profile,{'/src':self.source,'/fixture':self.fixture},**kw)
     def probe(self,record,mode,control=False,extra=(),timeout=10,env=None,limit=None):
@@ -94,23 +121,37 @@ class Suite:
         self.case('D04',{'environment':not d.get('unexpected_environment_names',['missing']) and d.get('synthetic_secret_inherited') is False and d.get('home_default')=='/nonexistent','authority':d.get('management_socket_present') is False,'descriptors':fd_ok,'home':d.get('home_mount_present') is False,'socket-policy-rejection':rejected,'allowed-variable':d.get('allowed')=='allowed-nonsecret'},{'operation':d},[r],passed(out))
         self.network()
         r=self.launch();out,d=self.probe(r,'privilege');l.dispose(r)
-        self.case('D06',{'elevation-denied':d.get('setuid_errno')==errno.EPERM,'forbidden-syscall-denied':d.get('keyctl_return')==-1 and d.get('keyctl_errno')==errno.EPERM,'seccomp-active':r['effective']['inside']['status']['Seccomp']=='2','capability-attribution':r['effective']['inside']['status']['CapEff']=='0000000000000000','permitted-syscall':d.get('getpid_ok') is True},{'operation':d,'attribution':{'setuid':'non-root with no CAP_SETUID','keyctl':'Docker builtin seccomp forbids read-only keyctl query; AppArmor remains active. EPERM alone is not credited to every layer.'}},[r],passed(out))
-        for cid,mode,profile in [('D07','memory','probe-memory'),('D08','pids','probe-pids'),('D09','cpu','probe-cpu')]:
-            r=self.launch(profile,finite_memory=192*1024*1024)
-            control,c=self.probe(r,mode,control=True,timeout=5)
-            cg=r['effective']['cgroup_path'];before=l.counters(cg)
-            out,d=self.probe(r,mode,timeout=6 if mode=='cpu' else 10);after=l.counters(cg);l.dispose(r)
-            common={'finite-ceiling':d.get('finite_max_bytes',d.get('finite_attempts',d.get('finite_seconds'))) in [192*1024*1024,64,3],'healthy-control':passed(control) and (c.get('child_exit')==0 if mode=='memory' else c.get('created')==4 and c.get('refusal_errno')==0 if mode=='pids' else c.get('computation_completed') is True)}
-            if mode=='memory':
-                events=counters(after['memory.events']);prior=counters(before['memory.events'])
-                common.update({'limits-verified':r['effective']['limits']['memory.max']==str(96*1024*1024),'memory-intervention':d.get('child_exit') in [-9,42],'event-attribution':events['oom']>prior['oom'] and events['oom_kill']>prior['oom_kill']})
-            elif mode=='pids':
-                common.update({'limits-verified':r['effective']['limits']['pids.max']=='32','task-refusal':d.get('refusal_errno')==errno.EAGAIN and 4<d.get('created',0)<64,'event-attribution':counters(after['pids.events'])['max']>counters(before['pids.events'])['max'],'children-reaped':d.get('created')==d.get('reaped') and int(after['pids.current'])==int(before['pids.current'])})
-            else:
-                b=counters(before['cpu.stat']);a=counters(after['cpu.stat']);cpu=d.get('cpu_seconds',0);wall=d.get('busy_wall_seconds',0)
-                common.update({'quota-verified':r['effective']['limits']['cpu.max']=='25000 100000','usage-tolerance':2.9<=wall<=4.0 and .35<=cpu<=1.1 and .1<=cpu/wall<=.36,'throttling':a['nr_throttled']>b['nr_throttled'] and a['throttled_usec']>b['throttled_usec'],'independent-deadline':out['failure'] is None and out['seconds']<6})
-            self.case(cid,common,{'control':c,'operation':d,'before':before,'after':after,'finite_ceilings':read_json(self.q.root/'safety/containment-fixtures.json')['finite_ceilings']},[r],common['healthy-control'] and passed(out))
-        self.space();self.logs();self.lifecycle();self.runtime()
+        self.case('D06',{'elevation-denied':d.get('setuid_errno')==errno.EPERM,'forbidden-syscall-denied':d.get('mount_return')==-1 and d.get('mount_errno')==errno.EPERM and d.get('mount_target')=='/work/forbidden-mount','seccomp-active':r['effective']['inside']['status']['Seccomp']=='2','capability-attribution':r['effective']['inside']['status']['CapEff']=='0000000000000000','permitted-syscall':d.get('getpid_ok') is True},{'operation':d,'attribution':{'setuid':'non-root with no CAP_SETUID','mount':'Inferred filter attribution: Docker builtin seccomp denies mount in this profile with no CAP_SYS_ADMIN; mode/profile are recorded. The kernel capability restriction would independently apply but is not credited as another observed denial from this EPERM. The target is container-owned private scratch.'}},[r],passed(out))
+        self.resource_cases()
+        self.lifecycle();self.runtime()
+    def resource_cases(self):
+        import fcntl
+        l=self.l
+        fd=os.open('/tmp/safe-c-resource-probe-'+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+        acquired=False;started=time.monotonic()
+        try:
+            while not acquired:
+                try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);acquired=True
+                except BlockingIOError:
+                    if time.monotonic()-started>20:raise GateError('another bounded resource probe owns the serial qualification slot')
+                    time.sleep(.05)
+            for cid,mode,profile in [('D07','memory','probe-memory'),('D08','pids','probe-pids'),('D09','cpu','probe-cpu')]:
+                r=self.launch(profile,finite_memory=192*1024*1024)
+                control,c=self.probe(r,mode,control=True,timeout=5)
+                cg=r['effective']['cgroup_path'];before=l.counters(cg)
+                out,d=self.probe(r,mode,timeout=6 if mode=='cpu' else 10);after=l.counters(cg);l.dispose(r)
+                common={'finite-ceiling':d.get('finite_max_bytes',d.get('finite_attempts',d.get('finite_seconds'))) in [192*1024*1024,64,3],'healthy-control':passed(control) and (c.get('child_exit')==0 if mode=='memory' else c.get('created')==4 and c.get('refusal_errno')==0 if mode=='pids' else c.get('computation_completed') is True)}
+                if mode=='memory':
+                    events=counters(after['memory.events']);prior=counters(before['memory.events'])
+                    common.update({'limits-verified':r['effective']['limits']['memory.max']==str(96*1024*1024),'memory-intervention':d.get('child_exit') in [-9,42],'event-attribution':events['oom']>prior['oom'] and events['oom_kill']>prior['oom_kill']})
+                elif mode=='pids':
+                    common.update({'limits-verified':r['effective']['limits']['pids.max']=='32','task-refusal':d.get('refusal_errno')==errno.EAGAIN and 4<d.get('created',0)<64,'event-attribution':counters(after['pids.events'])['max']>counters(before['pids.events'])['max'],'children-reaped':d.get('created')==d.get('reaped') and int(after['pids.current'])==int(before['pids.current'])})
+                else:
+                    b=counters(before['cpu.stat']);a=counters(after['cpu.stat']);cpu=d.get('cpu_seconds',0);wall=d.get('busy_wall_seconds',0)
+                    common.update({'quota-verified':r['effective']['limits']['cpu.max']=='25000 100000','usage-tolerance':2.9<=wall<=4.0 and .35<=cpu<=1.1 and .1<=cpu/wall<=.36,'throttling':a['nr_throttled']>b['nr_throttled'] and a['throttled_usec']>b['throttled_usec'],'independent-deadline':out['failure'] is None and out['seconds']<6})
+                self.case(cid,common,{'control':c,'operation':d,'before':before,'after':after,'finite_ceilings':read_json(self.q.root/'safety/containment-fixtures.json')['finite_ceilings']},[r],common['healthy-control'] and passed(out))
+            self.space();self.logs()
+        finally:os.close(fd)
     def network(self):
         l=self.l;name='safe-c-integration-'+__import__('uuid').uuid4().hex
         made=l.docker(['network','create','--internal','--label','org.safe-c.containment=1',name])
@@ -177,7 +218,7 @@ class Suite:
         # Crash native() records its own completed test container; no trace is
         # printed. Its intended detector was already qualified separately.
         crash_record=next(r for r in self.l.records if r['container_id']==crash['container_id'])
-        self.case('D13',{'crash-container':crash['exit_code']!=0 and crash['failure'] is None and crash['profile']=='test-asan','runtime-health':passed(before) and passed(after) and alive and after['output'].count('runtime-demo healthy sum=9')>=before['output'].count('runtime-demo healthy sum=9'),'canaries-unchanged':self.unchanged(),'image-inventory':set(demo['image_members'])=={'demo','lib/x86_64-linux-gnu/libc.so.6','lib64/ld-linux-x86-64.so.2'},'binary-identity':demo['image_members']['demo']==demo['binary_sha256'],'runtime-profile':demo['profile']=='runtime-demo' and bool(demo['effective']),'normal-entrypoint':demo['status']=='PASS' and demo['entrypoint']==['/demo']},{'runtime':demo,'crash':{k:crash[k] for k in ['exit_code','failure','container_id','profile','binary_sha256']},'health_records_before':before['output'].count('runtime-demo healthy sum=9'),'health_records_after':after['output'].count('runtime-demo healthy sum=9'),'source_identity':source_identity(self.q.root)[0]},[record,crash_record],demo['status']=='PASS')
+        self.case('D13',{'crash-container':crash['exit_code']!=0 and crash['failure'] is None and crash['profile']=='test-asan','runtime-health':passed(before) and passed(after) and alive and after['output'].count('runtime-demo healthy sum=9')>before['output'].count('runtime-demo healthy sum=9'),'canaries-unchanged':self.unchanged() and source_identity(self.q.root)[0]==self.source_before,'image-inventory':set(demo['image_members'])=={'demo','lib/x86_64-linux-gnu/libc.so.6','lib64/ld-linux-x86-64.so.2'},'binary-identity':demo['image_members']['demo']==demo['binary_sha256'],'runtime-profile':demo['profile']=='runtime-demo' and bool(demo['effective']),'normal-entrypoint':demo['status']=='PASS' and demo['entrypoint']==['/demo']},{'runtime':demo,'crash':{k:crash[k] for k in ['exit_code','failure','container_id','profile','binary_sha256']},'health_records_before':before['output'].count('runtime-demo healthy sum=9'),'health_records_after':after['output'].count('runtime-demo healthy sum=9'),'source_identity':source_identity(self.q.root)[0]},[record,crash_record],demo['status']=='PASS')
 
 def routing(q,value,report,*,instance=False):
     cases={r['id']:r for r in report['cases']}
@@ -221,6 +262,12 @@ def container_sabotage(q,value):
         finally:
             if old is None:os.environ.pop(k,None)
             else:os.environ[k]=old
+    original_json=l.json
+    for name,key in [('memory','MemoryLimit'),('swap','SwapLimit'),('pids','PidsLimit'),('cpu','CpuCfsQuota')]:
+        info=original_json(['info','--format','{{json .}}']);info[key]=False
+        l.json=lambda args,info=info:info if args[0]=='info' else original_json(args)
+        try:rejected('P01','docker-or-controller-unavailable/unsupported-'+name+'-controller',l.preflight)
+        finally:l.json=original_json
     for name,key,v in [('wrong-daemon','daemon_id','unapproved'),('unsupported-cgroup','cgroup_version','1')]:
         old=l.value['runner'][key];l.value['runner'][key]=v
         try:rejected('P01','docker-or-controller-unavailable/'+name,l.preflight)
@@ -229,19 +276,24 @@ def container_sabotage(q,value):
     l.docker=lambda *a,**k:{'exit_code':127,'failure':None,'output':''}
     try:rejected('P01','docker-or-controller-unavailable/missing-docker',l.preflight)
     finally:l.docker=old_docker
-    for name,key,v in [('ignored-memory','memory_bytes',0),('ignored-pids','pids',0),('ignored-cpu','cpus',0),('ignored-swap','swap_bytes',-1)]:
-        modified=copy.deepcopy(base);modified['resources'][key]=v
-        rejected('P01','docker-or-controller-unavailable/'+name,lambda m=modified:validate_plan(m,l.value,image,mounts,'build'))
+    from container_policy import kernel_limits_gate
+    limits=dict(q.runner.session['effective']['limits'])
+    kernel_limits_gate(limits,base['resources'])
+    for name,key,v in [('ignored-memory','memory.max','max'),('ignored-pids','pids.max','max'),('ignored-cpu','cpu.max','max 100000'),('ignored-swap','memory.swap.max','max')]:
+        modified=dict(limits);modified[key]=v
+        rejected('P01','docker-or-controller-unavailable/'+name,lambda m=modified:kernel_limits_gate(m,base['resources']))
     for name in ['build','configure-try-run','test','fuzz-adapter']:
-        modified=copy.deepcopy(base);modified['execution_path']='host/'+name
-        rejected('P02','native-execution-bypass/'+name,lambda m=modified:validate_plan(m,l.value,image,mounts,'build'))
+        modified=copy.deepcopy(q.runner.session);modified['execution_path']='host/'+name
+        from container_policy import dispatch_gate
+        dispatch_gate(q.runner.session)
+        rejected('P02','native-execution-bypass/'+name,lambda m=modified:dispatch_gate(m))
     variants={'root':('user','0:0'),'capability':('capabilities',['SYS_ADMIN']),'privileged':('privileged',True),'seccomp-unconfined':('security',['seccomp=unconfined']),'apparmor-unconfined':('security',['apparmor=unconfined']),'host-pid':('namespaces',{'pid':'host'}),'host-ipc':('namespaces',{'ipc':'host'}),'device':('devices',['/dev/synthetic-device']),'host-root-mount':('mounts',{'/broad':{'source':'/'}}),'renamed-socket':('mounts',{'/renamed':{'source':'/var/run/docker.sock'}}),'leaked-environment':('environment_names',['SYNTHETIC_SECRET']),'host-network':('resources',{**base['resources'],'network':'host'}),'published-port':('ports',['23456:23456']),'merged-compose':('compose_override',{'privileged':True})}
     for name,(key,v) in variants.items():
         modified=copy.deepcopy(base);modified[key]=v
         rejected('P04','unsafe-container-override/'+name,lambda m=modified:validate_plan(m,l.value,image,mounts,'build'))
     from qualification import designated_runtime_result
     for name in ['STARTUP_FAILURE','SECCOMP_FAILURE','CGROUP_OOM','TIMEOUT','OUTPUT_LIMIT','RECORD_LIMIT']:
-        fake={'exit_code':1,'failure':name,'output':'synthetic expected marker','binary_unchanged':True}
+        fake={'exit_code':1,'evidence_complete':False,'failure':name,'output':'synthetic expected marker','binary_unchanged':True}
         rejected('P05','container-failure-as-detector/'+name,lambda f=fake: designated_runtime_result(f,'synthetic expected marker'))
     for name in ['missing-D','duplicate-D','malformed-D','mismatched-D','missing-profile','filtered-child']:
         modified=copy.deepcopy(value)
@@ -257,16 +309,17 @@ def container_sabotage(q,value):
             continue
         rejected('P07','containment-omitted/'+name,lambda m=modified:validate_containment(q.root,m,complete=False))
     for name in ['kernel','runtime','image','source','profile','instance']:
-        supplied={'kernel':value['runner']['KernelVersion'],'runtime':value['runner']['ServerVersion'],'image':value['image_id'],'source':value['source_identity'],'profile':value['policy_hash'],'instance':str(q.root.resolve())}
-        expected=dict(supplied);supplied[name]='stale'
-        def binding(a=supplied,b=expected):
-            if a!=b:raise GateError('stale container evidence binding')
-        rejected('P10','stale-container-evidence/'+name,binding)
+        expected=expected_binding(q.root,value['runner'],value['image_id'],l.value)
+        stale=copy.deepcopy(value)
+        if name in ['kernel','runtime']:stale['runner']['KernelVersion' if name=='kernel' else 'ServerVersion']='stale'
+        else:stale[{'image':'image_id','source':'source_identity','profile':'policy_hash','instance':'instance_identity'}[name]]='stale'
+        rejected('P10','stale-container-evidence/'+name,lambda v=stale:container_binding_gate(v,expected))
+    from container_policy import completion_gate,dispatch_gate,kernel_limits_gate
     for name in ['missing-status','early-removal','collector-overflow','children-remain']:
-        state={'status':None if name=='missing-status' else 0,'captured':name!='early-removal','complete':name!='collector-overflow','children_reaped':name!='children-remain'}
-        def lifecycle(s=state):
-            if s['status'] is None or not all(s[k] for k in ['captured','complete','children_reaped']):raise GateError('incomplete outer lifecycle evidence')
-        rejected('P11','lost-lifecycle-failure/'+name,lifecycle)
+        outcome={'exit_code':None if name=='missing-status' else 0,'failure':None,'evidence_complete':name!='collector-overflow'}
+        life={'state_before':{} if name=='early-removal' else {'Running':True},'state_after':{'Pid':0},'removed':True,'children_reaped':name!='children-remain'}
+        completion_gate({'exit_code':0,'failure':None,'evidence_complete':True},{'state_before':{'Running':True},'state_after':{'Pid':0},'removed':True,'children_reaped':True})
+        rejected('P11','lost-lifecycle-failure/'+name,lambda o=outcome,s=life:completion_gate(o,s))
     for key,v in [('memory_bytes',0),('swap_bytes',-1),('cpus',0),('pids',0),('work_bytes',0),('wall_seconds',0),('memory_bytes',l.value['aggregate']['memory_bytes']+1)]:
         m=copy.deepcopy(base);m['resources'][key]=v
         rejected('P15','weakened-container-policy/'+key+'-'+str(v),lambda m=m:validate_plan(m,l.value,image,mounts,'build'))

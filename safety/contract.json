@@ -310,6 +310,60 @@
       "name": "adapter-no-op",
       "mutation": "Export a no-op adapter target or omit the real parser from its source list",
       "outcome": "Actual adapter replay, build inventory, and coverage checks reject it."
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "native-execution-bypass",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P11",
+      "name": "lost-lifecycle-failure",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass",
+      "mutation": "Docker containment variants enumerated in safety/containment-fixtures.json",
+      "outcome": "Every individual variant must be rejected with its permitted-operation control"
     }
   ],
   "budgets": {

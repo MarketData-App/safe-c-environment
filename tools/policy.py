@@ -18,7 +18,7 @@ def source_files(root):
     result = {}
     for path in sorted(root.rglob('*')):
         rel = path.relative_to(root)
-        if any(part in excluded for part in rel.parts) or rel.name in {'.envrc', '.env', '.env.local'}:
+        if any(part in excluded for part in rel.parts) or rel.name.startswith('.env'):
             continue
         if path.is_symlink():
             raise GateError(f'symlink input is forbidden: {rel}')
@@ -39,6 +39,9 @@ def inventory_gate(root, expected_contract=None):
     validate(root, 'benchmark', read_json(root/'safety/benchmark-manifest.json'))
     validate(root, 'starter-export', read_json(root/'starter-export.json'))
     validate(root, 'toolchain', read_json(root/'toolchain.lock.json'))
+    from container_policy import policy
+    from containment import fixture_inventory
+    policy(root);fixture_inventory(root)
     configuration_gate(root)
     exact_ids(contract['cases'], C_IDS)
     exact_ids(contract['sabotage'], P_IDS)

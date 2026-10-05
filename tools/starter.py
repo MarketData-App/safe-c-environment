@@ -41,6 +41,8 @@ def instantiate(root, destination, name, *, baseline=None, expected=None, mainte
         report=read_json(root/'artifacts/bootstrap-report.json')
         current,_=source_identity(root)
         validate_fresh_report(report,current,read_json(root/'toolchain.lock.json')['image_id'],file_hash(root/'safety/contract.json'))
+        from containment import fresh_container_evidence
+        fresh_container_evidence(root,report,read_json(root/'toolchain.lock.json'))
         if report['local_state']!='PASS' or not report['commands'][-1].endswith('ci'):
             raise GateError('starter candidate has no complete current local qualification; run ci')
     origin=baseline_identity(root)

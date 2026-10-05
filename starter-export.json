@@ -220,6 +220,7 @@
     "tests/integration/demo.c",
     "tests/integration/hardening.c",
     "tests/integration/runtime-demo.c",
+    "tests/unit/test_containment.py",
     "tests/unit/test_infrastructure.py",
     "third_party/NOTICE.md",
     "third_party/adapters/clusterfuzzlite-actions/build_fuzzers/action.yml",

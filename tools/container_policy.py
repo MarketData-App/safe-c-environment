@@ -52,6 +52,10 @@ def canonical_mount(path):
     if any(p.is_symlink() for p in [path,*path.parents]):raise GateError('symlink mount rejected')
     if not path.is_dir():raise GateError('mount must be a private snapshot directory')
     path=path.resolve()
+    if any(ch in str(path) for ch in [',','\n','\x00']):raise GateError('ambiguous bind mount path rejected')
+    for line in Path('/proc/self/mountinfo').read_text().splitlines():
+        target=Path(line.split()[4].replace('\\040',' '))
+        if target!=path and target.is_relative_to(path):raise GateError('nested mount surprise rejected')
     if path in [Path('/'),Path('/home'),Path('/tmp'),Path('/var'),Path('/run'),Path.home()]:
         raise GateError('broad host mount rejected')
     # bind-recursive=disabled excludes nested source submounts. No sockets,
@@ -79,6 +83,26 @@ def make_plan(value,image,mounts,profile):
             'logging':{'driver':'local','max_size':c['log_bytes'],'max_files':c['log_files']},
             'ulimits':{'core':0,'nofile':c['nofile'],'fsize':c['file_bytes']},'environment_names':list(c['environment_names'])}
 
+def kernel_limits_gate(limits,p):
+    expected={'memory.max':str(p['memory_bytes']),'memory.swap.max':'0','pids.max':str(p['pids']),'cpu.max':str(int(p['cpus']*100000))+' 100000'}
+    if limits!=expected:raise GateError('kernel limit missing/ignored/unlimited')
+    return True
+
+def dispatch_gate(record):
+    if (record.get('execution_path')!='docker' or not record.get('container_id') or
+        not record.get('effective') or record.get('lifecycle') is not None or
+        record.get('profile')!=record.get('plan',{}).get('profile')):
+        raise GateError('native execution bypass or unrecorded dispatch rejected')
+    return True
+
+def completion_gate(outcome,lifecycle):
+    if type(outcome.get('exit_code')) is not int:raise GateError('workload status lost')
+    if not lifecycle.get('state_before') or not lifecycle.get('removed') or not lifecycle.get('children_reaped') or lifecycle.get('state_after',{}).get('Pid')!=0:
+        raise GateError('workload lifecycle evidence incomplete')
+    if outcome.get('failure') is None and outcome.get('evidence_complete') is not True:
+        raise GateError('collector overflow/incomplete evidence cannot become success')
+    return True
+
 class Launcher:
     def __init__(self,root,run_dir,lock):
         self.root=Path(root);self.run_dir=Path(run_dir);self.lock=lock;self.value=policy(self.root)
@@ -100,11 +124,13 @@ class Launcher:
         info=self.json(['info','--format','{{json .}}']);expected=self.value['runner']
         if info['ID']!=expected['daemon_id'] or info['Architecture']!=expected['architecture'] or info['CgroupVersion']!=expected['cgroup_version']:
             raise GateError('unapproved runner/daemon/architecture/cgroup')
+        if expected['role']!='development-qualification' or expected['architecture']!='x86_64' or expected['cgroup_version']!='2' or expected['endpoint']!='unix:///var/run/docker.sock':raise GateError('unapproved production/remote/emulated runner')
         if any(not info.get(k) for k in ['MemoryLimit','SwapLimit','PidsLimit','CpuCfsQuota','CpuCfsPeriod']):raise GateError('required resource controller unsupported')
         security=info['SecurityOptions']
         if not any('seccomp' in s for s in security) or expected['require_apparmor'] and not any('apparmor' in s for s in security):raise GateError('required confinement unavailable')
         image=self.json(['image','inspect',self.lock['image_id']])[0]
         cfg=image['Config']
+        if image['Size']>self.value['aggregate']['owned_image_bytes']:raise GateError('retained toolchain-image storage exceeds approved project bound')
         if image['Id']!=self.lock['image_id'] or cfg.get('Volumes') or cfg.get('Healthcheck') or cfg.get('Entrypoint'):raise GateError('unexpected toolchain image runtime metadata')
         core=Path('/proc/sys/kernel/core_pattern').read_text().strip()
         if core.startswith('|'):raise GateError('piped host core handling requires independent operator review')
@@ -162,7 +188,7 @@ class Launcher:
             container=r['output'].strip()
             start=self.docker(['start',container])
             if not passed(start):self.docker(['rm','--force',container]);raise GateError('protected container startup failed')
-            record={'container_id':container,'name':name,'profile':profile,'plan':plan,'policy_hash':plan['policy_hash'],'runner':self.runner_identity,'reservation':reservation,'create_command':self.prefix[:1]+['--host',self.value['runner']['endpoint']]+argv,'effective':None,'lifecycle':None}
+            record={'container_id':container,'name':name,'profile':profile,'plan':plan,'policy_hash':plan['policy_hash'],'runner':self.runner_identity,'reservation':reservation,'create_command':self.prefix[:1]+['--host',self.value['runner']['endpoint']]+argv,'effective':None,'lifecycle':None,'execution_path':'docker'}
             self.records.append(record)
         finally:os.close(fd)
         if command is None:
@@ -172,8 +198,14 @@ class Launcher:
         return record
     def effective(self,container,plan,python_probe=True):
         obj=self.json(['inspect',container])[0];h=obj['HostConfig'];cfg=obj['Config'];p=plan['resources']
-        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},'no-new-privileges' in h['SecurityOpt'],obj['AppArmorProfile']=='docker-default',not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
+        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},sorted(h['SecurityOpt'])==sorted(['no-new-privileges','apparmor=docker-default']),obj['AppArmorProfile']=='docker-default',not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
         if not all(checks):raise GateError('effective Docker settings mismatch')
+        c=self.value['common']
+        expected_tmpfs={'/tmp':f"rw,nosuid,nodev,noexec,size={p['tmp_bytes']},uid={c['uid']},gid={c['gid']}",'/run':f"rw,nosuid,nodev,noexec,size={p['run_bytes']},uid={c['uid']},gid={c['gid']}",'/work':f"rw,nosuid,nodev,exec,size={p['work_bytes']},nr_inodes={p['work_inodes']},uid={c['uid']},gid={c['gid']}"}
+        actual_ulimits={x['Name']:(x['Soft'],x['Hard']) for x in h['Ulimits']}
+        if h['Tmpfs']!=expected_tmpfs or h['ShmSize']!=p['shm_bytes'] or actual_ulimits!={'core':(0,0),'nofile':(c['nofile'],c['nofile']),'fsize':(c['file_bytes'],c['file_bytes'])} or h.get('GroupAdd'):
+            raise GateError('effective writable mounts/ulimits/groups differ')
+
         if p['network']=='none' and h['NetworkMode']!='none':raise GateError('effective network mismatch')
         if len(obj['Mounts'])!=len(plan['mounts']) or any(m['RW'] or m['Destination'] not in plan['mounts'] or m['Source']!=plan['mounts'][m['Destination']]['source'] for m in obj['Mounts']):raise GateError('unexpected effective bind mounts')
         pid=obj['State']['Pid']
@@ -182,9 +214,9 @@ class Launcher:
         if len(unified)!=1:raise GateError('actual workload cgroup unresolved')
         cg=Path('/sys/fs/cgroup')/unified[0].lstrip('/')
         limits={k:(cg/k).read_text().strip() for k in ['memory.max','memory.swap.max','pids.max','cpu.max']}
-        if limits!={'memory.max':str(p['memory_bytes']),'memory.swap.max':'0','pids.max':str(p['pids']),'cpu.max':str(int(p['cpus']*100000))+' 100000'}:raise GateError('kernel limit missing/ignored/unlimited')
+        kernel_limits_gate(limits,p)
         if python_probe:
-            probe=self.docker(['exec',container,'python3','-c','import os,json,pathlib; s=pathlib.Path("/proc/self/status").read_text(); print(json.dumps({"uid":os.getuid(),"gid":os.getgid(),"status":{x.split(":")[0]:x.split(":")[1].strip() for x in s.splitlines() if x.startswith(("CapEff:","CapBnd:","NoNewPrivs:","Seccomp:","Groups:"))},"limits":{k:pathlib.Path("/sys/fs/cgroup",k).read_text().strip() for k in ["memory.max","memory.swap.max","pids.max","cpu.max"]},"namespaces":{k:os.readlink("/proc/self/ns/"+k) for k in ["pid","net","ipc","mnt","cgroup"]},"compute":sum(range(10))}))'])
+            probe=self.docker(['exec',container,'python3','-c','import os,json,pathlib,resource; s=pathlib.Path("/proc/self/status").read_text(); print(json.dumps({"uid":os.getuid(),"gid":os.getgid(),"status":{x.split(":")[0]:x.split(":")[1].strip() for x in s.splitlines() if x.startswith(("CapEff:","CapBnd:","NoNewPrivs:","Seccomp:","Groups:"))},"limits":{k:pathlib.Path("/sys/fs/cgroup",k).read_text().strip() for k in ["memory.max","memory.swap.max","pids.max","cpu.max"]},"namespaces":{k:os.readlink("/proc/self/ns/"+k) for k in ["pid","net","ipc","mnt","cgroup"]},"compute":sum(range(10)),"apparmor_active":pathlib.Path("/proc/self/attr/current").read_text().strip(),"scratch":{k:{"bytes":os.statvfs(k).f_blocks*os.statvfs(k).f_frsize,"inodes":os.statvfs(k).f_files} for k in ["/work","/tmp","/run","/dev/shm"]},"ulimits":{k:resource.getrlimit(v) for k,v in {"core":resource.RLIMIT_CORE,"nofile":resource.RLIMIT_NOFILE,"fsize":resource.RLIMIT_FSIZE,"address":resource.RLIMIT_AS}.items()},"mount_inventory":[x for x in pathlib.Path("/proc/self/mountinfo").read_text().splitlines() if x.split()[4] in ["/","/work","/tmp","/run","/dev/shm","/src","/inputs","/fixture"]]}))'])
             if not passed(probe):raise GateError('harmless in-container capability probe failed')
             inside=json.loads(probe['output'])
         else:
@@ -195,15 +227,24 @@ class Launcher:
             inside={'uid':int(status['Uid'].split()[0]),'gid':int(status['Gid'].split()[0]),'status':{k:status[k] for k in ['CapEff','CapBnd','NoNewPrivs','Seccomp','Groups']},'limits':limits,'namespaces':namespaces,'runtime_health_observed':'runtime-demo healthy sum=9' in logs['output']}
         s=inside['status'];c=self.value['common']
         if inside['uid']!=c['uid'] or inside['gid']!=c['gid'] or int(s['CapEff'],16) or int(s['CapBnd'],16) or s['NoNewPrivs']!='1' or s['Seccomp']!='2' or inside['limits']!=limits or (inside.get('compute')!=45 if python_probe else not inside['runtime_health_observed']):raise GateError('in-container control verification failed')
+        if python_probe:
+            if inside['apparmor_active']!='docker-default (enforce)':raise GateError('active AppArmor enforcement mismatch')
+            if any(inside['scratch'][path]['bytes']!=p[key] for path,key in [('/work','work_bytes'),('/tmp','tmp_bytes'),('/run','run_bytes'),('/dev/shm','shm_bytes')]) or inside['scratch']['/work']['inodes']!=p['work_inodes']:raise GateError('scratch byte/inode hard boundary not effective')
+            expected_ulimits={'core':[0,0],'nofile':[c['nofile'],c['nofile']],'fsize':[c['file_bytes'],c['file_bytes']],'address':[-1,-1]}
+            if inside['ulimits']!=expected_ulimits:raise GateError('effective ulimits mismatch or sanitizer address-space cap')
+            mounts={line.split()[4]:line.split()[5].split(',') for line in inside['mount_inventory']}
+            if 'ro' not in mounts['/'] or any(not {'nosuid','nodev','noexec'}.issubset(set(mounts[k])) for k in ['/tmp','/run','/dev/shm']) or not {'nosuid','nodev'}.issubset(set(mounts['/work'])) or 'noexec' in mounts['/work']:raise GateError('effective scratch/root mount restrictions differ')
         groups=s['Groups'].split()
         if any(int(x)!=c['gid'] for x in groups):raise GateError('unnecessary supplementary groups')
         if any(inside['namespaces'][k]==os.readlink('/proc/self/ns/'+k) for k in ['pid','net','ipc','mnt','cgroup']):raise GateError('host namespace sharing')
         return {'inspect':{'host_config':h,'image_id':obj['Image'],'user':cfg['User'],'apparmor':obj['AppArmorProfile'],'mounts':obj['Mounts'],'state':obj['State'],'network':obj['NetworkSettings']['Networks']},'cgroup_path':str(cg),'limits':limits,'inside':inside,'events_before':self.counters(cg)}
     @staticmethod
     def counters(cg):
-        return {k:(Path(cg)/k).read_text().strip() for k in ['memory.events','pids.events','cpu.stat','memory.current','pids.current'] if (Path(cg)/k).exists()}
+        return {k:(Path(cg)/k).read_text().strip() for k in ['memory.events','pids.events','cpu.stat','memory.current','pids.current','memory.peak','pids.peak'] if (Path(cg)/k).exists()}
     def execute(self,record,args,*,timeout,env=None,limit=None):
+        dispatch_gate(record)
         p=record['plan']['resources'];c=self.value['common']
+        if limit is not None and (type(limit) is not int or not 0<limit<=c['capture_bytes']):raise GateError('unapproved output capture budget')
         if timeout<=0 or timeout>p['wall_seconds']:raise GateError('job deadline exceeds protected profile')
         env=env or {}
         if any(k not in c['environment_names'] or not isinstance(v,str) or '\x00' in v for k,v in env.items()):raise GateError('unapproved workload environment')
@@ -211,7 +252,7 @@ class Launcher:
         for k,v in env.items():argv+=['--env',k+'='+v]
         argv+=[record['container_id'],*args]
         result=self.docker(argv,timeout=timeout,limit=limit or c['capture_bytes'])
-        if any(len(line)>c['capture_record_bytes'] for line in result['output'].splitlines()):result['failure']='RECORD_LIMIT'
+        if any(len(line)>c['capture_record_bytes'] for line in result['output'].splitlines()):result['failure']='RECORD_LIMIT';result['evidence_complete']=False
         result.update(container_id=record['container_id'],profile=record['profile'],container_policy_hash=record['policy_hash'],effective_settings=record['effective'],runner_identity=self.runner_identity)
         if result['failure']:self.dispose(record)
         return result

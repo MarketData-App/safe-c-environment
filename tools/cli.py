@@ -28,7 +28,7 @@ def initial_report(root, lock):
         'mandatory_gates':{'expected':read_json(root/'safety/contract.json')['required_gates'],'executed':[]},
         'baseline_identity':baseline_identity(root) if (root/'starter-export.json').exists() else None,
         'image_id':lock['image_id'],'runner':{'architecture':platform.machine(),'kernel':platform.release(),'platform':platform.system(),'image_libc':lock['libc'],'network':'none','source_mount':'read-only','scratch':'2 GiB tmpfs','memory':'3 GiB cgroup','pids':128,'cpus':2},
-        'containment':{'status':'BLOCKED','reason':'not executed'},'gates':[], 'cases':[{'id':cid,'status':'BLOCKED','classification':'NOT_RUN','detector':'pending','bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0} for cid in C_IDS],
+        'qualification_axes':{'native_code':'BLOCKED','local_docker':'BLOCKED','containment':'BLOCKED','runtime_demo':'BLOCKED','remote_ci':'NOT_RUN','independent_enforcement':'UNSEALED','production_approval':'NOT_REQUESTED'},'containment':{'status':'BLOCKED','reason':'not executed'},'gates':[], 'cases':[{'id':cid,'status':'BLOCKED','classification':'NOT_RUN','detector':'pending','bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0} for cid in C_IDS],
         'sabotage':[{'id':pid,'status':'BLOCKED','control':'BLOCKED','subcases':[],'evidence_paths':[],'reason':'not executed'} for pid in P_IDS],
         'benchmark':{'execution_status':'BLOCKED','reason':'not executed'},'starter':{'status':'BLOCKED','reason':'not executed'},
         'reuse':{'upstream_integrity':'BLOCKED','lit':'BLOCKED','clusterfuzzlite':{'local_adapter_execution':'BLOCKED','remote_ci_execution':'NOT_RUN','remote_enforcement':'UNSEALED'},'upstream_mapping':'docs/upstream-map.md'},
@@ -137,8 +137,12 @@ def finish(root, report, runner, command):
     report['local_state']='PASS' if report['gates'] and all(r['status']=='PASS' for r in report['gates']) else 'FAIL'
     # Only complete CI can receive the unsealed local qualification state.
     complete = command=='ci' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
+    report['qualification_axes']={'native_code':'PASS' if all(r['status']=='PASS' for r in report['cases']+report['sabotage']) else 'BLOCKED' if all(r['status']=='BLOCKED' for r in report['cases']) else 'FAIL','local_docker':'PASS' if runner.launcher.records and all(r['effective'] and r['lifecycle'] and r['lifecycle']['removed'] for r in runner.launcher.records) else 'BLOCKED','containment':report['containment']['status'],'runtime_demo':report['containment'].get('runtime_demo',{}).get('status',next((g['status'] for g in report['gates'] if g['name']=='runtime-demo'),'BLOCKED')),'remote_ci':'NOT_RUN','independent_enforcement':'UNSEALED','production_approval':'NOT_REQUESTED'}
     report['overall_state']='VALIDATED_UNSEALED' if complete else 'FAILED' if any(r['status']=='FAIL' for r in report['gates']) else 'BLOCKED'
     if command!='ci':report['blockers'].append('This command is scoped; final aggregate qualification has not passed.')
+    if report['containment'].get('status')=='PASS':
+        from containment import container_binding_gate,expected_binding
+        container_binding_gate(report['containment'],expected_binding(root,runner.launcher.runner_identity,runner.lock['image_id'],runner.launcher.value))
     validate(root,'report',report)
     current,_=source_identity(root)
     validate_fresh_report(report,current,read_json(root/'toolchain.lock.json')['image_id'],file_hash(root/'safety/contract.json'))
@@ -183,6 +187,8 @@ def main(argv=None):
         if args.command=='report':
             report=read_json(root/'artifacts/bootstrap-report.json');validate(root,'report',report)
             current,_=source_identity(root);validate_fresh_report(report,current,read_json(root/'toolchain.lock.json')['image_id'],file_hash(root/'safety/contract.json'))
+            from containment import fresh_container_evidence
+            fresh_container_evidence(root,report,read_json(root/'toolchain.lock.json'))
             print(json.dumps(report,indent=2));return 0
         if args.command=='instantiate':
             from starter import instantiate
@@ -259,6 +265,7 @@ def main(argv=None):
                 added=container_sabotage(q,report['containment']);report['containment']['sabotage']=added
                 for parent in report['sabotage']:
                     parent['subcases'] += [{k:v for k,v in row.items() if k!='parent'} for row in added if row['parent']==parent['id']]
+                    parent['control']='PASS' if all(s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
                     parent['status']='PASS' if all(s['status']=='PASS' and s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
                 report['containment']['status']='PASS' if all(r['status']=='PASS' for r in report['containment']['cases']+added) else 'FAIL'
                 save(q,report['containment'])

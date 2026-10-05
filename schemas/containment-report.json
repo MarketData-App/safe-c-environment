@@ -15,7 +15,8 @@
     "application_release_ready",
     "independent_enforcement",
     "remote_ci_execution",
-    "production_approval"
+    "production_approval",
+    "instance_identity"
   ],
   "properties": {
     "schema_version": {
@@ -205,6 +206,10 @@
     },
     "production_approval": {
       "const": "NOT_REQUESTED"
+    },
+    "instance_identity": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
   }
 }

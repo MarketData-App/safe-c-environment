@@ -383,7 +383,8 @@
             "application_release_ready",
             "independent_enforcement",
             "remote_ci_execution",
-            "production_approval"
+            "production_approval",
+            "instance_identity"
           ],
           "properties": {
             "schema_version": {
@@ -573,6 +574,10 @@
             },
             "production_approval": {
               "const": "NOT_REQUESTED"
+            },
+            "instance_identity": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -593,6 +598,58 @@
           }
         }
       ]
+    },
+    "qualification_axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_code",
+        "local_docker",
+        "containment",
+        "runtime_demo",
+        "remote_ci",
+        "independent_enforcement",
+        "production_approval"
+      ],
+      "properties": {
+        "native_code": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "local_docker": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "containment": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "runtime_demo": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "remote_ci": {
+          "const": "NOT_RUN"
+        },
+        "independent_enforcement": {
+          "const": "UNSEALED"
+        },
+        "production_approval": {
+          "const": "NOT_REQUESTED"
+        }
+      }
     }
   },
   "required": [
@@ -624,6 +681,7 @@
     "limitations",
     "source_control",
     "mandatory_gates",
-    "containment"
+    "containment",
+    "qualification_axes"
   ]
 }

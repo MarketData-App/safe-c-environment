@@ -13,7 +13,7 @@ PROFILE_FLAGS = {'asan':'-fsanitize=address,undefined','ubsan':'-fsanitize=undef
 INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c']
 
 def designated_runtime_result(result,expected):
-    if result['failure'] is not None or result['exit_code']==0 or expected not in result['output']:
+    if type(result.get('exit_code')) is not int or result['failure'] is not None or result['exit_code']==0 or expected not in result['output']:
         raise GateError('runtime infrastructure failure cannot qualify a designated finding')
     return True
 

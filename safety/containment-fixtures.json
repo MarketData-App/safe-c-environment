@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "helper": "safety/qualification/containment/probe.py",
-  "helper_sha256": "89506cef8d8c4f81a596c3e0711d1a27bc2796eae846045eec7977974c019a8a",
+  "helper_sha256": "dbfd14a6e7b54fcaf86980e7aaa8baff83f08a0b2bdb29b08c06eb5cf80989af",
   "finite_ceilings": {
     "memory_bytes": 201326592,
     "child_attempts": 64,
@@ -222,6 +222,280 @@
       "mode": "routing",
       "reproduce": "./tools/safety sandbox selftest",
       "control": "permitted-operation control in the same protected profile"
+    }
+  ],
+  "sabotage_variants": [
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/DOCKER_HOST"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/DOCKER_CONTEXT"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/wrong-daemon"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/unsupported-cgroup"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/missing-docker"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/ignored-memory"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/ignored-pids"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/ignored-cpu"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/ignored-swap"
+    },
+    {
+      "parent": "P02",
+      "name": "native-execution-bypass/build"
+    },
+    {
+      "parent": "P02",
+      "name": "native-execution-bypass/configure-try-run"
+    },
+    {
+      "parent": "P02",
+      "name": "native-execution-bypass/test"
+    },
+    {
+      "parent": "P02",
+      "name": "native-execution-bypass/fuzz-adapter"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/root"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/capability"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/privileged"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/seccomp-unconfined"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/apparmor-unconfined"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/host-pid"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/host-ipc"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/device"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/host-root-mount"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/renamed-socket"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/leaked-environment"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/host-network"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/published-port"
+    },
+    {
+      "parent": "P04",
+      "name": "unsafe-container-override/merged-compose"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/STARTUP_FAILURE"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/SECCOMP_FAILURE"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/CGROUP_OOM"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/TIMEOUT"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/OUTPUT_LIMIT"
+    },
+    {
+      "parent": "P05",
+      "name": "container-failure-as-detector/RECORD_LIMIT"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/missing-D"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/duplicate-D"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/malformed-D"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/mismatched-D"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/missing-profile"
+    },
+    {
+      "parent": "P07",
+      "name": "containment-omitted/filtered-child"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/kernel"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/runtime"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/image"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/source"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/profile"
+    },
+    {
+      "parent": "P10",
+      "name": "stale-container-evidence/instance"
+    },
+    {
+      "parent": "P11",
+      "name": "lost-lifecycle-failure/missing-status"
+    },
+    {
+      "parent": "P11",
+      "name": "lost-lifecycle-failure/early-removal"
+    },
+    {
+      "parent": "P11",
+      "name": "lost-lifecycle-failure/collector-overflow"
+    },
+    {
+      "parent": "P11",
+      "name": "lost-lifecycle-failure/children-remain"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/memory_bytes-0"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/swap_bytes--1"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/cpus-0"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/pids-0"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/work_bytes-0"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/wall_seconds-0"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/memory_bytes-12884901889"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/logging"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/restart"
+    },
+    {
+      "parent": "P15",
+      "name": "weakened-container-policy/exported-policy"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass/privileged"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass/default-runner"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass/extra-socket"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass/host-execution"
+    },
+    {
+      "parent": "P16",
+      "name": "fuzz-runner-bypass/uninstrumented-target"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/unsupported-memory-controller"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/unsupported-swap-controller"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/unsupported-pids-controller"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/unsupported-cpu-controller"
     }
   ]
 }

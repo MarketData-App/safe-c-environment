@@ -47,11 +47,14 @@ def main(mode,control=False):
         elevation=0
         try:os.setuid(0)
         except OSError as e:elevation=e.errno
-        # Read-only session-keyring query, forbidden by Docker's builtin profile.
-        # Capability removal separately accounts for setuid denial. No kernel or
-        # host resource is mutated by this harmless syscall attempt.
-        libc=ctypes.CDLL(None,use_errno=True);ret=libc.syscall(250,0,-3,0)
-        emit({'setuid_errno':elevation,'keyctl_return':ret,'keyctl_errno':ctypes.get_errno(),'getpid_ok':os.getpid()>0})
+        # Disposable mount point only. No host paths, devices, kernel settings
+        # or real process tracing are involved. A mistakenly permitted tmpfs
+        # would itself have a finite one-MiB size in this private namespace.
+        target=Path('/work/forbidden-mount');target.mkdir()
+        libc=ctypes.CDLL(None,use_errno=True)
+        libc.mount.argtypes=[ctypes.c_char_p,ctypes.c_char_p,ctypes.c_char_p,ctypes.c_ulong,ctypes.c_char_p]
+        ret=libc.mount(b'tmpfs',str(target).encode(),b'tmpfs',14,b'size=1048576')
+        emit({'setuid_errno':elevation,'mount_return':ret,'mount_errno':ctypes.get_errno(),'mount_target':str(target),'getpid_ok':os.getpid()>0})
     elif mode=='memory':
         amount=8*1024*1024 if control else CEILINGS['memory_bytes']
         pid=os.fork()
