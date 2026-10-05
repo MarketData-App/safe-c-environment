@@ -98,80 +98,133 @@ class Runner:
     def __init__(self, root: Path, run_dir: Path, lock, scratch: Path):
         self.root, self.run_dir, self.lock, self.scratch = root.resolve(), run_dir, lock, scratch.resolve()
         scratch.mkdir(parents=True, exist_ok=True)
-        self.counter = 0
-        self.records = []
-        self.name = 'safe-c-' + uuid.uuid4().hex
-        self.alive = False
+        run_dir.mkdir(parents=True, exist_ok=True)
+        self.counter=0;self.records=[];self.alive=False;self.session=None
+        self.collected_bytes=0;self.collected_files=0
+        self.collection_sizes={}
+        from container_policy import Launcher
+        self.launcher=Launcher(self.root,self.run_dir,lock)
 
     def start(self):
-        if self.alive:
-            return
-        # Copy only fingerprinted, non-secret inputs. Never expose repository
-        # history, local environment files or prior reports to native programs.
+        if self.alive:return
         from policy import source_files
-        snapshot = self.scratch / 'source-snapshot'
-        if snapshot.exists():
-            shutil.rmtree(snapshot)
+        snapshot=self.scratch/'source-snapshot'
+        if snapshot.exists():shutil.rmtree(snapshot)
         snapshot.mkdir()
         for relative in source_files(self.root):
-            destination = snapshot / relative
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(self.root / relative, destination)
-        for directory in ['src', 'include']:
-            (snapshot / directory).mkdir(exist_ok=True)
-        argv = ['docker', 'run', '-d', '--pull=never', '--name', self.name,
-                '--network=none', '--read-only', '--cap-drop=ALL',
-                '--security-opt=no-new-privileges', '--memory=3g', '--memory-swap=3g',
-                '--cpus=2', '--pids-limit=128', '--ulimit', 'core=0',
-                '--ulimit', 'fsize=33554432:33554432',
-                '--user', f'{os.getuid()}:{os.getgid()}',
-                '--tmpfs', '/tmp:rw,nosuid,nodev,size=256m',
-                '--tmpfs', f'/work:rw,exec,nosuid,nodev,size=2g,uid={os.getuid()},gid={os.getgid()}',
-                '--mount', f'type=bind,src={snapshot},dst=/src,readonly',
-                '--workdir', '/work', self.lock['image_id'],
-                'python3', '-c', 'import time; time.sleep(43200)']
-        result = bounded(argv, timeout=30)
-        if result['exit_code'] != 0 or result['failure']:
-            raise GateError('isolated runner unavailable: ' + result['output'])
-        self.alive = True
+            destination=snapshot/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(self.root/relative,destination)
+        for directory in ['src','include']:(snapshot/directory).mkdir(exist_ok=True)
+        self.snapshot=snapshot
+        self.session=self.launcher.create('build',{'/src':snapshot})
+        self.name=self.session['container_id'];self.alive=True
 
     def close(self):
-        if self.alive:
-            bounded(['docker', 'rm', '--force', self.name], timeout=15)
-            self.alive = False
+        self.launcher.close();self.alive=False
 
-    def fetch(self, relative, destination=None):
-        if Path(relative).is_absolute() or '..' in Path(relative).parts:
-            raise GateError('unsafe scratch path')
-        destination = destination or self.scratch / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
+    def collect(self,session,relative,destination):
         import base64
-        result = bounded(['docker', 'exec', self.name, 'python3', '-c',
-                          'import pathlib,base64,sys; p=pathlib.Path(sys.argv[1]); data=p.read_bytes(); assert len(data)<=33554432; print(base64.b64encode(data).decode())',
-                          '/work/'+relative], timeout=30, limit=48*1024*1024)
-        if result['exit_code'] != 0 or result['failure']:
-            raise GateError('missing build evidence: '+relative+': '+result['output'][:500])
-        destination.write_bytes(base64.b64decode(result['output'], validate=False))
+        p=Path(relative)
+        if p.is_absolute() or '..' in p.parts or not p.parts:raise GateError('unsafe scratch artifact path')
+        c=self.launcher.value['common']
+        # Validate every component, including parents. All bytes are capped before
+        # reading; no symlink/special file may become a collected artifact.
+        script="""import pathlib,base64,sys,stat
+p=pathlib.Path('/work')
+for part in pathlib.Path(sys.argv[1]).parts:
+ p=p/part
+ if p.is_symlink():raise SystemExit(31)
+m=p.stat()
+if not stat.S_ISREG(m.st_mode) or m.st_size>int(sys.argv[2]):raise SystemExit(32)
+print(base64.b64encode(p.read_bytes()).decode())"""
+        result=self.launcher.docker(['exec',session['container_id'],'python3','-c',script,relative,str(c['artifact_bytes'])],timeout=30,limit=c['artifact_bytes']*2)
+        if not passed(result):raise GateError('artifact collection refused or unavailable: '+relative)
+        data=base64.b64decode(result['output'].strip(),validate=True)
+        destination=Path(destination).absolute()
+        previous=self.collection_sizes.get(str(destination),0)
+        new_file=str(destination) not in self.collection_sizes
+        if len(data)>c['artifact_bytes'] or self.collected_bytes-previous+len(data)>c['artifact_total_bytes'] or self.collected_files+int(new_file)>c['artifact_files']:raise GateError('artifact collector budget exceeded')
+        if not any(destination.is_relative_to(base.absolute()) for base in [self.scratch,self.run_dir]):raise GateError('collector destination outside owned evidence')
+        if any(x.is_symlink() for x in [destination,*destination.parents]):raise GateError('collector destination link rejected')
+        destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(data)
+        self.collected_bytes+=len(data)-previous;self.collected_files+=int(new_file)
+        self.collection_sizes[str(destination)]=len(data)
         return destination
 
-    def run(self, args, *, timeout=30, env=None, label='process'):
+    def fetch(self,relative,destination=None):
         self.start()
-        self.counter += 1
-        argv = ['docker', 'exec', '--workdir', '/work']
-        settings = dict(RUNTIME_ENV)
-        settings.update(env or {})
-        for key, value in settings.items():
-            argv.extend(['--env', f'{key}={value}'])
-        argv.extend([self.name, *args])
-        result = bounded(argv, timeout=timeout)
-        if result['failure']:
-            self.close()  # Docker reaps every descendant; no retry of this result.
-        result['command'] = list(args)
-        result['image_id'] = self.lock['image_id']
-        filename = f'{self.counter:04d}-{label}.json'
-        result['evidence_path'] = str(self.run_dir / 'evidence' / filename)
-        atomic_json(Path(result['evidence_path']), result)
-        self.records.append(result)
+        return self.collect(self.session,relative,destination or self.scratch/relative)
+
+    def restore(self,relative,path):
+        import base64
+        data=base64.b64encode(path.read_bytes()).decode()
+        r=self.launcher.execute(self.session,['python3','-c','import pathlib,base64,sys; p=pathlib.Path("/work")/sys.argv[1]; p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode(sys.argv[2]))',relative,data],timeout=30)
+        if not passed(r):raise GateError('collected artifact transfer failed')
+
+    def native(self,args,timeout,settings):
+        from container_policy import policy_hash
+        binary=args[0][len('/work/'):]
+        path=self.fetch(binary)
+        inputs=self.scratch/('native-input-'+str(self.counter));inputs.mkdir()
+        shutil.copy2(path,inputs/'target')
+        (inputs/'target').chmod(0o555)
+        profile='fuzz' if binary.startswith('adapter/') or 'fuzz' in binary.split('/')[1] else 'test-'+binary.split('/')[1].split('-')[0] if binary.startswith('build/') else 'test-ordinary'
+        if profile not in self.launcher.value['profiles']:profile='test-ordinary'
+        session=self.launcher.create(profile,{'/src':self.snapshot,'/inputs':inputs})
+        try:
+            if '/work/exploration-corpus' in args:
+                setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/exploration-corpus");p.mkdir();[shutil.copyfile(x,p/x.name) for x in pathlib.Path("/src/fuzz/corpus").iterdir() if x.is_file()];pathlib.Path("/work/fuzz-failures").mkdir()'],timeout=10)
+                if not passed(setup):raise GateError('fresh fuzz scratch preparation failed')
+            result=self.launcher.execute(session,['/inputs/target',*args[1:]],timeout=min(timeout,self.launcher.value['profiles'][profile]['wall_seconds']),env=settings)
+            result['binary_sha256']=file_hash(inputs/'target');result['binary_unchanged']=file_hash(inputs/'target')==file_hash(path)
+            if result['failure'] is None:
+                if settings.get('LLVM_PROFILE_FILE'):
+                    relative=settings['LLVM_PROFILE_FILE'].removeprefix('/work/')
+                    collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
+                if '/work/exploration-corpus' in args:
+                    listing=self.launcher.execute(session,['python3','-c','import pathlib,json;print(json.dumps([str(p.relative_to("/work")) for d in ["exploration-corpus","fuzz-failures"] for p in pathlib.Path("/work",d).iterdir()]))'],timeout=10)
+                    if not passed(listing):raise GateError('live fuzz artifact inventory failed')
+                    for relative in json.loads(listing['output']):
+                        if not __import__('re').fullmatch(r'(exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe fuzz output name')
+                        collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
+            result['lifecycle']=self.launcher.dispose(session)
+            return result
+        finally:
+            self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
+
+    def ctest(self,args,timeout,settings):
+        directory=args[args.index('--test-dir')+1].removeprefix('/work/')
+        inputs=self.scratch/('ctest-input-'+str(self.counter));inputs.mkdir()
+        hashes={}
+        for target in ['infrastructure_demo','hardening_probe']:
+            p=self.fetch(directory+'/'+target);hashes[target]=file_hash(p)
+            shutil.copy2(p,inputs/target);(inputs/target).chmod(0o555)
+        config=self.fetch(directory+'/CTestTestfile.cmake')
+        (inputs/'CTestTestfile.cmake').write_text(config.read_text().replace('/work/'+directory,'/inputs'))
+        session=self.launcher.create('test-strict',{'/src':self.snapshot,'/inputs':inputs})
+        argv=list(args);argv[argv.index('--test-dir')+1]='/work/ctest'
+        try:
+            setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/ctest");p.mkdir();shutil.copyfile("/inputs/CTestTestfile.cmake",p/"CTestTestfile.cmake")'],timeout=5)
+            if not passed(setup):raise GateError('fresh CTest scratch preparation failed')
+            result=self.launcher.execute(session,argv,timeout=min(timeout,10),env=settings)
+            result['test_binary_hashes']=hashes;result['lifecycle']=self.launcher.dispose(session)
+            return result
+        finally:self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
+
+    def run(self,args,*,timeout=30,env=None,label='process'):
+        self.start();self.counter+=1
+        settings=dict(RUNTIME_ENV);settings.update(env or {})
+        if args[0]=='ctest' and '--no-tests=error' in args:
+            result=self.ctest(args,timeout,settings)
+        elif str(args[0]).startswith('/work/'):
+            result=self.native(args,timeout,settings)
+        else:
+            result=self.launcher.execute(self.session,args,timeout=timeout,env=settings)
+            if result['failure']:self.alive=False
+        result['command']=list(args);result['image_id']=self.lock['image_id']
+        filename=f'{self.counter:04d}-{label}.json'
+        result['evidence_path']=str(self.run_dir/'evidence'/filename)
+        atomic_json(Path(result['evidence_path']),result);self.records.append(result)
         return result
 
 def passed(result):

@@ -14,7 +14,7 @@ def exact_ids(rows, ids):
         raise GateError(f'inventory mismatch: expected {ids}, got {actual}')
 
 def source_files(root):
-    excluded = {'.git', '.cache', 'artifacts', 'build', '.direnv', '.codex', '__pycache__', '.pytest_cache'}
+    excluded = {'.git', '.cache', 'artifacts', 'build', '.direnv', '.codex', '.agentwatch', '__pycache__', '.pytest_cache'}
     result = {}
     for path in sorted(root.rglob('*')):
         rel = path.relative_to(root)

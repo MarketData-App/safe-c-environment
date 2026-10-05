@@ -1,0 +1,1541 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_version",
+    "runner",
+    "aggregate",
+    "common",
+    "profiles"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "endpoint",
+        "context",
+        "daemon_id",
+        "architecture",
+        "cgroup_version",
+        "require_apparmor"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        },
+        "daemon_id": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "cgroup_version": {
+          "type": "string"
+        },
+        "require_apparmor": {
+          "type": "boolean"
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_active",
+        "memory_bytes",
+        "cpus",
+        "pids",
+        "reserved_memory_bytes",
+        "reserved_disk_bytes",
+        "evidence_bytes",
+        "evidence_files",
+        "owned_image_bytes",
+        "max_owned_images",
+        "compiler_jobs",
+        "fuzz_workers",
+        "resource_stress_concurrency"
+      ],
+      "properties": {
+        "max_active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cpus": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pids": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserved_memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserved_disk_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "owned_image_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_owned_images": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "compiler_jobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fuzz_workers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_stress_concurrency": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "common": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "readonly_root",
+        "capabilities",
+        "no_new_privileges",
+        "seccomp",
+        "apparmor",
+        "pid_namespace",
+        "ipc_namespace",
+        "cgroup_namespace",
+        "restart",
+        "core_bytes",
+        "nofile",
+        "file_bytes",
+        "log_driver",
+        "log_bytes",
+        "log_files",
+        "capture_bytes",
+        "capture_record_bytes",
+        "artifact_bytes",
+        "artifact_total_bytes",
+        "artifact_files",
+        "environment_names",
+        "fixed_environment"
+      ],
+      "properties": {
+        "uid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readonly_root": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "no_new_privileges": {
+          "type": "boolean"
+        },
+        "seccomp": {
+          "type": "string"
+        },
+        "apparmor": {
+          "type": "string"
+        },
+        "pid_namespace": {
+          "type": "string"
+        },
+        "ipc_namespace": {
+          "type": "string"
+        },
+        "cgroup_namespace": {
+          "type": "string"
+        },
+        "restart": {
+          "type": "string"
+        },
+        "core_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nofile": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "log_driver": {
+          "type": "string"
+        },
+        "log_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "log_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_record_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_total_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "fixed_environment": {
+          "const": {
+            "HOME": "/nonexistent",
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1"
+          }
+        }
+      }
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acquire",
+        "build",
+        "test-asan",
+        "test-ubsan",
+        "test-integer",
+        "test-msan",
+        "test-tsan",
+        "test-coverage",
+        "test-hardened",
+        "test-ordinary",
+        "test-strict",
+        "fuzz",
+        "integration",
+        "runtime-demo",
+        "runtime",
+        "probe",
+        "probe-memory",
+        "probe-pids",
+        "probe-cpu"
+      ],
+      "properties": {
+        "acquire": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-asan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-ubsan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-integer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-msan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-tsan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-hardened": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-ordinary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "test-strict": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "fuzz": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "integration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "runtime-demo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "probe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "probe-memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "probe-pids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "probe-cpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
