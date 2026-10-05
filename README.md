@@ -11,6 +11,14 @@ exact retained image in toolchain.lock.json. Image acquisition is separate from
 ordinary offline checks; see container/README.md. The Makefile routes normal commands to the required safety entrypoint; its original
 skeleton is retained in docs/legacy-Makefile.txt.
 
+The exact SDK and developer images can be transferred together with
+`ci/images load --archive FILE --sha256 HASH`. The current payload descriptor is
+[ci/image-bundle.json](ci/image-bundle.json); its publication and owner licensing
+review are pending. Image transfer grants no baseline or runner approval. A newly
+cloned project on another machine still needs an independently approved target
+policy and its own complete qualification. See [CI activation](ci/README.md) and
+the [proposed GitHub runner migration](specs/github-runner-migration.md).
+
 ```sh
 ./tools/safety bootstrap
 ./tools/safety doctor

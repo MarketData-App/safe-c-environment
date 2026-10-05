@@ -6,8 +6,27 @@ permissions:
   contents: read
 jobs:
   qualification:
-    runs-on: [self-hosted, linux, x64, safe-c-qualified]
+    runs-on: ${{ vars.SAFETY_GITHUB_RUNNER_LABEL || 'ubuntu-24.04' }}
+    timeout-minutes: 180
     steps:
+      - name: Require immutable external configuration
+        env:
+          BASELINE_REF: ${{ vars.SAFETY_BASELINE_REF }}
+          BASELINE_DIGEST: ${{ vars.SAFETY_BASELINE_DIGEST }}
+          IMAGE_SHA256: ${{ vars.SAFETY_IMAGE_ARCHIVE_SHA256 }}
+          IMAGE_URL: ${{ vars.SAFETY_IMAGE_ARCHIVE_URL }}
+        run: |
+          python3 - <<'PY'
+          import os,re,urllib.parse
+          checks=[re.fullmatch('[0-9a-f]{40}',os.environ['BASELINE_REF']),
+                  re.fullmatch('[0-9a-f]{64}',os.environ['BASELINE_DIGEST']),
+                  re.fullmatch('[0-9a-f]{64}',os.environ['IMAGE_SHA256'])]
+          url=urllib.parse.urlsplit(os.environ['IMAGE_URL'])
+          if (not all(checks) or url.scheme!='https' or url.hostname!='github.com' or
+                  url.port not in [None,443] or url.username or url.password or
+                  '/releases/download/' not in url.path):
+              raise SystemExit('BLOCKED: immutable baseline and image acquisition configuration required')
+          PY
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
         with:
           path: candidate
@@ -18,18 +37,38 @@ jobs:
           ref: ${{ vars.SAFETY_BASELINE_REF }}
           path: baseline
           persist-credentials: false
+      - name: Record target acquisition request
+        run: baseline/ci/runner-request --output candidate/artifacts/github-runner-request.json
+      - name: Acquire exact image payload
+        env:
+          IMAGE_URL: ${{ vars.SAFETY_IMAGE_ARCHIVE_URL }}
+          IMAGE_SHA256: ${{ vars.SAFETY_IMAGE_ARCHIVE_SHA256 }}
+        run: |
+          set -eu
+          archive="$RUNNER_TEMP/safe-c-images.tar.gz"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 120 --max-filesize 3221225472 "$IMAGE_URL" --output "$archive"
+          baseline/ci/images load --archive "$archive" --sha256 "$IMAGE_SHA256" > candidate/artifacts/image-acquisition.opaque.json 2>&1
+          rm "$archive"
+      - name: Require approved target and actual capabilities
+        env:
+          EXPECTED_BASELINE: ${{ vars.SAFETY_BASELINE_DIGEST }}
+        run: |
+          set -eu
+          baseline/tools/safety --candidate "$GITHUB_WORKSPACE/candidate" --baseline "$GITHUB_WORKSPACE/baseline" --expected-baseline "$EXPECTED_BASELINE" sandbox doctor > candidate/artifacts/github-doctor.opaque.log 2>&1
       - name: Trusted aggregate qualification
         env:
           EXPECTED_BASELINE: ${{ vars.SAFETY_BASELINE_DIGEST }}
         run: |
+          set -eu
           test -n "$EXPECTED_BASELINE"
-          baseline/tools/safety --candidate "$GITHUB_WORKSPACE/candidate" --baseline "$GITHUB_WORKSPACE/baseline" --expected-baseline "$EXPECTED_BASELINE" ci
+          baseline/tools/safety --candidate "$GITHUB_WORKSPACE/candidate" --baseline "$GITHUB_WORKSPACE/baseline" --expected-baseline "$EXPECTED_BASELINE" ci > candidate/artifacts/github-ci.opaque.log 2>&1
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: bounded-safety-evidence
           path: candidate/artifacts
           retention-days: 7
+          if-no-files-found: error
   aggregate:
     if: always()
     needs: [qualification]

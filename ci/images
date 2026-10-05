@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Data-only image acquisition; native work still uses tools/safety."""
+from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+from image_transfer import main
+raise SystemExit(main())

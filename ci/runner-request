@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Record a proposed target; this metadata command cannot approve or launch it."""
+from pathlib import Path
+import argparse
+import hashlib
+import importlib.metadata
+import json
+import os
+import sys
+import tempfile
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'tools'))
+from evidence import bounded,passed
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,required=True)
+    args=parser.parse_args()
+    try:
+        policy=json.loads((ROOT/'safety/container-policy.json').read_text())
+        if any(os.environ.get(k) for k in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY',
+                'DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG']):
+            raise ValueError('inherited Docker setting')
+        with tempfile.TemporaryDirectory(prefix='safe-c-runner-request-') as config:
+            result=bounded(['/usr/bin/docker','--config',config,'--host',policy['runner']['endpoint'],
+                'info','--format','{{json .}}'],env={'PATH':'/usr/bin:/bin','HOME':config,'LANG':'C.UTF-8'},
+                timeout=15,limit=1048576)
+        if not passed(result):raise ValueError('Docker metadata unavailable')
+        info=json.loads(result['output'])
+        try:schema=importlib.metadata.version('jsonschema')
+        except importlib.metadata.PackageNotFoundError:schema=None
+        proposed=dict(policy);proposed['runner']=dict(policy['runner'],daemon_id=info['ID'])
+        values={'schema_version':1,'status':'REQUEST_RECORDED','independent_approval':'PENDING',
+            'native_execution_authorized':False,'production_authorized':False,
+            'policy_sha256':hashlib.sha256((ROOT/'safety/container-policy.json').read_bytes()).hexdigest(),
+            'actual_runner':{k:info.get(k) for k in ['ID','ServerVersion','KernelVersion',
+                'OperatingSystem','Architecture','NCPU','MemTotal','CgroupVersion','Driver','SecurityOptions']},
+            'github_context':{k:os.environ.get(k) for k in ['GITHUB_REPOSITORY','GITHUB_RUN_ID',
+                'GITHUB_RUN_ATTEMPT','RUNNER_ENVIRONMENT','RUNNER_ARCH','ImageOS','ImageVersion']},
+            'host_jsonschema':schema,'core_pattern':Path('/proc/sys/kernel/core_pattern').read_text().strip(),
+            'daemon_matches_current_policy':info['ID']==policy['runner']['daemon_id'],
+            'locked_images':[json.loads((ROOT/name).read_text())['image_id'] for name in ['toolchain.lock.json','developer.lock.json']],
+            'proposed_policy':proposed,
+            'warning':'Proposal only. Changing daemon identity needs independent acquisition/requalification approval; this file and its checksum grant no authority.'}
+        args.output.parent.mkdir(parents=True,exist_ok=True)
+        args.output.write_text(json.dumps(values,indent=2)+'\n')
+        print(json.dumps({'status':values['status'],'approval':'PENDING','output':str(args.output)}));return 0
+    except Exception as error:
+        print(json.dumps({'status':'BLOCKED','error_type':type(error).__name__,'output':str(args.output)}));return 1
+
+
+if __name__=='__main__':raise SystemExit(main())

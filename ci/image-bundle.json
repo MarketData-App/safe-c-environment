@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "LOCAL_ONLY",
+  "publication_authorized": false,
+  "license_review": "PENDING",
+  "archive_sha256": "ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624",
+  "archive_bytes": 496826156,
+  "image_ids": [
+    "sha256:9b90ce96e4e0b2dc7f11a16d8c5fcd79e59672fccd9134163cea428e4fe9c1a6",
+    "sha256:fabbb83309d3767840466b4ccb82a1da9940b76d76ae7d16eedf04d6a540d179"
+  ],
+  "config_ids": [
+    "sha256:656026b2fcb4e4b83f376f8abcbe79fb0f8c253ce4e56ee9cdf2a325d42c29e3",
+    "sha256:d5856c404be7c6928b663a1c0dd296f957f3e977416d339b9104a503d94b1fc1"
+  ],
+  "url": null,
+  "qualification_inherited": false
+}
