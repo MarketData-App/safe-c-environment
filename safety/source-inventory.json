@@ -529,7 +529,8 @@
       "role": "isolated-demo",
       "targets": [
         "C32_good",
-        "infrastructure_demo"
+        "infrastructure_demo",
+        "runtime_demo"
       ]
     },
     "tests/integration/runtime-demo.c": {

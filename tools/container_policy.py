@@ -111,6 +111,12 @@ class Launcher:
         self.env={'PATH':'/usr/bin:/bin','HOME':str(self.config),'LANG':'C.UTF-8'}
         self.prefix=['/usr/bin/docker','--config',str(self.config),'--host',self.value['runner']['endpoint']]
         self.records=[]
+        self.approved_runtime_images=set()
+    def image_gate(self,profile,image):
+        if profile=='runtime-demo':
+            if image not in self.approved_runtime_images:raise GateError('runtime image has not been assembled and approved by the trusted adapter')
+        elif image!=self.lock['image_id']:raise GateError('unapproved workload image rejected before creation')
+        return True
     def docker(self,args,**kw):return bounded(self.prefix+list(args),env=self.env,**kw)
     def json(self,args):
         r=self.docker(args)
@@ -159,7 +165,7 @@ class Launcher:
         return {'active_before':len(active),'available_memory_bytes':available,'reserved_memory_bytes':a['reserved_memory_bytes'],'finite_probe_memory_bytes':finite_memory,'disk_free_bytes':free,'retained_evidence_bytes':sum(sizes),'max_active':a['max_active']}
     def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0):
         self.preflight()
-        image=image or self.lock['image_id'];plan=make_plan(self.value,image,mounts,profile)
+        image=image or self.lock['image_id'];self.image_gate(profile,image);plan=make_plan(self.value,image,mounts,profile)
         validate_plan(plan,self.value,image,mounts,profile)
         if network is not None and (profile!='integration' or not network.startswith('safe-c-integration-')):raise GateError('unauthorized test network')
         if profile=='integration' and not network:raise GateError('integration requires a disposable internal network')

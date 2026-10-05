@@ -6,13 +6,22 @@ import sys
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tools'))
 from evidence import GateError,read_json
-from container_policy import policy,make_plan,validate_plan,kernel_limits_gate,dispatch_gate,completion_gate,policy_hash
+from container_policy import Launcher,policy,make_plan,validate_plan,kernel_limits_gate,dispatch_gate,completion_gate,policy_hash
 from containment import fixture_inventory,validate_containment,container_binding_gate,expected_binding
 from qualification import designated_runtime_result
 ROOT=Path(__file__).resolve().parents[2]
 
 class ContainerEvidenceTests(unittest.TestCase):
     def setUp(self):self.value=policy(ROOT);self.image=read_json(ROOT/'toolchain.lock.json')['image_id']
+    def test_unapproved_images_are_rejected_before_creation(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            launcher=Launcher(ROOT,Path(d),read_json(ROOT/'toolchain.lock.json'))
+            try:
+                launcher.image_gate('build',self.image)
+                for profile,image in [('build','sha256:'+'0'*64),('fuzz','sha256:'+'0'*64),('runtime-demo',self.image)]:
+                    with self.assertRaises(GateError):launcher.image_gate(profile,image)
+            finally:launcher.close()
     def test_profile_request_rejects_merged_overrides(self):
         good=make_plan(self.value,self.image,{},'build');validate_plan(good,self.value,self.image,{},'build')
         for key,value in [('user','0:0'),('capabilities',['SYS_ADMIN']),('privileged',True),('ports',['123:123']),('logging',{}),('restart','always')]:

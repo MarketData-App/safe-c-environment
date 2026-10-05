@@ -41,6 +41,7 @@ def runtime_smoke(q, *,hold=False):
         image=imported['output'].strip()
     obj=launcher.json(['image','inspect',image])[0]
     if obj['Config']['Entrypoint']!=['/demo'] or obj['Config'].get('Volumes') or obj['Config'].get('Healthcheck') or obj['Size']>8*1024*1024:raise GateError('runtime image metadata or size mismatch')
+    launcher.approved_runtime_images.add(image)
     record=launcher.create('runtime-demo',{},image=image,command=['--hold'])
     try:
         record['effective']=launcher.effective(record['container_id'],record['plan'],python_probe=False)
