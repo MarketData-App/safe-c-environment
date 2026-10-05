@@ -43,7 +43,9 @@ static gboolean sizes(void) {
     REQUIRE(sc_range(0, 0, 0) && sc_range(3, 0, 3));
     REQUIRE(sc_range(0, 3, 3) && sc_range(1, 2, 3));
     CHECK("F16/range-guard", !sc_range(4, 0, 3) && !sc_range(1, 3, 3));
-    CHECK("F10/terminator-space", !sc_range(G_MAXSIZE, 1, G_MAXSIZE));
+    CHECK("F10/terminator-space", !sc_range(G_MAXSIZE, 1, G_MAXSIZE) &&
+                                      !sc_size_add(G_MAXSIZE, 1, &result) &&
+                                      result == (gsize)G_MAXSSIZE);
     return TRUE;
 }
 
@@ -138,8 +140,9 @@ static gboolean bytes(void) {
     g_clear_pointer(&end, g_bytes_unref);
     CHECK("F09/invalid-region", !sc_bytes_slice(slice, 3, 0, &end, &error) && end == NULL);
     g_clear_error(&error);
-    CHECK("F09/product-overflow",
-          !sc_bytes_slice(slice, 1, G_MAXSIZE, &end, &error) && end == NULL);
+    CHECK("F09/product-overflow", !sc_bytes_slice(slice, 1, G_MAXSIZE, &end, &error) &&
+                                      end == NULL &&
+                                      g_bytes_get_region(slice, G_MAXSIZE, 2, 2) == NULL);
     g_clear_error(&error);
     REQUIRE(!sc_bytes_read_u16be(slice, 1, &number, &error) && number == 0);
     g_clear_error(&error);
@@ -192,7 +195,8 @@ static gboolean lists(void) {
     g_autoptr(ScBytesList) list = sc_list_new(2, 2, &error);
     REQUIRE(list != NULL);
     GBytes *missing = NULL;
-    CHECK("F05/empty-index", !sc_list_get_ref(list, 0, &missing, &error) && missing == NULL);
+    CHECK("F05/empty-index", !sc_list_get_ref(list, 0, &missing, &error) && missing == NULL &&
+                                 error != NULL && error->code == SC_ERROR_RANGE);
     g_clear_error(&error);
     REQUIRE(sc_list_append(list, first, &error));
     CHECK("F05/spare-capacity-index", !sc_list_get_ref(list, 1, &missing, &error) &&
@@ -200,9 +204,12 @@ static gboolean lists(void) {
                                           error->code == SC_ERROR_RANGE);
     g_clear_error(&error);
     CHECK("F13/list-exact-cap", sc_list_append(list, last, &error));
-    CHECK("F13/list-one-beyond", !sc_list_append(list, first, &error) && sc_list_length(list) == 2);
+    CHECK("F13/list-one-beyond", !sc_list_append(list, first, &error) &&
+                                     sc_list_length(list) == 2 && error != NULL &&
+                                     error->code == SC_ERROR_LIMIT && destroyed == 0);
     g_clear_error(&error);
-    CHECK("F05/one-past-logical", !sc_list_get_ref(list, 2, &missing, &error) && missing == NULL);
+    CHECK("F05/one-past-logical", !sc_list_get_ref(list, 2, &missing, &error) && missing == NULL &&
+                                      error != NULL && error->code == SC_ERROR_RANGE);
     g_clear_error(&error);
     REQUIRE(!sc_list_get_ref(list, G_MAXSIZE, &missing, &error));
     g_clear_error(&error);
@@ -300,7 +307,8 @@ static gboolean maps(void) {
           sc_map_get_ref(map, "key", 3, &retained, &error) && g_bytes_equal(retained, value));
     CHECK("F07/duplicate-key",
           sc_map_put(map, "key", 3, value, &error) && sc_map_length(map) == 1 && destroyed == 0);
-    CHECK("F07/count-limit", !sc_map_put(map, "two", 3, value, &error) && sc_map_length(map) == 1);
+    CHECK("F07/count-limit", !sc_map_put(map, "two", 3, value, &error) && sc_map_length(map) == 1 &&
+                                 error != NULL && error->code == SC_ERROR_LIMIT && destroyed == 0);
     CHECK("F13/map-one-beyond",
           sc_map_length(map) == 1 && g_bytes_get_size(value) == 1 && destroyed == 0);
     g_clear_error(&error);
