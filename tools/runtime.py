@@ -2,24 +2,38 @@
 from pathlib import Path
 import io
 import json
+import re
 import tarfile
 from evidence import GateError, passed, file_hash, atomic_json
+
+def runtime_members():
+    return {'demo', 'lib/x86_64-linux-gnu/libc.so.6', 'lib64/ld-linux-x86-64.so.2',
+            'opt/foundation/clang-O2/lib/libglib-2.0.so.0',
+            'opt/foundation/clang-O2/lib/libpcre2-8.so.0'}
 
 def runtime_smoke(q, *,hold=False):
     build=q.build('hardened',opt=2)
     if not q.built(build):raise GateError('runtime optimized release build failed')
     tested=q.executable(build,'runtime_demo',label='runtime-release-test')
     if not passed(tested):raise GateError('runtime release artifact failed before packaging')
+    from foundation import loaded_binding, expected_binding
+    library_binding=loaded_binding(q,build,tested)
     binary=q.runner.fetch(build['directory']+'/runtime_demo')
     fingerprint=file_hash(binary)
     elf=q.runner.run(['readelf','--wide','-l','-d','/work/'+build['directory']+'/runtime_demo'],label='runtime-dependencies')
-    if not passed(elf) or '[libc.so.6]' not in elf['output'] or '/lib64/ld-linux-x86-64.so.2' not in elf['output']:raise GateError('unsupported runtime dependency inventory')
+    if (not passed(elf) or set(re.findall(r'Shared library: \[([^\]]+)\]',elf['output']))!={'libc.so.6','libglib-2.0.so.0'} or '/lib64/ld-linux-x86-64.so.2' not in elf['output']):raise GateError('unsupported runtime dependency inventory')
+    dependency=__import__('evidence').read_json(q.root/'foundation.lock.json')['profiles']['clang-O2']
+    closure={name for names in dependency['needed_libraries'].values() for name in names}
+    if closure!={'libc.so.6','libpcre2-8.so.0'}:raise GateError('unsupported ordinary foundation runtime closure')
     members={'demo':binary}
-    for src,dst in [('/usr/lib/x86_64-linux-gnu/libc.so.6','lib/x86_64-linux-gnu/libc.so.6'),('/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2','lib64/ld-linux-x86-64.so.2')]:
+    dependencies=[('/usr/lib/x86_64-linux-gnu/libc.so.6','lib/x86_64-linux-gnu/libc.so.6'),('/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2','lib64/ld-linux-x86-64.so.2')]
+    dependencies += [('/'+name,name) for name in runtime_members() if name.startswith('opt/')]
+    for src,dst in dependencies:
         rel='runtime-assembly/'+dst
         copy=q.runner.run(['python3','-c','import pathlib,sys,shutil;p=pathlib.Path("/work")/sys.argv[2];p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(sys.argv[1],p)',src,rel],label='runtime-copy-dependency')
         if not passed(copy):raise GateError('runtime dependency collection failed')
         members[dst]=q.runner.fetch(rel)
+        if dst.startswith('opt/') and file_hash(members[dst])!=dependency['files']['lib/'+Path(dst).name]:raise GateError('runtime foundation dependency bytes changed')
     directory=q.runner.run_dir/'runtime';directory.mkdir(parents=True,exist_ok=True)
     archive=directory/'rootfs.tar'
     with tarfile.open(archive,'w') as tar:
@@ -30,7 +44,9 @@ def runtime_smoke(q, *,hold=False):
     launcher=q.runner.launcher
     # One project-owned immutable tag. Reuse the identical image; never prune
     # unrelated images/cache and never invoke Docker build/BuildKit here.
-    tag='safe-c-runtime-demo:'+fingerprint[:24]
+    from evidence import digest
+    payload=digest(json.dumps({name:file_hash(path) for name,path in members.items()},sort_keys=True).encode())
+    tag='safe-c-runtime-demo:'+payload[:24]
     inspection=launcher.docker(['image','inspect',tag])
     if passed(inspection):image=json.loads(inspection['output'])[0]['Id']
     else:
@@ -42,6 +58,20 @@ def runtime_smoke(q, *,hold=False):
     obj=launcher.json(['image','inspect',image])[0]
     if obj['Config']['Entrypoint']!=['/demo'] or obj['Config'].get('Volumes') or obj['Config'].get('Healthcheck') or obj['Size']>8*1024*1024:raise GateError('runtime image metadata or size mismatch')
     launcher.approved_runtime_images.add(image)
+    inputs=[]
+    for name,text,code in [('valid','example',0),('invalid','abcdefghijklmnopq',64)]:
+        job=launcher.create('runtime-demo',{},image=image,command=['--input',text])
+        try:
+            waited=launcher.docker(['wait',job['container_id']],timeout=15)
+            logged=launcher.docker(['logs',job['container_id']],timeout=5)
+            loaded=re.findall(r'^DEPENDENCY_LOADED (\S+)$',logged['output'],re.M)
+            wanted=library_binding['loaded_paths']
+            ok=(passed(waited) and waited['output'].strip()==str(code) and passed(logged) and sorted(loaded)==sorted(wanted))
+            ok=ok and (('foundation input accepted' in logged['output'] and 'runtime-demo healthy sum=9' in logged['output']) if code==0 else 'foundation input rejected' in logged['output'])
+            life=launcher.dispose(job)
+            item={'name':name,'status':'PASS' if ok else 'FAIL','exit_code':code if passed(waited) and waited['output'].strip()==str(code) else None,'container_id':job['container_id'],'loaded_paths':loaded,'lifecycle':life,'input_binding':expected_binding(q)}
+            atomic_json(directory/('input-'+name+'.json'),item);inputs.append(item)
+        finally:launcher.dispose(job)
     record=launcher.create('runtime-demo',{},image=image,command=['--hold'])
     try:
         record['effective']=launcher.effective(record['container_id'],record['plan'],python_probe=False)
@@ -67,9 +97,11 @@ def runtime_smoke(q, *,hold=False):
         expected={name:file_hash(path) for name,path in members.items()}
         if final_members!=expected or final_members['demo']!=fingerprint:raise GateError('runtime image does not contain exact tested bytes')
         logs=launcher.docker(['logs',record['container_id']],timeout=5)
-        ok=passed(logs) and 'runtime-demo healthy sum=9' in logs['output']
+        ok=passed(logs) and 'runtime-demo healthy sum=9' in logs['output'] and all(item['status']=='PASS' for item in inputs)
         result={'status':'PASS' if ok else 'FAIL','binary_sha256':fingerprint,'source_identity':__import__('policy').source_identity(q.root)[0],'build_directory':build['directory'],'toolchain_image_id':q.runner.lock['image_id'],'runtime_image_id':image,'registry_digest':None,'image_members':final_members,'entrypoint':obj['Config']['Entrypoint'],'profile':'runtime-demo','container_id':record['container_id'],'container_policy_hash':record['policy_hash'],'effective':record['effective'],'release_test_evidence':tested['evidence_path'],'evidence_path':str(directory/'runtime-smoke.json'),'application_release_ready':False,'production_approval':'NOT_REQUESTED'}
         result['docker_managed_files']=managed
+        result.update(library_binding=library_binding,input_controls=inputs,
+                      payload_sha256=payload,input_binding=expected_binding(q))
         if hold:return result,record
         wait=launcher.docker(['wait',record['container_id']],timeout=15)
         result['status']='PASS' if ok and passed(wait) and wait['output'].strip()=='0' else 'FAIL'
