@@ -28,3 +28,15 @@ the executable/source/profile identities, command errors, stop and step events,
 inspection completeness and inferior exit/signal separately. Successful capture
 of a crash never changes its original test/finding result. Terminate/reap the
 private subprocess group and collect finite evidence before Docker teardown.
+
+The selected GDB 16.3 does not correctly preserve whitespace when starting an
+inferior without a shell (upstream issue 28392). Use a fixed isolated Python
+launcher as the initial owned inferior, with only a fixed ASCII manifest path.
+The manifest contains the discovered executable/hash and literal argv vector.
+It is bounded, validates the /work build destination and executable identity,
+then uses execve in the same PID. GDB follows that exec into the recorded target;
+the resolved/reached breakpoint, target symbols and loaded SDK remain mandatory.
+This is an internal stdlib-only adapter, not a command/expression API. Python
+uses -I -S, sanitized environment and existing confinement. No shell is started,
+no toolchain upgrade or runtime permission change is introduced, and the actual
+post-exec argv is observed independently through the owned inferior's /proc entry.

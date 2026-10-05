@@ -72,6 +72,7 @@ class Client:
             cwd='/work/developer-build', start_new_session=True)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.process.stdout, selectors.EVENT_READ)
+        os.set_blocking(self.process.stdin.fileno(),False)
         self.encoding = 'utf-16'
 
     def record(self, direction, value):
@@ -87,8 +88,18 @@ class Client:
         if len(data) > self.policy['limits']['message_bytes']:
             raise GateError('semantic protocol message bound exceeded')
         self.record('out', value)
-        self.process.stdin.write(b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n' + data)
-        self.process.stdin.flush()
+        payload=b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n' + data
+        cursor=0
+        import select
+        while cursor<len(payload):
+            remaining=self.policy['limits']['server_wall_seconds']-(time.monotonic()-self.started)
+            idle=self.policy['limits']['server_idle_seconds']-(time.monotonic()-self.last_activity)
+            if min(remaining,idle)<=0:raise GateError('semantic write deadline exhausted')
+            try:
+                cursor+=os.write(self.process.stdin.fileno(),payload[cursor:])
+                self.last_activity=time.monotonic()
+            except BlockingIOError:
+                select.select([],[self.process.stdin],[],min(remaining,idle,.1))
 
     def notify(self, method, params):
         self.send({'jsonrpc': '2.0', 'method': method, 'params': params})
@@ -261,6 +272,9 @@ def mapped(value, encoding, default_path=None):
 
 
 def navigate(request, database, targets, policy):
+    current=Path('/work/developer-build/compile_commands.json')
+    if not current.is_file() or json.loads(current.read_text())!=database:
+        raise GateError('actual semantic compilation context is missing or changed')
     known = {row['file'] for row in database}
     kind = request['kind']
     requested=request.get('file', 'foundation/tests/recipes.c')

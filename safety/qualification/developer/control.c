@@ -1,4 +1,5 @@
 #include "developer-demo.h"
+#include "developer-generated.h"
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -65,6 +66,7 @@ static int pair(void) {
     const unsigned char wire[] = {0x12, 0x34, 0x56};
     const char *decoy = "developer_read_pair";
     REQUIRE(strlen(decoy) > 0 && local_marker() == 23);
+    REQUIRE(SC_DEVELOPER_GENERATED_VALUE <= 1 && SC_DEVELOPER_DEFINE_VALUE <= 1);
     for (gsize length = 0; length <= sizeof(wire); length++) {
         g_autoptr(GBytes) bytes = NULL;
         g_autoptr(GError) error = NULL;

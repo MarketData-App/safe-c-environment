@@ -12,7 +12,7 @@ import subprocess
 import termios
 import time
 
-from evidence import GateError, file_hash
+from evidence import GateError, file_hash, atomic_json
 
 
 class MIParser:
@@ -95,7 +95,7 @@ def parse(line, maximum=1048576):
 
 
 def quoted(value):
-    return json.dumps(value, ensure_ascii=True)
+    return json.dumps(value, ensure_ascii=False)
 
 
 class Session:
@@ -107,6 +107,7 @@ class Session:
         self.buffer = b''
         self.events = []
         self.errors = []
+        self.inferior_pid=None
         self.protocol = (output / 'gdb-mi.opaque.log').open('wb')
         self.inferior_log = (output / 'inferior.opaque.log').open('wb')
         self.master, self.slave = pty.openpty()
@@ -122,10 +123,10 @@ class Session:
         argv = ['/usr/bin/gdb', '-nx', '-q', '--interpreter=mi2']
         for setting in startup:
             argv.extend(['-iex', 'set ' + setting])
-        # --args consumes an argv vector. Unlike most MI commands,
-        # -exec-arguments retains its raw argument text and cannot use the
-        # generic MI C-string parameter encoder without changing literal argv.
-        argv.extend(['--args',str(executable),*arguments])
+        atomic_json(Path('/work/debug-argv.json'),{'executable':str(executable),
+            'sha256':file_hash(executable),'arguments':arguments})
+        argv.extend(['--args','/usr/bin/python3','-I','-S',
+                     '/src/container/developer-argv.py','/work/debug-argv.json'])
         self.argv = argv
         environment = {'PATH': '/usr/bin:/bin', 'HOME': '/work/debug-home',
                        'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8',
@@ -154,6 +155,10 @@ class Session:
                 record = parse(line.rstrip(b'\r').decode('utf-8', errors='strict'))
                 if record['kind'] == '*' and record['class'] == 'stopped':
                     self.events.append(record['fields'])
+                if record['kind']=='=' and record['class']=='thread-group-started':
+                    pid=record['fields'].get('pid','')
+                    if not re.fullmatch(r'[1-9][0-9]*',pid):raise GateError('owned inferior PID record invalid')
+                    self.inferior_pid=int(pid)
                 return record
             timeout = min(self.remaining(), idle - time.monotonic())
             if timeout <= 0:
@@ -182,8 +187,15 @@ class Session:
 
     def command(self, operation, *arguments):
         self.token += 1
+        if operation in {'gdb-show','break-delete'}:
+            pattern=r'[a-z][a-z-]*' if operation=='gdb-show' else r'[0-9]+'
+            if any(not re.fullmatch(pattern,str(p)) for p in arguments):
+                raise GateError('debugger setting query is not a fixed identifier')
+            parameters=''.join(' '+str(p) for p in arguments)
+        else:
+            parameters=''.join(' ' + quoted(str(p)) for p in arguments)
         payload = (str(self.token) + '-' + operation +
-                   ''.join(' ' + quoted(str(p)) for p in arguments) + '\n').encode()
+                   parameters + '\n').encode()
         cursor = 0
         while cursor < len(payload):
             self.remaining()
@@ -255,9 +267,34 @@ def inspect(request, target, policy, output):
         result['inferior_argv'] = [str(executable), *request.get('arguments', [])]
         session.command('inferior-tty-set', session.tty)
         session.command('file-exec-and-symbols', str(executable))
+        result['effective_startup']={}
+        for setting in ['disable-randomization','startup-with-shell','may-call-functions','debuginfod enabled',
+                        'auto-load python-scripts','auto-load gdb-scripts','libthread-db-search-path']:
+            result['effective_startup'][setting]=session.command('gdb-show',*setting.split())['fields'].get('value')
+        for setting,value in result['effective_startup'].items():
+            expected=policy['debugger']['libthread_db_directory'] if setting=='libthread-db-search-path' else 'off'
+            if value!=expected:raise GateError('actual debugger startup guard not effective')
         symbols = session.command('file-list-exec-source-files')['fields'].get('files', [])
         if not any(p.get('fullname', '').startswith('/src/') for p in symbols):
             raise GateError('first-party matching debug symbols unavailable')
+        # The fixed bridge starts without target breakpoints: target addresses
+        # are invalid in the Python process before its execve. This single fixed
+        # console command is internal and never accepts caller command text.
+        session.command('file-exec-and-symbols','/usr/bin/python3')
+        session.command('interpreter-exec','console','catch exec')
+        before=len(session.events)
+        session.command('exec-run')
+        bridge_stop=session.stopped(before)
+        result['bridge_stop']=bridge_stop
+        if bridge_stop.get('reason')!='exec':
+            raise GateError('fixed argv bridge did not reach its exec event')
+        catchpoints=session.command('break-list')['fields'].get('BreakpointTable',{}).get('body',[])
+        for item in catchpoints:
+            item=item.get('bkpt',item)
+            number=item.get('number','')
+            if item.get('type')!='catchpoint' or not re.fullmatch(r'[0-9]+',number):
+                raise GateError('unexpected bridge catchpoint inventory')
+            session.command('break-delete',number)
         if request['recipe'] == 'breakpoint':
             location=request['location']
             native_location=('/fixture/'+location.removeprefix('demo/') if location.startswith('demo/') else '/src/'+location)
@@ -266,7 +303,7 @@ def inspect(request, target, policy, output):
                 raise GateError('source breakpoint did not resolve')
             result['breakpoint'] = resolved
         before = len(session.events)
-        session.command('exec-run')
+        session.command('exec-continue')
         stop = session.stopped(before)
         result['stop'] = stop
         wanted = ('breakpoint-hit' if request['recipe'] == 'breakpoint' else 'signal-received')
@@ -274,6 +311,25 @@ def inspect(request, target, policy, output):
         if request['recipe'] == 'breakpoint':
             reached = reached and stop.get('bkptno') == result['breakpoint']['number']
         if reached:
+            if session.inferior_pid is None:raise GateError('owned inferior PID was not observed')
+            process=Path('/proc')/str(session.inferior_pid)
+            if process.stat().st_uid!=os.getuid():raise GateError('inferior UID outside owned session')
+            actual_executable=Path(os.readlink(process/'exe'))
+            if actual_executable!=executable or file_hash(actual_executable)!=result['executable_sha256']:
+                raise GateError('post-exec inferior executable identity mismatch')
+            with (process/'cmdline').open('rb') as stream:data=stream.read(131073)
+            if len(data)>131072:raise GateError('observed inferior argv exceeds bound')
+            actual=data.rstrip(b'\0').split(b'\0')
+            if actual!=[str(executable).encode(),*[p.encode() for p in request.get('arguments',[])]]:
+                raise GateError('actual literal inferior argv mismatch')
+            result['observed_inferior_argv']=[p.decode() for p in actual]
+            libraries=session.command('file-list-shared-libraries')['fields'].get('shared-libraries',[])
+            loaded=[r.get('host-name',r.get('name','')) for r in libraries
+                    if 'libglib-2.0.so' in r.get('host-name',r.get('name',''))]
+            prefix='/opt/foundation/'+policy['profiles'][request['profile']]['dependency_profile']+'/lib/'
+            if len(loaded)!=1 or not loaded[0].startswith(prefix):
+                raise GateError('actual inferior dependency profile mismatch')
+            result['loaded_dependency']={'path':loaded[0],'sha256':file_hash(Path(loaded[0]))}
             result['frames'] = session.command('stack-list-frames', '0', str(policy['limits']['max_frames'] - 1))['fields'].get('stack', [])
             result['locals'] = session.command('stack-list-variables', '--simple-values')['fields'].get('variables', [])[:policy['limits']['max_values']]
             for name in request.get('values', []):
@@ -296,6 +352,10 @@ def inspect(request, target, policy, output):
                 result['step'] = session.stopped(before)
                 if result['step'].get('reason') != 'end-stepping-range':
                     raise GateError('requested source step did not complete')
+            if request['recipe']=='breakpoint':
+                number=result['breakpoint']['number']
+                if not re.fullmatch(r'[0-9]+',number):raise GateError('source breakpoint identifier rejected')
+                session.command('break-delete',number)
             before = len(session.events)
             session.command('exec-continue')
             endpoint = session.stopped(before)

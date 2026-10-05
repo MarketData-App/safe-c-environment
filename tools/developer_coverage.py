@@ -49,7 +49,11 @@ def view(root,manifest,directory,current_identity):
         raise GateError('coverage source/binary/profile/test binding rejected')
     if manifest['demo_files']:
         workspace=manifest['request'].get('demo_workspace','')
-        path=root/workspace/'candidate.c'
-        if not workspace or path.is_symlink() or file_hash(path)!=data['demo_source_identity']:
+        from developer_workspace import descriptor,identity
+        path=Path(workspace)
+        if not workspace or path.is_absolute() or '..' in path.parts or not path.is_relative_to('artifacts/developer/workspaces'):
+            raise GateError('coverage demo workspace scope rejected')
+        _,files=descriptor(root,root/path)
+        if identity(files)!=data['demo_source_identity']:
             raise GateError('coverage demo input is stale or missing')
     return data

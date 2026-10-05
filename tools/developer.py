@@ -104,7 +104,9 @@ def namespace(root, profile):
               'policy': file_hash(root / 'safety/developer-policy.json'),
               'adapters': {p: file_hash(root / p) for p in
                   ['tools/developer.py', 'tools/developer_lsp.py', 'tools/developer_gdb.py',
-                   'tools/developer_state.py', 'container/developer-job.py',
+                   'tools/developer_state.py', 'tools/developer_workspace.py',
+                   'tools/developer_report.py', 'container/developer-job.py',
+                   'container/developer-argv.py',
                    'CMakeLists.txt','cmake/Developer.cmake','cmake/Foundation.cmake','cmake/Safety.cmake']}}
     return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest(), fields
 
@@ -167,7 +169,7 @@ def request(args, policy):
                 raise GateError('breakpoint requires a registered source path and positive line')
         if (not 0<=args.steps<=policy['limits']['max_source_steps'] or
                 len(args.values)>policy['limits']['max_values'] or
-                any(not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*',v) for v in args.values)):
+                any(len(v)>256 or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*',v) for v in args.values)):
             raise GateError('debug scalar inspection or step budget rejected')
         if len(args.arguments)>16 or any(len(a.encode())>4096 or '\0' in a or '\n' in a or '\r' in a for a in args.arguments):
             raise GateError('literal debug argument bounds rejected')
@@ -197,6 +199,7 @@ def stop(root, out, lock):
     launcher = Launcher(root, out, dict(read_json(root/'toolchain.lock.json'),image_id=lock['image_id']),
                         purpose='development')
     active = root/'artifacts/developer/active'
+    allowed_images={lock['image_id'],read_json(root/'toolchain.lock.json')['image_id']}
     rows = []
     try:
         paths = sorted(active.glob('*.json')) if active.is_dir() else []
@@ -206,7 +209,7 @@ def stop(root, out, lock):
             row=read_json(path)
             if (row.get('worktree')!=launcher.worktree_scope or
                     not __import__('re').fullmatch(r'[0-9a-f]{32}',row.get('run_id','')) or
-                    row.get('image_id')!=lock['image_id']):
+                    row.get('image_id') not in allowed_images):
                 raise GateError('development registration scope/image rejected')
             listed=launcher.docker(['ps','--all','--filter','label=org.safe-c.worktree='+launcher.worktree_scope,
                 '--filter','label=org.safe-c.purpose=development',
@@ -219,11 +222,15 @@ def stop(root, out, lock):
                 profile=labels.get('org.safe-c.profile')
                 if (labels.get(LABEL)!='1' or labels.get('org.safe-c.worktree')!=launcher.worktree_scope or
                         labels.get('org.safe-c.purpose')!='development' or
-                        labels.get('org.safe-c.run')!=row['run_id'] or actual['Image']!=lock['image_id'] or
+                        labels.get('org.safe-c.run')!=row['run_id'] or actual['Image']!=row['image_id'] or
                         profile not in launcher.value['profiles'] or
                         host.get('Privileged') or host.get('CapAdd') or host.get('CapDrop')!=['ALL'] or
                         host.get('PidMode')!='' or host.get('CgroupnsMode')!='private' or
-                        not host.get('ReadonlyRootfs')):
+                        not host.get('ReadonlyRootfs') or actual['Config'].get('User')!='1001:1001' or
+                        host.get('NetworkMode')!='none' or
+                        sorted(host.get('SecurityOpt',[]))!=['apparmor=docker-default','no-new-privileges'] or
+                        host.get('Memory')!=launcher.value['profiles'].get(profile,{}).get('memory_bytes') or
+                        host.get('PidsLimit')!=launcher.value['profiles'].get(profile,{}).get('pids')):
                     raise GateError('development stop refused a foreign or mismatched container')
                 before=actual['State']
                 if before['Running']:
@@ -289,6 +296,10 @@ def execute(root, args, *, emit=True):
     elif args.operation=='stop':
         result['result']=stop(root,out,lock)
         result['status']=result['result']['status']
+    elif args.operation=='selftest':
+        from developer_qualification import run
+        result['result']=run(root,policy,lock,out)
+        result['status']=result['result']['status']
     elif args.operation in {'doctor', 'prepare', 'targets', 'tests', 'build', 'test', 'nav', 'debug','replay'}:
         scratch = Path(tempfile.mkdtemp(prefix='safe-c-developer-job-'))
         source_root=None
@@ -303,7 +314,8 @@ def execute(root, args, *, emit=True):
                 if not original['test']:raise GateError('no original target available for debug variant')
                 selected['target']=original['test']['target']
                 result['debug_variant_of']=original['run_id']
-        runner = Runner(root, out, dict(toolchain, image_id=lock['image_id']), scratch,
+        replay_image=original['image_id'] if original and args.operation=='replay' else lock['image_id']
+        runner = Runner(root, out, dict(toolchain, image_id=replay_image), scratch,
                         purpose='development',source_root=source_root,fixture_root=fixture_root)
         admitted = admission(root,selected['profile'])
         registered=root/'artifacts/developer/active'/(run_id+'.json')
@@ -311,17 +323,20 @@ def execute(root, args, *, emit=True):
             admitted.__enter__()
             runner.start()
             if fixture_root:
-                result['demo_source_identity']=file_hash(runner.fixture_snapshot/'candidate.c')
+                from developer_workspace import identity as demo_identity
+                result['demo_source_identity']=demo_identity(runner.input_binding['developer_demo'])
             from developer_state import stage, retain
             selected['context_namespace']=context
             selected['state_restored']=False if original else stage(root,context,runner,policy['limits'])
             atomic_json(registered,{'run_id':run_id,'worktree':runner.launcher.worktree_scope,
-                'image_id':lock['image_id'],'profile':args.profile,'namespace':context})
+                'image_id':runner.lock['image_id'],'profile':selected['profile'],'namespace':context})
             if args.operation=='replay':
-                for source,destination in [('binary',original['test']['target']),('CTestTestfile.cmake','CTestTestfile.cmake')]:
+                transfers=[('binary','adapter/'+original['fuzz_job']['variant']+'/parser_fuzzer')] if original['fuzz_job'] else [('binary',original['test']['target']),('CTestTestfile.cmake','CTestTestfile.cmake')]
+                for source,destination in transfers:
                     private=scratch/('replay-'+source)
                     shutil.copy2(bundle_directory/source,private)
-                    runner.restore('developer-build/'+destination,private)
+                    native_path=('adapter/'+original['fuzz_job']['variant']+'/parser_fuzzer') if original['fuzz_job'] else 'developer-build/'+destination
+                    runner.restore(native_path,private)
                 native={'status':'PASS','selected_test':original['test'],
                         'original_binary_sha256':original['binary']['sha256'],
                         'snapshot':'original','source_bytes_retained':True}
@@ -346,7 +361,17 @@ def execute(root, args, *, emit=True):
             if result['status']=='PASS' and not original:
                 retain(root,context,runner,native,policy['limits'])
             executed=None
-            if args.operation in {'test','replay'} and result['status']=='PASS':
+            if args.operation=='replay' and original['fuzz_job']:
+                executed=runner.run(original['argv'],timeout=10,label='original-fuzz-regression')
+                result['evidence_paths'].append(executed['evidence_path'])
+                if executed['binary_sha256']!=original['binary']['sha256'] or not executed['binary_unchanged']:
+                    raise GateError('original fuzz executable identity changed')
+                result['status']='PASS' if passed(executed) else 'FAIL'
+                result['result']['fuzz_result']={'program_result_preserved':True,'exit_code':executed['exit_code'],
+                    'runtime_failure':executed['failure'],'binary_sha256':executed['binary_sha256'],
+                    'input_sha256':original['fuzz_job']['input_sha256'],'budget_runs':1,
+                    'runtime_profile':'fuzz'}
+            elif args.operation in {'test','replay'} and result['status']=='PASS':
                 test=native.get('selected_test',{})
                 test_id=original['test']['id'] if original else args.test_id
                 if test.get('id')!=test_id or not test.get('target'):
@@ -377,6 +402,11 @@ def execute(root, args, *, emit=True):
             if args.operation=='test' or (result['status']!='PASS' and not original):
                 from developer_bundle import capture
                 result['bundle']=capture(root,runner,result,selected,executed)
+        except (GateError,OSError,ValueError,KeyError) as error:
+            result['status']='BLOCKED'
+            result['result'].update(error_type=type(error).__name__,
+                reason=str(error) if isinstance(error,GateError) else 'Developer evidence or infrastructure unavailable.',
+                complete_capture=False)
         finally:
             cancelled=registered.with_suffix('.cancelled')
             if cancelled.is_file():
@@ -394,6 +424,8 @@ def execute(root, args, *, emit=True):
                 admitted.__exit__(None,None,None)
     else:
         result['result'] = {'reason': 'This developer responsibility is not implemented yet.'}
+    from developer_report import feedback
+    feedback(result)
     atomic_json(out / 'result.json', result)
     if not emit:
         return result

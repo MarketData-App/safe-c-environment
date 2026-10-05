@@ -53,13 +53,13 @@ def capture(root, runner, result, request, executed=None):
     native = result['result']
     demo_files={}
     if runner.fixture_root is not None:
-        path=runner.fixture_snapshot/'candidate.c'
-        digest=file_hash(path)
-        destination=objects/digest
-        safe_directory(destination)
-        if not destination.exists():shutil.copy2(path,destination)
-        if file_hash(destination)!=digest:raise GateError('retained demo source object changed')
-        demo_files['candidate.c']={'sha256':digest,'bytes':path.stat().st_size,'executable':False}
+        for name,digest in runner.input_binding['developer_demo'].items():
+            path=runner.fixture_snapshot/name
+            destination=objects/digest
+            safe_directory(destination)
+            if not destination.exists():shutil.copy2(path,destination)
+            if file_hash(destination)!=digest:raise GateError('retained demo source object changed')
+            demo_files[name]={'sha256':digest,'bytes':path.stat().st_size,'executable':False}
     selected = native.get('selected_test')
     binary = None
     ctest = None
@@ -73,6 +73,7 @@ def capture(root, runner, result, request, executed=None):
                 'image_id': runner.lock['image_id'], 'compatibility': {p: file_hash(root/p) for p in COMPATIBILITY},
                 'operation': request['operation'], 'request': request,
                 'test': selected, 'binary': binary, 'ctest': ctest,
+                'fuzz_job':None,
                 'argv': executed['command'] if executed else [],
                 'environment': dict(executed.get('environment',RUNTIME_ENV) if executed else RUNTIME_ENV), 'cwd': '/work',
                 'observed': {'status': result['status'], 'exit_code': executed['exit_code'] if executed else None,
@@ -100,7 +101,8 @@ def load(root, run_id, lock):
             parent['status'] != manifest['observed']['status'] or
             parent.get('bundle',{}).get('sha256') != file_hash(directory/'manifest.json')):
         raise GateError('failure bundle/parent identity mismatch')
-    if manifest['image_id'] != lock['image_id'] or manifest['compatibility'] != {p:file_hash(root/p) for p in COMPATIBILITY}:
+    allowed_images={lock['image_id'],read_json(root/'toolchain.lock.json')['image_id']}
+    if manifest['image_id'] not in allowed_images or manifest['compatibility'] != {p:file_hash(root/p) for p in COMPATIBILITY}:
         raise GateError('original profile/image/policy is changed or revoked; original replay blocked')
     for record in [manifest['binary'],manifest['ctest']]:
         if record is None:
@@ -122,7 +124,32 @@ def load(root, run_id, lock):
         if manifest['profile']=='coverage':environment['LLVM_PROFILE_FILE']='/work/selected.profraw'
         if manifest['argv']!=expected or manifest['environment']!=environment or manifest['cwd']!='/work':
             raise GateError('retained replay argv/environment/cwd rejected')
+    if manifest['fuzz_job']:
+        fuzz=manifest['fuzz_job']
+        expected=['/work/adapter/'+fuzz['variant']+'/parser_fuzzer','/src/fuzz/regressions/C32','-runs=1']
+        if (fuzz['variant'] not in {'bad','good'} or manifest['argv']!=expected or
+                manifest['profile']!='fuzz' or manifest['test'] is not None or
+                manifest['environment']!=RUNTIME_ENV or fuzz['input']!='fuzz/regressions/C32' or
+                manifest['source_files'][fuzz['input']]['sha256']!=fuzz['input_sha256']):
+            raise GateError('retained fuzz regression scope/argv/input rejected')
     return manifest,directory
+
+
+def capture_fuzz(root,runner,result,executed,variant):
+    reference=capture(root,runner,result,{'operation':'test','profile':'fuzz'},executed)
+    path=Path(reference['path'])
+    manifest=read_json(path)
+    binary=runner.fetch('adapter/'+variant+'/parser_fuzzer',runner.run_dir/'bundle/binary')
+    manifest['binary']={'path':'binary','sha256':file_hash(binary),'bytes':binary.stat().st_size}
+    manifest['fuzz_job']={'variant':variant,'input':'fuzz/regressions/C32',
+                          'input_sha256':manifest['source_files']['fuzz/regressions/C32']['sha256'],
+                          'budget_runs':1,'minimized_input':False}
+    manifest['original_replay_available']=True
+    manifest['reason']=None
+    validate(root,'developer-bundle',manifest)
+    atomic_json(path,manifest)
+    reference.update(sha256=file_hash(path),original_replay_available=True)
+    return reference
 
 
 def restore_source(root, manifest, destination):
@@ -150,14 +177,19 @@ def restore_source(root, manifest, destination):
 def restore_demo(root,manifest,destination):
     records=manifest['demo_files']
     if not records:return None
-    if set(records)!={'candidate.c'}:raise GateError('retained demo input inventory mismatch')
-    record=records['candidate.c']
-    source=root/'artifacts/developer/objects'/record['sha256']
-    safe_directory(source)
-    if not source.is_file() or file_hash(source)!=record['sha256'] or source.stat().st_size!=record['bytes'] or record['bytes']>1048576:
-        raise GateError('retained original demo bytes changed or missing')
+    if len(records)>4:raise GateError('retained demo input inventory mismatch')
     destination.mkdir(parents=True,exist_ok=True)
-    shutil.copyfile(source,destination/'candidate.c')
+    for name,record in records.items():
+        relative=relative_path(name)
+        source=root/'artifacts/developer/objects'/record['sha256']
+        safe_directory(source)
+        if not source.is_file() or file_hash(source)!=record['sha256'] or source.stat().st_size!=record['bytes'] or record['bytes']>1048576:
+            raise GateError('retained original demo bytes changed or missing')
+        target=destination/relative
+        target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(source,target)
+    from developer_workspace import descriptor
+    descriptor(root,destination)
     return destination
 
 

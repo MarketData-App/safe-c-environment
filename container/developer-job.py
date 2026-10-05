@@ -29,15 +29,18 @@ class Job:
         OUTPUT.mkdir()
         from policy import source_files
         self.source_files=source_files(Path('/src'))
+        self.demo_context=None
         if self.request.get('demo_workspace'):
-            self.source_files['demo/candidate.c']=file_hash(Path('/fixture/candidate.c'))
+            from developer_workspace import descriptor
+            self.demo_context,files=descriptor(Path('/src'),Path('/fixture'))
+            self.source_files.update({'demo/'+p:d for p,d in files.items()})
         self.restored=False
         self.invalidated=[]
         if request.get('state_restored'):
             from developer_state import restore
             prior=restore(BUILD,Path('/work/developer-state-input'),request['context_namespace'],self.policy['limits'])
             self.restored=True
-            changed={('/fixture/candidate.c' if p=='demo/candidate.c' else '/src/'+p) for p in set(prior['source_files'])|set(self.source_files)
+            changed={('/fixture/'+p.removeprefix('demo/') if p.startswith('demo/') else '/src/'+p) for p in set(prior['source_files'])|set(self.source_files)
                      if prior['source_files'].get(p)!=self.source_files.get(p)}
             if changed:
                 dependencies=self.run(['ninja','-C',str(BUILD),'-t','deps'],'incremental-dependencies')
@@ -73,12 +76,18 @@ class Job:
         (query / 'codemodel-v2').write_text('')
         (query / 'toolchains-v1').write_text('')
         compiler = self.lock['tools'][self.profile['compiler']]['path']
+        demo_arguments=[]
+        if self.demo_context:
+            demo_arguments=['-DSC_DEVELOPER_PRIMARY=/fixture/'+self.demo_context['primary'],
+                '-DSC_DEVELOPER_EXTRA='+('ON' if self.demo_context['extra'] else 'OFF'),
+                '-DSC_DEVELOPER_GENERATED_VALUE='+str(self.demo_context['generated_value']),
+                '-DSC_DEVELOPER_DEFINE_VALUE='+str(self.demo_context['define_value'])]
         configured = self.run(['cmake', '-S', '/src', '-B', str(BUILD), '-G', 'Ninja',
                               '-DCMAKE_C_COMPILER=' + compiler,
                               '-DSAFETY_PROFILE=' + self.profile['safety_profile'],
                               '-DCMAKE_C_FLAGS=' + self.profile['flags'],
                               '-DSC_DEVELOPER_DEMO=' + ('ON' if self.request.get('demo_workspace') else 'OFF'),
-                              '-DSC_DEVELOPER_CONTEXT=ON'], 'configure')
+                              '-DSC_DEVELOPER_CONTEXT=ON',*demo_arguments], 'configure')
         if not passed(configured):
             raise GateError('developer CMake configuration failed')
         indexes = sorted((BUILD / '.cmake/api/v1/reply').glob('index-*.json'))
@@ -97,9 +106,11 @@ class Job:
                        if p['path'].endswith('.c')]
             demo=self.request.get('demo_workspace') and actual['name']=='developer_demo'
             if demo:
-                if set(sources)!={'/fixture/candidate.c','safety/qualification/developer/control.c'}:
+                expected={'/fixture/'+self.demo_context['primary'],'safety/qualification/developer/control.c'}
+                if self.demo_context['extra']:expected.add('/fixture/extra.c')
+                if set(sources)!=expected:
                     raise GateError('isolated demo build source inventory mismatch')
-                sources=['demo/candidate.c' if p=='/fixture/candidate.c' else p for p in sources]
+                sources=['demo/'+p.removeprefix('/fixture/') if p.startswith('/fixture/') else p for p in sources]
             excluded = not demo and any(p not in declared or declared[p]['role'] == 'qualification-only' for p in sources)
             if not sources or excluded or re.match(r'^[CF]\d\d_', actual['name']):
                 continue
@@ -110,7 +121,7 @@ class Job:
             raise GateError('empty or duplicate developer target discovery')
         self.targets = targets
         self.database = json.loads((BUILD / 'compile_commands.json').read_text())
-        known_sources = {('/fixture/candidate.c' if source=='demo/candidate.c' else '/src/'+source) for t in targets for source in t['sources']}
+        known_sources = {('/fixture/'+source.removeprefix('demo/') if source.startswith('demo/') else '/src/'+source) for t in targets for source in t['sources']}
         seen = set()
         for row in self.database:
             if row['file'] not in known_sources or row['directory'] != str(BUILD):
@@ -177,8 +188,9 @@ class Job:
             if self.request['recipe']=='breakpoint':
                 path=self.request['location'].rpartition(':')[0]
                 declared=json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
-                if path=='demo/candidate.c' and self.request.get('demo_workspace'):
-                    actual=Path('/fixture/candidate.c')
+                if path.startswith('demo/') and self.demo_context and path.removeprefix('demo/') in {
+                        self.demo_context['primary'],'extra.c'}:
+                    actual=Path('/fixture')/path.removeprefix('demo/')
                 elif path in declared and (declared[path]['role']!='qualification-only' or
                         (self.request.get('demo_workspace') and path=='safety/qualification/developer/control.c')):
                     actual=Path('/src')/path

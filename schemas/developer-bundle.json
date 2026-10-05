@@ -23,7 +23,8 @@
     "evidence_paths",
     "original_replay_available",
     "reason",
-    "demo_files"
+    "demo_files",
+    "fuzz_job"
   ],
   "properties": {
     "schema_version": {
@@ -298,7 +299,7 @@
     },
     "demo_files": {
       "type": "object",
-      "maxProperties": 1,
+      "maxProperties": 4,
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
@@ -322,6 +323,45 @@
           }
         }
       }
+    },
+    "fuzz_job": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "variant",
+            "input",
+            "input_sha256",
+            "budget_runs",
+            "minimized_input"
+          ],
+          "properties": {
+            "variant": {
+              "enum": [
+                "bad",
+                "good"
+              ]
+            },
+            "input": {
+              "const": "fuzz/regressions/C32"
+            },
+            "input_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "budget_runs": {
+              "const": 1
+            },
+            "minimized_input": {
+              "const": false
+            }
+          }
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema"

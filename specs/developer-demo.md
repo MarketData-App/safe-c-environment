@@ -2,8 +2,14 @@
 
 This is a qualification fixture, never application or runtime-image input.
 The outer controller copies a designated scratch workspace into a read-only
-`/fixture` mount. Its only editable input is `candidate.c` (UTF-8, regular file,
-at most 1 MiB). The independently supplied header and control program remain
+`/fixture` mount. The live worker's only editable input is `candidate.c` (UTF-8,
+regular file, at most 1 MiB). Qualification may additionally select the exact
+schema's context.json: primary candidate.c, renamed.c or path with space/µ.c;
+optional registered extra.c; and generated/compile-definition values 0 or 1.
+Only these finite files are mounted, at most four files/4 MiB. This exercises
+registration, rename/deletion, generated-header and define changes through the
+actual CMake graph. No arbitrary flags, file names, includes or code generator
+are accepted. The independently supplied header and control program remain
 in the starter's protected qualification inventory. CLI use requires the explicit
 `--demo-workspace` selection; it adds only the named demo target/test to discovery.
 

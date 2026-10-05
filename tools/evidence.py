@@ -125,14 +125,16 @@ class Runner:
         self.snapshot=snapshot
         mounts={'/src':snapshot}
         if self.fixture_root is not None:
-            candidate=self.fixture_root/'candidate.c'
-            if (any(p.is_symlink() for p in [self.fixture_root,*self.fixture_root.parents,candidate]) or
-                    not candidate.is_file() or candidate.stat().st_size>1048576 or
-                    set(p.name for p in self.fixture_root.iterdir())!={'candidate.c'}):
-                raise GateError('isolated developer fixture input rejected')
+            from developer_workspace import descriptor
+            _,fixture_files=descriptor(self.root,self.fixture_root)
             self.fixture_snapshot=self.scratch/'fixture-snapshot'
             self.fixture_snapshot.mkdir()
-            shutil.copy2(candidate,self.fixture_snapshot/'candidate.c')
+            for name in fixture_files:
+                target=self.fixture_snapshot/name
+                target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copy2(self.fixture_root/name,target)
+            if {name:file_hash(self.fixture_snapshot/name) for name in fixture_files}!=fixture_files:
+                raise GateError('developer fixture changed during immutable snapshot creation')
             mounts['/fixture']=self.fixture_snapshot
         self.session=self.launcher.create(self.build_profile,mounts)
         self.name=self.session['container_id'];self.alive=True
@@ -143,7 +145,7 @@ class Runner:
         if self.source_root != self.root:
             self.input_binding['source']=source_identity(self.source_root)[0]
         if self.fixture_root is not None:
-            self.input_binding['developer_demo']={'candidate.c':file_hash(self.fixture_snapshot/'candidate.c')}
+            self.input_binding['developer_demo']=fixture_files
         if source_identity(snapshot)[0] != self.input_binding['source']:
             raise GateError('source changed during immutable job snapshot creation')
         for key,path in [('dependency','foundation.lock.json'),

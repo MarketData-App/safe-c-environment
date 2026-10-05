@@ -649,14 +649,14 @@
       "targets": [
         "developer_demo"
       ],
-      "sha256": "a2bdf1032e1be22b8c12eb2819cd0d9751634e0888481a2db549e8802ad94b5f"
+      "sha256": "adce4e94a3314b618c5edd010a247b1759623b01eb3e30b332049623e341ca42"
     },
     "safety/qualification/developer/control.c": {
       "role": "qualification-only",
       "targets": [
         "developer_demo"
       ],
-      "sha256": "3f3fdb6462314ecd63db4088c92765c374408bf69e886f14da37188badb2c6bc"
+      "sha256": "dc1ff0c16ab24c9ee310be305d8bc73bde5184607222068d1a3d9734493d4444"
     }
   },
   "format_files": [

@@ -2,14 +2,14 @@
   "schema_version": 1,
   "candidate_breakpoint": {
     "file": "demo/candidate.c",
-    "line": 8,
+    "line": 13,
     "value": "offset",
     "control_value": "0",
     "mutant_value": "1"
   },
   "threads_breakpoint": {
     "file": "safety/qualification/developer/control.c",
-    "line": 56,
+    "line": 57,
     "value": "active_threads",
     "expected_value": "2",
     "thread_count": 3
@@ -19,5 +19,6 @@
   "signal": "SIGABRT",
   "allowed_editable_files": [
     "candidate.c"
-  ]
+  ],
+  "main_line": 86
 }
