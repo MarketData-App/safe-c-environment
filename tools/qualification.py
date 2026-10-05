@@ -23,7 +23,7 @@ class Qualifier:
         self.fixtures = {x['id']:x for x in read_json(root/'safety/fixtures.json')['cases']}
         self.builds = {}
 
-    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=()):
+    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=(), foundation_mutant='NONE'):
         cc = compiler or ('gcc' if profile=='gcc-analyzer' else 'clang')
         key = f'{profile}-{cc}-O{opt}-{case}-{variant}'
         if foundation_case != 'NONE':
@@ -33,12 +33,15 @@ class Qualifier:
         if any(g not in {'NDEBUG', 'G_DISABLE_ASSERT', 'G_DISABLE_CHECKS'} for g in guards) or len(set(guards)) != len(guards):
             raise GateError('unknown/duplicate first-party guard variant')
         if guards:key += '-' + '-'.join(guards)
+        if foundation_mutant != 'NONE':
+            if foundation_mutant not in read_json(self.root/'safety/foundation-mutants.json')['mutants']:raise GateError('uninventoried foundation mutation')
+            key += '-mutant-' + foundation_mutant
         if key in self.builds:return self.builds[key]
         relative='build/'+key
         config=self.runner.run(['cmake','-S','/src','-B','/work/'+relative,'-G','Ninja',
             '-DCMAKE_C_COMPILER='+cc,'-DSAFETY_PROFILE='+profile,'-DSAFETY_CASE='+case,
             '-DSAFETY_VARIANT='+variant,'-DCMAKE_C_FLAGS=-O'+str(opt),
-            '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards)],timeout=60,label=key+'-configure')
+            '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_MUTANT='+foundation_mutant, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards)],timeout=60,label=key+'-configure')
         result={'directory':relative,'configure':config,'build':None,'audit':None,'commands':[],'links':None}
         if passed(config):
             compile_result=self.runner.run(['cmake','--build','/work/'+relative,'--parallel','2','--verbose'],timeout=90,label=key+'-build')
@@ -52,7 +55,21 @@ class Qualifier:
                     f=self.fixtures[case]
                     sources+=f['bad_sources'] if variant=='bad' else f['good_sources'] if variant=='good' else f['bad_sources']+f['good_sources']
                 result['commands']=database
-                result['audit']=build_audit(database,sources,profile)
+                audited=database
+                if foundation_mutant != 'NONE':
+                    receipt=read_json(self.runner.fetch(relative+'/foundation-mutation/mutation.json'))
+                    actual=self.runner.fetch(relative+'/foundation-mutation/sc-foundation-mutant.c')
+                    expected_recipe=read_json(self.root/'safety/foundation-mutants.json')
+                    generated='/work/'+relative+'/foundation-mutation/sc-foundation-mutant.c'
+                    if (receipt['status']!='PASS' or receipt['mutant']!=foundation_mutant or
+                        receipt['source_sha256']!=file_hash(self.root/'foundation/src/sc-foundation.c') or
+                        receipt['recipe_sha256']!=file_hash(self.root/expected_recipe['recipe']) or
+                        receipt['generated_source']!=generated or receipt['generated_sha256']!=file_hash(actual)):
+                        raise GateError('generated mutation identity mismatch')
+                    if sum(row['file']==generated for row in database)!=1:raise GateError('mutation object omitted/duplicated')
+                    audited=[dict(row,file='/src/foundation/src/sc-foundation.c') if row['file']==generated else row for row in database]
+                    result['mutation']=receipt
+                result['audit']=build_audit(audited,sources,profile)
                 links=self.runner.run(['ninja','-C','/work/'+relative,'-t','commands'],label=key+'-link-audit')
                 result['links']=links
                 if passed(compile_result) and profile in PROFILE_FLAGS:
@@ -323,6 +340,8 @@ def ast_foundation_uses(node, policy, source, inventory):
         if 'includedFrom' in actual:
             continue
         for body in declaration.get('inner', []):
+            if body.get('kind') in {'NoSanitizeAttr', 'AsmStmt', 'GCCAsmStmt'}:
+                walk(body,declaration.get('name',''))
             if body.get('kind') == 'CompoundStmt':
                 walk(body, declaration.get('name', ''))
     unique = {(row['rule'], row['function'], row['name'], row['macro']): row for row in findings}

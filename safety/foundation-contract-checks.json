@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "id": "F10/add-overflow",
+      "group": "sizes"
+    },
+    {
+      "id": "F10/multiply-overflow",
+      "group": "sizes"
+    },
+    {
+      "id": "F10/supported-maxima",
+      "group": "sizes"
+    },
+    {
+      "id": "F10/publish-only-success",
+      "group": "sizes"
+    },
+    {
+      "id": "F11/negative-length",
+      "group": "sizes"
+    },
+    {
+      "id": "F11/narrow-width-boundary",
+      "group": "sizes"
+    },
+    {
+      "id": "F11/native-width-boundary",
+      "group": "sizes"
+    },
+    {
+      "id": "F10/terminator-space",
+      "group": "sizes"
+    },
+    {
+      "id": "F12/utf8-complete",
+      "group": "text"
+    },
+    {
+      "id": "F13/text-exact-cap",
+      "group": "text"
+    },
+    {
+      "id": "F12/terminator",
+      "group": "text"
+    },
+    {
+      "id": "F13/text-one-beyond",
+      "group": "text"
+    },
+    {
+      "id": "F04/owned-snapshot-growth-control",
+      "group": "text"
+    },
+    {
+      "id": "F13/pre-growth-state",
+      "group": "text"
+    },
+    {
+      "id": "F12/malformed-utf8",
+      "group": "text"
+    },
+    {
+      "id": "F12/nul-rejection",
+      "group": "text"
+    },
+    {
+      "id": "F12/empty-text",
+      "group": "text"
+    },
+    {
+      "id": "F12/initialized-arbitrary-bytes",
+      "group": "bytes"
+    },
+    {
+      "id": "F08/copy-control",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/parent-release",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/empty",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/end-empty",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/full",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/invalid-region",
+      "group": "bytes"
+    },
+    {
+      "id": "F09/product-overflow",
+      "group": "bytes"
+    },
+    {
+      "id": "F05/empty-index",
+      "group": "lists"
+    },
+    {
+      "id": "F05/spare-capacity-index",
+      "group": "lists"
+    },
+    {
+      "id": "F13/list-exact-cap",
+      "group": "lists"
+    },
+    {
+      "id": "F13/list-one-beyond",
+      "group": "lists"
+    },
+    {
+      "id": "F05/one-past-logical",
+      "group": "lists"
+    },
+    {
+      "id": "F06/same-owner-replacement",
+      "group": "lists"
+    },
+    {
+      "id": "F06/removal-accounting",
+      "group": "lists"
+    },
+    {
+      "id": "F06/whole-list-destruction",
+      "group": "lists"
+    },
+    {
+      "id": "F06/different-owner-replacement",
+      "group": "lists"
+    },
+    {
+      "id": "F13/map-exact-cap",
+      "group": "maps"
+    },
+    {
+      "id": "F07/copied-key",
+      "group": "maps"
+    },
+    {
+      "id": "F07/duplicate-key",
+      "group": "maps"
+    },
+    {
+      "id": "F07/count-limit",
+      "group": "maps"
+    },
+    {
+      "id": "F13/map-one-beyond",
+      "group": "maps"
+    },
+    {
+      "id": "F07/key-limit",
+      "group": "maps"
+    },
+    {
+      "id": "F07/absent-key",
+      "group": "maps"
+    },
+    {
+      "id": "F07/replacement-accounting",
+      "group": "maps"
+    },
+    {
+      "id": "F07/payload-limit",
+      "group": "maps"
+    },
+    {
+      "id": "F14/pending-error",
+      "group": "errors"
+    },
+    {
+      "id": "F14/output-initialization",
+      "group": "errors"
+    },
+    {
+      "id": "F13/atomic-state-and-reference",
+      "group": "errors"
+    },
+    {
+      "id": "F14/propagation",
+      "group": "errors"
+    },
+    {
+      "id": "F14/omitted-error",
+      "group": "errors"
+    },
+    {
+      "id": "F14/cleanup",
+      "group": "errors"
+    },
+    {
+      "id": "F01/partial-initialization",
+      "group": "cleanup"
+    },
+    {
+      "id": "F01/early-return-zero",
+      "group": "cleanup"
+    },
+    {
+      "id": "F01/early-return-first",
+      "group": "cleanup"
+    },
+    {
+      "id": "F01/early-return-multiple",
+      "group": "cleanup"
+    },
+    {
+      "id": "F16/range-guard",
+      "group": "sizes"
+    },
+    {
+      "id": "F09/empty-slice",
+      "group": "bytes"
+    },
+    {
+      "id": "F06/removed-owner-final-release",
+      "group": "lists"
+    }
+  ]
+}

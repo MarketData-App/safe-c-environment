@@ -548,7 +548,7 @@
       ]
     },
     "foundation/tests/contracts.c": {
-      "sha256": "2e7f92270b5a21b9e481221362c2964d8603ae90116f270eb69345c66d299abe",
+      "sha256": "6b9f762178657bd6fdd45e8c9c202efbb85588b4a7903910bb3e0db63ba77ef9",
       "role": "foundation-test",
       "targets": [
         "foundation_contracts"

@@ -1,0 +1,69 @@
+{
+  "const": {
+    "schema_version": 1,
+    "recipe": "container/foundation-mutant.py",
+    "recipe_sha256": "433695ae9aca74f945e4c929b3dbcb1489a8e81436ac485ecfc2960313b6a33d",
+    "mutants": {
+      "index-guard": {
+        "case_id": "F05",
+        "group": "lists",
+        "expected_check": "F05/empty-index"
+      },
+      "list-destroy": {
+        "case_id": "F06",
+        "group": "lists",
+        "expected_check": "F06/removed-owner-final-release"
+      },
+      "list-retain": {
+        "case_id": "F06",
+        "group": "retain-accounting",
+        "expected_check": "F06/retain-accounting"
+      },
+      "map-key": {
+        "case_id": "F07",
+        "group": "maps",
+        "expected_check": "F07/copied-key"
+      },
+      "empty-region": {
+        "case_id": "F09",
+        "group": "bytes",
+        "expected_check": "F09/empty-slice"
+      },
+      "arithmetic-publication": {
+        "case_id": "F10",
+        "group": "sizes",
+        "expected_check": "F10/add-overflow"
+      },
+      "signed-conversion": {
+        "case_id": "F11",
+        "group": "sizes",
+        "expected_check": "F11/negative-length"
+      },
+      "text-validation": {
+        "case_id": "F12",
+        "group": "text",
+        "expected_check": "F12/malformed-utf8"
+      },
+      "growth-order": {
+        "case_id": "F13",
+        "group": "text",
+        "expected_check": "F13/text-one-beyond"
+      },
+      "pending-error": {
+        "case_id": "F14",
+        "group": "errors",
+        "expected_check": "F14/pending-error"
+      },
+      "assertion-only": {
+        "case_id": "F16",
+        "group": "sizes",
+        "expected_check": "F16/range-guard"
+      },
+      "text-cap": {
+        "case_id": "F20",
+        "group": "text",
+        "expected_check": "F12/utf8-complete"
+      }
+    }
+  }
+}

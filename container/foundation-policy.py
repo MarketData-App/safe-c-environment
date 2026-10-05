@@ -36,14 +36,26 @@ def main():
              '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
     # A PCH must see the primary source's feature-test macro before libc headers.
     # Match only its leading definition, with the same empty replacement text.
-    leading = Path('/src', source).read_text().split('#include', 1)[0]
+    primary=Path('/src',source)
+    policy_source=source
+    if source.startswith('@probe:'):
+        import importlib.util,hashlib
+        name=source.removeprefix('@probe:')
+        module_spec=importlib.util.spec_from_file_location('protected_probes','/src/container/foundation-policy-probe.py')
+        module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(module)
+        definitions=module.definitions()
+        if name not in definitions:raise ValueError('inventoried_policy_probe_required')
+        primary=Path('/work/foundation-probes')/name/'probe.c'
+        if primary.is_symlink() or primary.read_text()!=definitions[name]['source']:raise ValueError('probe_identity_changed')
+        policy_source='foundation/src/impostor.c' if name=='renamed-application' else 'foundation-probes/'+name+'/probe.c'
+    leading = primary.read_text().split('#include', 1)[0]
     if re.search(r'^\s*#\s*define\s+_GNU_SOURCE\s*$', leading, re.M):
         flags.append('-D_GNU_SOURCE=')
     pch = directory / 'public.pch'
     commands = [
         ['clang', *flags, '-x', 'c-header', '/src/foundation/include/sc-foundation.h', '-o', str(pch)],
         ['clang', *flags, '-include-pch', str(pch), '-Xclang', '-ast-dump=json',
-         '-fsyntax-only', '/src/' + source],
+         '-fsyntax-only', str(primary)],
     ]
     for index, command in enumerate(commands):
         output = directory / ('native-' + str(index) + '.json')
@@ -57,7 +69,7 @@ def main():
     tree = json.loads(output.read_text())
     policy = json.loads(Path('/src/safety/foundation-api-policy.json').read_text())
     inventory = json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
-    findings = ast_foundation_uses(tree, policy, source, inventory)
+    findings = ast_foundation_uses(tree, policy, policy_source, inventory)
     for name in ast_banned_calls(tree):
         findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
     print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,

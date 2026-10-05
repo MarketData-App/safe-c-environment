@@ -31,6 +31,7 @@ def analysis_flags(profile):
 def input_gate(root, *, artifacts=True):
     lock = read_json(root / 'foundation.lock.json')
     from schema_check import validate
+    validate(root, 'foundation-lock', lock)
     validate(root, 'foundation-api-policy', read_json(root / 'safety/foundation-api-policy.json'))
     if (lock.get('glib_version') != '2.90.0' or lock.get('minimum_api') != '2.70' or
             lock.get('allocation_profile') != 'glib-fail-stop'):
@@ -66,6 +67,9 @@ def input_gate(root, *, artifacts=True):
 
 
 def fixture_inventory(root):
+    for name in ['foundation-contract-checks','foundation-mutants']:
+        from schema_check import validate
+        validate(root,name,read_json(root/'safety'/(name+'.json')))
     value = read_json(root / 'safety/foundation-fixtures.json')
     from schema_check import validate
     validate(root, 'foundation-fixtures', value)
@@ -347,6 +351,12 @@ def normal_checks(q, *, full=True):
             controls = re.findall(r'^CONTRACT_PASS (\w+)$', result['output'], re.M)
             if passed(result) and len(controls) == len(expected) and set(controls) == expected:
                 row['library_binding'] = loaded_binding(q, build, result)
+                observations=re.findall(r'^CONTRACT_CHECK (F[0-9]{2}/[a-z0-9-]+)$', result['output'], re.M)
+                expected_checks={r['id'] for r in read_json(q.root/'safety/foundation-contract-checks.json')['checks']}
+                if not expected_checks.issubset(set(observations)) or len(observations)!=len(set(observations)):
+                    raise GateError('foundation named property observations incomplete/duplicated')
+                row['contract_checks']=sorted(observations)
+                row['contract_evidence_path']=result['evidence_path']
                 row['controls'] = sorted(controls)
                 row['binary_sha256'] = result['binary_sha256']
                 recipe = q.executable(build, 'foundation_recipes', label='foundation-recipe-' + name)
@@ -483,3 +493,96 @@ def runtime_fixture_checks(q):
     rows.append(row)
     print(json.dumps({'case_id': case, 'verdict': row['status']}), flush=True)
     return rows
+
+
+def functional_mutant_checks(q):
+    """The same named observation must fail before and pass after each repair."""
+    definitions=read_json(q.root/'safety/foundation-mutants.json')
+    if file_hash(q.root/definitions['recipe'])!=definitions['recipe_sha256']:
+        raise GateError('protected mutation recipe changed')
+    rows=[]
+    for name,definition in definitions['mutants'].items():
+        optimizations=[0,2] if name=='index-guard' else [2]
+        for optimization in optimizations:
+            guards=('NDEBUG','G_DISABLE_ASSERT','G_DISABLE_CHECKS') if name=='assertion-only' else ()
+            row={'id':name+'-O'+str(optimization),'case_id':definition['case_id'],'status':'BLOCKED',
+                 'bad':'BLOCKED','control':'BLOCKED','expected_check':definition['expected_check'],
+                 'evidence_paths':[],'input_binding':expected_binding(q)}
+            bad=q.build('strict',opt=optimization,guards=guards,foundation_mutant=name)
+            good=q.build('strict',opt=optimization,guards=guards)
+            row['evidence_paths']=[r['evidence_path'] for b in [bad,good] for r in [b['configure'],b['build'],b['links']] if r]
+            if q.built(bad) and q.built(good):
+                negative=q.executable(bad,'foundation_contracts',[definition['group']],label='foundation-mutant-'+name)
+                repaired=q.executable(good,'foundation_contracts',[definition['group']],label='foundation-repaired-'+name)
+                row['evidence_paths'] += [negative['evidence_path'],repaired['evidence_path']]
+                row['mutation']=bad['mutation']
+                row['negative_binary_sha256']=negative['binary_sha256'];row['control_binary_sha256']=repaired['binary_sha256']
+                row['bad']='PASS' if (negative['exit_code']==1 and negative['failure'] is None and negative['evidence_complete'] and negative['binary_unchanged'] and
+                    negative['output'].count('CONTRACT_FAILED '+definition['expected_check']+'\n')==1) else 'FAIL'
+                row['control']='PASS' if (passed(repaired) and repaired['binary_unchanged'] and
+                    repaired['output'].count('CONTRACT_CHECK '+definition['expected_check']+'\n')==1) else 'FAIL'
+                row['negative_library_binding']=loaded_binding(q,bad,negative)
+                row['control_library_binding']=loaded_binding(q,good,repaired)
+                row['status']='PASS' if row['bad']==row['control']=='PASS' else 'FAIL'
+            rows.append(row)
+            print(json.dumps({'case_id':row['id'],'verdict':row['status']}),flush=True)
+    guard_rows=[]
+    for guards in [('NDEBUG',),('G_DISABLE_ASSERT',),('G_DISABLE_CHECKS',),('NDEBUG','G_DISABLE_ASSERT','G_DISABLE_CHECKS')]:
+        build=q.build('strict',opt=2,guards=guards)
+        row={'id':'+'.join(guards),'status':'BLOCKED','controls':[],'evidence_paths':[]}
+        if q.built(build):
+            result=q.executable(build,'foundation_contracts',label='foundation-explicit-guards')
+            row['evidence_paths']=[result['evidence_path']]
+            row['controls']=re.findall(r'^CONTRACT_PASS (\w+)$',result['output'],re.M)
+            row['contract_checks']=re.findall(r'^CONTRACT_CHECK (F[0-9]{2}/[a-z0-9-]+)$',result['output'],re.M)
+            row['library_binding']=loaded_binding(q,build,result)
+            row['status']='PASS' if passed(result) and len(row['controls'])==7 and set(row['controls'])==CONTRACT_GROUPS else 'FAIL'
+        guard_rows.append(row)
+        print(json.dumps({'case_id':'guards-'+row['id'],'verdict':row['status']}),flush=True)
+    return {'status':'PASS' if all(r['status']=='PASS' for r in rows+guard_rows) else 'FAIL','mutants':rows,'guard_controls':guard_rows}
+
+
+def policy_probe_checks(q):
+    """Compile real expressions through the same production AST/compiler gates."""
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('protected_foundation_probes',q.root/'container/foundation-policy-probe.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    definitions=module.definitions();rows=[]
+    controls={}
+    control_build=q.build('strict')
+    if not q.built(control_build):raise GateError('foundation policy control implementation build failed')
+    for name in ['approved','comment-only']:
+        created=q.runner.run(['python3','/src/container/foundation-policy-probe.py',name],label='foundation-probe-source-'+name)
+        observed=q.runner.run(['python3','/src/container/foundation-policy.py','@probe:'+name,'clang-O0','probe-'+name],label='foundation-probe-control-policy-'+name)
+        binary='build/strict-clang-O0-policy-'+name+'/probe'
+        directory=q.runner.run(['python3','-c','import pathlib,sys;pathlib.Path(sys.argv[1]).mkdir(parents=True,exist_ok=True)','/work/'+str(Path(binary).parent)],label='foundation-policy-control-directory')
+        compiled=q.runner.run(['clang',*analysis_flags('clang-O0'),'-Wall','-Wextra','-Werror','-Wunused-result',
+            '/work/foundation-probes/'+name+'/probe.c','/src/foundation/tests/dependency-identity.c',
+            '/work/'+control_build['directory']+'/libsc_foundation.a','/opt/foundation/clang-O0/lib/libglib-2.0.so','-Wl,-rpath,/opt/foundation/clang-O0/lib','-ldl','-o','/work/'+binary],label='foundation-probe-control-build-'+name)
+        ran=q.executable({'directory':str(Path(binary).parent)},'probe',label='foundation-probe-control-run-'+name) if passed(compiled) else None
+        ok=all(passed(r) for r in [created,observed,directory,compiled]) and ran is not None and passed(ran) and json.loads(observed['output']).get('status')=='PASS'
+        controls[name]={'status':'PASS' if ok else 'FAIL','evidence_paths':[r['evidence_path'] for r in [created,observed,directory,compiled,ran] if r], 'source_sha256':json.loads(created['output'])['source_sha256'] if passed(created) else None}
+    for name,definition in definitions.items():
+        if definition['rule'] is None:
+            rows.append({'id':name,'status':controls[name]['status'],'control':controls[name]['status'],'evidence_paths':controls[name]['evidence_paths'],'rule':None});continue
+        created=q.runner.run(['python3','/src/container/foundation-policy-probe.py',name],label='foundation-probe-source-'+name)
+        source='/work/foundation-probes/'+name+'/probe.c'
+        ordinary=q.runner.run(['clang',*analysis_flags('clang-O0'),'-fsyntax-only',source],label='foundation-probe-baseline-'+name)
+        if name=='ignored-result':
+            result=q.runner.run(['clang',*analysis_flags('clang-O0'),'-Werror=unused-result','-fsyntax-only',source],label='foundation-probe-warning-'+name)
+            detected=(result['exit_code']==1 and result['failure'] is None and result['evidence_complete'] and
+                source in result['output'] and '[-Werror,-Wunused-result]' in result['output'])
+            observed={'rule':'unused-result'}
+        else:
+            result=q.runner.run(['python3','/src/container/foundation-policy.py','@probe:'+name,'clang-O0','probe-'+name],label='foundation-probe-policy-'+name)
+            observed=json.loads(result['output']) if result['failure'] is None and result['output'].strip().startswith('{') else {}
+            detected=(result['exit_code']==1 and result['failure'] is None and result['evidence_complete'] and observed.get('status')=='FAIL' and
+                definition['rule'] in {r['rule'] for r in observed.get('findings',[])})
+            if name.startswith('macro-'):detected=detected and any(r.get('macro') is True for r in observed.get('findings',[]))
+        control=controls['approved']
+        row={'id':name,'status':'PASS' if passed(created) and passed(ordinary) and detected and control['status']=='PASS' else 'FAIL',
+             'control':control['status'],'rule':definition['rule'],'findings':observed.get('findings',[]),
+             'evidence_paths':[r['evidence_path'] for r in [created,ordinary,result]]+control['evidence_paths'],
+             'source_sha256':json.loads(created['output'])['source_sha256'] if passed(created) else None}
+        rows.append(row);print(json.dumps({'case_id':'policy-'+name,'verdict':row['status']}),flush=True)
+    return {'status':'PASS' if all(r['status']=='PASS' for r in rows) else 'FAIL','probes':rows}
