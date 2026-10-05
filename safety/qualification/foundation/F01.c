@@ -32,6 +32,7 @@ int main(void) {
     early(&count);
     if (count != 2) {
         (void)puts("F01_MISSING_CLEANUP_ACCOUNTING");
+        (void)fflush(stdout);
         return 1;
     }
     (void)puts("F01_CLEANUP_ACCOUNTING_PASS");

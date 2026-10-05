@@ -1,7 +1,10 @@
+#define _POSIX_C_SOURCE 200809L
 #include "dependency-identity.h"
 #include "sc-foundation.h"
 #include <pthread.h>
 #include <stdlib.h>
+static pthread_barrier_t iteration_gate;
+
 typedef struct {
     pthread_mutex_t mutex;
     pthread_cond_t condition;
@@ -48,6 +51,11 @@ static void *work(void *opaque) {
         guint16 value = 0;
         if (!sc_bytes_read_u16be(retained, 0, &value, NULL) || value != 0x1234)
             exit(72);
+
+        int arrived = pthread_barrier_wait(&iteration_gate);
+        if (arrived != 0 && arrived != PTHREAD_BARRIER_SERIAL_THREAD) {
+            return NULL;
+        }
 #if !FOUNDATION_NEGATIVE
         lock(&state->mutex);
 #endif
@@ -60,6 +68,9 @@ static void *work(void *opaque) {
     return NULL;
 }
 int main(void) {
+    if (pthread_barrier_init(&iteration_gate, NULL, 2) != 0) {
+        return 2;
+    }
     if (sc_dependency_identity() != 0)
         return 3;
     State state = {PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, NULL, 0};
@@ -75,5 +86,6 @@ int main(void) {
     g_bytes_unref(state.published);
     if (pthread_cond_destroy(&state.condition) != 0 || pthread_mutex_destroy(&state.mutex) != 0)
         return 70;
+    (void)pthread_barrier_destroy(&iteration_gate);
     return correct ? 0 : 1;
 }

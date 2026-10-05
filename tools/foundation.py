@@ -412,3 +412,74 @@ def policy_checks(q):
         rows.append({'source': source, 'status': 'PASS' if passed(native) and value.get('status') == 'PASS' else 'FAIL',
                      'evidence_path': native['evidence_path'], 'findings': value.get('findings', [])})
     return {'status': 'PASS' if rows and all(r['status'] == 'PASS' for r in rows) else 'FAIL', 'sources': rows}
+
+
+def runtime_fixture_checks(q):
+    """Execute the designated ownership, initialization, race and backend pairs.
+
+    This returns six component results, not an F01–F20 aggregate. Remaining
+    named functional, policy, fuzz and export subchecks are independently required.
+    """
+    rows = []
+    detectors = {'F01': ('asan', 'leak'), 'F02': ('asan', 'heap-use-after-free'),
+                 'F03': ('asan', 'heap-use-after-free'),
+                 'F17': ('msan', 'uninitialized-value'), 'F18': ('tsan', 'data-race')}
+    manifest = {row['id']: row for row in fixture_inventory(q.root)['cases']}
+    for case, (profile, rule) in detectors.items():
+        row = {'id': case, 'status': 'BLOCKED', 'bad': 'BLOCKED', 'control': 'BLOCKED',
+               'evidence_paths': [], 'observations': {}}
+        baseline = q.build('ordinary', foundation_case=case)
+        build = q.build(profile, foundation_case=case)
+        row['evidence_paths'] = [result['evidence_path'] for item in [baseline, build]
+                                 for result in [item['configure'], item['build'], item['links']] if result]
+        if q.built(baseline) and q.built(build):
+            bad = q.executable(build, case + '_bad', label=case + '-designated-negative')
+            good = q.executable(build, case + '_good', label=case + '-repaired-control')
+            row['evidence_paths'] += [bad['evidence_path'], good['evidence_path']]
+            try:
+                bad_binding = loaded_binding(q, build, bad)
+                good_binding = loaded_binding(q, build, good)
+                finding = finding_gate(bad, case, rule, manifest[case]['runtime_source'],
+                                       origin=case == 'F17')
+                row['bad'] = 'PASS'
+                row['control'] = 'PASS' if passed(good) and good['binary_unchanged'] else 'FAIL'
+                row['status'] = 'PASS' if row['control'] == 'PASS' else 'FAIL'
+                row['observations'] = {'finding': finding, 'negative_library_binding': bad_binding,
+                                       'control_library_binding': good_binding,
+                                       'control_binary_sha256': good['binary_sha256'],
+                                       'ordinary_fixture_build': baseline['audit']}
+            except GateError:
+                row['status'] = 'BLOCKED' if bad['failure'] or good['failure'] else 'FAIL'
+        rows.append(row)
+        print(json.dumps({'case_id': case, 'verdict': row['status']}), flush=True)
+    case = 'F19'
+    build = q.build('ordinary', foundation_case=case)
+    row = {'id': case, 'status': 'BLOCKED', 'bad': 'BLOCKED', 'control': 'BLOCKED',
+           'evidence_paths': [r['evidence_path'] for r in [build['configure'], build['build'], build['links']] if r],
+           'observations': {}}
+    if q.built(build):
+        import shlex
+        profile = dependency_profile(build)
+        static_path = '/opt/foundation/' + profile + '/lib/libglib-2.0.a'
+        commands = [shlex.split(line) for line in build['links']['output'].splitlines()]
+        links = [args for args in commands if '-o' in args and
+                 Path(args[args.index('-o') + 1]).name == 'F19_backend']
+        if len(links) != 1 or static_path not in links[0] or any('libglib-2.0.so' in arg for arg in links[0]):
+            raise GateError('F19 same-source static test linkage unavailable')
+        static_hash = read_json(q.root / 'foundation.lock.json')['profiles'][profile]['files']['lib/libglib-2.0.a']
+        bad = q.executable(build, 'F19_backend', ['--fail'], label='F19-real-backend-fail-stop')
+        good = q.executable(build, 'F19_backend', ['--control'], label='F19-no-injection-control')
+        row['evidence_paths'] += [bad['evidence_path'], good['evidence_path']]
+        try:
+            finding = fail_stop_gate(bad, static_hash)
+            row['bad'] = 'PASS'
+            row['control'] = 'PASS' if passed(good) and good['output'].count('F19_NO_INJECTION_PASS') == 1 and 'F19_BACKEND_NULL' not in good['output'] else 'FAIL'
+            row['status'] = 'PASS' if row['control'] == 'PASS' else 'FAIL'
+            row['observations'] = {'finding': finding, 'link_input': static_path,
+                                   'input_binding': expected_binding(q),
+                                   'control_binary_sha256': good['binary_sha256']}
+        except GateError:
+            row['status'] = 'BLOCKED' if bad['failure'] or good['failure'] else 'FAIL'
+    rows.append(row)
+    print(json.dumps({'case_id': case, 'verdict': row['status']}), flush=True)
+    return rows
