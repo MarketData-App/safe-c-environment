@@ -24,6 +24,8 @@ def configure_parser(parser):
         command = operations.add_parser(name)
         command.add_argument('--format', choices=['text', 'json'], default='text')
         command.add_argument('--profile', default='debug')
+        if name in {'doctor','prepare','status','targets','tests','build','test','nav','debug'}:
+            command.add_argument('--demo-workspace')
         if name in {'build', 'debug'}:
             command.add_argument('--target')
         if name == 'test':
@@ -77,7 +79,9 @@ def inputs(root):
         except OSError as error:
             raise GateError('developer retained input missing') from error
     for row in lock['notices'].values():
-        if file_hash(root / row['path']) != row['sha256']:
+        path=Path(row['path'])
+        if (path.is_absolute() or '..' in path.parts or not path.is_relative_to('third_party/developer/notices') or
+                any(p.is_symlink() for p in [root/path,*(root/path).parents]) or file_hash(root/path)!=row['sha256']):
             raise GateError('developer retained notice changed')
     from foundation import input_gate
     input_gate(root)
@@ -132,11 +136,17 @@ def request(args, policy):
         raise GateError('unknown developer profile')
     value = {'operation': args.operation, 'profile': args.profile}
     for name in ['target', 'test_id', 'kind', 'file', 'line', 'column', 'tu', 'symbol',
-                 'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps']:
+                 'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps','demo_workspace']:
         if hasattr(args, name) and getattr(args, name) is not None:
             value[name] = getattr(args, name)
     if args.operation == 'build' and not value.get('target'):
         raise GateError('developer build requires a registered target')
+    if value.get('demo_workspace'):
+        path=Path(value['demo_workspace'])
+        if (path.is_absolute() or '..' in path.parts or
+                not path.is_relative_to('artifacts/developer/workspaces') or
+                any(c in str(path) for c in '\0\n\r')):
+            raise GateError('demo workspace must be a designated project scratch directory')
     if args.operation in {'diagnose', 'replay', 'coverage'} and not value.get('run_id'):
         raise GateError('developer operation requires a retained run identity')
     if value.get('run_id') and not __import__('re').fullmatch(r'[0-9a-f]{32}',value['run_id']):
@@ -232,10 +242,13 @@ def stop(root, out, lock):
     finally:launcher.close()
 
 
-def execute(root, args):
+def execute(root, args, *, emit=True):
     policy, lock, toolchain = inputs(root)
     selected = request(args, policy)
     context, fields = namespace(root, args.profile)
+    if selected.get('demo_workspace'):
+        fields['demo_workspace']=str((root/selected['demo_workspace']).resolve())
+        context=hashlib.sha256(json.dumps(fields,sort_keys=True).encode()).hexdigest()
     identity, _ = source_identity(root)
     run_id = uuid.uuid4().hex
     out = root / 'artifacts/developer/runs' / run_id
@@ -245,7 +258,27 @@ def execute(root, args):
               'context_namespace': context, 'scope': 'partial_feedback',
               'acceptance': False, 'evidence_paths': [], 'result': {},
               'limitations': ['Developer feedback does not certify combined acceptance.']}
-    if args.operation in {'status', 'readiness'}:
+    original = None
+    bundle_directory = None
+    if args.operation in {'diagnose','replay','coverage'} or (args.operation=='debug' and selected.get('run_id')):
+        from developer_bundle import load
+        original,bundle_directory=load(root,selected['run_id'],lock)
+        result['original_run_id']=original['run_id']
+        result['current_source_identity']=identity
+        if args.operation=='replay':
+            if not original['original_replay_available']:
+                raise GateError('original executable replay unavailable: '+original['reason'])
+            selected['profile']=original['profile']
+            result['profile']=original['profile']
+    if args.operation=='diagnose':
+        from developer_bundle import diagnose
+        result['result']=diagnose(root,original,bundle_directory)
+        result['status']='PASS'
+    elif args.operation=='coverage':
+        from developer_coverage import view
+        result['result']=view(root,original,bundle_directory,identity)
+        result['status']='PASS'
+    elif args.operation in {'status', 'readiness'}:
         result['result'] = {'worktree': fields['worktree'], 'configuration': fields,
                             'developer_tooling': 'BLOCKED', 'combined_local_checks': 'BLOCKED',
                             'independent_enforcement': 'PENDING',
@@ -256,60 +289,94 @@ def execute(root, args):
     elif args.operation=='stop':
         result['result']=stop(root,out,lock)
         result['status']=result['result']['status']
-    elif args.operation in {'doctor', 'prepare', 'targets', 'tests', 'build', 'test', 'nav', 'debug'}:
+    elif args.operation in {'doctor', 'prepare', 'targets', 'tests', 'build', 'test', 'nav', 'debug','replay'}:
         scratch = Path(tempfile.mkdtemp(prefix='safe-c-developer-job-'))
+        source_root=None
+        fixture_root=root/selected['demo_workspace'] if selected.get('demo_workspace') else None
+        if original:
+            from developer_bundle import restore_source,restore_demo
+            source_root=restore_source(root,original,scratch/'original-source')
+            fixture_root=restore_demo(root,original,scratch/'original-fixture')
+            if fixture_root:selected['demo_workspace']='retained-original-demo'
+            result['source_identity']=original['source_identity']
+            if args.operation=='debug':
+                if not original['test']:raise GateError('no original target available for debug variant')
+                selected['target']=original['test']['target']
+                result['debug_variant_of']=original['run_id']
         runner = Runner(root, out, dict(toolchain, image_id=lock['image_id']), scratch,
-                        purpose='development')
-        admitted = admission(root,args.profile)
+                        purpose='development',source_root=source_root,fixture_root=fixture_root)
+        admitted = admission(root,selected['profile'])
         registered=root/'artifacts/developer/active'/(run_id+'.json')
         try:
             admitted.__enter__()
             runner.start()
+            if fixture_root:
+                result['demo_source_identity']=file_hash(runner.fixture_snapshot/'candidate.c')
             from developer_state import stage, retain
             selected['context_namespace']=context
-            selected['state_restored']=stage(root,context,runner,policy['limits'])
+            selected['state_restored']=False if original else stage(root,context,runner,policy['limits'])
             atomic_json(registered,{'run_id':run_id,'worktree':runner.launcher.worktree_scope,
                 'image_id':lock['image_id'],'profile':args.profile,'namespace':context})
-            outcome = runner.run(['python3', '/src/container/developer-job.py',
+            if args.operation=='replay':
+                for source,destination in [('binary',original['test']['target']),('CTestTestfile.cmake','CTestTestfile.cmake')]:
+                    private=scratch/('replay-'+source)
+                    shutil.copy2(bundle_directory/source,private)
+                    runner.restore('developer-build/'+destination,private)
+                native={'status':'PASS','selected_test':original['test'],
+                        'original_binary_sha256':original['binary']['sha256'],
+                        'snapshot':'original','source_bytes_retained':True}
+            else:
+                outcome = runner.run(['python3', '/src/container/developer-job.py',
                                   json.dumps(selected, ensure_ascii=True)],
                                  timeout=policy['limits']['job_wall_seconds'],
                                  label='developer-' + args.operation)
-            result['evidence_paths'].append(outcome['evidence_path'])
-            try:
-                native = json.loads(outcome['output'])
-            except (ValueError, TypeError):
-                raise GateError('developer helper returned invalid or incomplete structured evidence')
+                result['evidence_paths'].append(outcome['evidence_path'])
+                try:
+                    native = json.loads(outcome['output'])
+                except (ValueError, TypeError):
+                    raise GateError('developer helper returned invalid or incomplete structured evidence')
             result['result'] = native
-            result['status'] = 'PASS' if passed(outcome) and native.get('status') == 'PASS' else 'FAIL'
+            result['status'] = 'PASS' if (args.operation=='replay' or passed(outcome)) and native.get('status') == 'PASS' else 'FAIL'
             for path in native.get('artifacts', []):
                 relative = Path(path)
                 if relative.is_absolute() or '..' in relative.parts or not path.startswith('developer-job/'):
                     raise GateError('developer helper artifact path rejected')
                 runner.fetch(path, out / relative)
                 result['evidence_paths'].append(str(out / relative))
-            if result['status']=='PASS':
+            if result['status']=='PASS' and not original:
                 retain(root,context,runner,native,policy['limits'])
-            if args.operation=='test' and result['status']=='PASS':
+            executed=None
+            if args.operation in {'test','replay'} and result['status']=='PASS':
                 test=native.get('selected_test',{})
-                if test.get('id')!=args.test_id or not test.get('target'):
+                test_id=original['test']['id'] if original else args.test_id
+                if test.get('id')!=test_id or not test.get('target'):
                     raise GateError('selected developer test evidence is missing or mismatched')
                 import re
-                runtime='test-'+policy['profiles'][args.profile]['safety_profile']
+                runtime='test-'+policy['profiles'][selected['profile']]['safety_profile']
+                environment={'LLVM_PROFILE_FILE':'/work/selected.profraw'} if selected['profile']=='coverage' else None
                 executed=runner.run(['ctest','--test-dir','/work/developer-build',
-                    '--no-tests=error','-R','^'+re.escape(args.test_id)+'$',
+                    '--no-tests=error','-R','^'+re.escape(test_id)+'$',
                     '--output-on-failure','--output-junit','/work/selected-ctest.xml'],
-                    timeout=10,label='selected-developer-test',
+                    timeout=10,label='selected-developer-test',env=environment,
                     ctest_targets=[test['target']],runtime_profile=runtime)
                 result['evidence_paths'].append(executed['evidence_path'])
                 import xml.etree.ElementTree as ET
                 cases=ET.parse(out/'selected-ctest.xml').getroot().findall('.//testcase')
-                complete=len(cases)==1 and cases[0].get('name')==args.test_id
+                complete=len(cases)==1 and cases[0].get('name')==test_id
                 failed=any(cases[0].find(tag) is not None for tag in ['failure','error','skipped']) if complete else True
                 result['status']='PASS' if passed(executed) and complete and not failed else 'FAIL'
-                result['result']['test_result']={'id':args.test_id,'executed_cases':len(cases),
+                result['result']['test_result']={'id':test_id,'executed_cases':len(cases),
                     'program_result_preserved':True,'ctest_exit_code':executed['exit_code'],
                     'runtime_profile':runtime,'complete_selection':complete,
                     'binary_sha256':executed['test_binary_hashes'][test['target']]}
+                if original and executed['test_binary_hashes'][test['target']]!=original['binary']['sha256']:
+                    raise GateError('original replay executable identity changed')
+                if selected['profile']=='coverage' and result['status']=='PASS':
+                    from developer_coverage import collect
+                    result['coverage']=collect(root,runner,result,test)
+            if args.operation=='test' or (result['status']!='PASS' and not original):
+                from developer_bundle import capture
+                result['bundle']=capture(root,runner,result,selected,executed)
         finally:
             cancelled=registered.with_suffix('.cancelled')
             if cancelled.is_file():
@@ -328,6 +395,8 @@ def execute(root, args):
     else:
         result['result'] = {'reason': 'This developer responsibility is not implemented yet.'}
     atomic_json(out / 'result.json', result)
+    if not emit:
+        return result
     if args.format == 'json':
         print(json.dumps(result, ensure_ascii=False))
     else:

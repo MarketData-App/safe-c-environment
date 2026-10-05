@@ -643,6 +643,20 @@
         "F14_bad",
         "F14_good"
       ]
+    },
+    "safety/qualification/developer/template.c": {
+      "role": "qualification-only",
+      "targets": [
+        "developer_demo"
+      ],
+      "sha256": "a2bdf1032e1be22b8c12eb2819cd0d9751634e0888481a2db549e8802ad94b5f"
+    },
+    "safety/qualification/developer/control.c": {
+      "role": "qualification-only",
+      "targets": [
+        "developer_demo"
+      ],
+      "sha256": "3f3fdb6462314ecd63db4088c92765c374408bf69e886f14da37188badb2c6bc"
     }
   },
   "format_files": [
@@ -735,6 +749,9 @@
     "tests/integration/demo.c",
     "tests/integration/hardening.c",
     "tests/integration/runtime-demo.c",
-    "safety/qualification/foundation/F14.c"
+    "safety/qualification/foundation/F14.c",
+    "safety/qualification/developer/template.c",
+    "safety/qualification/developer/control.c",
+    "safety/qualification/developer/developer-demo.h"
   ]
 }

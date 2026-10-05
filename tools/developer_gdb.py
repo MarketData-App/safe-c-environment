@@ -99,7 +99,7 @@ def quoted(value):
 
 
 class Session:
-    def __init__(self, policy, output):
+    def __init__(self, policy, output, executable, arguments):
         self.limits, self.output = policy['limits'], output
         self.deadline = time.monotonic() + self.limits['server_wall_seconds']
         self.total = 0
@@ -122,6 +122,10 @@ class Session:
         argv = ['/usr/bin/gdb', '-nx', '-q', '--interpreter=mi2']
         for setting in startup:
             argv.extend(['-iex', 'set ' + setting])
+        # --args consumes an argv vector. Unlike most MI commands,
+        # -exec-arguments retains its raw argument text and cannot use the
+        # generic MI C-string parameter encoder without changing literal argv.
+        argv.extend(['--args',str(executable),*arguments])
         self.argv = argv
         environment = {'PATH': '/usr/bin:/bin', 'HOME': '/work/debug-home',
                        'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8',
@@ -205,12 +209,27 @@ class Session:
         return self.events[-1]
 
     def close(self):
+        if self.process.poll() is None and self.deadline>time.monotonic():
+            try:
+                self.command('gdb-exit')
+            except (GateError,BrokenPipeError,OSError):
+                pass
         if self.process.poll() is None:
             try:
                 os.killpg(self.process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
         self.process.wait(timeout=3)
+        while True:
+            try:
+                data=os.read(self.master,65536)
+            except (BlockingIOError,OSError):
+                break
+            if not data:break
+            self.total+=len(data)
+            if self.total>self.limits['protocol_total_bytes']:
+                raise GateError('inferior capture bound exhausted during teardown')
+            self.inferior_log.write(data)
         self.selector.close()
         self.process.stdin.close()
         self.process.stdout.close()
@@ -228,10 +247,10 @@ def inspect(request, target, policy, output):
               'inferior_outcome': {'status': 'NOT_COMPLETED'}, 'complete_capture': False,
               'executable_sha256': file_hash(executable), 'profile': request['profile'],
               'recipe': request['recipe'], 'stop': None, 'step': None,
-              'frames': [], 'locals': [], 'values': {}, 'threads': [], 'errors': []}
+              'frames': [], 'locals': [], 'values': {}, 'threads': [], 'errors': [],'timed_out':False}
     session = None
     try:
-        session = Session(policy, output)
+        session = Session(policy, output, executable, request.get('arguments',[]))
         result['debugger_argv'] = session.argv
         result['inferior_argv'] = [str(executable), *request.get('arguments', [])]
         session.command('inferior-tty-set', session.tty)
@@ -239,10 +258,10 @@ def inspect(request, target, policy, output):
         symbols = session.command('file-list-exec-source-files')['fields'].get('files', [])
         if not any(p.get('fullname', '').startswith('/src/') for p in symbols):
             raise GateError('first-party matching debug symbols unavailable')
-        if request.get('arguments'):
-            session.command('exec-arguments', *request['arguments'])
         if request['recipe'] == 'breakpoint':
-            resolved = session.command('break-insert', '/src/' + request['location'])['fields']['bkpt']
+            location=request['location']
+            native_location=('/fixture/'+location.removeprefix('demo/') if location.startswith('demo/') else '/src/'+location)
+            resolved = session.command('break-insert', native_location)['fields']['bkpt']
             if resolved.get('addr') in {None, '<PENDING>'} or not resolved.get('line'):
                 raise GateError('source breakpoint did not resolve')
             result['breakpoint'] = resolved
@@ -298,9 +317,14 @@ def inspect(request, target, policy, output):
     except Exception as error:
         result['error_type'] = type(error).__name__
         result['error_property'] = str(error) if isinstance(error, GateError) else None
+        if isinstance(error,GateError) and 'deadline' in str(error):
+            result['timed_out']=True
+            result['inferior_outcome']={'status':'TIMEOUT'}
     finally:
         if session is not None:
             result['errors'] = session.errors
             result['stop_events'] = session.events
             session.close()
+            result['inferior_output_sha256']=file_hash(output/'inferior.opaque.log')
+            result['inferior_output_bytes']=(output/'inferior.opaque.log').stat().st_size
     return result

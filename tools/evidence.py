@@ -98,10 +98,12 @@ def environment_gate(environment=None):
         raise GateError('prohibited inherited options: ' + ', '.join(bad))
 
 class Runner:
-    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification"):
+    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification", source_root=None, fixture_root=None):
         if build_profile not in {"build", "dependency-build"}:raise GateError("unapproved build adapter profile")
         self.build_profile=build_profile
         self.root, self.run_dir, self.lock, self.scratch = root.resolve(), run_dir, lock, scratch.resolve()
+        self.source_root = Path(source_root).resolve() if source_root is not None else self.root
+        self.fixture_root = Path(fixture_root) if fixture_root is not None else None
         scratch.mkdir(parents=True, exist_ok=True)
         run_dir.mkdir(parents=True, exist_ok=True)
         self.counter=0;self.records=[];self.alive=False;self.session=None
@@ -116,17 +118,32 @@ class Runner:
         snapshot=self.scratch/'source-snapshot'
         if snapshot.exists():shutil.rmtree(snapshot)
         snapshot.mkdir()
-        for relative in source_files(self.root):
+        for relative in source_files(self.source_root):
             destination=snapshot/relative;destination.parent.mkdir(parents=True,exist_ok=True)
-            shutil.copy2(self.root/relative,destination)
+            shutil.copy2(self.source_root/relative,destination)
         for directory in ['src','include']:(snapshot/directory).mkdir(exist_ok=True)
         self.snapshot=snapshot
-        self.session=self.launcher.create(self.build_profile,{'/src':snapshot})
+        mounts={'/src':snapshot}
+        if self.fixture_root is not None:
+            candidate=self.fixture_root/'candidate.c'
+            if (any(p.is_symlink() for p in [self.fixture_root,*self.fixture_root.parents,candidate]) or
+                    not candidate.is_file() or candidate.stat().st_size>1048576 or
+                    set(p.name for p in self.fixture_root.iterdir())!={'candidate.c'}):
+                raise GateError('isolated developer fixture input rejected')
+            self.fixture_snapshot=self.scratch/'fixture-snapshot'
+            self.fixture_snapshot.mkdir()
+            shutil.copy2(candidate,self.fixture_snapshot/'candidate.c')
+            mounts['/fixture']=self.fixture_snapshot
+        self.session=self.launcher.create(self.build_profile,mounts)
         self.name=self.session['container_id'];self.alive=True
         from containment import expected_binding
         from policy import source_identity
         self.input_binding=expected_binding(self.root,self.launcher.runner_identity,
                                             self.lock['image_id'],self.launcher.value)
+        if self.source_root != self.root:
+            self.input_binding['source']=source_identity(self.source_root)[0]
+        if self.fixture_root is not None:
+            self.input_binding['developer_demo']={'candidate.c':file_hash(self.fixture_snapshot/'candidate.c')}
         if source_identity(snapshot)[0] != self.input_binding['source']:
             raise GateError('source changed during immutable job snapshot creation')
         for key,path in [('dependency','foundation.lock.json'),
@@ -294,6 +311,10 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
             if '--output-junit' in args and result['failure'] is None:
                 relative=args[args.index('--output-junit')+1].removeprefix('/work/')
                 self.collect(session,relative,self.run_dir/'selected-ctest.xml')
+            if profile=='test-coverage' and result['failure'] is None:
+                if settings.get('LLVM_PROFILE_FILE')!='/work/selected.profraw':
+                    raise GateError('selected coverage output path not fixed')
+                self.collect(session,'selected.profraw',self.run_dir/'selected.profraw')
             result['test_binary_hashes']=hashes;result['lifecycle']=self.launcher.dispose(session)
             from container_policy import completion_gate
             completion_gate(result,result['lifecycle'])
@@ -311,6 +332,7 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
             result=self.launcher.execute(self.session,args,timeout=timeout,env=settings)
             if result['failure']:self.alive=False
         result['command']=list(args);result['image_id']=self.lock['image_id']
+        result['environment']=settings
         result['input_binding']=dict(self.input_binding)
         filename=f'{self.counter:04d}-{label}.json'
         result['evidence_path']=str(self.run_dir/'evidence'/filename)

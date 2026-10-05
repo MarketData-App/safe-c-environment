@@ -29,13 +29,15 @@ class Job:
         OUTPUT.mkdir()
         from policy import source_files
         self.source_files=source_files(Path('/src'))
+        if self.request.get('demo_workspace'):
+            self.source_files['demo/candidate.c']=file_hash(Path('/fixture/candidate.c'))
         self.restored=False
         self.invalidated=[]
         if request.get('state_restored'):
             from developer_state import restore
             prior=restore(BUILD,Path('/work/developer-state-input'),request['context_namespace'],self.policy['limits'])
             self.restored=True
-            changed={'/src/'+p for p in set(prior['source_files'])|set(self.source_files)
+            changed={('/fixture/candidate.c' if p=='demo/candidate.c' else '/src/'+p) for p in set(prior['source_files'])|set(self.source_files)
                      if prior['source_files'].get(p)!=self.source_files.get(p)}
             if changed:
                 dependencies=self.run(['ninja','-C',str(BUILD),'-t','deps'],'incremental-dependencies')
@@ -75,6 +77,7 @@ class Job:
                               '-DCMAKE_C_COMPILER=' + compiler,
                               '-DSAFETY_PROFILE=' + self.profile['safety_profile'],
                               '-DCMAKE_C_FLAGS=' + self.profile['flags'],
+                              '-DSC_DEVELOPER_DEMO=' + ('ON' if self.request.get('demo_workspace') else 'OFF'),
                               '-DSC_DEVELOPER_CONTEXT=ON'], 'configure')
         if not passed(configured):
             raise GateError('developer CMake configuration failed')
@@ -92,8 +95,13 @@ class Job:
             actual = json.loads((reply / target['jsonFile']).read_text())
             sources = [p['path'].removeprefix('/src/') for p in actual.get('sources', [])
                        if p['path'].endswith('.c')]
-            if (not sources or any(p not in declared or declared[p]['role'] == 'qualification-only'
-                                   for p in sources) or re.match(r'^[CF]\d\d_', actual['name'])):
+            demo=self.request.get('demo_workspace') and actual['name']=='developer_demo'
+            if demo:
+                if set(sources)!={'/fixture/candidate.c','safety/qualification/developer/control.c'}:
+                    raise GateError('isolated demo build source inventory mismatch')
+                sources=['demo/candidate.c' if p=='/fixture/candidate.c' else p for p in sources]
+            excluded = not demo and any(p not in declared or declared[p]['role'] == 'qualification-only' for p in sources)
+            if not sources or excluded or re.match(r'^[CF]\d\d_', actual['name']):
                 continue
             targets.append({'id': actual['name'], 'type': actual['type'],
                             'sources': sources, 'source_association': 'CMake File API',
@@ -102,7 +110,7 @@ class Job:
             raise GateError('empty or duplicate developer target discovery')
         self.targets = targets
         self.database = json.loads((BUILD / 'compile_commands.json').read_text())
-        known_sources = {'/src/' + source for t in targets for source in t['sources']}
+        known_sources = {('/fixture/candidate.c' if source=='demo/candidate.c' else '/src/'+source) for t in targets for source in t['sources']}
         seen = set()
         for row in self.database:
             if row['file'] not in known_sources or row['directory'] != str(BUILD):
@@ -169,9 +177,14 @@ class Job:
             if self.request['recipe']=='breakpoint':
                 path=self.request['location'].rpartition(':')[0]
                 declared=json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
-                if path not in declared or declared[path]['role']=='qualification-only':
+                if path=='demo/candidate.c' and self.request.get('demo_workspace'):
+                    actual=Path('/fixture/candidate.c')
+                elif path in declared and (declared[path]['role']!='qualification-only' or
+                        (self.request.get('demo_workspace') and path=='safety/qualification/developer/control.c')):
+                    actual=Path('/src')/path
+                else:
                     raise GateError('unregistered debug source location')
-                if int(self.request['location'].rpartition(':')[2])>len((Path('/src')/path).read_text().splitlines()):
+                if int(self.request['location'].rpartition(':')[2])>len(actual.read_text().splitlines()):
                     raise GateError('debug source line outside actual snapshot')
             self.build([target])
             result['debugger']=inspect(self.request,target,self.policy,OUTPUT)

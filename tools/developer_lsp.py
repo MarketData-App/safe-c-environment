@@ -242,6 +242,8 @@ def mapped(value, encoding, default_path=None):
     if address or (default_path is not None and ranges):
         if path.is_relative_to('/src'):
             location = {'scope': 'source', 'path': str(path.relative_to('/src'))}
+        elif path.is_relative_to('/fixture'):
+            location = {'scope': 'demo-source', 'path': 'demo/'+str(path.relative_to('/fixture'))}
         elif path.is_relative_to('/opt/foundation'):
             location = {'scope': 'dependency', 'path': str(path.relative_to('/opt/foundation'))}
         elif path.is_relative_to('/usr') or path.is_relative_to('/work/developer-build'):
@@ -261,7 +263,9 @@ def mapped(value, encoding, default_path=None):
 def navigate(request, database, targets, policy):
     known = {row['file'] for row in database}
     kind = request['kind']
-    path = Path('/src') / request.get('file', 'foundation/tests/recipes.c')
+    requested=request.get('file', 'foundation/tests/recipes.c')
+    path = (Path('/fixture')/requested.removeprefix('demo/') if requested.startswith('demo/') and
+            request.get('demo_workspace') else Path('/src')/requested)
     context = None
     if path.suffix == '.h':
         if not request.get('tu') or '/src/' + request['tu'] not in known:

@@ -100,7 +100,9 @@
         "safety/qualification/foundation/F18.c",
         "safety/qualification/foundation/F19.c",
         "foundation/tests/recipes.c",
-        "safety/qualification/foundation/F14.c"
+        "safety/qualification/foundation/F14.c",
+        "safety/qualification/developer/template.c",
+        "safety/qualification/developer/control.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -2100,6 +2102,52 @@
               ]
             }
           }
+        },
+        "safety/qualification/developer/template.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "developer_demo"
+              ]
+            }
+          }
+        },
+        "safety/qualification/developer/control.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "developer_demo"
+              ]
+            }
+          }
         }
       }
     },
@@ -2198,7 +2246,10 @@
         "tests/integration/demo.c",
         "tests/integration/hardening.c",
         "tests/integration/runtime-demo.c",
-        "safety/qualification/foundation/F14.c"
+        "safety/qualification/foundation/F14.c",
+        "safety/qualification/developer/template.c",
+        "safety/qualification/developer/control.c",
+        "safety/qualification/developer/developer-demo.h"
       ]
     }
   },

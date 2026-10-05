@@ -10,12 +10,21 @@ from developer import admission
 from developer_lsp import position, scalar_position, uri
 from developer_gdb import parse
 from developer_state import pack, restore
+from developer_bundle import relative_path
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class DeveloperInputTests(unittest.TestCase):
+    def test_bundle_paths_and_required_retained_byte_fields(self):
+        self.assertEqual(str(relative_path('foundation/include/sc-foundation.h')),'foundation/include/sc-foundation.h')
+        for name in ['', '../escape.c','/tmp/outside.c','foundation/../escape.c','x\ny.c']:
+            with self.assertRaises(GateError):relative_path(name)
+        schema=read_json(ROOT/'schemas/developer-bundle.json')
+        self.assertIn('source_files',schema['required'])
+        self.assertIn('demo_files',schema['required'])
+        self.assertFalse(schema['additionalProperties'])
     def test_mi_nested_records_and_duplicate_token_fields(self):
         row=parse('7^done,stack=[frame={level="0",func="example",args=[{name="count",value="16"}]}]')
         self.assertEqual(row['token'],7)
