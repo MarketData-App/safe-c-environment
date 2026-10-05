@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 : "${CC:?}" "${CXX:?}" "${CFLAGS:?}" "${CXXFLAGS:?}" "${LIB_FUZZING_ENGINE:?}" "${OUT:?}" "${WORK:?}"
+if [[ "${SAFETY_QUALIFICATION_VARIANT:-}" == foundation-* ]]; then
+  exec python3 /src/container/foundation-fuzz-build.py
+fi
 # Environment flags belong to the caller's pinned toolchain. Bash arrays split
 # compiler flag words; no eval, command substitution, or template execution.
 read -r -a cflags <<< "$CFLAGS"

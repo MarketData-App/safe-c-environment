@@ -574,7 +574,7 @@
       ]
     },
     "foundation/tests/stateful-fuzzer.c": {
-      "sha256": "3ecd437ed4d67a976359e8e38ae728d87fc3511df924d0d0dfca9d1485ba43d1",
+      "sha256": "d715b15d5c4c1b93538f8ba624df7926b2949bc2513b44f3da3f9de48703e7e8",
       "role": "foundation-fuzz",
       "targets": [
         "foundation_fuzzer"
@@ -628,7 +628,7 @@
       ]
     },
     "foundation/tests/recipes.c": {
-      "sha256": "e9e6c89b71e4bb33d99048779fd0eae708f29b8da8a17dccf0fd6f486afcee48",
+      "sha256": "241c841c74b9b3c4ca7860932ae063dddd9217f8be9b8e32abf6d8c213619476",
       "role": "foundation-recipe",
       "targets": [
         "foundation_recipes"

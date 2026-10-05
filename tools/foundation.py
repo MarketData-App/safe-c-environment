@@ -108,6 +108,9 @@ def boundary_inventory(root):
 
 
 def dependency_profile(build):
+    if build['directory'] in {'adapter/foundation-good','adapter/foundation-bad'}:
+        if build.get('dependency_profile')!='fuzz':raise GateError('CFL foundation dependency profile missing')
+        return 'fuzz'
     key = build['directory'].removeprefix('build/')
     match = re.match(r'^(ordinary|strict|warnings|gcc-analyzer|asan|ubsan|integer|msan|tsan|coverage|hardened|fuzz)-(gcc|clang)-(O[02])(?:-|$)', key)
     if match is None:
@@ -586,3 +589,100 @@ def policy_probe_checks(q):
              'source_sha256':json.loads(created['output'])['source_sha256'] if passed(created) else None}
         rows.append(row);print(json.dumps({'case_id':'policy-'+name,'verdict':row['status']}),flush=True)
     return {'status':'PASS' if all(r['status']=='PASS' for r in rows) else 'FAIL','probes':rows}
+
+
+def fuzz_adapter_build(q, variant):
+    """Reuse the existing ClusterFuzzLite entrypoint and its compiler variables."""
+    if variant not in {'good','bad','noop','omitted'}:raise GateError('uninventoried foundation fuzz variant')
+    import shlex
+    directory='adapter/foundation-'+variant
+    env={'CC':'clang','CXX':'clang++','CFLAGS':'-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined,fuzzer-no-link -fno-sanitize-recover=all',
+         'CXXFLAGS':'-O1 -g -fsanitize=address,undefined','LIB_FUZZING_ENGINE':'-fsanitize=fuzzer',
+         'OUT':'/work/'+directory,'WORK':'/work/'+directory,'SAFETY_QUALIFICATION_VARIANT':'foundation-'+variant}
+    result=q.runner.run(['bash','/src/.clusterfuzzlite/build.sh'],env=env,timeout=90,label='foundation-cfl-'+variant+'-build')
+    row={'directory':directory,'dependency_profile':'fuzz','result':result,'audit':False,'evidence_paths':[result['evidence_path']], 'objects':[], 'links':None}
+    if not passed(result):return row
+    receipt=read_json(q.runner.fetch(directory+'/adapter-build.json'))
+    if receipt.get('safety_policy_sha256')!=file_hash(q.root/'cmake/Safety.cmake'):raise GateError('CFL production warning policy changed')
+    if receipt['variant']!=variant or len(receipt['objects'])!=3:raise GateError('foundation CFL receipt incomplete')
+    expected_sources=['foundation/src/sc-foundation.c','foundation/tests/stateful-fuzzer.c','foundation/tests/dependency-identity.c']
+    audit=True
+    for index,record in enumerate(receipt['objects']):
+        collected=q.runner.fetch(record['object'].removeprefix('/work/'))
+        if file_hash(collected)!=record['object_sha256']:raise GateError('foundation CFL object substituted')
+        if variant=='good' and (record['source']!='/src/'+expected_sources[index] or record['source_sha256']!=file_hash(q.root/expected_sources[index])):
+            raise GateError('foundation CFL shipping object source substituted')
+        symbols=q.runner.run(['llvm-nm','--undefined-only',record['object']],label='foundation-cfl-'+variant+'-'+str(index)+'-instrumentation')
+        row['evidence_paths'].append(symbols['evidence_path'])
+        complete=(passed(symbols) and '__asan_report' in symbols['output'] and '__sanitizer_cov' in symbols['output'] and
+                  '-fsanitize=address,undefined,fuzzer-no-link' in record['command'] and '-fno-sanitize-recover=all' in record['command'])
+        if index==1:
+            complete=complete and all(re.search(r'\bsc_'+domain+'_',symbols['output']) for domain in ['text','bytes','list','map'])
+        row['objects'].append({'status':'PASS' if complete else 'FAIL','source':record['source'],'source_sha256':record['source_sha256'],
+                              'object_sha256':record['object_sha256'],'evidence_path':symbols['evidence_path']})
+        audit=audit and complete
+    observed=q.runner.run(['python3','-c','import json,sys;print(json.dumps(json.load(open(sys.argv[1]))["link_command"]))','/work/'+directory+'/adapter-build.json'],label='foundation-cfl-link-audit')
+    row['evidence_paths'].append(observed['evidence_path'])
+    row['links']=dict(observed,output=shlex.join(json.loads(observed['output']))) if passed(observed) else observed
+    row['binary_sha256']=receipt['binary_sha256'];row['audit']=bool(audit and passed(observed));return row
+
+
+def fuzz_checks(q, profile='smoke'):
+    """Real stateful oracle, immutable replay, CMake path and CFL path."""
+    if profile not in {'smoke','merge','extended'}:raise GateError('unknown foundation fuzz budget')
+    records=[];observations=[];status=True
+    seed='foundation/tests/regressions/F20'
+    seed_hash=file_hash(q.root/seed)
+    cmake={variant:q.build('fuzz',foundation_mutant='text-cap' if variant=='bad' else 'NONE') for variant in ['bad','good']}
+    adapters={variant:fuzz_adapter_build(q,variant) for variant in ['bad','good','noop','omitted']}
+    pairs=[]
+    for interface in ['cmake','clusterfuzzlite']:
+        pair={'interface':interface,'status':'BLOCKED','bad':'BLOCKED','control':'BLOCKED','seed_sha256':seed_hash,'seed_path':seed,'evidence_paths':[]}
+        builds=cmake if interface=='cmake' else adapters
+        build_ok=lambda b:q.built(b) if interface=='cmake' else b['audit']
+        if all(build_ok(builds[variant]) for variant in ['bad','good']):
+            for variant in ['bad','good']:
+                build=builds[variant]
+                result=q.executable(build,'foundation_fuzzer',['/src/'+seed,'-runs=1'],label='foundation-'+interface+'-'+variant+'-counterexample')
+                pair['evidence_paths'].append(result['evidence_path'])
+                binding=loaded_binding(q,build,result)
+                ok=(result['exit_code']!=0 and type(result['exit_code']) is int and result['failure'] is None and result['evidence_complete'] and
+                    result['output'].count('FOUNDATION_ORACLE_FAILED')==1 and result['binary_unchanged']) if variant=='bad' else passed(result) and result['binary_unchanged'] and 'FOUNDATION_ORACLE_FAILED' not in result['output']
+                pair['bad' if variant=='bad' else 'control']='PASS' if ok else 'FAIL'
+                pair[variant+'_library_binding']=binding
+                pair[variant+'_binary_sha256']=result['binary_sha256']
+            pair['status']='PASS' if pair['bad']==pair['control']=='PASS' else 'FAIL'
+        pairs.append(pair);status=status and pair['status']=='PASS'
+        print(json.dumps({'case_id':'foundation-fuzz-'+interface+'-pair','verdict':pair['status']}),flush=True)
+    exploration={'status':'BLOCKED'}
+    good=adapters['good']
+    if good['audit']:
+        prepared=q.runner.run(['python3','-c','import pathlib;[pathlib.Path("/work",d).mkdir(exist_ok=True) for d in ["foundation-exploration-corpus","fuzz-failures"]]'],label='foundation-fuzz-collector-directories')
+        if not passed(prepared):raise GateError('foundation fuzz collector directory preparation failed')
+        limits=read_json(q.root/'safety/contract.json')['budgets']
+        amount=limits['smoke_executions'] if profile=='smoke' else limits[profile+'_seconds']
+        budget=['-runs='+str(amount)] if profile=='smoke' else ['-max_total_time='+str(amount)]
+        result=q.runner.run(['/work/'+good['directory']+'/foundation_fuzzer','/work/foundation-exploration-corpus',*budget,'-seed=12345','-max_len=256','-timeout=3','-rss_limit_mb=1024','-artifact_prefix=/work/fuzz-failures/'],timeout=45 if profile=='smoke' else amount+30,label='foundation-stateful-exploration-'+profile)
+        binding=loaded_binding(q,good,result)
+        executions=re.findall(r'#(\d+)\s+DONE',result['output']);edges=re.findall(r'cov: (\d+)',result['output']);features=re.findall(r'ft: (\d+)',result['output'])
+        listing=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps({d:[str(p.relative_to("/work")) for p in pathlib.Path("/work",d).iterdir()] for d in ["foundation-exploration-corpus","fuzz-failures"]}))'],label='foundation-fuzz-retained-inputs')
+        files=json.loads(listing['output']) if passed(listing) else {};retained=[]
+        for relative in files.get('foundation-exploration-corpus',[])+files.get('fuzz-failures',[]):
+            if not re.fullmatch(r'(foundation-exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe foundation fuzz output name')
+            path=q.runner.fetch(relative,q.runner.run_dir/'foundation-fuzz-inputs'/relative)
+            if path.stat().st_size>256:raise GateError('foundation corpus input exceeded bound')
+            retained.append({'path':str(path),'sha256':file_hash(path),'bytes':path.stat().st_size})
+        ok=passed(result) and passed(listing) and not files.get('fuzz-failures') and bool(executions and edges and features) and int(edges[-1])>30 and (int(executions[-1])>=amount if profile=='smoke' else result['seconds']>=amount)
+        exploration={'status':'PASS' if ok else 'FAIL','profile':profile,'budget':amount,'budget_unit':'executions' if profile=='smoke' else 'seconds',
+                     'executions':int(executions[-1]) if executions else 0,'edges':int(edges[-1]) if edges else 0,'features':int(features[-1]) if features else 0,
+                     'wall_seconds':result['seconds'],'retained_corpus':retained,'library_binding':binding,'evidence_path':result['evidence_path']}
+        for path in sorted((q.root/'foundation/corpus').iterdir()):
+            replay=q.executable(good,'foundation_fuzzer',['/src/foundation/corpus/'+path.name,'-runs=1'],label='foundation-committed-corpus-replay')
+            observations.append({'path':str(path.relative_to(q.root)),'sha256':file_hash(path),'status':'PASS' if passed(replay) else 'FAIL','evidence_path':replay['evidence_path']})
+        status=status and ok and all(r['status']=='PASS' for r in observations)
+    noop={'status':'PASS' if passed(adapters['noop']['result']) and not adapters['noop']['audit'] else 'FAIL','control':'PASS' if good['audit'] else 'FAIL','evidence_paths':adapters['noop']['evidence_paths']+good['evidence_paths']}
+    omitted={'status':'PASS' if not passed(adapters['omitted']['result']) and adapters['omitted']['result']['failure'] is None and 'undefined reference' in adapters['omitted']['result']['output'] and all('sc_'+domain+'_' in adapters['omitted']['result']['output'] for domain in ['text','bytes','list','map']) else 'FAIL','control':'PASS' if good['audit'] else 'FAIL','evidence_paths':adapters['omitted']['evidence_paths']+good['evidence_paths']}
+    status=status and noop['status']==omitted['status']=='PASS'
+    return {'status':'PASS' if status else 'FAIL','pairs':pairs,'exploration':exploration,'corpus_replays':observations,'noop':noop,'omitted_adapter':omitted,
+            'input_binding':expected_binding(q),'cmake_build_audits':{k:v['audit'] for k,v in cmake.items()},'adapter_object_audits':{k:v['objects'] for k,v in adapters.items()},
+            'evidence_paths':list(dict.fromkeys([p for pair in pairs for p in pair['evidence_paths']]+[p for v in adapters.values() for p in v['evidence_paths']]+[exploration.get('evidence_path','')]))}

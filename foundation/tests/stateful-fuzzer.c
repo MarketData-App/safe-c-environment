@@ -1,3 +1,4 @@
+#include "dependency-identity.h"
 #include "sc-foundation.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -33,6 +34,16 @@ static void equal_bytes(GBytes *actual, const Model *expected) {
         require(sc_bytes_read_u16be(actual, 0, &value, NULL));
         require(value == (guint16)(((guint16)expected->data[0] << 8) | expected->data[1]));
     }
+}
+
+int LLVMFuzzerInitialize(int *argc, char ***argv);
+int LLVMFuzzerInitialize(int *argc, char ***argv) {
+    (void)argc;
+    (void)argv;
+    if (sc_dependency_identity() != 0) {
+        abort();
+    }
+    return 0;
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);

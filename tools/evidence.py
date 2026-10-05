@@ -236,8 +236,12 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
         if profile not in self.launcher.value['profiles']:profile='test-ordinary'
         session=self.launcher.create(profile,{'/src':self.snapshot,'/inputs':inputs})
         try:
-            if '/work/exploration-corpus' in args:
-                setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/exploration-corpus");p.mkdir();[shutil.copyfile(x,p/x.name) for x in pathlib.Path("/src/fuzz/corpus").iterdir() if x.is_file()];pathlib.Path("/work/fuzz-failures").mkdir()'],timeout=10)
+            corpus_profiles={'/work/exploration-corpus':'/src/fuzz/corpus','/work/foundation-exploration-corpus':'/src/foundation/corpus'}
+            active_corpora=[path for path in corpus_profiles if path in args]
+            if len(active_corpora)>1:raise GateError('ambiguous fuzz corpus profile')
+            active_corpus=active_corpora[0] if active_corpora else None
+            if active_corpus:
+                setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil,sys;p=pathlib.Path(sys.argv[1]);p.mkdir();[shutil.copyfile(x,p/x.name) for x in pathlib.Path(sys.argv[2]).iterdir() if x.is_file()];pathlib.Path("/work/fuzz-failures").mkdir()',active_corpus,corpus_profiles[active_corpus]],timeout=10)
                 if not passed(setup):raise GateError('fresh fuzz scratch preparation failed')
             before_events=self.launcher.counters(session['effective']['cgroup_path'])
             result=self.launcher.execute(session,['/inputs/target',*args[1:]],timeout=min(timeout,self.launcher.value['profiles'][profile]['wall_seconds']),env=settings)
@@ -253,11 +257,11 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
                 if settings.get('LLVM_PROFILE_FILE'):
                     relative=settings['LLVM_PROFILE_FILE'].removeprefix('/work/')
                     collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
-                if '/work/exploration-corpus' in args:
-                    listing=self.launcher.execute(session,['python3','-c','import pathlib,json;print(json.dumps([str(p.relative_to("/work")) for d in ["exploration-corpus","fuzz-failures"] for p in pathlib.Path("/work",d).iterdir()]))'],timeout=10)
+                if active_corpus:
+                    listing=self.launcher.execute(session,['python3','-c','import pathlib,json,sys;print(json.dumps([str(p.relative_to("/work")) for d in [sys.argv[1],"fuzz-failures"] for p in pathlib.Path("/work",d).iterdir()]))',active_corpus.removeprefix("/work/")],timeout=10)
                     if not passed(listing):raise GateError('live fuzz artifact inventory failed')
                     for relative in json.loads(listing['output']):
-                        if not __import__('re').fullmatch(r'(exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe fuzz output name')
+                        if not __import__('re').fullmatch(r'(exploration-corpus|foundation-exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe fuzz output name')
                         collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
             result['lifecycle']=self.launcher.dispose(session)
             from container_policy import completion_gate

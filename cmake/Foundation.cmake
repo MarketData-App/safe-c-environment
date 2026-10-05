@@ -96,8 +96,9 @@ set_target_properties(foundation_recipes PROPERTIES BUILD_RPATH "${SC_DEPENDENCY
 # to its additional mandatory inventory rather than recursive aggregate calls.
 
 if(SAFETY_PROFILE STREQUAL "fuzz")
-  safety_add_program(foundation_fuzzer foundation/tests/stateful-fuzzer.c)
-  target_link_libraries(foundation_fuzzer PRIVATE sc_foundation)
+  safety_add_program(foundation_fuzzer foundation/tests/stateful-fuzzer.c foundation/tests/dependency-identity.c)
+  target_link_libraries(foundation_fuzzer PRIVATE sc_foundation dl)
+  target_include_directories(foundation_fuzzer PRIVATE "${PROJECT_SOURCE_DIR}/foundation/tests")
   target_link_options(foundation_fuzzer PRIVATE -fsanitize=fuzzer)
   set_target_properties(foundation_fuzzer PROPERTIES BUILD_RPATH "${SC_DEPENDENCY_PREFIX}/lib")
 endif()

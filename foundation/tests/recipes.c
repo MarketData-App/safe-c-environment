@@ -4,6 +4,9 @@
 
 /* This compiled usage recipe has no raw-memory or mutable-GLib exemption. */
 int main(void) {
+    if (sc_dependency_identity() != 0) {
+        return 3;
+    }
     static const guint8 wire[] = {0x12, 0x34};
     g_autoptr(GError) error = NULL;
     g_autoptr(ScText) text = sc_text_new(16, &error);
@@ -15,8 +18,7 @@ int main(void) {
     g_autofree gchar *snapshot = NULL;
     gsize length = 0;
     guint16 value = 0;
-    if (sc_dependency_identity() != 0 || text == NULL || list == NULL || map == NULL ||
-        !sc_text_append(text, "hello", 5, &error) ||
+    if (text == NULL || list == NULL || map == NULL || !sc_text_append(text, "hello", 5, &error) ||
         !sc_text_snapshot(text, &snapshot, &length, &error) || length != 5 ||
         g_strcmp0(snapshot, "hello") != 0 ||
         !sc_bytes_copy(wire, sizeof wire, SC_MAX_BYTES, &bytes, &error) ||
