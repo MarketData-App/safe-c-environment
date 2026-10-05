@@ -79,7 +79,7 @@
     "third_party/foundation-notices/glib-CC0-1.0.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
   },
   "recipe": "container/build-foundation.py",
-  "recipe_sha256": "8b130c61004a7c067826e821dc1d40a42cd4942088bf522672c90c6bbe318228",
+  "recipe_sha256": "c50c8ab2975ef96902dd29ce8b5bb5f8379387afce918141339c928748894b79",
   "base_toolchain_image": "sha256:258f16bc894d8c5d1672d57bc52cc1b11430e912b51ec4d66a4445fb75caac0f",
   "profiles": {},
   "approved_api_dependency": "glib-2.0",

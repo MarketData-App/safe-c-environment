@@ -79,3 +79,11 @@ first-party/third-party sanitizer flags remain unchanged. The amendment is
 unsealed and requires the existing independent review; no exception or approval
 is inferred from a successful local build. Failed development runs remain opaque
 under `artifacts/foundation-sdk-*/` and are not accepted profile evidence.
+
+GLib marks its malformed-format checks with `g_test_undefined()`. The TSan
+upstream programs use GLib's supported `-m no-undefined` mode because LLVM 19's
+printf interceptor stops internally on that malformed directive. All nine
+programs remain instrumented. Ordinary profiles retain the default test mode
+and exercise those inputs. The SDK receipt records the mode and verifies it
+against every actual native command; no sanitizer flag or runtime interceptor
+is disabled. A recipe change invalidates earlier SDK archives.

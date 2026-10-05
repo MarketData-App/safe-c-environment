@@ -152,9 +152,13 @@ def upstream_build(profile):
 
 def upstream_test(profile):
     cc, flags, prefix, pc, build, env = settings(profile)
+    # GLib explicitly marks malformed printf inputs as undefined-behaviour tests.
+    # LLVM 19's TSan printf interceptor cannot process that invalid directive.
+    # Keep all nine programs instrumented; ordinary lanes exercise those inputs.
+    test_args = ['--test-args=-m no-undefined'] if profile == 'tsan' else []
     for name in UPSTREAM_TESTS:
         try:
-            run('upstream-' + profile + '-' + name, meson('test', '-C', build, '--no-rebuild', '--num-processes=1', '--suite=glib:glib', name), env, timeout=60)
+            run('upstream-' + profile + '-' + name, meson('test', '-C', build, '--no-rebuild', '--num-processes=1', '--suite=glib:glib', *test_args, name), env, timeout=60)
         finally:
             for suffix in ['json', 'txt']:
                 native_log = build / ('meson-logs/testlog.' + suffix)
@@ -230,7 +234,9 @@ def package(profile):
               'build_ids': {p.name: __import__('re').findall(r'Build ID: ([0-9a-f]+)', subprocess.check_output(['readelf', '-n', str(p)], text=True)) for p in stage.glob('lib/*.so.0')},
               'needed_libraries': {p.name: __import__('re').findall(r'Shared library: \[([^\]]+)\]', subprocess.check_output(['readelf', '-d', str(p)], text=True)) for p in stage.glob('lib/*.so.0')},
               'pcre_upstream_tests': json.loads((ROOT / ('pcre-upstream-' + profile + '.json')).read_text()),
-              'upstream_core_tests': {'required': UPSTREAM_TESTS, 'executed': [json.loads(p.read_text()) for p in sorted(ROOT.glob('upstream-' + profile + '-*.json'))]},
+              'upstream_core_tests': {'required': UPSTREAM_TESTS,
+                  'mode': 'no-undefined' if profile == 'tsan' else 'default',
+                  'executed': [json.loads(p.read_text()) for p in sorted(ROOT.glob('upstream-' + profile + '-*.json'))]},
               'sources': inputs['inputs'], 'recipe_sha256': sha(Path(__file__)),
               'files': {str(p.relative_to(stage)): sha(p) for p in stage.rglob('*') if p.is_file()}}
     (stage / 'build.json').write_text(json.dumps(record, indent=2) + '\n')

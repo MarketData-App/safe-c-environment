@@ -53,7 +53,25 @@ def unpack(archive, destination, profile):
         raise GateError('SDK file inventory incomplete')
     if type(record['pcre_upstream_tests']['exit_code']) is not int or record['pcre_upstream_tests']['exit_code'] != 0:
         raise GateError('PCRE2 upstream tests failed or unexecuted')
-    executed = record['upstream_core_tests']['executed']
+    # The retained package contains both phase receipts and native Meson rows.
+    # Check both exact inventories; neither a duplicate nor a zero-exit wrapper
+    # can replace the actual test verdict.
+    receipts = record['upstream_core_tests']['executed']
+    expected_mode = 'no-undefined' if profile == 'tsan' else 'default'
+    if record['upstream_core_tests'].get('mode') != expected_mode:
+        raise GateError('SDK upstream test mode mismatch')
+    executed = [r for r in receipts if 'phase' in r]
+    native = [r for r in receipts if 'name' in r]
+    if len(receipts) != 2 * len(TESTS) or len(native) != len(TESTS):
+        raise GateError('SDK upstream native verdict inventory incomplete')
+    if {r['name'].split(':')[-1] for r in native} != TESTS:
+        raise GateError('SDK upstream native test identity mismatch')
+    if any(type(r['returncode']) is not int or r['returncode'] != 0 or r['result'] != 'OK' for r in native):
+        raise GateError('SDK actual upstream native test failed')
+    for result in native:
+        command = result['command']
+        if not isinstance(command, list) or ('no-undefined' in command) != (profile == 'tsan'):
+            raise GateError('SDK native upstream test mode not observed')
     if set(record['upstream_core_tests']['required']) != TESTS or len(executed) != len(TESTS):
         raise GateError('SDK upstream test inventory incomplete')
     for result in executed:
@@ -73,7 +91,8 @@ def unpack(archive, destination, profile):
             'needed_libraries': record['needed_libraries'],
             'compiler_sha256': record['compiler_sha256'], 'flags': record['flags'],
             'prefix': record['prefix'], 'archive_sha256': file_hash(archive),
-            'upstream_core_tests': {'ids': sorted(TESTS), 'status': 'PASS'},
+            'upstream_core_tests': {'ids': sorted(TESTS), 'status': 'PASS',
+                                    'mode': expected_mode},
             'compile_audit_sha256': files['compilation-audit.json']}
 
 

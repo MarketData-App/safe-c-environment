@@ -53,7 +53,7 @@ def main():
             raise GateError('unknown dependency profile')
         profiles = [args.profile]
     else:
-        profiles = ['asan', 'msan', *[p for p in profiles if p not in ['asan', 'msan']]]
+        profiles = ['tsan', 'asan', 'msan', *[p for p in profiles if p not in ['tsan', 'asan', 'msan']]]
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / 'artifacts') or output.exists():
         raise GateError('new owned evidence destination required')
