@@ -113,7 +113,7 @@ def export_inventory(root):
         raise GateError('invalid export inventory')
     if (root/'foundation.lock.json').exists():
         lock=read_json(root/'foundation.lock.json')
-        required={'foundation/src/sc-foundation.c','foundation/include/sc-foundation.h',
+        required={'cmake/Foundation.cmake','foundation/src/sc-foundation.c','foundation/include/sc-foundation.h',
                   'foundation/tests/recipes.c','specs/foundation-contract.md',
                   'safety/foundation-api-policy.json','safety/foundation-fixtures.json',
                   'foundation.lock.json','tools/foundation.py','tools/foundation_report.py',

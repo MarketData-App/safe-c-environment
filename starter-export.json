@@ -22,6 +22,7 @@
     "ci/README.md",
     "ci/clusterfuzzlite-workflow.yml.example",
     "ci/run",
+    "cmake/Foundation.cmake",
     "cmake/Safety.cmake",
     "cmake/prelude.cmake",
     "container/Dockerfile",

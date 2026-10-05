@@ -9,6 +9,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from evidence import GateError, read_json
 from foundation import fixture_inventory, validate_report, ordinary_gate, functional_gate, sdk_gate, input_gate
+from policy import export_inventory
+from evidence import atomic_json
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -75,6 +77,22 @@ class FoundationReportTests(unittest.TestCase):
 
 
 class FoundationClassifierTests(unittest.TestCase):
+    def test_export_preflight_requires_the_foundation_build_helper(self):
+        manifest = read_json(ROOT / 'starter-export.json')
+        manifest['files'] = sorted(set(manifest['files']) | {'cmake/Foundation.cmake'})
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary)
+            for relative in manifest['files']:
+                target = candidate / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, target)
+            atomic_json(candidate / 'starter-export.json', manifest)
+            self.assertIn('cmake/Foundation.cmake', export_inventory(candidate))
+            manifest['files'].remove('cmake/Foundation.cmake')
+            atomic_json(candidate / 'starter-export.json', manifest)
+            with self.assertRaisesRegex(GateError, 'foundation .* export missing'):
+                export_inventory(candidate)
+
     def test_missing_locked_notice_is_an_explicit_preflight_rejection(self):
         lock = read_json(ROOT / 'foundation.lock.json')
         adaptation = read_json(ROOT / 'container/glib-test-compat.json')

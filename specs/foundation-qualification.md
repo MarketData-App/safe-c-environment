@@ -24,6 +24,12 @@ exports and fresh-child combined qualification. The child verifies its inherited
 payload and executes all remaining checks without recursively making children.
 Scoped commands may pass their local gates while full acceptance remains BLOCKED.
 
+The starter payload includes the required `cmake/Foundation.cmake` build helper.
+Export preflight rejects its omission before writing a child. Packaging repair
+evidence records the same ordinary child configure command failing with the
+missing helper and passing with the complete payload; it is compile evidence,
+not a runtime-contract repair.
+
 Missing locked input, recipe or notice files produce an explicit preflight
 GateError before candidate execution. The missing-notice experiment must record
 its expected rejection and continue with the remaining variants; an uncaught
