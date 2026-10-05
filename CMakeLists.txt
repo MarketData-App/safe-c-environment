@@ -7,6 +7,7 @@ set(SAFETY_CASE "" CACHE STRING "Explicit qualification case; no application wil
 set(SAFETY_VARIANT "both" CACHE STRING "Qualification variants")
 include(cmake/Safety.cmake)
 enable_testing()
+include(cmake/Foundation.cmake)
 # Application transition requires an externally approved contract. Config flags
 # alone never authorize a bootstrap bypass; the outer inventory gate checks mode.
 file(GLOB_RECURSE app_sources CONFIGURE_DEPENDS "src/*.c" "include/*.c")
