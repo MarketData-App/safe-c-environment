@@ -111,6 +111,17 @@ def export_inventory(root):
     files = manifest['files']
     if not files or len(files) != len(set(files)):
         raise GateError('invalid export inventory')
+    if (root/'foundation.lock.json').exists():
+        lock=read_json(root/'foundation.lock.json')
+        required={'foundation/src/sc-foundation.c','foundation/include/sc-foundation.h',
+                  'foundation/tests/recipes.c','specs/foundation-contract.md',
+                  'safety/foundation-api-policy.json','safety/foundation-fixtures.json',
+                  'foundation.lock.json','tools/foundation.py','tools/foundation_report.py',
+                  'tools/foundation_pipeline.py','schemas/foundation-report.json'}
+        required.update(row['path'] for row in lock['inputs'])
+        required.update(lock['notices'])
+        if not required <= set(files):
+            raise GateError('foundation runtime/policy/input/notice export missing')
     for rel in files:
         p = Path(rel)
         if p.is_absolute() or '..' in p.parts or not (root/p).is_file() or (root/p).is_symlink():
@@ -154,6 +165,9 @@ def validate_fresh_report(report, source_hash, image, policy_hash):
         raise GateError('stale/copied evidence input identity mismatch')
     exact_ids(report['cases'],C_IDS)
     exact_ids(report['sabotage'],P_IDS)
+    foundation=report.get('foundation',{})
+    if 'binding' in foundation and (foundation['binding'].get('source')!=source_hash or foundation['binding'].get('image')!=image):
+        raise GateError('foundation evidence source/image identity mismatch')
     return True
 
 def gate_accounting(rows, required):

@@ -19,3 +19,11 @@ differs from the starter is a concrete blocker requiring an approved runner
 amendment and fresh qualification. Preserve runtime smoke as an infrastructure
 demo; define a separate service access contract before later application work.
 Do not inherit the parent's container report or recursively instantiate grandchildren.
+
+The inherited foundation is mandatory. Read specs/foundation-contract.md,
+safety/foundation-api-policy.json and the compiled foundation/tests/recipes.c.
+Run foundation doctor/check/selftest with all F01–F20 controls and each foundation
+pipeline variant. Keep the same locked SDK, generated-header and linked/loaded
+library identities. Reports and current-run evidence must belong to this child.
+The instance verifies the inherited export instead of creating grandchildren;
+the starter maintainer separately qualifies both exported instances.

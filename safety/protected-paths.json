@@ -18,7 +18,12 @@
     "fuzz/",
     "CMakeLists.txt",
     "CMakePresets.json",
-    "container/"
+    "container/",
+    "foundation/",
+    "foundation.lock.json",
+    "specs/foundation-contract.md",
+    "specs/foundation-qualification.md",
+    "prompts/application-c.md"
   ],
   "exceptions": "safety/exceptions.json; independent authorization only"
 }

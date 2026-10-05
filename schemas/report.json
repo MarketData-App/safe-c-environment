@@ -650,6 +650,328 @@
           "const": "NOT_REQUESTED"
         }
       }
+    },
+    "foundation": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schema_version": {
+              "const": 1
+            },
+            "status": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "BLOCKED"
+              ]
+            },
+            "binding": {
+              "type": "object"
+            },
+            "allocation_profile": {
+              "const": "glib-fail-stop"
+            },
+            "cases": {
+              "type": "array",
+              "minItems": 20,
+              "maxItems": 20,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "F01",
+                      "F02",
+                      "F03",
+                      "F04",
+                      "F05",
+                      "F06",
+                      "F07",
+                      "F08",
+                      "F09",
+                      "F10",
+                      "F11",
+                      "F12",
+                      "F13",
+                      "F14",
+                      "F15",
+                      "F16",
+                      "F17",
+                      "F18",
+                      "F19",
+                      "F20"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "BLOCKED"
+                    ]
+                  },
+                  "detector": {
+                    "enum": [
+                      "asan",
+                      "ast",
+                      "functional",
+                      "warnings",
+                      "msan",
+                      "tsan",
+                      "ordinary",
+                      "fuzz"
+                    ]
+                  },
+                  "bad": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "BLOCKED"
+                    ]
+                  },
+                  "control": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "BLOCKED"
+                    ]
+                  },
+                  "subchecks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "PASS",
+                            "FAIL",
+                            "BLOCKED"
+                          ]
+                        },
+                        "control": {
+                          "enum": [
+                            "PASS",
+                            "FAIL",
+                            "BLOCKED"
+                          ]
+                        },
+                        "evidence_paths": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "classification": {
+                          "enum": [
+                            "CONTRACT_ENFORCED",
+                            "MISUSE_DETECTED_EXPECTED",
+                            "POLICY_REJECTED_EXPECTED",
+                            "CONTROL_FAILED",
+                            "WRONG_DIAGNOSTIC",
+                            "DEPENDENCY_MISMATCH",
+                            "BLOCKED",
+                            "EVIDENCE_INCOMPLETE"
+                          ]
+                        },
+                        "observation": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "status",
+                        "control",
+                        "evidence_paths"
+                      ]
+                    }
+                  },
+                  "evidence_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "observations": {
+                    "type": "object"
+                  },
+                  "classification": {
+                    "enum": [
+                      "CONTRACT_ENFORCED",
+                      "MISUSE_DETECTED_EXPECTED",
+                      "POLICY_REJECTED_EXPECTED",
+                      "CONTROL_FAILED",
+                      "WRONG_DIAGNOSTIC",
+                      "DEPENDENCY_MISMATCH",
+                      "BLOCKED",
+                      "EVIDENCE_INCOMPLETE"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "status",
+                  "detector",
+                  "bad",
+                  "control",
+                  "subchecks",
+                  "evidence_paths",
+                  "observations"
+                ]
+              }
+            },
+            "profiles": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "coverage": {
+              "type": "object"
+            },
+            "fuzz": {
+              "type": "object"
+            },
+            "runtime": {
+              "type": "object"
+            },
+            "sabotage": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "parent": {
+                    "enum": [
+                      "P01",
+                      "P02",
+                      "P04",
+                      "P07",
+                      "P10",
+                      "P11",
+                      "P15",
+                      "P16"
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "BLOCKED"
+                    ]
+                  },
+                  "control": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "BLOCKED"
+                    ]
+                  },
+                  "evidence_paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "parent",
+                  "name",
+                  "status",
+                  "control",
+                  "evidence_paths"
+                ]
+              }
+            },
+            "application_release_ready": {
+              "const": false
+            },
+            "application_coverage": {
+              "const": "NOT_APPLICABLE"
+            },
+            "independent_enforcement": {
+              "const": "UNSEALED"
+            },
+            "doctor": {
+              "type": "object"
+            },
+            "policy": {
+              "type": "object"
+            },
+            "functional": {
+              "type": "object"
+            },
+            "policy_probes": {
+              "type": "object"
+            },
+            "starter": {
+              "type": "object"
+            },
+            "dependency": {
+              "type": "object"
+            },
+            "runtime_pairs": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "schema_version",
+            "status",
+            "binding",
+            "allocation_profile",
+            "cases",
+            "profiles",
+            "coverage",
+            "fuzz",
+            "runtime",
+            "sabotage",
+            "application_release_ready",
+            "application_coverage",
+            "independent_enforcement"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "BLOCKED"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "reason"
+          ]
+        }
+      ]
     }
   },
   "required": [
@@ -682,6 +1004,7 @@
     "source_control",
     "mandatory_gates",
     "containment",
-    "qualification_axes"
+    "qualification_axes",
+    "foundation"
   ]
 }

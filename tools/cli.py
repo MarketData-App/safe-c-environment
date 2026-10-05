@@ -33,6 +33,7 @@ def initial_report(root, lock):
         'benchmark':{'execution_status':'BLOCKED','reason':'not executed'},'starter':{'status':'BLOCKED','reason':'not executed'},
         'reuse':{'upstream_integrity':'BLOCKED','lit':'BLOCKED','clusterfuzzlite':{'local_adapter_execution':'BLOCKED','remote_ci_execution':'NOT_RUN','remote_enforcement':'UNSEALED'},'upstream_mapping':'docs/upstream-map.md'},
         'review_protocol':{'status':'BLOCKED','mode':'simulated agent responses; no live model benchmark'},'fuzz':{'status':'BLOCKED'},
+        'foundation':{'status':'BLOCKED','reason':'not executed'},
         'application_release_ready':False,'application_coverage':'NOT_APPLICABLE','blockers':[], 'commands':[],
         'limitations':['Finite fixtures do not prove arbitrary C safety.','P06 checks a defined decoy, not arbitrary forged native diagnostics.','Agent accounting checks submitted evidence, not comprehension.','No independently protected baseline or remote enforcement was verified.','First-party publication licensing awaits the owner.','Pinned built image is retained locally; APT rebuild recipe is not snapshot-complete.']}
 
@@ -137,7 +138,7 @@ def finish(root, report, runner, command):
             report['gates'].append(gate('gate-inventory','FAIL',{'reason':str(exc)}))
     report['local_state']='PASS' if report['gates'] and all(r['status']=='PASS' for r in report['gates']) else 'FAIL'
     # Only complete CI can receive the unsealed local qualification state.
-    complete = command=='ci' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
+    complete = command=='ci' and report['foundation'].get('status')=='PASS' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
     report['qualification_axes']={'native_code':'PASS' if all(r['status']=='PASS' for r in report['cases']+report['sabotage']) else 'BLOCKED' if all(r['status']=='BLOCKED' for r in report['cases']) else 'FAIL','local_docker':'PASS' if runner.launcher.records and all(r['effective'] and r['lifecycle'] and r['lifecycle']['removed'] for r in runner.launcher.records) else 'BLOCKED','containment':report['containment']['status'],'runtime_demo':report['containment'].get('runtime_demo',{}).get('status',next((g['status'] for g in report['gates'] if g['name']=='runtime-demo'),'BLOCKED')),'remote_ci':'NOT_RUN','independent_enforcement':'UNSEALED','production_approval':'NOT_REQUESTED'}
     report['overall_state']='VALIDATED_UNSEALED' if complete else 'FAILED' if any(r['status']=='FAIL' for r in report['gates']) else 'BLOCKED'
     if command!='ci':report['blockers'].append('This command is scoped; final aggregate qualification has not passed.')
@@ -153,6 +154,9 @@ def finish(root, report, runner, command):
     lines += [f"| {r['id']} | {r['detector']} | {r['classification']} | {r['control']} |" for r in report['cases']]
     lines += ['', '| Pipeline | Status | Required subcases |','|---|---|---|']
     lines += [f"| {r['id']} | {r['status']} | "+'; '.join(x['name']+': '+x['status'] for x in r['subcases'])+' |' for r in report['sabotage']]
+    foundation=report['foundation']
+    lines += ['', 'Foundation: '+foundation['status']+'; allocation profile `glib-fail-stop`.', '', '| Foundation | Classification | Control | Subchecks |', '|---|---|---|---|']
+    lines += [f"| {r['id']} | {r.get('classification','BLOCKED')} | {r['control']} | "+'; '.join(s['name']+': '+s['status'] for s in r['subchecks'])+' |' for r in foundation.get('cases',[])]
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
     lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz','containment']},indent=2),'```']
@@ -178,6 +182,7 @@ def main(argv=None):
     i=subs.add_parser('instantiate');i.add_argument('--destination',type=Path,required=True);i.add_argument('--name',required=True)
     sb=subs.add_parser('sandbox');sb.add_argument('operation',choices=['doctor','plan','selftest']);sb.add_argument('--profile',default='build')
     rt=subs.add_parser('runtime');rt.add_argument('operation',choices=['smoke'])
+    fd=subs.add_parser('foundation');fd.add_argument('operation',choices=['doctor','check','selftest'])
     args=parser.parse_args(argv);root=args.candidate.resolve()
     sandbox_doctor=args.command=='sandbox' and args.operation=='doctor'
     if args.command=='sandbox' and args.operation=='selftest':args.command='ci'
@@ -220,6 +225,21 @@ def main(argv=None):
                 d=doctor(q,probes=args.command in ['bootstrap','doctor'] and not sandbox_doctor);report['gates'].append(gate('doctor',d['status'],d,[d['tool_evidence']]))
             if args.command in ['check-fast','check-full','ci']:
                 report['gates']+=production_checks(q,args.command!='check-fast')
+            if args.command in ['bootstrap','doctor','check-fast','check-full','selftest','ci','foundation']:
+                from foundation import doctor as foundation_doctor, new_report as foundation_new_report
+                from foundation_report import check as foundation_check, experiments as foundation_experiments
+                if args.command in ['bootstrap','doctor'] or (args.command=='foundation' and args.operation=='doctor'):
+                    report['foundation']=foundation_new_report(q)
+                    report['foundation']['doctor']=foundation_doctor(q)
+                else:
+                    report['foundation']=foundation_check(q,full=args.command!='check-fast',fuzz_profile='merge' if args.command=='ci' else 'smoke')
+                    components=report['foundation']
+                    ok=all(r['status']=='PASS' for r in components['profiles']) and components['policy']['status']=='PASS'
+                    if args.command!='check-fast':ok=ok and components['coverage']['status']==components['fuzz']['status']=='PASS'
+                    report['gates'].append(gate('foundation-check','PASS' if ok else 'FAIL'))
+                report['gates'].append(gate('foundation-doctor',report['foundation']['doctor']['status']))
+                if args.command in ['selftest','ci'] or (args.command=='foundation' and args.operation=='selftest'):
+                    foundation_experiments(q,report['foundation'])
             if args.command in ['selftest','ci']:
                 lit=q.lit()
                 completed={row['id']:row for row in lit.pop('case_rows')}
@@ -248,9 +268,27 @@ def main(argv=None):
             if args.command=='runtime':
                 from runtime import runtime_smoke
                 value=runtime_smoke(q);report['gates'].append(gate('runtime-demo',value['status'],value))
-            if args.command in ['ci','starter','selftest']:
+            if 'cases' in report['foundation'] and 'functional' in report['foundation']:
+                from runtime import runtime_smoke
+                from foundation_report import project
+                from foundation_pipeline import run as foundation_pipeline
+                report['foundation']['runtime']=report['containment'].get('runtime_demo',{}) or runtime_smoke(q)
+                project(q,report['foundation'])
+                report['foundation']['sabotage']=foundation_pipeline(q,report['foundation'])
+            if args.command in ['ci','starter','selftest'] or (args.command=='foundation' and args.operation=='selftest'):
                 from starter import verify_starter
                 report['starter']=verify_starter(root,lock,run_dir,instance=args.instance,expected=args.expected_baseline,baseline=args.baseline);report['gates'].append(gate('starter',report['starter']['status']))
+            if 'cases' in report['foundation']:
+                from foundation_report import project,save as foundation_save
+                project(q,report['foundation'],report['starter'])
+                foundation_save(q,report['foundation'])
+                if 'functional' in report['foundation']:
+                    report['gates'].append(gate('foundation-selftest',report['foundation']['status']))
+                    added=report['foundation']['sabotage']
+                    report['gates'].append(gate('foundation-sabotage','PASS' if all(r['status']=='PASS' and r['control']=='PASS' for r in added) else 'FAIL'))
+                    if args.command in ['selftest','ci']:
+                        for parent in report['sabotage']:
+                            parent['subcases'] += [{k:v for k,v in row.items() if k!='parent'} for row in added if row['parent']==parent['id']]
             if args.command in ['check-fast','check-full','ci','selftest']:
                 tests=runner.run(['python3','-m','unittest','discover','-s','/src/tests/unit','-v'],label='python-unit-tests')
                 ok=passed(tests) and __import__('re').search(r'Ran [1-9][0-9]* tests',tests['output']) is not None

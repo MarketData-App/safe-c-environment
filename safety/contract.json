@@ -414,7 +414,11 @@
     "review-protocol",
     "containment",
     "container-sabotage",
-    "runtime-demo"
+    "runtime-demo",
+    "foundation-doctor",
+    "foundation-check",
+    "foundation-selftest",
+    "foundation-sabotage"
   ],
   "containment": {
     "cases": [
