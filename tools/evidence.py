@@ -98,7 +98,7 @@ def environment_gate(environment=None):
         raise GateError('prohibited inherited options: ' + ', '.join(bad))
 
 class Runner:
-    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build"):
+    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification"):
         if build_profile not in {"build", "dependency-build"}:raise GateError("unapproved build adapter profile")
         self.build_profile=build_profile
         self.root, self.run_dir, self.lock, self.scratch = root.resolve(), run_dir, lock, scratch.resolve()
@@ -108,7 +108,7 @@ class Runner:
         self.collected_bytes=0;self.collected_files=0
         self.collection_sizes={}
         from container_policy import Launcher
-        self.launcher=Launcher(self.root,self.run_dir,lock)
+        self.launcher=Launcher(self.root,self.run_dir,lock,purpose=purpose)
 
     def start(self):
         if self.alive:return
@@ -270,32 +270,41 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
         finally:
             self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
 
-    def ctest(self,args,timeout,settings):
+    def ctest(self,args,timeout,settings,*,targets=None,profile='test-strict'):
         directory=args[args.index('--test-dir')+1].removeprefix('/work/')
         inputs=self.scratch/('ctest-input-'+str(self.counter));inputs.mkdir()
         hashes={}
-        for target in ['infrastructure_demo','hardening_probe']:
+        targets=targets or ['infrastructure_demo','hardening_probe']
+        if (not targets or len(set(targets))!=len(targets) or
+                any(not __import__('re').fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',t) for t in targets)):
+            raise GateError('invalid selected CTest target inventory')
+        if profile not in {'test-ordinary','test-strict','test-asan','test-ubsan','test-integer','test-msan','test-tsan','test-coverage','test-hardened'}:
+            raise GateError('unapproved selected CTest runtime profile')
+        for target in targets:
             p=self.fetch(directory+'/'+target);hashes[target]=file_hash(p)
             shutil.copy2(p,inputs/target);(inputs/target).chmod(0o555)
         config=self.fetch(directory+'/CTestTestfile.cmake')
         (inputs/'CTestTestfile.cmake').write_text(config.read_text().replace('/work/'+directory,'/inputs'))
-        session=self.launcher.create('test-strict',{'/src':self.snapshot,'/inputs':inputs})
+        session=self.launcher.create(profile,{'/src':self.snapshot,'/inputs':inputs})
         argv=list(args);argv[argv.index('--test-dir')+1]='/work/ctest'
         try:
             setup=self.launcher.execute(session,['python3','-c','import pathlib,shutil;p=pathlib.Path("/work/ctest");p.mkdir();shutil.copyfile("/inputs/CTestTestfile.cmake",p/"CTestTestfile.cmake")'],timeout=5)
             if not passed(setup):raise GateError('fresh CTest scratch preparation failed')
             result=self.launcher.execute(session,argv,timeout=min(timeout,10),env=settings)
+            if '--output-junit' in args and result['failure'] is None:
+                relative=args[args.index('--output-junit')+1].removeprefix('/work/')
+                self.collect(session,relative,self.run_dir/'selected-ctest.xml')
             result['test_binary_hashes']=hashes;result['lifecycle']=self.launcher.dispose(session)
             from container_policy import completion_gate
             completion_gate(result,result['lifecycle'])
             return result
         finally:self.launcher.dispose(session);shutil.rmtree(inputs,ignore_errors=True)
 
-    def run(self,args,*,timeout=30,env=None,label='process'):
+    def run(self,args,*,timeout=30,env=None,label='process',ctest_targets=None,runtime_profile=None):
         self.start();self.counter+=1
         settings=dict(RUNTIME_ENV);settings.update(env or {})
         if args[0]=='ctest' and '--no-tests=error' in args:
-            result=self.ctest(args,timeout,settings)
+            result=self.ctest(args,timeout,settings,targets=ctest_targets,profile=runtime_profile or 'test-strict')
         elif str(args[0]).startswith('/work/'):
             result=self.native(args,timeout,settings)
         else:

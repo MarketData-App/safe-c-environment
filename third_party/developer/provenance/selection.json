@@ -1,0 +1,2097 @@
+{
+  "status": "CANDIDATE_CLOSURE",
+  "packages_metadata_sha256": "7778d3e3f303b7ddb8ce0fe7c8d57473a076c6bf2e8f241f75421d2396352498",
+  "packages": [
+    {
+      "Package": "gdb",
+      "Version": "16.3-1",
+      "Installed-Size": "12175",
+      "Maintainer": "H\u00e9ctor Or\u00f3n Mart\u00ednez <zumbi@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "gdb-minimal (<< 15.2-2~exp1)",
+      "Provides": "gdb-minimal",
+      "Depends": "libbabeltrace1 (>= 1.5.4), libc6 (>= 2.38), libdebuginfod1t64 (>= 0.188), libexpat1 (>= 2.0.1), libgcc-s1 (>= 4.2), libgmp10 (>= 2:6.3.0+dfsg), libipt2 (>= 2.0), liblzma5 (>= 5.1.1alpha+20110809), libmpfr6 (>= 3.1.3), libncursesw6 (>= 6), libpython3.13 (>= 3.13.0~rc3), libreadline8t64 (>= 8.2~beta), libsource-highlight4t64 (>= 3.1.9), libstdc++6 (>= 14), libtinfo6 (>= 6), libxxhash0 (>= 0.6.5), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.2.0)",
+      "Suggests": "gdb-doc, gdbserver, libc-dbg",
+      "Breaks": "gdb-minimal (<< 15.2-2~exp1)",
+      "Description": "GNU Debugger",
+      "Homepage": "https://www.gnu.org/s/gdb/",
+      "Description-md5": "4f2b8eb95df2ba7a5b11e0301c48b8e4",
+      "Tag": "devel::debugger, devel::lang:c, devel::lang:c++, devel::lang:fortran, devel::lang:java, devel::library, implemented-in::c, implemented-in::java, interface::commandline, interface::text-mode, role::devel-lib, role::program, scope::utility, suite::gnu, uitoolkit::ncurses, works-with::software:running",
+      "Section": "devel",
+      "Priority": "optional",
+      "Filename": "pool/main/g/gdb/gdb_16.3-1_amd64.deb",
+      "Size": "3991712",
+      "MD5sum": "6908aa9da7f39382bf77bc97b173f5a7",
+      "SHA256": "f0cd9b3e7b47685cbc43ebfe3207760830cb7b570e615daee6dc91e50040c127"
+    },
+    {
+      "Package": "clangd-19",
+      "Source": "llvm-toolchain-19 (1:19.1.7-3)",
+      "Version": "1:19.1.7-3+b1",
+      "Installed-Size": "16776",
+      "Maintainer": "LLVM Packaging Team <pkg-llvm-team@lists.alioth.debian.org>",
+      "Architecture": "amd64",
+      "Depends": "libabsl20240722 (>= 20240722.0-1), libc6 (>= 2.38), libclang-cpp19 (>= 1:19.1.7), libgcc-s1 (>= 3.0), libgrpc++1.51t64 (>= 1.51.1), libgrpc29t64 (>= 1.51.1), libllvm19 (= 1:19.1.7-3+b1), libprotobuf32t64 (>= 3.21.12), libstdc++6 (>= 13.1), libclang-common-19-dev (= 1:19.1.7-3+b1)",
+      "Description": "Language server that provides IDE-like features to editors",
+      "Homepage": "https://www.llvm.org/",
+      "Description-md5": "9ae9ea58c7af3228199dd96c36ecd0bb",
+      "Section": "devel",
+      "Priority": "optional",
+      "Filename": "pool/main/l/llvm-toolchain-19/clangd-19_19.1.7-3+b1_amd64.deb",
+      "Size": "3207052",
+      "MD5sum": "e2ba0cc25f957b8d27635ff87bb5dad6",
+      "SHA256": "2ad4bc4bf5f69ca727ad1437bf733ba4ec0af09031cec7b80e3098917d24444b"
+    },
+    {
+      "Package": "libbabeltrace1",
+      "Source": "babeltrace (1.5.11-4)",
+      "Version": "1.5.11-4+b2",
+      "Installed-Size": "568",
+      "Maintainer": "Jon Bernard <jbernard@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libbabeltrace-ctf1 (<< 1.5.3-2~)",
+      "Provides": "libbabeltrace-ctf1 (= 1.5.11-4+b2)",
+      "Depends": "libc6 (>= 2.38), libdw1t64 (>= 0.126), libelf1t64 (>= 0.131), libglib2.0-0t64 (>= 2.76.0), libuuid1 (>= 2.16)",
+      "Breaks": "libbabeltrace-ctf1 (<< 1.5.3-2~)",
+      "Description": "Babeltrace conversion libraries",
+      "Multi-Arch": "same",
+      "Homepage": "https://www.efficios.com/babeltrace",
+      "Description-md5": "422a6c421290d39831a22eacf4b25760",
+      "Tag": "role::shared-lib",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/b/babeltrace/libbabeltrace1_1.5.11-4+b2_amd64.deb",
+      "Size": "175940",
+      "MD5sum": "8e4f7ab426a3cf270e8d26d5929662cc",
+      "SHA256": "ae7119a21627f296fa28a46ece67b01b1cbc87e32e971f8fd7629d0f42d1d4b1"
+    },
+    {
+      "Package": "libdebuginfod1t64",
+      "Source": "elfutils",
+      "Version": "0.192-4",
+      "Installed-Size": "81",
+      "Maintainer": "Debian Elfutils Maintainers <debian-gcc@lists.debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libdebuginfod1",
+      "Provides": "libdebuginfod1 (= 0.192-4)",
+      "Depends": "libc6 (>= 2.38), libcurl3t64-gnutls (>= 7.28.0), libelf1t64 (= 0.192-4), libjson-c5 (>= 0.15), libdw1t64 (= 0.192-4), libdebuginfod-common (>= 0.192-4)",
+      "Breaks": "libdebuginfod1 (<< 0.192-4)",
+      "Description": "library to interact with debuginfod (development files)",
+      "Multi-Arch": "same",
+      "Homepage": "https://sourceware.org/elfutils/",
+      "Description-md5": "d62f7cacb6384ca72053831f668bd54c",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/e/elfutils/libdebuginfod1t64_0.192-4_amd64.deb",
+      "Size": "32416",
+      "MD5sum": "58dc70c3a40db0b12229d1f14f5ba2c7",
+      "SHA256": "399d156a8a631889c71b1fdeb853d8effc40f812870a0b7b0eb09e04eb0dfa5e"
+    },
+    {
+      "Package": "libipt2",
+      "Source": "intel-processor-trace",
+      "Version": "2.1.2-1",
+      "Installed-Size": "150",
+      "Maintainer": "Victor Seva <vseva@debian.org>",
+      "Architecture": "amd64",
+      "Depends": "libc6 (>= 2.34)",
+      "Description": "Intel Processor Trace Decoder Library",
+      "Homepage": "https://github.com/intel/libipt",
+      "Description-md5": "be94fb3c503ad758b721a8937c8157ef",
+      "Tag": "role::shared-lib",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/i/intel-processor-trace/libipt2_2.1.2-1_amd64.deb",
+      "Size": "47792",
+      "MD5sum": "59594b6738ba971e18716e3363e6d0dd",
+      "SHA256": "33cfc9090194a993bfab1da4a70a03b4a2d2863894c1d4b506dd4ac093a0073e"
+    },
+    {
+      "Package": "libpython3.13",
+      "Source": "python3.13",
+      "Version": "3.13.5-2+deb13u5",
+      "Installed-Size": "7416",
+      "Maintainer": "Matthias Klose <doko@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libpython3.13",
+      "Depends": "libpython3.13-stdlib (= 3.13.5-2+deb13u5), libc6 (>= 2.38), libexpat1 (>= 2.6.0), zlib1g (>= 1:1.2.0)",
+      "Description": "Shared Python runtime library (version 3.13)",
+      "Multi-Arch": "same",
+      "Description-md5": "224ea7f5b8eefb634a475d030583a368",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/p/python3.13/libpython3.13_3.13.5-2+deb13u5_amd64.deb",
+      "Size": "2159760",
+      "MD5sum": "727b32fb128af3357610092463191572",
+      "SHA256": "aa4cdb7e15f5f445ab268160d428518a4daf2a086ee3e6ea30f6082785236dea"
+    },
+    {
+      "Package": "libsource-highlight4t64",
+      "Source": "source-highlight (3.1.9-4.3)",
+      "Version": "3.1.9-4.3+b1",
+      "Installed-Size": "1285",
+      "Maintainer": "Kartik Kulkarni <kartik.koolks@gmail.com>",
+      "Architecture": "amd64",
+      "Replaces": "libsource-highlight4, libsource-highlight4v5",
+      "Provides": "libsource-highlight4v5 (= 3.1.9-4.3+b1)",
+      "Depends": "libsource-highlight-common, libc6 (>= 2.38), libgcc-s1 (>= 3.0), libstdc++6 (>= 13.1)",
+      "Conflicts": "libsource-highlight4",
+      "Breaks": "libsource-highlight4v5 (<< 3.1.9-4.3)",
+      "Description": "source highlighting library",
+      "Multi-Arch": "same",
+      "Homepage": "http://www.gnu.org/software/src-highlite/",
+      "Description-md5": "39eb86159efd9ee5d0ab936cf7597ced",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/s/source-highlight/libsource-highlight4t64_3.1.9-4.3+b1_amd64.deb",
+      "Size": "334684",
+      "MD5sum": "e9d82a402dd34388e57627083af7d102",
+      "SHA256": "6d69c221c44345f33af52cc849c5d39438590d5b2030224a6fdb3e6e660f815a"
+    },
+    {
+      "Package": "libabsl20240722",
+      "Source": "abseil",
+      "Version": "20240722.0-4",
+      "Installed-Size": "2561",
+      "Maintainer": "Benjamin Barenblat <bbaren@debian.org>",
+      "Architecture": "amd64",
+      "Depends": "libc6 (>= 2.38), libgcc-s1 (>= 3.4), libstdc++6 (>= 13.1)",
+      "Description": "extensions to the C++ standard library",
+      "Multi-Arch": "same",
+      "Homepage": "https://abseil.io/",
+      "Description-md5": "0c12eff1a67912071e9fcce1a2b03a41",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/a/abseil/libabsl20240722_20240722.0-4_amd64.deb",
+      "Size": "491548",
+      "MD5sum": "5407414647aace5e70314f16ff0aeb99",
+      "SHA256": "78c6d7692890990a27cb1d5bbd95b7bfe47a4183ffafec5b30f689f9b58ec6f7"
+    },
+    {
+      "Package": "libgrpc++1.51t64",
+      "Source": "grpc",
+      "Version": "1.51.1-6",
+      "Installed-Size": "2546",
+      "Maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libgrpc++1.51",
+      "Provides": "libgrpc++1.51 (= 1.51.1-6)",
+      "Depends": "libabsl20240722 (>= 20240722.0-1), libc6 (>= 2.32), libgcc-s1 (>= 3.0), libgrpc29t64 (>= 1.51.1), libprotobuf32t64 (>= 3.21.12), libstdc++6 (>= 14)",
+      "Breaks": "libgrpc++1.51 (<< 1.51.1-6)",
+      "Description": "high performance general RPC framework",
+      "Multi-Arch": "same",
+      "Homepage": "https://www.grpc.io/",
+      "Description-md5": "3f857bea859931b8956ff06b364de1b7",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/g/grpc/libgrpc++1.51t64_1.51.1-6_amd64.deb",
+      "Size": "497196",
+      "MD5sum": "29be3d6ffc3cd2b89888b0eeaaafe669",
+      "SHA256": "af6c139e11d81f828e4e57cc027aeffe3379d3516586408d7fd88a98b1b26ed9"
+    },
+    {
+      "Package": "libgrpc29t64",
+      "Source": "grpc",
+      "Version": "1.51.1-6",
+      "Installed-Size": "12741",
+      "Maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libgrpc10, libgrpc22, libgrpc28, libgrpc29, libgrpc9",
+      "Provides": "libgrpc29 (= 1.51.1-6)",
+      "Depends": "libabsl20240722 (>= 20240722.0-1), libc6 (>= 2.38), libcares2 (>= 1.11.0~rc1), libgcc-s1 (>= 3.0), libprotobuf32t64 (>= 3.21.12), libprotoc32t64 (>= 3.21.12), libre2-11-absl20240722, libssl3t64 (>= 3.0.0), libstdc++6 (>= 14), zlib1g (>= 1:1.1.4)",
+      "Breaks": "libgrpc10, libgrpc22, libgrpc28, libgrpc29 (<< 1.51.1-6), libgrpc9",
+      "Description": "high performance general RPC framework",
+      "Multi-Arch": "same",
+      "Homepage": "https://www.grpc.io/",
+      "Description-md5": "4e6400512fbad389afeef58d717465fd",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/g/grpc/libgrpc29t64_1.51.1-6_amd64.deb",
+      "Size": "2859180",
+      "MD5sum": "868f6bc71cce945f8eeeff9203e1cad7",
+      "SHA256": "8d7dfdca30c13995a76bbbb36a3e4d245056b800c7f23fda8fd80a01b7307fc6"
+    },
+    {
+      "Package": "libprotobuf32t64",
+      "Source": "protobuf",
+      "Version": "3.21.12-11+deb13u1",
+      "Installed-Size": "3520",
+      "Maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libprotobuf32",
+      "Provides": "libprotobuf32 (= 3.21.12-11+deb13u1)",
+      "Depends": "libc6 (>= 2.38), libgcc-s1 (>= 3.0), libstdc++6 (>= 14), zlib1g (>= 1:1.1.4)",
+      "Breaks": "cura-engine (<< 1:3.3.0-2.1+b1), libarcus3 (<< 3.3.0-2), libprotobuf32 (<< 3.21.12-11+deb13u1)",
+      "Description": "protocol buffers C++ library",
+      "Multi-Arch": "same",
+      "Homepage": "https://github.com/google/protobuf/",
+      "Description-md5": "c69f5af146ab9bc64e44b912e5af457e",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/p/protobuf/libprotobuf32t64_3.21.12-11+deb13u1_amd64.deb",
+      "Size": "981280",
+      "MD5sum": "cd5ee755782d8108c277d2949bb9d17f",
+      "SHA256": "38c43ec79a043d2b2659fed321725049a7e457096a66691cf6eb0d3a1a8f0e85"
+    },
+    {
+      "Package": "libdw1t64",
+      "Source": "elfutils",
+      "Version": "0.192-4",
+      "Installed-Size": "789",
+      "Maintainer": "Debian Elfutils Maintainers <debian-gcc@lists.debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libdw1",
+      "Provides": "libdw1 (= 0.192-4)",
+      "Depends": "libbz2-1.0, libc6 (>= 2.38), libelf1t64 (= 0.192-4), liblzma5 (>= 5.1.1alpha+20120614), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.2.2.3)",
+      "Breaks": "libdw1 (<< 0.192-4)",
+      "Description": "library that provides access to the DWARF debug information",
+      "Multi-Arch": "same",
+      "Homepage": "https://sourceware.org/elfutils/",
+      "Description-md5": "400b1d81b4127a4393ad2848aee6ecfa",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/e/elfutils/libdw1t64_0.192-4_amd64.deb",
+      "Size": "254872",
+      "MD5sum": "dce1fbf1b92ecebdc46875e417966356",
+      "SHA256": "6b41d3895b40eff429dd8013f0c13b6e26371a26491f414dbf66ba86c4c2c3f1"
+    },
+    {
+      "Package": "libelf1t64",
+      "Source": "elfutils",
+      "Version": "0.192-4",
+      "Installed-Size": "1228",
+      "Maintainer": "Debian Elfutils Maintainers <debian-gcc@lists.debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libelf1",
+      "Provides": "libelf1 (= 0.192-4)",
+      "Depends": "libc6 (>= 2.38), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.1.4)",
+      "Breaks": "libelf1 (<< 0.192-4)",
+      "Description": "library to read and write ELF files",
+      "Multi-Arch": "same",
+      "Homepage": "https://sourceware.org/elfutils/",
+      "Description-md5": "0e9f703e8803a8baa9314c41c8b7ee96",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/e/elfutils/libelf1t64_0.192-4_amd64.deb",
+      "Size": "189408",
+      "MD5sum": "906aacb5a1d743e4945a8690fb5fd59b",
+      "SHA256": "94497b7e17b6f574a0605b380d454e20d3f01a9c63b70c2a2263f679d30053e1"
+    },
+    {
+      "Package": "libglib2.0-0t64",
+      "Source": "glib2.0",
+      "Version": "2.84.4-3~deb13u5",
+      "Installed-Size": "4449",
+      "Maintainer": "Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libglib2.0-0 (<< 2.80.0-7~)",
+      "Provides": "libgio-2.0-0 (= 2.84.4-3~deb13u5), libglib-2.0-0 (= 2.84.4-3~deb13u5), libglib2.0-0 (= 2.84.4-3~deb13u5), libgmodule-2.0-0 (= 2.84.4-3~deb13u5), libgobject-2.0-0 (= 2.84.4-3~deb13u5), libgthread-2.0-0 (= 2.84.4-3~deb13u5)",
+      "Depends": "libatomic1 (>= 4.8), libc6 (>= 2.38), libffi8 (>= 3.4), libmount1 (>= 2.40~rc2), libpcre2-8-0 (>= 10.22), libselinux1 (>= 3.1~), zlib1g (>= 1:1.2.2)",
+      "Recommends": "libglib2.0-data, shared-mime-info, xdg-user-dirs",
+      "Suggests": "low-memory-monitor",
+      "Breaks": "glib-networking-tests (<< 2.70.0~), gnome-keyring (<< 40.0-3~), gnome-shell (<< 44.9-2~), libedataserver-1.2-26 (<< 3.44.3-2~), libgladeui-2-6 (<< 3.22.2), libglib2.0-0 (<< 2.80.0-7~), libsoup2.4-tests (<< 2.72.0-3~)",
+      "Description": "GLib library of C routines",
+      "Multi-Arch": "same",
+      "Homepage": "https://gitlab.gnome.org/GNOME/glib",
+      "Description-md5": "f44de6293be1aa02cd13d73f591580a9",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/g/glib2.0/libglib2.0-0t64_2.84.4-3~deb13u5_amd64.deb",
+      "Size": "1521120",
+      "MD5sum": "6db85a1a1278c564c400ac1bcfccb37f",
+      "SHA256": "e2baf92c57d1db1753e5781a61450d9a01e7833c7bd2dfe87776a6811c11ecc2"
+    },
+    {
+      "Package": "libjson-c5",
+      "Source": "json-c",
+      "Version": "0.18+ds-1",
+      "Installed-Size": "112",
+      "Maintainer": "Nicolas Mora <babelouest@debian.org>",
+      "Architecture": "amd64",
+      "Depends": "libc6 (>= 2.38)",
+      "Description": "JSON manipulation library - shared library",
+      "Multi-Arch": "same",
+      "Homepage": "https://github.com/json-c/json-c/wiki",
+      "Description-md5": "ac049068ef755540cdb41614a65accbf",
+      "Tag": "role::shared-lib",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/j/json-c/libjson-c5_0.18+ds-1_amd64.deb",
+      "Size": "45956",
+      "MD5sum": "2afaa0abf1f11e7f2d5aa1e789148632",
+      "SHA256": "4fbd5fb4d54c626f05d68abf38a31533fbf1bf4a87068696abe041ee9c974fe0"
+    },
+    {
+      "Package": "libdebuginfod-common",
+      "Source": "elfutils",
+      "Version": "0.192-4",
+      "Installed-Size": "52",
+      "Maintainer": "Debian Elfutils Maintainers <debian-gcc@lists.debian.org>",
+      "Architecture": "all",
+      "Depends": "debconf (>= 0.5) | debconf-2.0, ucf",
+      "Pre-Depends": "debconf",
+      "Description": "configuration to enable the Debian debug info server",
+      "Multi-Arch": "foreign",
+      "Homepage": "https://sourceware.org/elfutils/",
+      "Description-md5": "2119791df8405022ae0834bc3112a0b5",
+      "Section": "devel",
+      "Priority": "optional",
+      "Filename": "pool/main/e/elfutils/libdebuginfod-common_0.192-4_all.deb",
+      "Size": "23700",
+      "MD5sum": "ca6ba9a1f788b839f16e0d909227ac90",
+      "SHA256": "3c775d164b26fc5e8fb1a3606b3de99875cf8ee6e2d9a90018c4d82de2d47f7b"
+    },
+    {
+      "Package": "libsource-highlight-common",
+      "Source": "source-highlight",
+      "Version": "3.1.9-4.3",
+      "Installed-Size": "320",
+      "Maintainer": "Kartik Kulkarni <kartik.koolks@gmail.com>",
+      "Architecture": "all",
+      "Replaces": "source-highlight (<< 3.1.4-1)",
+      "Description": "architecture-independent files for source highlighting library",
+      "Multi-Arch": "foreign",
+      "Homepage": "http://www.gnu.org/software/src-highlite/",
+      "Description-md5": "6684d988c2cd164ebf5b9eab6b1511cc",
+      "Tag": "role::shared-lib",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/s/source-highlight/libsource-highlight-common_3.1.9-4.3_all.deb",
+      "Size": "77484",
+      "MD5sum": "9180391ca658ba061633e77b265d1f66",
+      "SHA256": "4914dbff96bc9558e467239719fd64f27faaf0c26e5b8cc63cbb460484781e2d"
+    },
+    {
+      "Package": "libcares2",
+      "Source": "c-ares",
+      "Version": "1.34.5-1+deb13u1",
+      "Installed-Size": "282",
+      "Maintainer": "Gregor Jasny <gjasny@googlemail.com>",
+      "Architecture": "amd64",
+      "Replaces": "libc-ares1, libc-ares2",
+      "Provides": "libc-ares2 (= 1.34.5-1+deb13u1)",
+      "Depends": "libc6 (>= 2.38)",
+      "Breaks": "libc-ares2 (<< 1.34.5-1+deb13u1)",
+      "Description": "asynchronous name resolver",
+      "Multi-Arch": "same",
+      "Homepage": "https://c-ares.org/",
+      "Description-md5": "2ddfa5de14223839b0bc40795e305cef",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/c/c-ares/libcares2_1.34.5-1+deb13u1_amd64.deb",
+      "Size": "98272",
+      "MD5sum": "8903a84cac9be97a92a558c84ea54067",
+      "SHA256": "5034a2c34ea4730797df1a5f6a0ec142d7d09ce6923c06e167f08ad2e69a4218"
+    },
+    {
+      "Package": "libprotoc32t64",
+      "Source": "protobuf",
+      "Version": "3.21.12-11+deb13u1",
+      "Installed-Size": "3401",
+      "Maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>",
+      "Architecture": "amd64",
+      "Replaces": "libprotoc32",
+      "Provides": "libprotoc32 (= 3.21.12-11+deb13u1)",
+      "Depends": "libc6 (>= 2.34), libgcc-s1 (>= 3.0), libprotobuf32t64 (>= 3.21.12), libstdc++6 (>= 14)",
+      "Breaks": "libprotoc32 (<< 3.21.12-11+deb13u1)",
+      "Description": "protocol buffers compiler library",
+      "Multi-Arch": "same",
+      "Homepage": "https://github.com/google/protobuf/",
+      "Description-md5": "c53c70dca7ff74e285f88be70de72a0f",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/p/protobuf/libprotoc32t64_3.21.12-11+deb13u1_amd64.deb",
+      "Size": "922092",
+      "MD5sum": "b646e4966af741009a6e00c60ad89dfc",
+      "SHA256": "8a96715498f10f8e166411248164448c9a892fa1d5b25f1e02a93ea668fa72aa"
+    },
+    {
+      "Package": "libre2-11",
+      "Source": "re2 (20240702-3)",
+      "Version": "20240702-3+b1",
+      "Installed-Size": "462",
+      "Maintainer": "Stefano Rivera <stefanor@debian.org>",
+      "Architecture": "amd64",
+      "Provides": "libre2-11-absl20240722",
+      "Depends": "libabsl20240722 (>= 20240722.0-1), libc6 (>= 2.38), libgcc-s1 (>= 3.0), libstdc++6 (>= 14)",
+      "Description": "efficient, principled regular expression library",
+      "Multi-Arch": "same",
+      "Homepage": "https://github.com/google/re2",
+      "Built-Using": "unicode-data (= 15.1.0-1)",
+      "Description-md5": "fa4436c464caac5a165cb52db8665092",
+      "Section": "libs",
+      "Priority": "optional",
+      "Filename": "pool/main/r/re2/libre2-11_20240702-3+b1_amd64.deb",
+      "Size": "168920",
+      "MD5sum": "08a5f30db32ee9bf7253639e48bc995c",
+      "SHA256": "128136b987e90b41d1ace03348fcf42fbfb9fec8bb9294332b13eaeadfec4062"
+    },
+    {
+      "Package": "ucf",
+      "Version": "3.0052",
+      "Installed-Size": "148",
+      "Maintainer": "Mark Hindley <leepen@debian.org>",
+      "Architecture": "all",
+      "Depends": "debconf (>= 0.5) | debconf-2.0, libtext-wrapi18n-perl, procps, sensible-utils",
+      "Description": "Update Configuration File(s): preserve user changes to config files",
+      "Multi-Arch": "foreign",
+      "Description-md5": "83e3ff2859524c831253d938da348878",
+      "Tag": "admin::configuring, devel::packaging, implemented-in::shell, interface::commandline, role::program, scope::utility, suite::debian, use::configuring",
+      "Section": "utils",
+      "Priority": "standard",
+      "Filename": "pool/main/u/ucf/ucf_3.0052_all.deb",
+      "Size": "43296",
+      "MD5sum": "8d0a4645c9d089fbe2cb5fd9c6d8e14c",
+      "SHA256": "ab5a6d5a621ad07034ce29d0c2587e6e267ecd2975458b2c8a7d0ada77dcb95b"
+    },
+    {
+      "Package": "libtext-wrapi18n-perl",
+      "Version": "0.06-10",
+      "Installed-Size": "26",
+      "Maintainer": "Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>",
+      "Architecture": "all",
+      "Depends": "libtext-charwidth-perl",
+      "Description": "internationalized substitute of Text::Wrap",
+      "Homepage": "https://metacpan.org/release/Text-WrapI18N",
+      "Description-md5": "6444c64be001648094335df7a6b952d0",
+      "Tag": "devel::lang:perl, devel::library, implemented-in::perl, role::devel-lib, role::program, use::text-formatting, works-with::text",
+      "Section": "perl",
+      "Priority": "optional",
+      "Filename": "pool/main/libt/libtext-wrapi18n-perl/libtext-wrapi18n-perl_0.06-10_all.deb",
+      "Size": "8808",
+      "MD5sum": "b57a11d040f8e9055f8f2e83ed3dd70b",
+      "SHA256": "17f98c7c09af8ac3bdbfd5a5dad32f3f51c71b02cdfc411366f49092a395de85"
+    },
+    {
+      "Package": "sensible-utils",
+      "Version": "0.0.25",
+      "Installed-Size": "63",
+      "Maintainer": "Anibal Monsalve Salazar <anibal@debian.org>",
+      "Architecture": "all",
+      "Description": "Utilities for sensible alternative selection",
+      "Multi-Arch": "foreign",
+      "Description-md5": "0cae32d4822230d3085b3b32b05a416c",
+      "Tag": "implemented-in::shell, role::program, suite::debian",
+      "Section": "utils",
+      "Priority": "important",
+      "Filename": "pool/main/s/sensible-utils/sensible-utils_0.0.25_all.deb",
+      "Size": "24992",
+      "MD5sum": "1bc74983fca8bf2f6df6f871bca29d13",
+      "SHA256": "873a9b73c3478cc3148cdbf5cc2084949a0a8e4fa16131d1cbc895d2f1f3470e"
+    },
+    {
+      "Package": "libtext-charwidth-perl",
+      "Source": "libtext-charwidth-perl (0.04-11)",
+      "Version": "0.04-11+b4",
+      "Installed-Size": "42",
+      "Maintainer": "Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>",
+      "Architecture": "amd64",
+      "Depends": "libc6 (>= 2.4), perl-base (>= 5.40.0-6), perlapi-5.40.0",
+      "Description": "get display widths of characters on the terminal",
+      "Multi-Arch": "same",
+      "Homepage": "https://metacpan.org/release/Text-CharWidth",
+      "Description-md5": "30483f9a76c70cf6313cecc3a60f2a13",
+      "Tag": "devel::lang:perl, devel::library, implemented-in::c, implemented-in::perl, role::devel-lib, role::program, use::text-formatting, works-with-format::plaintext, works-with::text",
+      "Section": "perl",
+      "Priority": "optional",
+      "Filename": "pool/main/libt/libtext-charwidth-perl/libtext-charwidth-perl_0.04-11+b4_amd64.deb",
+      "Size": "9476",
+      "MD5sum": "646e425e08efc5adaf3d34ba44412f75",
+      "SHA256": "3a1d44df306e0252e8a16df07eba457bc9f2ef736ee890a1c35ffdfd548eafa0"
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "gdb",
+      "name": "libbabeltrace1",
+      "operator": ">=",
+      "version": "1.5.4",
+      "resolution": "acquired"
+    },
+    {
+      "from": "gdb",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libdebuginfod1t64",
+      "operator": ">=",
+      "version": "0.188",
+      "resolution": "acquired"
+    },
+    {
+      "from": "gdb",
+      "name": "libexpat1",
+      "operator": ">=",
+      "version": "2.0.1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "4.2",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libgmp10",
+      "operator": ">=",
+      "version": "2:6.3.0+dfsg",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libipt2",
+      "operator": ">=",
+      "version": "2.0",
+      "resolution": "acquired"
+    },
+    {
+      "from": "gdb",
+      "name": "liblzma5",
+      "operator": ">=",
+      "version": "5.1.1alpha+20110809",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libmpfr6",
+      "operator": ">=",
+      "version": "3.1.3",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libncursesw6",
+      "operator": ">=",
+      "version": "6",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libpython3.13",
+      "operator": ">=",
+      "version": "3.13.0~rc3",
+      "resolution": "acquired"
+    },
+    {
+      "from": "gdb",
+      "name": "libreadline8t64",
+      "operator": ">=",
+      "version": "8.2~beta",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libsource-highlight4t64",
+      "operator": ">=",
+      "version": "3.1.9",
+      "resolution": "acquired"
+    },
+    {
+      "from": "gdb",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libtinfo6",
+      "operator": ">=",
+      "version": "6",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libxxhash0",
+      "operator": ">=",
+      "version": "0.6.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "libzstd1",
+      "operator": ">=",
+      "version": "1.5.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "gdb",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.2.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libabsl20240722",
+      "operator": ">=",
+      "version": "20240722.0-1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libclang-cpp19",
+      "operator": ">=",
+      "version": "1:19.1.7",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libgrpc++1.51t64",
+      "operator": ">=",
+      "version": "1.51.1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libgrpc29t64",
+      "operator": ">=",
+      "version": "1.51.1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libllvm19",
+      "operator": "=",
+      "version": "1:19.1.7-3+b1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libprotobuf32t64",
+      "operator": ">=",
+      "version": "3.21.12",
+      "resolution": "acquired"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "13.1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "clangd-19",
+      "name": "libclang-common-19-dev",
+      "operator": "=",
+      "version": "1:19.1.7-3+b1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libbabeltrace1",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libbabeltrace1",
+      "name": "libdw1t64",
+      "operator": ">=",
+      "version": "0.126",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libbabeltrace1",
+      "name": "libelf1t64",
+      "operator": ">=",
+      "version": "0.131",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libbabeltrace1",
+      "name": "libglib2.0-0t64",
+      "operator": ">=",
+      "version": "2.76.0",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libbabeltrace1",
+      "name": "libuuid1",
+      "operator": ">=",
+      "version": "2.16",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libcurl3t64-gnutls",
+      "operator": ">=",
+      "version": "7.28.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libelf1t64",
+      "operator": "=",
+      "version": "0.192-4",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libjson-c5",
+      "operator": ">=",
+      "version": "0.15",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libdw1t64",
+      "operator": "=",
+      "version": "0.192-4",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libdebuginfod1t64",
+      "name": "libdebuginfod-common",
+      "operator": ">=",
+      "version": "0.192-4",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libipt2",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.34",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libpython3.13",
+      "name": "libpython3.13-stdlib",
+      "operator": "=",
+      "version": "3.13.5-2+deb13u5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libpython3.13",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libpython3.13",
+      "name": "libexpat1",
+      "operator": ">=",
+      "version": "2.6.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libpython3.13",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.2.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libsource-highlight4t64",
+      "name": "libsource-highlight-common",
+      "operator": null,
+      "version": null,
+      "resolution": "acquired"
+    },
+    {
+      "from": "libsource-highlight4t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libsource-highlight4t64",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libsource-highlight4t64",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "13.1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libabsl20240722",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libabsl20240722",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libabsl20240722",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "13.1",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libabsl20240722",
+      "operator": ">=",
+      "version": "20240722.0-1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.32",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libgrpc29t64",
+      "operator": ">=",
+      "version": "1.51.1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libprotobuf32t64",
+      "operator": ">=",
+      "version": "3.21.12",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc++1.51t64",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libabsl20240722",
+      "operator": ">=",
+      "version": "20240722.0-1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libcares2",
+      "operator": ">=",
+      "version": "1.11.0~rc1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libprotobuf32t64",
+      "operator": ">=",
+      "version": "3.21.12",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libprotoc32t64",
+      "operator": ">=",
+      "version": "3.21.12",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libre2-11",
+      "operator": null,
+      "version": null,
+      "provides": "libre2-11-absl20240722",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libssl3t64",
+      "operator": ">=",
+      "version": "3.0.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libgrpc29t64",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.1.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotobuf32t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotobuf32t64",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotobuf32t64",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotobuf32t64",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.1.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "libbz2-1.0",
+      "operator": null,
+      "version": null,
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "libelf1t64",
+      "operator": "=",
+      "version": "0.192-4",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "liblzma5",
+      "operator": ">=",
+      "version": "5.1.1alpha+20120614",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "libzstd1",
+      "operator": ">=",
+      "version": "1.5.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdw1t64",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.2.2.3",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libelf1t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libelf1t64",
+      "name": "libzstd1",
+      "operator": ">=",
+      "version": "1.5.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libelf1t64",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.1.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libatomic1",
+      "operator": ">=",
+      "version": "4.8",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libffi8",
+      "operator": ">=",
+      "version": "3.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libmount1",
+      "operator": ">=",
+      "version": "2.40~rc2",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libpcre2-8-0",
+      "operator": ">=",
+      "version": "10.22",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "libselinux1",
+      "operator": ">=",
+      "version": "3.1~",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libglib2.0-0t64",
+      "name": "zlib1g",
+      "operator": ">=",
+      "version": "1:1.2.2",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libjson-c5",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod-common",
+      "name": "debconf",
+      "operator": null,
+      "version": null,
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod-common",
+      "name": "debconf",
+      "operator": ">=",
+      "version": "0.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libdebuginfod-common",
+      "name": "ucf",
+      "operator": null,
+      "version": null,
+      "resolution": "acquired"
+    },
+    {
+      "from": "libcares2",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotoc32t64",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.34",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotoc32t64",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libprotoc32t64",
+      "name": "libprotobuf32t64",
+      "operator": ">=",
+      "version": "3.21.12",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libprotoc32t64",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libre2-11",
+      "name": "libabsl20240722",
+      "operator": ">=",
+      "version": "20240722.0-1",
+      "resolution": "acquired"
+    },
+    {
+      "from": "libre2-11",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.38",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libre2-11",
+      "name": "libgcc-s1",
+      "operator": ">=",
+      "version": "3.0",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libre2-11",
+      "name": "libstdc++6",
+      "operator": ">=",
+      "version": "14",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "ucf",
+      "name": "debconf",
+      "operator": ">=",
+      "version": "0.5",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "ucf",
+      "name": "libtext-wrapi18n-perl",
+      "operator": null,
+      "version": null,
+      "resolution": "acquired"
+    },
+    {
+      "from": "ucf",
+      "name": "procps",
+      "operator": null,
+      "version": null,
+      "resolution": "existing-base"
+    },
+    {
+      "from": "ucf",
+      "name": "sensible-utils",
+      "operator": null,
+      "version": null,
+      "resolution": "acquired"
+    },
+    {
+      "from": "libtext-wrapi18n-perl",
+      "name": "libtext-charwidth-perl",
+      "operator": null,
+      "version": null,
+      "resolution": "acquired"
+    },
+    {
+      "from": "libtext-charwidth-perl",
+      "name": "libc6",
+      "operator": ">=",
+      "version": "2.4",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libtext-charwidth-perl",
+      "name": "perl-base",
+      "operator": ">=",
+      "version": "5.40.0-6",
+      "resolution": "existing-base"
+    },
+    {
+      "from": "libtext-charwidth-perl",
+      "name": "perl-base",
+      "operator": null,
+      "version": null,
+      "provides": "perlapi-5.40.0",
+      "resolution": "existing-base"
+    }
+  ],
+  "base_packages": {
+    "apt": {
+      "architecture": "amd64",
+      "version": "3.0.3"
+    },
+    "base-files": {
+      "architecture": "amd64",
+      "version": "13.8+deb13u7"
+    },
+    "base-passwd": {
+      "architecture": "amd64",
+      "version": "3.6.7"
+    },
+    "bash": {
+      "architecture": "amd64",
+      "version": "5.2.37-2+b10"
+    },
+    "binutils": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "binutils-common": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "binutils-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "bsdutils": {
+      "architecture": "amd64",
+      "version": "1:2.41.5-0+deb13u1"
+    },
+    "bubblewrap": {
+      "architecture": "amd64",
+      "version": "0.12.0-1~deb13u1"
+    },
+    "ca-certificates": {
+      "architecture": "all",
+      "version": "20250419"
+    },
+    "clang-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "clang-format-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "clang-tidy-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "clang-tools-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "cmake": {
+      "architecture": "amd64",
+      "version": "3.31.6-2"
+    },
+    "cmake-data": {
+      "architecture": "all",
+      "version": "3.31.6-2"
+    },
+    "coreutils": {
+      "architecture": "amd64",
+      "version": "9.7-3"
+    },
+    "cpp": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "cpp-14": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "cpp-14-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "cpp-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "dash": {
+      "architecture": "amd64",
+      "version": "0.5.12-12"
+    },
+    "debconf": {
+      "architecture": "all",
+      "version": "1.5.91"
+    },
+    "debian-archive-keyring": {
+      "architecture": "all",
+      "version": "2025.1"
+    },
+    "debianutils": {
+      "architecture": "amd64",
+      "version": "5.23.2"
+    },
+    "diffutils": {
+      "architecture": "amd64",
+      "version": "1:3.10-4"
+    },
+    "dpkg": {
+      "architecture": "amd64",
+      "version": "1.22.22"
+    },
+    "findutils": {
+      "architecture": "amd64",
+      "version": "4.10.0-3"
+    },
+    "g++": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "g++-14": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "g++-14-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "g++-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "gcc": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "gcc-14": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "gcc-14-base": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "gcc-14-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "gcc-x86-64-linux-gnu": {
+      "architecture": "amd64",
+      "version": "4:14.2.0-1"
+    },
+    "git": {
+      "architecture": "amd64",
+      "version": "1:2.47.3-0+deb13u1"
+    },
+    "git-man": {
+      "architecture": "all",
+      "version": "1:2.47.3-0+deb13u1"
+    },
+    "grep": {
+      "architecture": "amd64",
+      "version": "3.11-4"
+    },
+    "gzip": {
+      "architecture": "amd64",
+      "version": "1.13-1+deb13u1"
+    },
+    "hostname": {
+      "architecture": "amd64",
+      "version": "3.25"
+    },
+    "init-system-helpers": {
+      "architecture": "all",
+      "version": "1.69~deb13u1"
+    },
+    "lib32gcc-s1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "lib32stdc++6": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libacl1": {
+      "architecture": "amd64",
+      "version": "2.3.2-2+b1"
+    },
+    "libapt-pkg7.0": {
+      "architecture": "amd64",
+      "version": "3.0.3"
+    },
+    "libarchive13t64": {
+      "architecture": "amd64",
+      "version": "3.7.4-4+deb13u1"
+    },
+    "libasan8": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libatomic1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libattr1": {
+      "architecture": "amd64",
+      "version": "1:2.5.2-3"
+    },
+    "libaudit-common": {
+      "architecture": "all",
+      "version": "1:4.0.2-2+deb13u1"
+    },
+    "libaudit1": {
+      "architecture": "amd64",
+      "version": "1:4.0.2-2+deb13u1"
+    },
+    "libbinutils": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "libblkid1": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "libbrotli1": {
+      "architecture": "amd64",
+      "version": "1.1.0-2+b7"
+    },
+    "libbsd0": {
+      "architecture": "amd64",
+      "version": "0.12.2-2"
+    },
+    "libbz2-1.0": {
+      "architecture": "amd64",
+      "version": "1.0.8-6"
+    },
+    "libc-bin": {
+      "architecture": "amd64",
+      "version": "2.41-12+deb13u4"
+    },
+    "libc-dev-bin": {
+      "architecture": "amd64",
+      "version": "2.41-12+deb13u4"
+    },
+    "libc6": {
+      "architecture": "amd64",
+      "version": "2.41-12+deb13u4"
+    },
+    "libc6-dev": {
+      "architecture": "amd64",
+      "version": "2.41-12+deb13u4"
+    },
+    "libc6-i386": {
+      "architecture": "amd64",
+      "version": "2.41-12+deb13u4"
+    },
+    "libcap-ng0": {
+      "architecture": "amd64",
+      "version": "0.8.5-4+b1"
+    },
+    "libcap2": {
+      "architecture": "amd64",
+      "version": "1:2.75-10+deb13u1+b3"
+    },
+    "libcc1-0": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libclang-common-19-dev": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "libclang-cpp19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "libclang-rt-19-dev": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "libclang1-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "libcom-err2": {
+      "architecture": "amd64",
+      "version": "1.47.2-3+b12"
+    },
+    "libcrypt-dev": {
+      "architecture": "amd64",
+      "version": "1:4.4.38-1"
+    },
+    "libcrypt1": {
+      "architecture": "amd64",
+      "version": "1:4.4.38-1"
+    },
+    "libctf-nobfd0": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "libctf0": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "libcurl3t64-gnutls": {
+      "architecture": "amd64",
+      "version": "8.14.1-2+deb13u5"
+    },
+    "libcurl4t64": {
+      "architecture": "amd64",
+      "version": "8.14.1-2+deb13u5"
+    },
+    "libdb5.3t64": {
+      "architecture": "amd64",
+      "version": "5.3.28+dfsg2-9"
+    },
+    "libdebconfclient0": {
+      "architecture": "amd64",
+      "version": "0.280"
+    },
+    "libedit2": {
+      "architecture": "amd64",
+      "version": "3.1-20250104-1"
+    },
+    "liberror-perl": {
+      "architecture": "all",
+      "version": "0.17030-1"
+    },
+    "libexpat1": {
+      "architecture": "amd64",
+      "version": "2.8.3-1~deb13u1"
+    },
+    "libffi8": {
+      "architecture": "amd64",
+      "version": "3.4.8-2"
+    },
+    "libgc1": {
+      "architecture": "amd64",
+      "version": "1:8.2.8-1"
+    },
+    "libgcc-14-dev": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libgcc-s1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libgdbm-compat4t64": {
+      "architecture": "amd64",
+      "version": "1.24-2"
+    },
+    "libgdbm6t64": {
+      "architecture": "amd64",
+      "version": "1.24-2"
+    },
+    "libgmp10": {
+      "architecture": "amd64",
+      "version": "2:6.3.0+dfsg-3"
+    },
+    "libgnutls30t64": {
+      "architecture": "amd64",
+      "version": "3.8.9-3+deb13u4"
+    },
+    "libgomp1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libgprofng0": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "libgssapi-krb5-2": {
+      "architecture": "amd64",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "libhogweed6t64": {
+      "architecture": "amd64",
+      "version": "3.10.1-1"
+    },
+    "libhwasan0": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libidn2-0": {
+      "architecture": "amd64",
+      "version": "2.3.8-2"
+    },
+    "libisl23": {
+      "architecture": "amd64",
+      "version": "0.27-1"
+    },
+    "libitm1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libjansson4": {
+      "architecture": "amd64",
+      "version": "2.14-2+b3"
+    },
+    "libjsoncpp26": {
+      "architecture": "amd64",
+      "version": "1.9.6-3"
+    },
+    "libk5crypto3": {
+      "architecture": "amd64",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "libkeyutils1": {
+      "architecture": "amd64",
+      "version": "1.6.3-6"
+    },
+    "libkrb5-3": {
+      "architecture": "amd64",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "libkrb5support0": {
+      "architecture": "amd64",
+      "version": "1.21.3-5+deb13u1"
+    },
+    "liblastlog2-2": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "libldap2": {
+      "architecture": "amd64",
+      "version": "2.6.10+dfsg-1"
+    },
+    "libllvm19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "liblsan0": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "liblz4-1": {
+      "architecture": "amd64",
+      "version": "1.10.0-4"
+    },
+    "liblzma5": {
+      "architecture": "amd64",
+      "version": "5.8.1-1+deb13u1"
+    },
+    "libmd0": {
+      "architecture": "amd64",
+      "version": "1.1.0-2+b1"
+    },
+    "libmount1": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "libmpc3": {
+      "architecture": "amd64",
+      "version": "1.3.1-1+b3"
+    },
+    "libmpfr6": {
+      "architecture": "amd64",
+      "version": "4.2.2-1"
+    },
+    "libncursesw6": {
+      "architecture": "amd64",
+      "version": "6.5+20250216-2"
+    },
+    "libnettle8t64": {
+      "architecture": "amd64",
+      "version": "3.10.1-1"
+    },
+    "libnghttp2-14": {
+      "architecture": "amd64",
+      "version": "1.64.0-1.1+deb13u1"
+    },
+    "libnghttp3-9": {
+      "architecture": "amd64",
+      "version": "1.8.0-1"
+    },
+    "libngtcp2-16": {
+      "architecture": "amd64",
+      "version": "1.11.0-1+deb13u1"
+    },
+    "libngtcp2-crypto-gnutls8": {
+      "architecture": "amd64",
+      "version": "1.11.0-1+deb13u1"
+    },
+    "libobjc-14-dev": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libobjc4": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libp11-kit0": {
+      "architecture": "amd64",
+      "version": "0.25.5-3"
+    },
+    "libpam-modules": {
+      "architecture": "amd64",
+      "version": "1.7.0-5"
+    },
+    "libpam-modules-bin": {
+      "architecture": "amd64",
+      "version": "1.7.0-5"
+    },
+    "libpam-runtime": {
+      "architecture": "all",
+      "version": "1.7.0-5"
+    },
+    "libpam0g": {
+      "architecture": "amd64",
+      "version": "1.7.0-5"
+    },
+    "libpcre2-8-0": {
+      "architecture": "amd64",
+      "version": "10.46-1~deb13u2"
+    },
+    "libperl5.40": {
+      "architecture": "amd64",
+      "version": "5.40.1-6+deb13u1"
+    },
+    "libpfm4": {
+      "architecture": "amd64",
+      "version": "4.13.0+git99-gc5587f9-1"
+    },
+    "libproc2-0": {
+      "architecture": "amd64",
+      "version": "2:4.0.4-9"
+    },
+    "libpsl5t64": {
+      "architecture": "amd64",
+      "version": "0.21.2-1.1+b1"
+    },
+    "libpython3-stdlib": {
+      "architecture": "amd64",
+      "version": "3.13.5-1"
+    },
+    "libpython3.13-minimal": {
+      "architecture": "amd64",
+      "version": "3.13.5-2+deb13u5"
+    },
+    "libpython3.13-stdlib": {
+      "architecture": "amd64",
+      "version": "3.13.5-2+deb13u5"
+    },
+    "libquadmath0": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libreadline8t64": {
+      "architecture": "amd64",
+      "version": "8.2-6"
+    },
+    "librhash1": {
+      "architecture": "amd64",
+      "version": "1.4.5-1"
+    },
+    "librtmp1": {
+      "architecture": "amd64",
+      "version": "2.4+20151223.gitfa8646d.1-2+b5"
+    },
+    "libsasl2-2": {
+      "architecture": "amd64",
+      "version": "2.1.28+dfsg1-9"
+    },
+    "libsasl2-modules-db": {
+      "architecture": "amd64",
+      "version": "2.1.28+dfsg1-9"
+    },
+    "libseccomp2": {
+      "architecture": "amd64",
+      "version": "2.6.0-2"
+    },
+    "libselinux1": {
+      "architecture": "amd64",
+      "version": "3.8.1-1"
+    },
+    "libsemanage-common": {
+      "architecture": "all",
+      "version": "3.8.1-1"
+    },
+    "libsemanage2": {
+      "architecture": "amd64",
+      "version": "3.8.1-1"
+    },
+    "libsepol2": {
+      "architecture": "amd64",
+      "version": "3.8.1-1"
+    },
+    "libsframe1": {
+      "architecture": "amd64",
+      "version": "2.44-3"
+    },
+    "libsmartcols1": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "libsqlite3-0": {
+      "architecture": "amd64",
+      "version": "3.46.1-7+deb13u2"
+    },
+    "libssh2-1t64": {
+      "architecture": "amd64",
+      "version": "1.11.1-1+deb13u2"
+    },
+    "libssl3t64": {
+      "architecture": "amd64",
+      "version": "3.5.7-1~deb13u3"
+    },
+    "libstdc++-14-dev": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libstdc++6": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libsystemd0": {
+      "architecture": "amd64",
+      "version": "257.13-1~deb13u1"
+    },
+    "libtasn1-6": {
+      "architecture": "amd64",
+      "version": "4.20.0-2+deb13u1"
+    },
+    "libtinfo6": {
+      "architecture": "amd64",
+      "version": "6.5+20250216-2"
+    },
+    "libtsan2": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libubsan1": {
+      "architecture": "amd64",
+      "version": "14.2.0-19"
+    },
+    "libudev1": {
+      "architecture": "amd64",
+      "version": "257.13-1~deb13u1"
+    },
+    "libunistring5": {
+      "architecture": "amd64",
+      "version": "1.3-2"
+    },
+    "libuuid1": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "libuv1t64": {
+      "architecture": "amd64",
+      "version": "1.50.0-2"
+    },
+    "libxml2": {
+      "architecture": "amd64",
+      "version": "2.12.7+dfsg+really2.9.14-2.1+deb13u3"
+    },
+    "libxxhash0": {
+      "architecture": "amd64",
+      "version": "0.8.3-2"
+    },
+    "libyaml-0-2": {
+      "architecture": "amd64",
+      "version": "0.2.5-2"
+    },
+    "libz3-4": {
+      "architecture": "amd64",
+      "version": "4.13.3-1"
+    },
+    "libzstd1": {
+      "architecture": "amd64",
+      "version": "1.5.7+dfsg-1"
+    },
+    "linux-libc-dev": {
+      "architecture": "all",
+      "version": "6.12.111-1"
+    },
+    "llvm-19": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "llvm-19-linker-tools": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "llvm-19-runtime": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "llvm-19-tools": {
+      "architecture": "amd64",
+      "version": "1:19.1.7-3+b1"
+    },
+    "login": {
+      "architecture": "amd64",
+      "version": "1:4.16.0-2+really2.41.5-0+deb13u1"
+    },
+    "login.defs": {
+      "architecture": "all",
+      "version": "1:4.17.4-2"
+    },
+    "mawk": {
+      "architecture": "amd64",
+      "version": "1.3.4.20250131-1"
+    },
+    "media-types": {
+      "architecture": "all",
+      "version": "13.0.0"
+    },
+    "mount": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "ncurses-base": {
+      "architecture": "all",
+      "version": "6.5+20250216-2"
+    },
+    "ncurses-bin": {
+      "architecture": "amd64",
+      "version": "6.5+20250216-2"
+    },
+    "netbase": {
+      "architecture": "all",
+      "version": "6.5"
+    },
+    "ninja-build": {
+      "architecture": "amd64",
+      "version": "1.12.1-1"
+    },
+    "openssl": {
+      "architecture": "amd64",
+      "version": "3.5.7-1~deb13u3"
+    },
+    "openssl-provider-legacy": {
+      "architecture": "amd64",
+      "version": "3.5.7-1~deb13u3"
+    },
+    "passwd": {
+      "architecture": "amd64",
+      "version": "1:4.17.4-2"
+    },
+    "perl": {
+      "architecture": "amd64",
+      "version": "5.40.1-6+deb13u1"
+    },
+    "perl-base": {
+      "architecture": "amd64",
+      "version": "5.40.1-6+deb13u1"
+    },
+    "perl-modules-5.40": {
+      "architecture": "all",
+      "version": "5.40.1-6+deb13u1"
+    },
+    "procps": {
+      "architecture": "amd64",
+      "version": "2:4.0.4-9"
+    },
+    "python3": {
+      "architecture": "amd64",
+      "version": "3.13.5-1"
+    },
+    "python3-attr": {
+      "architecture": "all",
+      "version": "25.3.0-1"
+    },
+    "python3-jsonschema": {
+      "architecture": "all",
+      "version": "4.19.2-6"
+    },
+    "python3-jsonschema-specifications": {
+      "architecture": "all",
+      "version": "2023.12.1-2"
+    },
+    "python3-minimal": {
+      "architecture": "amd64",
+      "version": "3.13.5-1"
+    },
+    "python3-pygments": {
+      "architecture": "all",
+      "version": "2.18.0+dfsg-2"
+    },
+    "python3-referencing": {
+      "architecture": "all",
+      "version": "0.36.2-1"
+    },
+    "python3-rpds-py": {
+      "architecture": "amd64",
+      "version": "0.21.0-2+b1"
+    },
+    "python3-yaml": {
+      "architecture": "amd64",
+      "version": "6.0.2-1+b2"
+    },
+    "python3.13": {
+      "architecture": "amd64",
+      "version": "3.13.5-2+deb13u5"
+    },
+    "python3.13-minimal": {
+      "architecture": "amd64",
+      "version": "3.13.5-2+deb13u5"
+    },
+    "readline-common": {
+      "architecture": "all",
+      "version": "8.2-6"
+    },
+    "rpcsvc-proto": {
+      "architecture": "amd64",
+      "version": "1.4.3-1"
+    },
+    "sed": {
+      "architecture": "amd64",
+      "version": "4.9-2+deb13u1"
+    },
+    "sqv": {
+      "architecture": "amd64",
+      "version": "1.3.0-3+b2"
+    },
+    "sysvinit-utils": {
+      "architecture": "amd64",
+      "version": "3.14-4"
+    },
+    "tar": {
+      "architecture": "amd64",
+      "version": "1.35+dfsg-3.1"
+    },
+    "tzdata": {
+      "architecture": "all",
+      "version": "2026c-0+deb13u1"
+    },
+    "util-linux": {
+      "architecture": "amd64",
+      "version": "2.41.5-0+deb13u1"
+    },
+    "zlib1g": {
+      "architecture": "amd64",
+      "version": "1:1.3.dfsg+really1.3.1-1+b1"
+    }
+  }
+}

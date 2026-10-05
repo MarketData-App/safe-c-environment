@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "authority",
+    "tool_lock",
+    "container_policy",
+    "container_profile",
+    "source_prefix",
+    "build_prefix",
+    "purpose",
+    "default_profile",
+    "profiles",
+    "limits",
+    "navigation",
+    "debugger",
+    "compiler_cache",
+    "application_started",
+    "production_authorized"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "const": "CANDIDATE_UNSEALED"
+    },
+    "authority": {
+      "const": "independently supplied baseline; candidate files never approve themselves"
+    },
+    "tool_lock": {
+      "const": "developer.lock.json"
+    },
+    "container_policy": {
+      "const": "safety/container-policy.json"
+    },
+    "container_profile": {
+      "const": "build"
+    },
+    "source_prefix": {
+      "const": "/src"
+    },
+    "build_prefix": {
+      "const": "/work/developer-build"
+    },
+    "purpose": {
+      "const": "development"
+    },
+    "default_profile": {
+      "const": "debug"
+    },
+    "profiles": {
+      "const": {
+        "debug": {
+          "compiler": "clang",
+          "safety_profile": "strict",
+          "dependency_profile": "clang-O0",
+          "flags": "-O0 -g -fno-omit-frame-pointer -fno-lto"
+        },
+        "clang-O0": {
+          "compiler": "clang",
+          "safety_profile": "strict",
+          "dependency_profile": "clang-O0",
+          "flags": "-O0"
+        },
+        "clang-O2": {
+          "compiler": "clang",
+          "safety_profile": "strict",
+          "dependency_profile": "clang-O2",
+          "flags": "-O2"
+        },
+        "gcc-O0": {
+          "compiler": "gcc",
+          "safety_profile": "strict",
+          "dependency_profile": "gcc-O0",
+          "flags": "-O0"
+        },
+        "gcc-O2": {
+          "compiler": "gcc",
+          "safety_profile": "strict",
+          "dependency_profile": "gcc-O2",
+          "flags": "-O2"
+        },
+        "asan": {
+          "compiler": "clang",
+          "safety_profile": "asan",
+          "dependency_profile": "asan",
+          "flags": "-O0"
+        },
+        "ubsan": {
+          "compiler": "clang",
+          "safety_profile": "ubsan",
+          "dependency_profile": "ubsan",
+          "flags": "-O0"
+        },
+        "integer": {
+          "compiler": "clang",
+          "safety_profile": "integer",
+          "dependency_profile": "ubsan",
+          "flags": "-O0"
+        },
+        "msan": {
+          "compiler": "clang",
+          "safety_profile": "msan",
+          "dependency_profile": "msan",
+          "flags": "-O0"
+        },
+        "tsan": {
+          "compiler": "clang",
+          "safety_profile": "tsan",
+          "dependency_profile": "tsan",
+          "flags": "-O0"
+        },
+        "coverage": {
+          "compiler": "clang",
+          "safety_profile": "coverage",
+          "dependency_profile": "coverage",
+          "flags": "-O0"
+        },
+        "hardened": {
+          "compiler": "clang",
+          "safety_profile": "hardened",
+          "dependency_profile": "clang-O2",
+          "flags": "-O2"
+        }
+      }
+    },
+    "limits": {
+      "const": {
+        "job_wall_seconds": 90,
+        "server_wall_seconds": 30,
+        "server_idle_seconds": 5,
+        "active_per_worktree_profile": 1,
+        "worker_threads": 2,
+        "message_bytes": 1048576,
+        "protocol_total_bytes": 4194304,
+        "document_bytes": 1048576,
+        "retained_state_bytes": 134217728,
+        "retained_state_files": 2048,
+        "index_bytes": 33554432,
+        "max_frames": 16,
+        "max_threads": 8,
+        "max_values": 16,
+        "max_source_steps": 4
+      }
+    },
+    "navigation": {
+      "const": {
+        "kinds": [
+          "definition",
+          "references",
+          "hover",
+          "document-symbols",
+          "workspace-symbols",
+          "diagnostics"
+        ],
+        "saved_files_only": true,
+        "cli_position": "one-based Unicode scalar",
+        "position_encodings": [
+          "utf-8",
+          "utf-16",
+          "utf-32"
+        ],
+        "enable_ambient_config": false,
+        "query_drivers": [],
+        "remote_index": false,
+        "background_index": true,
+        "index_directory": "/work/developer-build/.cache/clangd/index",
+        "global_completeness_claim": false
+      }
+    },
+    "debugger": {
+      "const": {
+        "recipes": [
+          "breakpoint",
+          "crash"
+        ],
+        "launch_own_child_only": true,
+        "startup_shell": false,
+        "disable_randomization": false,
+        "auto_load": false,
+        "debuginfod": false,
+        "may_call_functions": false,
+        "libthread_db_directory": "/usr/lib/x86_64-linux-gnu",
+        "remote_targets": false,
+        "external_pid_attach": false,
+        "arbitrary_commands": false,
+        "inferior_transport": "separate private pseudo-terminal"
+      }
+    },
+    "compiler_cache": {
+      "const": {
+        "status": "ABSENT",
+        "acceptance_cache_reuse": false
+      }
+    },
+    "application_started": {
+      "const": false
+    },
+    "production_authorized": {
+      "const": false
+    }
+  }
+}

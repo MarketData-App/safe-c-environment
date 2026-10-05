@@ -80,7 +80,9 @@ class FoundationClassifierTests(unittest.TestCase):
     def test_export_preflight_requires_the_foundation_build_helper(self):
         manifest = read_json(ROOT / 'starter-export.json')
         manifest['files'] = sorted(set(manifest['files']) | {'cmake/Foundation.cmake'})
-        with tempfile.TemporaryDirectory() as temporary:
+        # Copy the complete retained developer payload within bounded build
+        # scratch; /tmp remains the separate fixed 64 MiB no-exec area.
+        with tempfile.TemporaryDirectory(dir='/work') as temporary:
             candidate = Path(temporary)
             for relative in manifest['files']:
                 target = candidate / relative

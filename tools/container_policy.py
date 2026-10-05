@@ -104,8 +104,11 @@ def completion_gate(outcome,lifecycle):
     return True
 
 class Launcher:
-    def __init__(self,root,run_dir,lock):
+    def __init__(self,root,run_dir,lock,*,purpose='qualification'):
+        if purpose not in {'qualification','development'}:raise GateError('unregistered container purpose')
         self.root=Path(root);self.run_dir=Path(run_dir);self.lock=lock;self.value=policy(self.root)
+        self.purpose=purpose
+        self.worktree_scope=__import__('hashlib').sha256(str(self.root.resolve()).encode()).hexdigest()
         self.runner_identity=None
         self.config=Path(tempfile.mkdtemp(prefix='safe-c-docker-config-'))
         self.env={'PATH':'/usr/bin:/bin','HOME':str(self.config),'LANG':'C.UTF-8'}
@@ -171,6 +174,8 @@ class Launcher:
         if profile=='integration' and not network:raise GateError('integration requires a disposable internal network')
         c=self.value['common'];p=plan['resources'];name='safe-c-'+uuid.uuid4().hex
         argv=['create','--pull=never','--name',name,'--label',LABEL+'=1','--label','org.safe-c.profile='+profile,'--label','org.safe-c.source='+file_hash(self.root/'safety/contract.json'),
+              '--label','org.safe-c.purpose='+self.purpose,'--label','org.safe-c.worktree='+self.worktree_scope,
+              '--label','org.safe-c.run='+self.run_dir.name,
               '--network',network or 'none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges','--security-opt=apparmor=docker-default',
               '--ipc=private','--cgroupns=private','--restart=no','--user',plan['user'],
               '--memory',str(p['memory_bytes']),'--memory-swap',str(p['memory_bytes']),

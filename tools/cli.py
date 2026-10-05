@@ -187,12 +187,18 @@ def main(argv=None):
     sb=subs.add_parser('sandbox');sb.add_argument('operation',choices=['doctor','plan','selftest']);sb.add_argument('--profile',default='build')
     rt=subs.add_parser('runtime');rt.add_argument('operation',choices=['smoke'])
     fd=subs.add_parser('foundation');fd.add_argument('operation',choices=['doctor','check','selftest'])
+    dev=subs.add_parser('dev')
+    from developer import configure_parser
+    configure_parser(dev)
     args=parser.parse_args(argv);root=args.candidate.resolve()
     sandbox_doctor=args.command=='sandbox' and args.operation=='doctor'
     if args.command=='sandbox' and args.operation=='selftest':args.command='ci'
     elif sandbox_doctor:args.command='doctor'
     try:
         environment_gate()
+        if args.command=='dev':
+            from developer import execute
+            return execute(root,args)
         if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
         if args.command=='report':
             report=read_json(root/'artifacts/bootstrap-report.json');validate(root,'report',report)

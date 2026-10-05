@@ -1,0 +1,598 @@
+{
+  "status": "SIGNED_IMMUTABLE_SOURCE_PROVENANCE",
+  "metadata_url": "https://deb.debian.org/debian/dists/trixie/main/source/Sources.xz",
+  "metadata_sha256": "6002f81f463a2d976d84b34170367cc16da2d60bd0ba9ab9d868d6e1c1a935d9",
+  "sources": {
+    "gdb": {
+      "version": "16.3-1",
+      "archives": [
+        {
+          "name": "gdb_16.3-1.dsc",
+          "bytes": 2592,
+          "sha256": "d7a8760ea307a7859b44c2d5b8523bfaa1f3bcda26fa55f3d90768b15a3f1138",
+          "url": "https://deb.debian.org/debian/pool/main/g/gdb/gdb_16.3-1.dsc"
+        },
+        {
+          "name": "gdb_16.3.orig.tar.xz",
+          "bytes": 25695968,
+          "sha256": "99c11713693d81d5463733c29333f2c06c358b730c911b2438a849b26ca4b6b6",
+          "url": "https://deb.debian.org/debian/pool/main/g/gdb/gdb_16.3.orig.tar.xz"
+        },
+        {
+          "name": "gdb_16.3-1.debian.tar.xz",
+          "bytes": 53448,
+          "sha256": "20190f37f74605866e447b8f9ddcf8e86b83d34d40c4aad63bb959a2b2877a0f",
+          "url": "https://deb.debian.org/debian/pool/main/g/gdb/gdb_16.3-1.debian.tar.xz"
+        }
+      ],
+      "maintainer": "H\u00e9ctor Or\u00f3n Mart\u00ednez <zumbi@debian.org>"
+    },
+    "llvm-toolchain-19": {
+      "version": "1:19.1.7-3",
+      "archives": [
+        {
+          "name": "llvm-toolchain-19_19.1.7-3.dsc",
+          "bytes": 8200,
+          "sha256": "1559a483908ca0c8d4124448a551da5f87ab644771352a5335b1b01d07fe732f",
+          "url": "https://deb.debian.org/debian/pool/main/l/llvm-toolchain-19/llvm-toolchain-19_19.1.7-3.dsc"
+        },
+        {
+          "name": "llvm-toolchain-19_19.1.7.orig.tar.xz",
+          "bytes": 164407968,
+          "sha256": "ae498f3bc58ae2d9f64ef5f0c035c4240152bf015a5b7738b15c22e93bdc97ce",
+          "url": "https://deb.debian.org/debian/pool/main/l/llvm-toolchain-19/llvm-toolchain-19_19.1.7.orig.tar.xz"
+        },
+        {
+          "name": "llvm-toolchain-19_19.1.7-3.debian.tar.xz",
+          "bytes": 154980,
+          "sha256": "bcbccbc6ae715ac84bd21bb7e1175fba483abc0993a6066aa49236c473bce7df",
+          "url": "https://deb.debian.org/debian/pool/main/l/llvm-toolchain-19/llvm-toolchain-19_19.1.7-3.debian.tar.xz"
+        }
+      ],
+      "maintainer": "LLVM Packaging Team <pkg-llvm-team@lists.alioth.debian.org>"
+    },
+    "babeltrace": {
+      "version": "1.5.11-4",
+      "archives": [
+        {
+          "name": "babeltrace_1.5.11-4.dsc",
+          "bytes": 2549,
+          "sha256": "c4d2209e9f7fd6b5b5885f75c23814e424e7a8f03201e08e78a4d333ddfa6e19",
+          "url": "https://deb.debian.org/debian/pool/main/b/babeltrace/babeltrace_1.5.11-4.dsc"
+        },
+        {
+          "name": "babeltrace_1.5.11.orig.tar.bz2",
+          "bytes": 998592,
+          "sha256": "67b43aaaef5c951fa7af1a557cf7201a11fe89876b7c22ba0a03cbc316db5a9c",
+          "url": "https://deb.debian.org/debian/pool/main/b/babeltrace/babeltrace_1.5.11.orig.tar.bz2"
+        },
+        {
+          "name": "babeltrace_1.5.11.orig.tar.bz2.asc",
+          "bytes": 833,
+          "sha256": "b11744dbee03728bdedd619b442138afb29d25cfebbd2849e9876f4a10530480",
+          "url": "https://deb.debian.org/debian/pool/main/b/babeltrace/babeltrace_1.5.11.orig.tar.bz2.asc"
+        },
+        {
+          "name": "babeltrace_1.5.11-4.debian.tar.xz",
+          "bytes": 12628,
+          "sha256": "06182eadbc4f463dc4c3abd34f8a773d1bcc6b14f9de7760d15aa00ed305f853",
+          "url": "https://deb.debian.org/debian/pool/main/b/babeltrace/babeltrace_1.5.11-4.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Jon Bernard <jbernard@debian.org>"
+    },
+    "elfutils": {
+      "version": "0.192-4",
+      "archives": [
+        {
+          "name": "elfutils_0.192-4.dsc",
+          "bytes": 3314,
+          "sha256": "37d101658c45a25afc15d2053a1378df2381dadbb368e262ede2cea79241779f",
+          "url": "https://deb.debian.org/debian/pool/main/e/elfutils/elfutils_0.192-4.dsc"
+        },
+        {
+          "name": "elfutils_0.192.orig.tar.bz2",
+          "bytes": 11913897,
+          "sha256": "616099beae24aba11f9b63d86ca6cc8d566d968b802391334c91df54eab416b4",
+          "url": "https://deb.debian.org/debian/pool/main/e/elfutils/elfutils_0.192.orig.tar.bz2"
+        },
+        {
+          "name": "elfutils_0.192-4.debian.tar.xz",
+          "bytes": 44456,
+          "sha256": "a18efee3ae99ea25e10a0b8c4b731a28dee685361ae89ea8136e9065c86c8942",
+          "url": "https://deb.debian.org/debian/pool/main/e/elfutils/elfutils_0.192-4.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Debian Elfutils Maintainers <debian-gcc@lists.debian.org>"
+    },
+    "intel-processor-trace": {
+      "version": "2.1.2-1",
+      "archives": [
+        {
+          "name": "intel-processor-trace_2.1.2-1.dsc",
+          "bytes": 2158,
+          "sha256": "949674199c9ef5028d3bd1006e2cb2f55172f875f0129ebdf1fa494f35672aa2",
+          "url": "https://deb.debian.org/debian/pool/main/i/intel-processor-trace/intel-processor-trace_2.1.2-1.dsc"
+        },
+        {
+          "name": "intel-processor-trace_2.1.2.orig.tar.gz",
+          "bytes": 371544,
+          "sha256": "713d3e76b6c3073b122a9f5b6c025bc301a0436582f132caf782814363acf60f",
+          "url": "https://deb.debian.org/debian/pool/main/i/intel-processor-trace/intel-processor-trace_2.1.2.orig.tar.gz"
+        },
+        {
+          "name": "intel-processor-trace_2.1.2-1.debian.tar.xz",
+          "bytes": 3956,
+          "sha256": "2d324834ce736d3f3de87c275bbfe27f21c37e1bbd6dd12b05952bc32b802064",
+          "url": "https://deb.debian.org/debian/pool/main/i/intel-processor-trace/intel-processor-trace_2.1.2-1.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Victor Seva <vseva@debian.org>"
+    },
+    "python3.13": {
+      "version": "3.13.5-2+deb13u5",
+      "archives": [
+        {
+          "name": "python3.13_3.13.5-2+deb13u5.dsc",
+          "bytes": 4298,
+          "sha256": "4be84e20fb902354fa86955e2fbea6e8bdbd158f54833423488308a9b3532662",
+          "url": "https://deb.debian.org/debian/pool/main/p/python3.13/python3.13_3.13.5-2+deb13u5.dsc"
+        },
+        {
+          "name": "python3.13_3.13.5.orig.tar.xz",
+          "bytes": 22856016,
+          "sha256": "93e583f243454e6e9e4588ca2c2662206ad961659863277afcdb96801647d640",
+          "url": "https://deb.debian.org/debian/pool/main/p/python3.13/python3.13_3.13.5.orig.tar.xz"
+        },
+        {
+          "name": "python3.13_3.13.5.orig.tar.xz.asc",
+          "bytes": 963,
+          "sha256": "da6e013d98dcf8fc6696cdb2872b0051fc8fdeb632f73ef9f54d7b5a68647401",
+          "url": "https://deb.debian.org/debian/pool/main/p/python3.13/python3.13_3.13.5.orig.tar.xz.asc"
+        },
+        {
+          "name": "python3.13_3.13.5-2+deb13u5.debian.tar.xz",
+          "bytes": 299640,
+          "sha256": "a51f456e654ce2c9b40cc1db8005e5041cdb0b2c3aa96ab0871c49fe95280366",
+          "url": "https://deb.debian.org/debian/pool/main/p/python3.13/python3.13_3.13.5-2+deb13u5.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Matthias Klose <doko@debian.org>"
+    },
+    "source-highlight": {
+      "version": "3.1.9-4.3",
+      "archives": [
+        {
+          "name": "source-highlight_3.1.9-4.3.dsc",
+          "bytes": 2275,
+          "sha256": "8e5ec41c17a5d6c840f7aed961879acc4aad4f3893783370013d0420a3e5bebe",
+          "url": "https://deb.debian.org/debian/pool/main/s/source-highlight/source-highlight_3.1.9-4.3.dsc"
+        },
+        {
+          "name": "source-highlight_3.1.9.orig.tar.gz",
+          "bytes": 1717234,
+          "sha256": "3a7fd28378cb5416f8de2c9e77196ec915145d44e30ff4e0ee8beb3fe6211c91",
+          "url": "https://deb.debian.org/debian/pool/main/s/source-highlight/source-highlight_3.1.9.orig.tar.gz"
+        },
+        {
+          "name": "source-highlight_3.1.9-4.3.debian.tar.xz",
+          "bytes": 8124,
+          "sha256": "419ab9de0785b1a621f994fa7e89a0beb7cc7725d47167395a1d3a905d03aa20",
+          "url": "https://deb.debian.org/debian/pool/main/s/source-highlight/source-highlight_3.1.9-4.3.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Kartik Kulkarni <kartik.koolks@gmail.com>"
+    },
+    "abseil": {
+      "version": "20240722.0-4",
+      "archives": [
+        {
+          "name": "abseil_20240722.0-4.dsc",
+          "bytes": 1893,
+          "sha256": "d127496fe53d7dd0e6770c6eb3f873187fcb76e67fee68c4c8da745b41b7bbc6",
+          "url": "https://deb.debian.org/debian/pool/main/a/abseil/abseil_20240722.0-4.dsc"
+        },
+        {
+          "name": "abseil_20240722.0.orig.tar.gz",
+          "bytes": 2242710,
+          "sha256": "df6d1f5ef540725f3851201176a60486aab332410788465c9877910bb471c34a",
+          "url": "https://deb.debian.org/debian/pool/main/a/abseil/abseil_20240722.0.orig.tar.gz"
+        },
+        {
+          "name": "abseil_20240722.0-4.debian.tar.xz",
+          "bytes": 11020,
+          "sha256": "dca57312b567c2188d2c9d4bde57043052f05ec5557df03b3dd510ecc94ceec0",
+          "url": "https://deb.debian.org/debian/pool/main/a/abseil/abseil_20240722.0-4.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Benjamin Barenblat <bbaren@debian.org>"
+    },
+    "grpc": {
+      "version": "1.51.1-6",
+      "archives": [
+        {
+          "name": "grpc_1.51.1-6.dsc",
+          "bytes": 2856,
+          "sha256": "ba7c21a2833c9a4b483135bf2e8757e3fc88fa967413c6bf00fab40392f421c5",
+          "url": "https://deb.debian.org/debian/pool/main/g/grpc/grpc_1.51.1-6.dsc"
+        },
+        {
+          "name": "grpc_1.51.1.orig.tar.gz",
+          "bytes": 8550112,
+          "sha256": "b55696fb249669744de3e71acc54a9382bea0dce7cd5ba379b356b12b82d4229",
+          "url": "https://deb.debian.org/debian/pool/main/g/grpc/grpc_1.51.1.orig.tar.gz"
+        },
+        {
+          "name": "grpc_1.51.1-6.debian.tar.xz",
+          "bytes": 29224,
+          "sha256": "0a4f5e2b34812cddeac7504c9173eed35ea95163f7480e1252a65f5d86b95b94",
+          "url": "https://deb.debian.org/debian/pool/main/g/grpc/grpc_1.51.1-6.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>"
+    },
+    "protobuf": {
+      "version": "3.21.12-11+deb13u1",
+      "archives": [
+        {
+          "name": "protobuf_3.21.12-11+deb13u1.dsc",
+          "bytes": 3075,
+          "sha256": "8f60b706ef31fa14c88d93314a5a3ae07b98fa0bc3bb4b58739598de6357779a",
+          "url": "https://deb.debian.org/debian/pool/main/p/protobuf/protobuf_3.21.12-11+deb13u1.dsc"
+        },
+        {
+          "name": "protobuf_3.21.12.orig.tar.gz",
+          "bytes": 5141502,
+          "sha256": "930c2c3b5ecc6c9c12615cf5ad93f1cd6e12d0aba862b572e076259970ac3a53",
+          "url": "https://deb.debian.org/debian/pool/main/p/protobuf/protobuf_3.21.12.orig.tar.gz"
+        },
+        {
+          "name": "protobuf_3.21.12-11+deb13u1.debian.tar.xz",
+          "bytes": 48312,
+          "sha256": "52c7c9377a2cb93649fb778baf4fe76d4489893ef04bad675acfa9b16e6313d5",
+          "url": "https://deb.debian.org/debian/pool/main/p/protobuf/protobuf_3.21.12-11+deb13u1.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Laszlo Boszormenyi (GCS) <gcs@debian.org>"
+    },
+    "glib2.0": {
+      "version": "2.84.4-3~deb13u5",
+      "archives": [
+        {
+          "name": "glib2.0_2.84.4-3~deb13u5.dsc",
+          "bytes": 5294,
+          "sha256": "2587beb2f5b90511d0c88a7595c1d3b3ea7a5b7e6582713ecae3713864012858",
+          "url": "https://deb.debian.org/debian/pool/main/g/glib2.0/glib2.0_2.84.4-3~deb13u5.dsc"
+        },
+        {
+          "name": "glib2.0_2.84.4.orig-unicode-data.tar.xz",
+          "bytes": 660708,
+          "sha256": "c1742461e8c0e9673a3453a3127671169de9cb0138493e5c916f1b989530efcd",
+          "url": "https://deb.debian.org/debian/pool/main/g/glib2.0/glib2.0_2.84.4.orig-unicode-data.tar.xz"
+        },
+        {
+          "name": "glib2.0_2.84.4.orig.tar.xz",
+          "bytes": 5618200,
+          "sha256": "8a9ea10943c36fc117e253f80c91e477b673525ae45762942858aef57631bb90",
+          "url": "https://deb.debian.org/debian/pool/main/g/glib2.0/glib2.0_2.84.4.orig.tar.xz"
+        },
+        {
+          "name": "glib2.0_2.84.4-3~deb13u5.debian.tar.xz",
+          "bytes": 172260,
+          "sha256": "d8e3603c3780d2cc883d762cf81db9199d8c4c492a82a1a791c117a6d402dbeb",
+          "url": "https://deb.debian.org/debian/pool/main/g/glib2.0/glib2.0_2.84.4-3~deb13u5.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>"
+    },
+    "json-c": {
+      "version": "0.18+ds-1",
+      "archives": [
+        {
+          "name": "json-c_0.18+ds-1.dsc",
+          "bytes": 2102,
+          "sha256": "30f35cab8f920a6481e5fb8e58e789c59dd92945b82a2bcb9cf640a6e6e88594",
+          "url": "https://deb.debian.org/debian/pool/main/j/json-c/json-c_0.18+ds-1.dsc"
+        },
+        {
+          "name": "json-c_0.18+ds.orig.tar.xz",
+          "bytes": 159264,
+          "sha256": "f6439962c9622c1f9f4746d5b3daf5e0800c335281b048fab00159f2a29d7daa",
+          "url": "https://deb.debian.org/debian/pool/main/j/json-c/json-c_0.18+ds.orig.tar.xz"
+        },
+        {
+          "name": "json-c_0.18+ds-1.debian.tar.xz",
+          "bytes": 8984,
+          "sha256": "01c6b44a9c3cbf33f8eba7f83bc78dd8f4c84a8e1f3e41314d1d2357d0316100",
+          "url": "https://deb.debian.org/debian/pool/main/j/json-c/json-c_0.18+ds-1.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Nicolas Mora <babelouest@debian.org>"
+    },
+    "c-ares": {
+      "version": "1.34.5-1+deb13u1",
+      "archives": [
+        {
+          "name": "c-ares_1.34.5-1+deb13u1.dsc",
+          "bytes": 2388,
+          "sha256": "8848358552603070f98f37679a9361b4da8405b841bbf59d002556571670f7f1",
+          "url": "https://deb.debian.org/debian/pool/main/c/c-ares/c-ares_1.34.5-1+deb13u1.dsc"
+        },
+        {
+          "name": "c-ares_1.34.5.orig.tar.gz",
+          "bytes": 1009261,
+          "sha256": "7d935790e9af081c25c495fd13c2cfcda4792983418e96358ef6e7320ee06346",
+          "url": "https://deb.debian.org/debian/pool/main/c/c-ares/c-ares_1.34.5.orig.tar.gz"
+        },
+        {
+          "name": "c-ares_1.34.5.orig.tar.gz.asc",
+          "bytes": 228,
+          "sha256": "146fcf8ac828903521da52b76852843480a9ee0bdd5e145f81e6df0bb27c40bd",
+          "url": "https://deb.debian.org/debian/pool/main/c/c-ares/c-ares_1.34.5.orig.tar.gz.asc"
+        },
+        {
+          "name": "c-ares_1.34.5-1+deb13u1.debian.tar.xz",
+          "bytes": 21764,
+          "sha256": "f815c2a7bf9dade9e98ac06ecf19de05678d3bd8507e6c0e60e4187320b30be5",
+          "url": "https://deb.debian.org/debian/pool/main/c/c-ares/c-ares_1.34.5-1+deb13u1.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Gregor Jasny <gjasny@googlemail.com>"
+    },
+    "re2": {
+      "version": "20240702-3",
+      "archives": [
+        {
+          "name": "re2_20240702-3.dsc",
+          "bytes": 1615,
+          "sha256": "2021430e93176817d300d424e363c073ddc4655e45b86d42193c3714b40238e9",
+          "url": "https://deb.debian.org/debian/pool/main/r/re2/re2_20240702-3.dsc"
+        },
+        {
+          "name": "re2_20240702.orig.tar.gz",
+          "bytes": 390672,
+          "sha256": "eb2df807c781601c14a260a507a5bb4509be1ee626024cb45acbd57cb9d4032b",
+          "url": "https://deb.debian.org/debian/pool/main/r/re2/re2_20240702.orig.tar.gz"
+        },
+        {
+          "name": "re2_20240702-3.debian.tar.xz",
+          "bytes": 11096,
+          "sha256": "ebe0bb1b9f14a9b16bb40a8729f9c5c7df98ef9a7883a5e78716fd377ec194ef",
+          "url": "https://deb.debian.org/debian/pool/main/r/re2/re2_20240702-3.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Stefano Rivera <stefanor@debian.org>"
+    },
+    "ucf": {
+      "version": "3.0052",
+      "archives": [
+        {
+          "name": "ucf_3.0052.dsc",
+          "bytes": 1512,
+          "sha256": "9117f54533d23ad74371e91c3038e13b1aa0fabd51a382f47a5af81e9b5ee591",
+          "url": "https://deb.debian.org/debian/pool/main/u/ucf/ucf_3.0052.dsc"
+        },
+        {
+          "name": "ucf_3.0052.tar.xz",
+          "bytes": 71488,
+          "sha256": "94130b4840618a65543ca4c12f4de062081008f42f36d0abfbd75098ebe9a7eb",
+          "url": "https://deb.debian.org/debian/pool/main/u/ucf/ucf_3.0052.tar.xz"
+        }
+      ],
+      "maintainer": "Mark Hindley <leepen@debian.org>"
+    },
+    "libtext-wrapi18n-perl": {
+      "version": "0.06-10",
+      "archives": [
+        {
+          "name": "libtext-wrapi18n-perl_0.06-10.dsc",
+          "bytes": 1829,
+          "sha256": "726c08c23af488c28b70600a5c1632468f1535cb50dcd5255cc153a4f8558ed9",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-wrapi18n-perl/libtext-wrapi18n-perl_0.06-10.dsc"
+        },
+        {
+          "name": "libtext-wrapi18n-perl_0.06.orig.tar.gz",
+          "bytes": 3797,
+          "sha256": "432c2a801efe9f12d631124c1163439eac4c99449ba13d80133c45ecacc627f5",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-wrapi18n-perl/libtext-wrapi18n-perl_0.06.orig.tar.gz"
+        },
+        {
+          "name": "libtext-wrapi18n-perl_0.06-10.debian.tar.xz",
+          "bytes": 3452,
+          "sha256": "751073476ee62cc3430ff0afcab74a4e02b432199d7612e1fd63105fc89ec378",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-wrapi18n-perl/libtext-wrapi18n-perl_0.06-10.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>"
+    },
+    "sensible-utils": {
+      "version": "0.0.25",
+      "archives": [
+        {
+          "name": "sensible-utils_0.0.25.dsc",
+          "bytes": 1718,
+          "sha256": "7d0deb8fca88c2e095a838b4ba2443c5c07f1501907b331a7ef051178c90a5a8",
+          "url": "https://deb.debian.org/debian/pool/main/s/sensible-utils/sensible-utils_0.0.25.dsc"
+        },
+        {
+          "name": "sensible-utils_0.0.25.tar.xz",
+          "bytes": 76132,
+          "sha256": "b905fcb981397db693bbcdda2ba9af712552a092f3bacd621112ccc98ddce4bd",
+          "url": "https://deb.debian.org/debian/pool/main/s/sensible-utils/sensible-utils_0.0.25.tar.xz"
+        }
+      ],
+      "maintainer": "Anibal Monsalve Salazar <anibal@debian.org>"
+    },
+    "libtext-charwidth-perl": {
+      "version": "0.04-11",
+      "archives": [
+        {
+          "name": "libtext-charwidth-perl_0.04-11.dsc",
+          "bytes": 2162,
+          "sha256": "8a4f6e7a44880f8b4dd8f3dc0c97a39c6fef979f99899de4962c9ccfe84a2577",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-charwidth-perl/libtext-charwidth-perl_0.04-11.dsc"
+        },
+        {
+          "name": "libtext-charwidth-perl_0.04.orig.tar.bz2",
+          "bytes": 8327,
+          "sha256": "2990c13c3f4a5479d7dbc5a94b86c23798cf0dc7df54ffe54e065f072558b6ed",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-charwidth-perl/libtext-charwidth-perl_0.04.orig.tar.bz2"
+        },
+        {
+          "name": "libtext-charwidth-perl_0.04-11.debian.tar.xz",
+          "bytes": 3016,
+          "sha256": "2590d0b6ee7b9cea5396debb96190077210874b4847e844f9eb0d8a4d87ba19c",
+          "url": "https://deb.debian.org/debian/pool/main/libt/libtext-charwidth-perl/libtext-charwidth-perl_0.04-11.debian.tar.xz"
+        }
+      ],
+      "maintainer": "Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>"
+    }
+  },
+  "relationships": [
+    {
+      "binary": "gdb",
+      "binary_version": "16.3-1",
+      "source": "gdb",
+      "source_version": "16.3-1"
+    },
+    {
+      "binary": "clangd-19",
+      "binary_version": "1:19.1.7-3+b1",
+      "source": "llvm-toolchain-19",
+      "source_version": "1:19.1.7-3"
+    },
+    {
+      "binary": "libbabeltrace1",
+      "binary_version": "1.5.11-4+b2",
+      "source": "babeltrace",
+      "source_version": "1.5.11-4"
+    },
+    {
+      "binary": "libdebuginfod1t64",
+      "binary_version": "0.192-4",
+      "source": "elfutils",
+      "source_version": "0.192-4"
+    },
+    {
+      "binary": "libipt2",
+      "binary_version": "2.1.2-1",
+      "source": "intel-processor-trace",
+      "source_version": "2.1.2-1"
+    },
+    {
+      "binary": "libpython3.13",
+      "binary_version": "3.13.5-2+deb13u5",
+      "source": "python3.13",
+      "source_version": "3.13.5-2+deb13u5"
+    },
+    {
+      "binary": "libsource-highlight4t64",
+      "binary_version": "3.1.9-4.3+b1",
+      "source": "source-highlight",
+      "source_version": "3.1.9-4.3"
+    },
+    {
+      "binary": "libabsl20240722",
+      "binary_version": "20240722.0-4",
+      "source": "abseil",
+      "source_version": "20240722.0-4"
+    },
+    {
+      "binary": "libgrpc++1.51t64",
+      "binary_version": "1.51.1-6",
+      "source": "grpc",
+      "source_version": "1.51.1-6"
+    },
+    {
+      "binary": "libgrpc29t64",
+      "binary_version": "1.51.1-6",
+      "source": "grpc",
+      "source_version": "1.51.1-6"
+    },
+    {
+      "binary": "libprotobuf32t64",
+      "binary_version": "3.21.12-11+deb13u1",
+      "source": "protobuf",
+      "source_version": "3.21.12-11+deb13u1"
+    },
+    {
+      "binary": "libdw1t64",
+      "binary_version": "0.192-4",
+      "source": "elfutils",
+      "source_version": "0.192-4"
+    },
+    {
+      "binary": "libelf1t64",
+      "binary_version": "0.192-4",
+      "source": "elfutils",
+      "source_version": "0.192-4"
+    },
+    {
+      "binary": "libglib2.0-0t64",
+      "binary_version": "2.84.4-3~deb13u5",
+      "source": "glib2.0",
+      "source_version": "2.84.4-3~deb13u5"
+    },
+    {
+      "binary": "libjson-c5",
+      "binary_version": "0.18+ds-1",
+      "source": "json-c",
+      "source_version": "0.18+ds-1"
+    },
+    {
+      "binary": "libdebuginfod-common",
+      "binary_version": "0.192-4",
+      "source": "elfutils",
+      "source_version": "0.192-4"
+    },
+    {
+      "binary": "libsource-highlight-common",
+      "binary_version": "3.1.9-4.3",
+      "source": "source-highlight",
+      "source_version": "3.1.9-4.3"
+    },
+    {
+      "binary": "libcares2",
+      "binary_version": "1.34.5-1+deb13u1",
+      "source": "c-ares",
+      "source_version": "1.34.5-1+deb13u1"
+    },
+    {
+      "binary": "libprotoc32t64",
+      "binary_version": "3.21.12-11+deb13u1",
+      "source": "protobuf",
+      "source_version": "3.21.12-11+deb13u1"
+    },
+    {
+      "binary": "libre2-11",
+      "binary_version": "20240702-3+b1",
+      "source": "re2",
+      "source_version": "20240702-3"
+    },
+    {
+      "binary": "ucf",
+      "binary_version": "3.0052",
+      "source": "ucf",
+      "source_version": "3.0052"
+    },
+    {
+      "binary": "libtext-wrapi18n-perl",
+      "binary_version": "0.06-10",
+      "source": "libtext-wrapi18n-perl",
+      "source_version": "0.06-10"
+    },
+    {
+      "binary": "sensible-utils",
+      "binary_version": "0.0.25",
+      "source": "sensible-utils",
+      "source_version": "0.0.25"
+    },
+    {
+      "binary": "libtext-charwidth-perl",
+      "binary_version": "0.04-11+b4",
+      "source": "libtext-charwidth-perl",
+      "source_version": "0.04-11"
+    }
+  ],
+  "source_archive_bytes_retained": false
+}
