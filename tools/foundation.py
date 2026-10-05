@@ -368,7 +368,7 @@ def coverage(q, profiles):
         return {'status': 'BLOCKED', 'reason': 'foundation coverage profile is incomplete'}
     merged = q.runner.run(['llvm-profdata', 'merge', '-sparse', '/work/foundation-contracts.profraw',
                            '-o', '/work/foundation.profdata'], label='foundation-coverage-merge')
-    exported = q.runner.run(['llvm-cov', 'export', '/work/' + row['coverage_binary'],
+    exported = q.runner.run(['llvm-cov', 'export', '-summary-only', '/work/' + row['coverage_binary'],
                              '-instr-profile=/work/foundation.profdata'], label='foundation-coverage-export')
     result = {'status': 'FAIL', 'denominator': ['foundation/src/sc-foundation.c', 'foundation/include/sc-foundation.h'],
               'excluded': ['upstream dependencies', 'negative fixtures', 'test harnesses', 'infrastructure demos'],
@@ -400,9 +400,10 @@ def coverage(q, profiles):
 
 
 def policy_checks(q):
+    from qualification import INFRA
     inventory = read_json(q.root / 'safety/source-inventory.json')['files']
     sources = [name for name, row in inventory.items()
-               if row['role'] in {'foundation-runtime', 'foundation-test', 'foundation-fuzz', 'infrastructure'}]
+               if name in INFRA or row['role'] == 'foundation-fuzz']
     rows = []
     for index, source in enumerate(sources):
         native = q.runner.run(['python3', '/src/container/foundation-policy.py', source,

@@ -171,10 +171,59 @@ print(base64.b64encode(p.read_bytes()).decode())"""
         return self.collect(self.session,relative,destination or self.scratch/relative)
 
     def restore(self,relative,path):
+        # Transfer finite chunks rather than one argv-sized base64 blob. Native
+        # jobs and the builder keep the same mounts and resource ceilings.
         import base64
-        data=base64.b64encode(path.read_bytes()).decode()
-        r=self.launcher.execute(self.session,['python3','-c','import pathlib,base64,sys; p=pathlib.Path("/work")/sys.argv[1]; p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode(sys.argv[2]))',relative,data],timeout=30)
-        if not passed(r):raise GateError('collected artifact transfer failed')
+        p=Path(relative);path=Path(path).absolute()
+        if p.is_absolute() or '..' in p.parts or not p.parts:
+            raise GateError('unsafe artifact restore path')
+        if (not any(path.is_relative_to(base.absolute()) for base in [self.scratch,self.run_dir]) or
+                any(x.is_symlink() for x in [path,*path.parents]) or not path.is_file() or
+                path.stat().st_size>self.launcher.value['common']['artifact_bytes']):
+            raise GateError('unapproved artifact restore source')
+        expected=file_hash(path);data=path.read_bytes()
+        if digest(data)!=expected:raise GateError('artifact restore source changed')
+        pending=relative+'.restore-'+uuid.uuid4().hex
+        deadline=time.monotonic()+30
+        receipt={'source_sha256':expected,'destination':relative,'bytes':len(data),
+                 'input_binding':dict(self.input_binding),'steps':[],'status':'FAIL'}
+        evidence=self.run_dir/'transfers'/(expected+'.json')
+        def step(stage,args):
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise GateError('finite artifact transfer deadline exhausted')
+            result=self.launcher.execute(self.session,args,timeout=remaining)
+            receipt['steps'].append({'stage':stage,'exit_code':result['exit_code'],
+                'failure':result['failure'],'evidence_complete':result['evidence_complete']})
+            if not passed(result):
+                atomic_json(evidence.with_name(expected+'-failed-stage.json'),result)
+                raise GateError('collected artifact transfer failed')
+        prepare="""import pathlib,sys
+p=pathlib.Path('/work')
+for part in pathlib.Path(sys.argv[1]).parts:
+ p=p/part
+ if p.is_symlink():raise SystemExit(31)
+p.parent.mkdir(parents=True,exist_ok=True)
+(pathlib.Path('/work')/sys.argv[2]).open('xb').close()
+"""
+        try:
+            step('prepare',['python3','-c',prepare,relative,pending])
+            for offset in range(0,len(data),65536):
+                chunk=base64.b64encode(data[offset:offset+65536]).decode()
+                step('chunk',['python3','-c',
+                    'import pathlib,base64,sys;p=pathlib.Path("/work")/sys.argv[1];'
+                    '\nif p.is_symlink() or p.stat().st_size!=int(sys.argv[2]):raise SystemExit(31)\n'
+                    'p.open("ab").write(base64.b64decode(sys.argv[3],validate=True))',
+                    pending,str(offset),chunk])
+            finish="""import hashlib,pathlib,sys,os
+p=pathlib.Path('/work')/sys.argv[1]
+if p.is_symlink() or hashlib.sha256(p.read_bytes()).hexdigest()!=sys.argv[3]:raise SystemExit(32)
+os.replace(p,pathlib.Path('/work')/sys.argv[2])
+"""
+            step('verify-and-publish',['python3','-c',finish,pending,relative,expected])
+            if file_hash(path)!=expected:raise GateError('artifact transfer source changed')
+            receipt['status']='PASS'
+        finally:
+            atomic_json(evidence,receipt)
 
     def native(self,args,timeout,settings):
         from container_policy import policy_hash

@@ -7,6 +7,7 @@ so unrelated GLib header declarations are not treated as application API uses.
 """
 from pathlib import Path
 import json
+import re
 import subprocess
 import sys
 
@@ -33,6 +34,11 @@ def main():
              '-isystem', str(prefix / 'lib/glib-2.0/include'),
              '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
              '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
+    # A PCH must see the primary source's feature-test macro before libc headers.
+    # Match only its leading definition, with the same empty replacement text.
+    leading = Path('/src', source).read_text().split('#include', 1)[0]
+    if re.search(r'^\s*#\s*define\s+_GNU_SOURCE\s*$', leading, re.M):
+        flags.append('-D_GNU_SOURCE=')
     pch = directory / 'public.pch'
     commands = [
         ['clang', *flags, '-x', 'c-header', '/src/foundation/include/sc-foundation.h', '-o', str(pch)],
