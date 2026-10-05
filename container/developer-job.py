@@ -27,6 +27,30 @@ class Job:
         self.records = []
         self.artifacts = []
         OUTPUT.mkdir()
+        from policy import source_files
+        self.source_files=source_files(Path('/src'))
+        self.restored=False
+        self.invalidated=[]
+        if request.get('state_restored'):
+            from developer_state import restore
+            prior=restore(BUILD,Path('/work/developer-state-input'),request['context_namespace'],self.policy['limits'])
+            self.restored=True
+            changed={'/src/'+p for p in set(prior['source_files'])|set(self.source_files)
+                     if prior['source_files'].get(p)!=self.source_files.get(p)}
+            if changed:
+                dependencies=self.run(['ninja','-C',str(BUILD),'-t','deps'],'incremental-dependencies')
+                if not passed(dependencies):raise GateError('retained Ninja dependency inventory unavailable')
+                current=None
+                for line in dependencies['output'].splitlines():
+                    if not line.startswith(' ') and ': #deps ' in line:
+                        current=line.split(': #deps ',1)[0]
+                    elif line.startswith('    ') and line.strip() in changed and current:
+                        object_path=BUILD/current
+                        if not object_path.is_relative_to(BUILD) or '..' in Path(current).parts:
+                            raise GateError('Ninja dependency object outside private build')
+                        if object_path.is_file():
+                            object_path.unlink()
+                            self.invalidated.append(current)
 
     def run(self, argv, name, timeout=30):
         remaining = self.policy['limits']['job_wall_seconds'] - (time.monotonic() - self.started) - 3
@@ -115,9 +139,13 @@ class Job:
     def build(self, targets):
         if not targets or any(t not in {r['id'] for r in self.targets} for t in targets):
             raise GateError('unknown or empty developer target selection')
+        before={str(p.relative_to(BUILD)):(file_hash(p),p.stat().st_mtime_ns) for p in BUILD.rglob('*.o') if p.is_file()}
         built = self.run(['cmake', '--build', str(BUILD), '--target', *targets, '--parallel', '2'], 'build')
         if not passed(built):
             raise GateError('selected developer target build failed')
+        after={str(p.relative_to(BUILD)):(file_hash(p),p.stat().st_mtime_ns) for p in BUILD.rglob('*.o') if p.is_file()}
+        self.records[-1]['rebuilt_objects']=[p for p in after if before.get(p)!=after[p]]
+        self.records[-1]['object_sha256']={p:r[0] for p,r in after.items()}
         return built
 
     def complete(self):
@@ -126,17 +154,35 @@ class Job:
         result = {'status': 'PASS', 'scope': 'partial_feedback', 'acceptance': False,
                   'profile': self.request['profile'], 'targets': self.targets,
                   'tests': self.tests, 'compile_commands_sha256': file_hash(BUILD / 'compile_commands.json')}
-        if operation in {'doctor', 'prepare', 'tests', 'test'}:
+        if operation in {'doctor', 'prepare', 'tests'} or (operation=='test' and not self.tests):
             self.build([t['id'] for t in self.targets if t['type'] == 'EXECUTABLE'])
             # Re-discovery observes actual executable commands after build.
             self.configure()
             result.update(targets=self.targets, tests=self.tests)
         if operation == 'build':
             self.build([self.request['target']])
+        elif operation == 'debug':
+            from developer_gdb import inspect
+            target = self.request.get('target')
+            if target not in {t['id'] for t in self.targets if t['type']=='EXECUTABLE'}:
+                raise GateError('unknown debug executable target')
+            if self.request['recipe']=='breakpoint':
+                path=self.request['location'].rpartition(':')[0]
+                declared=json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
+                if path not in declared or declared[path]['role']=='qualification-only':
+                    raise GateError('unregistered debug source location')
+                if int(self.request['location'].rpartition(':')[2])>len((Path('/src')/path).read_text().splitlines()):
+                    raise GateError('debug source line outside actual snapshot')
+            self.build([target])
+            result['debugger']=inspect(self.request,target,self.policy,OUTPUT)
+            result['status']=result['debugger']['debug_session_status']
+            for name in ['gdb-mi.opaque.log','inferior.opaque.log']:
+                if (OUTPUT/name).is_file():self.artifacts.append(str((OUTPUT/name).relative_to('/work')))
         elif operation == 'test':
             selected = [t for t in self.tests if t['id'] == self.request['test_id']]
             if len(selected) != 1:
                 raise GateError('unknown, empty or ambiguous developer test selection')
+            self.build([selected[0]['target']])
             result['selected_test'] = selected[0]
         elif operation == 'doctor':
             observed = self.run(['python3', '/src/container/developer-probe.py'], 'tool-capability-probe')
@@ -180,6 +226,11 @@ class Job:
                 for name in ['clangd.opaque.log', 'lsp-transport.opaque.jsonl']:
                     if (OUTPUT / name).is_file():
                         self.artifacts.append(str((OUTPUT / name).relative_to('/work')))
+        from developer_state import pack
+        result['state']=pack(BUILD,Path('/work/developer-state-output'),self.request['context_namespace'],
+                             self.policy['limits'],self.source_files)
+        result['incremental']={'restored':self.restored,'invalidated_objects':self.invalidated,
+                               'compiler_cache':'ABSENT','acceptance_cache_reuse':False}
         return result
 
 

@@ -34,6 +34,7 @@ def initial_report(root, lock):
         'reuse':{'upstream_integrity':'BLOCKED','lit':'BLOCKED','clusterfuzzlite':{'local_adapter_execution':'BLOCKED','remote_ci_execution':'NOT_RUN','remote_enforcement':'UNSEALED'},'upstream_mapping':'docs/upstream-map.md'},
         'review_protocol':{'status':'BLOCKED','mode':'simulated agent responses; no live model benchmark'},'fuzz':{'status':'BLOCKED'},
         'foundation':{'status':'BLOCKED','reason':'not executed'},
+        'developer':{'status':'BLOCKED','reason':'developer qualification not executed'},
         'application_release_ready':False,'application_coverage':'NOT_APPLICABLE','blockers':[], 'commands':[],
         'limitations':['Finite fixtures do not prove arbitrary C safety.','P06 checks a defined decoy, not arbitrary forged native diagnostics.','Agent accounting checks submitted evidence, not comprehension.','No independently protected baseline or remote enforcement was verified.','First-party publication licensing awaits the owner.','Pinned built image is retained locally; APT rebuild recipe is not snapshot-complete.']}
 
@@ -138,7 +139,7 @@ def finish(root, report, runner, command):
             report['gates'].append(gate('gate-inventory','FAIL',{'reason':str(exc)}))
     report['local_state']='PASS' if report['gates'] and all(r['status']=='PASS' for r in report['gates']) else 'FAIL'
     # Only complete CI can receive the unsealed local qualification state.
-    complete = command=='ci' and report['foundation'].get('status')=='PASS' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
+    complete = command=='ci' and report['developer'].get('status')=='PASS' and report['foundation'].get('status')=='PASS' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
     report['qualification_axes']={'native_code':'PASS' if all(r['status']=='PASS' for r in report['cases']+report['sabotage']) else 'BLOCKED' if all(r['status']=='BLOCKED' for r in report['cases']) else 'FAIL','local_docker':'PASS' if runner.launcher.records and all(r['effective'] and r['lifecycle'] and r['lifecycle']['removed'] for r in runner.launcher.records) else 'BLOCKED','containment':report['containment']['status'],'runtime_demo':report['containment'].get('runtime_demo',{}).get('status',next((g['status'] for g in report['gates'] if g['name']=='runtime-demo'),'BLOCKED')),'remote_ci':'NOT_RUN','independent_enforcement':'UNSEALED','production_approval':'NOT_REQUESTED'}
     report['overall_state']='VALIDATED_UNSEALED' if complete else 'FAILED' if any(r['status']=='FAIL' for r in report['gates']) else 'BLOCKED'
     if command!='ci':report['blockers'].append('This command is scoped; final aggregate qualification has not passed.')

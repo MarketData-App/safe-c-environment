@@ -418,7 +418,11 @@
     "foundation-doctor",
     "foundation-check",
     "foundation-selftest",
-    "foundation-sabotage"
+    "foundation-sabotage",
+    "developer-doctor",
+    "developer-selftest",
+    "developer-sabotage",
+    "developer-workflow"
   ],
   "containment": {
     "cases": [

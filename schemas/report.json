@@ -972,6 +972,21 @@
           ]
         }
       ]
+    },
+    "developer": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        }
+      }
     }
   },
   "required": [
@@ -1005,6 +1020,7 @@
     "mandatory_gates",
     "containment",
     "qualification_axes",
-    "foundation"
+    "foundation",
+    "developer"
   ]
 }

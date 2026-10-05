@@ -35,6 +35,9 @@ def configure_parser(parser):
         if name == 'debug':
             command.add_argument('--recipe', choices=['breakpoint', 'crash'], required=True)
             command.add_argument('--location')
+            command.add_argument('--value', action='append', dest='values', default=[])
+            command.add_argument('--argument', action='append', dest='arguments', default=[])
+            command.add_argument('--steps', type=int, default=0)
         if name == 'nav':
             command.add_argument('--kind', required=True,
                                  choices=['definition', 'references', 'hover',
@@ -85,14 +88,20 @@ def inputs(root):
 
 
 def namespace(root, profile):
+    # Current source revisions are separate from the compatibility namespace.
+    # A content edit must not destroy otherwise compatible Ninja/index state.
+    origin = read_json(root/'starter-baseline.lock.json')
     fields = {'worktree': hashlib.sha256(str(root.resolve()).encode()).hexdigest(),
-              'baseline': baseline_identity(root), 'profile': profile,
+              'baseline': origin.get('origin_digest') or hashlib.sha256(
+                  (file_hash(root/'safety/contract.json')+file_hash(root/'safety/foundation-api-policy.json')).encode()).hexdigest(), 'profile': profile,
               'toolchain': file_hash(root / 'toolchain.lock.json'),
               'dependency': file_hash(root / 'foundation.lock.json'),
               'developer': file_hash(root / 'developer.lock.json'),
               'policy': file_hash(root / 'safety/developer-policy.json'),
               'adapters': {p: file_hash(root / p) for p in
-                  ['tools/developer.py', 'tools/developer_lsp.py', 'container/developer-job.py']}}
+                  ['tools/developer.py', 'tools/developer_lsp.py', 'tools/developer_gdb.py',
+                   'tools/developer_state.py', 'container/developer-job.py',
+                   'CMakeLists.txt','cmake/Developer.cmake','cmake/Foundation.cmake','cmake/Safety.cmake']}}
     return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest(), fields
 
 
@@ -123,11 +132,35 @@ def request(args, policy):
         raise GateError('unknown developer profile')
     value = {'operation': args.operation, 'profile': args.profile}
     for name in ['target', 'test_id', 'kind', 'file', 'line', 'column', 'tu', 'symbol',
-                 'run_id', 'snapshot', 'recipe', 'location']:
+                 'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps']:
         if hasattr(args, name) and getattr(args, name) is not None:
             value[name] = getattr(args, name)
     if args.operation == 'build' and not value.get('target'):
         raise GateError('developer build requires a registered target')
+    if args.operation in {'diagnose', 'replay', 'coverage'} and not value.get('run_id'):
+        raise GateError('developer operation requires a retained run identity')
+    if value.get('run_id') and not __import__('re').fullmatch(r'[0-9a-f]{32}',value['run_id']):
+        raise GateError('invalid developer run identity')
+    if args.operation == 'debug':
+        import re
+        if args.profile != 'debug':
+            raise GateError('debug investigation requires the explicitly separate debug profile')
+        if bool(value.get('target')) == bool(value.get('run_id')):
+            raise GateError('debug requires exactly one registered target or retained run')
+        if args.recipe == 'breakpoint':
+            location=value.get('location','')
+            path,separator,line=location.rpartition(':')
+            source=Path(path)
+            if (not separator or not line.isascii() or not line.isdecimal() or
+                    not 1<=int(line)<=2147483647 or source.is_absolute() or '..' in source.parts or
+                    source.suffix not in {'.c','.h'} or any(c in path for c in '\0\n\r')):
+                raise GateError('breakpoint requires a registered source path and positive line')
+        if (not 0<=args.steps<=policy['limits']['max_source_steps'] or
+                len(args.values)>policy['limits']['max_values'] or
+                any(not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*',v) for v in args.values)):
+            raise GateError('debug scalar inspection or step budget rejected')
+        if len(args.arguments)>16 or any(len(a.encode())>4096 or '\0' in a or '\n' in a or '\r' in a for a in args.arguments):
+            raise GateError('literal debug argument bounds rejected')
     if args.operation == 'nav':
         if args.kind == 'workspace-symbols':
             if not value.get('symbol') or len(value['symbol']) > 256:
@@ -223,7 +256,7 @@ def execute(root, args):
     elif args.operation=='stop':
         result['result']=stop(root,out,lock)
         result['status']=result['result']['status']
-    elif args.operation in {'doctor', 'prepare', 'targets', 'tests', 'build', 'test', 'nav'}:
+    elif args.operation in {'doctor', 'prepare', 'targets', 'tests', 'build', 'test', 'nav', 'debug'}:
         scratch = Path(tempfile.mkdtemp(prefix='safe-c-developer-job-'))
         runner = Runner(root, out, dict(toolchain, image_id=lock['image_id']), scratch,
                         purpose='development')
@@ -232,6 +265,9 @@ def execute(root, args):
         try:
             admitted.__enter__()
             runner.start()
+            from developer_state import stage, retain
+            selected['context_namespace']=context
+            selected['state_restored']=stage(root,context,runner,policy['limits'])
             atomic_json(registered,{'run_id':run_id,'worktree':runner.launcher.worktree_scope,
                 'image_id':lock['image_id'],'profile':args.profile,'namespace':context})
             outcome = runner.run(['python3', '/src/container/developer-job.py',
@@ -251,6 +287,8 @@ def execute(root, args):
                     raise GateError('developer helper artifact path rejected')
                 runner.fetch(path, out / relative)
                 result['evidence_paths'].append(str(out / relative))
+            if result['status']=='PASS':
+                retain(root,context,runner,native,policy['limits'])
             if args.operation=='test' and result['status']=='PASS':
                 test=native.get('selected_test',{})
                 if test.get('id')!=args.test_id or not test.get('target'):

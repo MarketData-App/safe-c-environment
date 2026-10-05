@@ -8,12 +8,36 @@ from evidence import read_json, GateError
 from schema_check import validate
 from developer import admission
 from developer_lsp import position, scalar_position, uri
+from developer_gdb import parse
+from developer_state import pack, restore
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class DeveloperInputTests(unittest.TestCase):
+    def test_mi_nested_records_and_duplicate_token_fields(self):
+        row=parse('7^done,stack=[frame={level="0",func="example",args=[{name="count",value="16"}]}]')
+        self.assertEqual(row['token'],7)
+        self.assertEqual(row['fields']['stack'][0]['frame']['args'][0]['value'],'16')
+        self.assertEqual(parse('*stopped,reason="exited",exit-code="01"')['fields']['exit-code'],'01')
+        for bad in ['7^done,value="1",value="2"','unframed inferior text','^done,value={name="x"','^done,value="x"trailing']:
+            with self.assertRaises(GateError):parse(bad)
+
+    def test_state_roundtrip_rejects_changed_archive_and_namespace(self):
+        with tempfile.TemporaryDirectory(dir='/work') as temporary:
+            root=Path(temporary);build=root/'build';build.mkdir()
+            (build/'entry.o').write_bytes(b'object bytes')
+            limits=read_json(ROOT/'safety/developer-policy.json')['limits']
+            pack(build,root/'packed','context',limits,{'source.c':'fingerprint'})
+            result=restore(root/'restored',root/'packed','context',limits)
+            self.assertEqual((root/'restored/entry.o').read_bytes(),b'object bytes')
+            self.assertEqual(result['source_files'],{'source.c':'fingerprint'})
+            with self.assertRaises(GateError):restore(root/'wrong',root/'packed','other',limits)
+            archive=root/'packed'/result['archives'][0]['path']
+            archive.write_bytes(archive.read_bytes()+b'changed')
+            with self.assertRaises(GateError):restore(root/'tampered',root/'packed','context',limits)
+
     def test_pinned_debian_version_paths_are_accepted(self):
         lock = read_json(ROOT / 'developer.lock.json')
         self.assertTrue(any('~' in row['path'] for row in lock['inputs']))

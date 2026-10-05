@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "status": "CANDIDATE_UNSEALED",
+  "cases": [
+    {
+      "id": "E01",
+      "name": "tools-and-preparation",
+      "subchecks": [
+        "entrypoint",
+        "idempotent-offline-prepare",
+        "missing-tool-input",
+        "unknown-selection"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E02",
+      "name": "real-compilation-context",
+      "subchecks": [
+        "registered-tu",
+        "public-header-including-tu",
+        "generated-glib-header",
+        "wrong-missing-stale-context"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E03",
+      "name": "semantic-operations",
+      "subchecks": [
+        "definition-declaration",
+        "cross-file-references",
+        "comment-string-decoys",
+        "distinct-static-symbols",
+        "api-glib-hover",
+        "symbols",
+        "diagnostic-edit-repair"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E04",
+      "name": "freshness-and-coordinates",
+      "subchecks": [
+        "source-edit",
+        "rename-delete",
+        "new-registered-file",
+        "generated-header-edit",
+        "profile-switch",
+        "unicode-scalar-position",
+        "spaces-path",
+        "different-worktree"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E05",
+      "name": "targeted-test-and-coverage",
+      "subchecks": [
+        "actual-discovered-test",
+        "failing-control",
+        "unknown-empty-test",
+        "matching-coverage",
+        "stale-coverage-rejected",
+        "partial-scope"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E06",
+      "name": "incremental-correctness",
+      "subchecks": [
+        "cold-build",
+        "warm-no-change",
+        "source-edit",
+        "public-header-edit",
+        "generated-header-edit",
+        "define-change",
+        "profile-switch",
+        "rebuilt-object-identities",
+        "optional-cache-absent"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E07",
+      "name": "failure-bundle-and-replay",
+      "subchecks": [
+        "real-test-failure",
+        "fuzz-regression",
+        "original-input-replay",
+        "current-repair-comparison",
+        "tampered-missing-input",
+        "nonzero-preserved"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E08",
+      "name": "breakpoint-values-and-step",
+      "subchecks": [
+        "matching-debug-symbols",
+        "resolved-reached-source-stop",
+        "predetermined-values",
+        "source-step",
+        "wrong-symbols",
+        "unreached-stop"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E09",
+      "name": "signals-threads-and-outcomes",
+      "subchecks": [
+        "signal-stop",
+        "multiple-thread-stacks",
+        "normal-exit",
+        "nonzero-exit",
+        "signal-termination",
+        "debugger-failure",
+        "timeout",
+        "inferior-protocol-spoof"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E10",
+      "name": "controlled-debugger-startup",
+      "subchecks": [
+        "startup-canaries",
+        "auto-load-disabled",
+        "local-thread-library",
+        "aslr-preserved",
+        "literal-argv",
+        "prohibited-command-target",
+        "confined-control"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E11",
+      "name": "bounded-session-lifecycle",
+      "subchecks": [
+        "single-profile-admission",
+        "repeat-cleanup",
+        "cancellation",
+        "timeout",
+        "restart",
+        "output-overflow",
+        "foreign-scope-rejection"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    },
+    {
+      "id": "E12",
+      "name": "workflow-and-portability",
+      "subchecks": [
+        "public-command-rehearsal",
+        "two-exports",
+        "fresh-child-combined",
+        "no-grandchildren",
+        "portable-payload",
+        "runtime-exclusion"
+      ],
+      "control": "matching permitted operation under identical relevant inputs"
+    }
+  ],
+  "pipeline_subcases": [
+    {
+      "parent": "P01",
+      "name": "dev-tool-or-route-unavailable",
+      "variants": [
+        "clangd",
+        "gdb",
+        "adapter",
+        "tracing",
+        "host-route"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P02",
+      "name": "dev-build-context-mismatch",
+      "variants": [
+        "compilation-database",
+        "generated-header",
+        "symbols",
+        "binary",
+        "loaded-dependency"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P04",
+      "name": "dev-config-or-debugger-injection",
+      "variants": [
+        "query-driver",
+        "config",
+        "plugin",
+        "startup-script",
+        "arbitrary-gdb-command",
+        "shell-argv",
+        "remote-target",
+        "external-pid",
+        "profile-override"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P07",
+      "name": "dev-inventory-or-partial-success",
+      "variants": [
+        "missing-case",
+        "missing-control",
+        "zero-tests",
+        "partial-index-as-acceptance"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P10",
+      "name": "dev-stale-state",
+      "variants": [
+        "worktree",
+        "profile-index",
+        "cache-artifact",
+        "failure-bundle",
+        "source-symbol-map",
+        "parent-report"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P11",
+      "name": "dev-failure-masked",
+      "variants": [
+        "zero-gdb-after-inferior-failure",
+        "unreached-breakpoint",
+        "inferior-mi-spoof",
+        "replay-child-status",
+        "truncation",
+        "incomplete-timeout-cleanup"
+      ],
+      "control": "unmodified permitted command/evidence"
+    },
+    {
+      "parent": "P15",
+      "name": "dev-policy-or-packaging-downgrade",
+      "variants": [
+        "limits",
+        "tracing",
+        "auto-load",
+        "acceptance-cache",
+        "runtime-payload"
+      ],
+      "control": "unmodified permitted command/evidence"
+    }
+  ],
+  "live_trial_is_separate": true
+}
