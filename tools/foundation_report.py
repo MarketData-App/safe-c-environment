@@ -118,7 +118,10 @@ def project(q, value, starter=None):
             paths = child.get('evidence_paths', [])
             if not paths and child.get('scope', '').startswith('project-instance;'):
                 paths = [str(q.root / 'starter-baseline.lock.json'), str(q.root / 'starter-export.json')]
-            return observed({'status': 'PASS' if ok else 'BLOCKED', 'evidence_paths': paths}, s)
+            result = observed({'status': 'PASS' if ok else 'BLOCKED', 'evidence_paths': paths}, s)
+            result['observation']['scope'] = ('inherited payload verified on this fresh instance; parent evaluates two exports; final instance CI decides combined acceptance'
+                                             if child.get('scope', '').startswith('project-instance;') else 'two exported projects and actual complete first-child CI')
+            return result
         special[('F20', sub)] = child_observation
 
     for row in value['cases']:
@@ -135,10 +138,16 @@ def project(q, value, starter=None):
         row['status'] = 'FAIL' if any(r['status'] == 'FAIL' for r in subs) else 'BLOCKED' if any(r['status'] == 'BLOCKED' for r in subs) else 'PASS'
         row['control'] = 'FAIL' if any(r['control'] == 'FAIL' for r in subs) else 'PASS' if all(r['control'] == 'PASS' for r in subs) else 'BLOCKED'
         row['bad'] = row['status']
-        row['classification'] = classification if row['status'] == 'PASS' else 'CONTROL_FAILED' if row['control'] == 'FAIL' else 'BLOCKED'
+        row['classification'] = classification if row['status'] == 'PASS' else 'CONTROL_FAILED' if row['control'] == 'FAIL' else 'WRONG_DIAGNOSTIC' if row['status'] == 'FAIL' else 'BLOCKED'
         row['evidence_paths'] = list(dict.fromkeys(p for r in subs for p in r['evidence_paths']))
         row['observations'] = {'named_components': {r['name']: r['observation'] for r in subs}}
     value['starter'] = starter or {'status': 'BLOCKED'}
+    lock = read_json(q.root / 'foundation.lock.json')
+    value['dependency'] = {key: lock[key] for key in [
+        'glib_version', 'minimum_api', 'allocation_profile', 'inputs', 'notices',
+        'local_patches', 'recipe', 'recipe_sha256', 'sdk_image_id',
+        'transitive_runtime_dependency', 'profile_equivalence', 'licensing']}
+    value['dependency']['qualified_build_profiles'] = lock['profiles']
     required = [r['status'] for r in value['cases'] + value['sabotage'] + normal]
     required += [value[k]['status'] for k in ['doctor', 'policy', 'coverage', 'fuzz', 'runtime', 'starter']]
     value['status'] = 'FAIL' if 'FAIL' in required else 'BLOCKED' if 'BLOCKED' in required else 'PASS'
@@ -159,10 +168,26 @@ def save(q, value):
     atomic_json(q.root / 'artifacts/foundation-qualification-report.json', value)
     lines = ['# Foundation qualification: ' + value['status'], '',
              'Allocation profile: `glib-fail-stop`. Application readiness: false.', '',
-             '| Case | Classification | Control | Named subchecks |', '|---|---|---|---|']
-    lines += ['| ' + r['id'] + ' | ' + r.get('classification', 'BLOCKED') + ' | ' + r['control'] + ' | ' +
+             '| Case | Status | Classification | Control | Named subchecks |', '|---|---|---|---|---|']
+    lines += ['| ' + r['id'] + ' | ' + r['status'] + ' | ' + r.get('classification', 'BLOCKED') + ' | ' + r['control'] + ' | ' +
               '; '.join(s['name'] + ': ' + s['status'] for s in r['subchecks']) + ' |' for r in value['cases']]
     lines += ['', 'Profiles: ' + ', '.join(r['name'] + ': ' + r['status'] for r in value['profiles']), '',
               'Coverage, fuzz, runtime and exact linked/loaded identities are recorded separately in the JSON report.', '']
+    totals = value['coverage'].get('totals', {})
+    lines += ['Foundation-only coverage: ' + '; '.join(f"{key} {row['covered']}/{row['count']} ({row['percent']:.2f}%)" for key, row in totals.items()),
+              'Fuzz: ' + value['fuzz']['status'] + '; budget/executions, counterexample hashes, object audits and replay pairs are in the JSON.',
+              'Runtime: ' + value['runtime']['status'] + '; actual image and binary hashes, final filesystem and valid/invalid input controls are in the JSON.', '',
+              '| Profile | Selected dependency | Loaded library identity | Generated header identity |', '|---|---|---|---|']
+    for row in value['profiles']:
+        binding = row.get('library_binding', {})
+        lines.append('| ' + row['name'] + ' | ' + row['dependency_profile'] + ' | ' +
+                     '; '.join(path + ': `' + sha + '`' for path, sha in binding.get('library_hashes', {}).items()) + ' | `' +
+                     binding.get('generated_header_sha256', 'unexecuted') + '` |')
+    allocation = next((r for r in value.get('runtime_pairs', []) if r['id'] == 'F19'), {})
+    lines += ['', 'Allocation experiment: ' + allocation.get('status', 'BLOCKED') +
+              '. Same-source ordinary static test-link injection; no shared-runtime injection claim.', '',
+              '| Pipeline variant | Status | Control |', '|---|---|---|']
+    lines += ['| ' + r['name'] + ' | ' + r['status'] + ' | ' + r['control'] + ' |' for r in value['sabotage']]
+    lines += ['', 'Exact source/dependency/runner/instance bindings and commands are in the JSON and cited evidence paths.', '']
     lines += ['- ' + text for text in value.get('limitations', [])]
     (q.root / 'artifacts/foundation-qualification-report.md').write_text('\n'.join(lines) + '\n')

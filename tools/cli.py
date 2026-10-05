@@ -157,6 +157,10 @@ def finish(root, report, runner, command):
     foundation=report['foundation']
     lines += ['', 'Foundation: '+foundation['status']+'; allocation profile `glib-fail-stop`.', '', '| Foundation | Classification | Control | Subchecks |', '|---|---|---|---|']
     lines += [f"| {r['id']} | {r.get('classification','BLOCKED')} | {r['control']} | "+'; '.join(s['name']+': '+s['status'] for s in r['subchecks'])+' |' for r in foundation.get('cases',[])]
+    if 'coverage' in foundation:
+        lines += ['', 'Foundation-only coverage: '+json.dumps(foundation['coverage'].get('totals',{})),
+                  'Foundation fuzz: '+foundation['fuzz']['status']+'; runtime: '+foundation['runtime']['status']+'.',
+                  'Detailed foundation profiles, identities, allocation experiment and scope: `artifacts/foundation-qualification-report.json` and `.md`.']
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
     lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz','containment']},indent=2),'```']

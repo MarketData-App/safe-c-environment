@@ -60,8 +60,9 @@ Application/release/deployment readiness stays false.
 Mechanism references: [GLib build requirements](https://docs.gtk.org/glib/building.html),
 [GNOME source releases](https://download.gnome.org/sources/glib/), and
 [MSan boundaries](https://clang.llvm.org/docs/MemorySanitizer.html).
-The selected immutable release and actual options will be recorded after source
-inspection; documentation version strings are not dependency pins. Dynamic LGPL
+The selected immutable release is GLib 2.90.0, with minimum API 2.70. Exact
+archive, build-tool, generated-header, profile-library and image identities are
+recorded in foundation.lock.json; documentation version strings are not pins. Dynamic LGPL
 linking does not by itself fulfill distribution obligations. Retain source,
 notices, exact build material and any patches; owner distribution review remains
 external. First-party code is not relicensed.
@@ -87,3 +88,30 @@ programs remain instrumented. Ordinary profiles retain the default test mode
 and exercise those inputs. The SDK receipt records the mode and verifies it
 against every actual native command; no sanitizer flag or runtime interceptor
 is disabled. A recipe change invalidates earlier SDK archives.
+
+## Combined qualification and export
+
+The outer evaluator now composes every foundation component into strict JSON and
+Markdown reports. It projects each F subcheck from an executed named contract,
+negative/control pair, compiler/AST rule or integration experiment. Missing work
+remains BLOCKED. Ordinary checks reject unexpected diagnostics and termination;
+only the isolated F19 classifier accepts its verified GLib fatal path.
+
+The eight foundation pipeline families retain P01/P02/P04/P07/P10/P11/P15/P16.
+All variants execute separately, including report omissions, immutable identity
+changes, API policy rejection, allocator-outcome classification and real no-op/
+omitted-object fuzz adapters. P15 and P16 use the addendum's exact family names.
+
+Exports include the runtime library, contracts, compiled recipes, retained inputs
+and notices, dependency-build references, API policy and qualification machinery.
+Parent evidence is excluded. A path-with-spaces child runs full combined CI with
+the inherited external payload identity; instance mode verifies that inherited
+export rather than recursively creating grandchildren. The maintainer separately
+checks both exports. Full reports retain source/dependency/runner/instance binding,
+actual linked/loaded profile identities, foundation-only coverage, real fuzz
+replay and the final minimal runtime image's normal/rejected-input controls.
+
+The final amended CI result is written by the outer evaluator. Scoped fast/full
+checks cannot accept the bootstrap; prior reports remain historical. Successful
+local combined qualification is VALIDATED_UNSEALED. Independent baseline and
+distribution/license review remain owner actions; application readiness is false.
