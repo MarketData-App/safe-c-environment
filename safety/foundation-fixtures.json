@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "allocation_profile": "glib-fail-stop",
+  "cases": [
+    {
+      "id": "F01",
+      "name": "cleanup",
+      "detector": "asan",
+      "subchecks": [
+        "early-return-zero",
+        "early-return-first",
+        "early-return-multiple",
+        "partial-initialization",
+        "missing-cleanup-accounting",
+        "missing-cleanup-leak"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F01.c",
+      "source_sha256": "83ec44da049371c92cdc184b1d1770068014879d1b5f3b2ca7bd651143fce23c"
+    },
+    {
+      "id": "F02",
+      "name": "escaped-automatic-owner",
+      "detector": "asan",
+      "subchecks": [
+        "released-return-owner",
+        "steal-transfer-control"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F02.c",
+      "source_sha256": "b28d98bfca0442f55ff81e7c078e216ac3b9b0b32f1ea36a727abf8a8c5ef786"
+    },
+    {
+      "id": "F03",
+      "name": "owner-alias",
+      "detector": "asan",
+      "subchecks": [
+        "unretained-alias",
+        "retained-alias-control"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F03.c",
+      "source_sha256": "86e601bedb61e4751e7f1149a6cd63c06692cc2403ac83c0f6d1e4ae8d6c678a"
+    },
+    {
+      "id": "F04",
+      "name": "mutable-backing-access",
+      "detector": "ast",
+      "subchecks": [
+        "direct-backing-field",
+        "macro-backing-field",
+        "owned-snapshot-growth-control"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F05",
+      "name": "logical-list-index",
+      "detector": "functional",
+      "subchecks": [
+        "empty-index",
+        "one-past-logical",
+        "spare-capacity-index",
+        "debug-guard-mutant",
+        "optimized-guard-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F06",
+      "name": "list-release-and-replacement",
+      "detector": "functional",
+      "subchecks": [
+        "removal-accounting",
+        "whole-list-destruction",
+        "same-owner-replacement",
+        "different-owner-replacement",
+        "missing-destroy-mutant",
+        "missing-retain-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F07",
+      "name": "map-ownership-and-limits",
+      "detector": "functional",
+      "subchecks": [
+        "copied-key",
+        "duplicate-key",
+        "absent-key",
+        "count-limit",
+        "key-limit",
+        "payload-limit",
+        "replacement-accounting",
+        "contract-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F08",
+      "name": "byte-constructor-policy",
+      "detector": "ast",
+      "subchecks": [
+        "direct-static-constructor",
+        "macro-static-constructor",
+        "direct-take-constructor",
+        "macro-take-constructor",
+        "copy-control"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F09",
+      "name": "byte-regions",
+      "detector": "functional",
+      "subchecks": [
+        "empty",
+        "full",
+        "end-empty",
+        "invalid-region",
+        "product-overflow",
+        "parent-release",
+        "region-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F10",
+      "name": "checked-size",
+      "detector": "functional",
+      "subchecks": [
+        "add-overflow",
+        "multiply-overflow",
+        "publish-only-success",
+        "supported-maxima",
+        "terminator-space",
+        "arithmetic-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F11",
+      "name": "signed-and-narrow-length",
+      "detector": "functional",
+      "subchecks": [
+        "negative-length",
+        "native-width-boundary",
+        "narrow-width-boundary",
+        "conversion-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F12",
+      "name": "text-encoding",
+      "detector": "functional",
+      "subchecks": [
+        "utf8-complete",
+        "nul-rejection",
+        "terminator",
+        "empty-text",
+        "initialized-arbitrary-bytes",
+        "validation-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F13",
+      "name": "growth-limits",
+      "detector": "functional",
+      "subchecks": [
+        "text-exact-cap",
+        "text-one-beyond",
+        "list-exact-cap",
+        "list-one-beyond",
+        "map-exact-cap",
+        "map-one-beyond",
+        "atomic-state-and-reference",
+        "allocation-order-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F14",
+      "name": "error-and-output",
+      "detector": "functional",
+      "subchecks": [
+        "propagation",
+        "omitted-error",
+        "pending-error",
+        "output-initialization",
+        "cleanup",
+        "contradictory-result-mutant",
+        "unexpected-critical-rejection"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F15",
+      "name": "caller-api-policy",
+      "detector": "warnings",
+      "subchecks": [
+        "ignored-annotated-result",
+        "direct-forbidden-call",
+        "macro-forbidden-call",
+        "alias-forbidden-call",
+        "approved-call-control",
+        "comment-only-control"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F16",
+      "name": "unconditional-guards",
+      "detector": "functional",
+      "subchecks": [
+        "NDEBUG",
+        "G_DISABLE_ASSERT",
+        "G_DISABLE_CHECKS",
+        "all-disabled",
+        "assertion-only-mutant"
+      ],
+      "required_control": true
+    },
+    {
+      "id": "F17",
+      "name": "uninitialized-glib-copy",
+      "detector": "msan",
+      "subchecks": [
+        "intended-uninitialized-byte",
+        "origin-evidence",
+        "initialized-copy-control",
+        "linked-library-audit",
+        "loaded-library-audit"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F17.c",
+      "source_sha256": "e3eacfe46090cdf06774e1fd6f73d9d1175336ed580ce40fa30d981495d36fb9"
+    },
+    {
+      "id": "F18",
+      "name": "immutable-sharing",
+      "detector": "tsan",
+      "subchecks": [
+        "synchronized-publication",
+        "retained-reference-cleanup",
+        "mutable-metadata-race"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F18.c",
+      "source_sha256": "7f4c82a55d525c60ebfca61386e474d56a5b99d63a85a5a39bed01cb725d8148"
+    },
+    {
+      "id": "F19",
+      "name": "glib-fail-stop",
+      "detector": "ordinary",
+      "subchecks": [
+        "real-backend-called",
+        "real-glib-fatal-path",
+        "no-injection-control",
+        "unrelated-abort-rejected",
+        "cgroup-oom-rejected",
+        "timeout-rejected",
+        "ordinary-job-termination-rejected",
+        "production-hook-absent"
+      ],
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F19.c",
+      "source_sha256": "a78a2020066eaa4187dfb363f1dc7b6f3876741da7d543b947c58203fe3834a3"
+    },
+    {
+      "id": "F20",
+      "name": "foundation-end-to-end",
+      "detector": "fuzz",
+      "subchecks": [
+        "normal-profile-library-binding",
+        "stateful-fuzz-oracle",
+        "bad-mutant-counterexample",
+        "repaired-counterexample",
+        "clusterfuzzlite-real-adapter",
+        "runtime-valid-input",
+        "runtime-invalid-input",
+        "final-library-bytes",
+        "two-exports",
+        "complete-fresh-child",
+        "noop-harness-rejected",
+        "dependency-substitution-rejected"
+      ],
+      "required_control": true
+    }
+  ],
+  "pipeline_subcases": [
+    {
+      "parent": "P01",
+      "name": "foundation-dependency-unavailable",
+      "variants": [
+        "missing-library",
+        "missing-header",
+        "missing-generated-config",
+        "missing-api",
+        "missing-notice",
+        "missing-provenance",
+        "ambient-pkg-config"
+      ]
+    },
+    {
+      "parent": "P02",
+      "name": "foundation-instrumentation-gap",
+      "variants": [
+        "missing-first-party-tu",
+        "uninstrumented-dependency-object",
+        "wrong-loaded-profile"
+      ]
+    },
+    {
+      "parent": "P04",
+      "name": "foundation-api-policy-bypass",
+      "variants": [
+        "direct-forbidden-api",
+        "macro-forbidden-api",
+        "backing-field",
+        "widened-allowlist",
+        "allocator-hook",
+        "sanitizer-suppression",
+        "renamed-application-source"
+      ]
+    },
+    {
+      "parent": "P07",
+      "name": "foundation-qualification-omitted",
+      "variants": [
+        "missing-F-case",
+        "missing-control",
+        "missing-profile",
+        "missing-runtime-library-export",
+        "missing-coverage-denominator"
+      ]
+    },
+    {
+      "parent": "P10",
+      "name": "foundation-artifact-substitution",
+      "variants": [
+        "same-version-library",
+        "stale-first-party-object",
+        "generated-header-substitution",
+        "runtime-image-substitution",
+        "copied-parent-report"
+      ]
+    },
+    {
+      "parent": "P11",
+      "name": "foundation-failure-masked",
+      "variants": [
+        "unexpected-critical",
+        "wrong-functional-failure",
+        "missing-msan-finding",
+        "unrelated-fatal",
+        "ordinary-oom-as-success"
+      ]
+    },
+    {
+      "parent": "P15",
+      "name": "foundation-policy-weakened",
+      "variants": [
+        "reduced-text-limit",
+        "unchecked-collection-index",
+        "recoverable-oom-relabel",
+        "runtime-as-qualification-fixture",
+        "child-policy-downgrade"
+      ]
+    },
+    {
+      "parent": "P16",
+      "name": "foundation-fuzz-bypassed",
+      "variants": [
+        "noop-harness",
+        "omitted-adapter-object",
+        "existing-counterexample-filtered"
+      ]
+    }
+  ],
+  "coverage": {
+    "line": 90,
+    "branch": 85,
+    "include": [
+      "foundation/src/sc-foundation.c",
+      "foundation/include/sc-foundation.h"
+    ],
+    "exclude": [
+      "third_party",
+      "foundation/tests",
+      "tests/integration",
+      "safety/qualification"
+    ]
+  },
+  "fuzz_limits": {
+    "input_bytes": 256,
+    "operations": 32,
+    "owners": 4,
+    "list_entries": 4,
+    "map_entries": 2,
+    "text_bytes": 16
+  }
+}

@@ -1,12 +1,12 @@
-#include "sc-foundation.h"
 #include "dependency-identity.h"
+#include "sc-foundation.h"
 #include <stdio.h>
 #include <string.h>
 
 #define REQUIRE(condition)                                                                         \
     do {                                                                                           \
         if (!(condition)) {                                                                        \
-            (void)fprintf(stderr, "CONTRACT_FAILED %s:%d\n", __func__, __LINE__);                     \
+            (void)fprintf(stderr, "CONTRACT_FAILED %s:%d\n", __func__, __LINE__);                  \
             return FALSE;                                                                          \
         }                                                                                          \
     } while (0)
@@ -23,6 +23,9 @@ static gboolean sizes(void) {
     REQUIRE(!sc_length(-1, G_MAXSIZE, &result) && result == 0);
     REQUIRE(!sc_length(2, 1, &result) && result == 0);
     REQUIRE(!sc_length(0, 1, NULL));
+    REQUIRE(sc_length(0, 0, &result) && result == 0);
+    REQUIRE(sc_length(255, 255, &result) && result == 255);
+    REQUIRE(!sc_length(256, 255, &result) && result == 255);
     REQUIRE(sc_length(0, 0, &result) && result == 0);
     REQUIRE(sc_length(G_MAXSSIZE, G_MAXSIZE, &result) && result == (gsize)G_MAXSSIZE);
     REQUIRE(sc_range(0, 0, 0) && sc_range(3, 0, 3));
@@ -193,6 +196,17 @@ static gboolean lists(void) {
     REQUIRE(destroyed == 1);
     g_clear_pointer(&shifted, g_bytes_unref);
     REQUIRE(destroyed == 2);
+    guint replacement_destroyed = 0;
+    GBytes *replace_first = witness_new(&replacement_destroyed, 1);
+    GBytes *replace_second = witness_new(&replacement_destroyed, 2);
+    g_autoptr(ScBytesList) replacement = sc_list_new(1, 1, NULL);
+    REQUIRE(replacement != NULL && sc_list_append(replacement, replace_first, NULL));
+    g_bytes_unref(replace_first);
+    REQUIRE(sc_list_replace(replacement, 0, replace_second, NULL));
+    REQUIRE(replacement_destroyed == 1);
+    g_bytes_unref(replace_second);
+    g_clear_pointer(&replacement, sc_list_free);
+    REQUIRE(replacement_destroyed == 2);
     g_autoptr(ScBytesList) limited = sc_list_new(2, 0, &error);
     g_autoptr(GBytes) data = NULL;
     REQUIRE(sc_bytes_copy("x", 1, 1, &data, &error));
@@ -256,6 +270,17 @@ static gboolean maps(void) {
     REQUIRE(destroyed == 0);
     g_clear_pointer(&retained, g_bytes_unref);
     REQUIRE(destroyed == 1);
+    guint replacement_destroyed = 0;
+    GBytes *replace_first = witness_new(&replacement_destroyed, 1);
+    GBytes *replace_second = witness_new(&replacement_destroyed, 2);
+    g_autoptr(ScBytesMap) replacement = sc_map_new(1, 1, 2, NULL);
+    REQUIRE(replacement != NULL && sc_map_put(replacement, "a", 1, replace_first, NULL));
+    g_bytes_unref(replace_first);
+    REQUIRE(sc_map_put(replacement, "a", 1, replace_second, NULL));
+    REQUIRE(replacement_destroyed == 1 && sc_map_length(replacement) == 1);
+    g_bytes_unref(replace_second);
+    g_clear_pointer(&replacement, sc_map_free);
+    REQUIRE(replacement_destroyed == 2);
     g_autoptr(ScBytesMap) limited = sc_map_new(2, 3, 1, &error);
     g_autoptr(GBytes) empty = NULL;
     REQUIRE(sc_bytes_copy(NULL, 0, 0, &empty, &error));
@@ -316,7 +341,8 @@ static gboolean errors(void) {
     REQUIRE(!sc_map_remove(map_owner, "x", 1, &error));
     gchar *snapshot = NULL;
     gsize length = 99;
-    REQUIRE(!sc_text_snapshot(text_owner, &snapshot, &length, &error) && snapshot == NULL && length == 0);
+    REQUIRE(!sc_text_snapshot(text_owner, &snapshot, &length, &error) && snapshot == NULL &&
+            length == 0);
     GBytes *output = NULL;
     REQUIRE(!sc_bytes_copy("x", 1, 1, &output, &error) && output == NULL);
     REQUIRE(!sc_bytes_slice(bytes_owner, 0, 1, &output, &error) && output == NULL);
@@ -340,6 +366,12 @@ static gboolean cleanup_early(guint stop, guint *destroyed) {
         return TRUE;
     }
     first = witness_new(destroyed, 1);
+    if (stop == 4) {
+        g_autoptr(GError) error = NULL;
+        g_autoptr(ScText) invalid = sc_text_new(SC_MAX_TEXT + 1, &error);
+        REQUIRE(invalid == NULL && error != NULL && error->code == SC_ERROR_LIMIT);
+        return FALSE;
+    }
     if (stop == 1) {
         return TRUE;
     }
@@ -359,6 +391,8 @@ static gboolean cleanup(void) {
         REQUIRE(cleanup_early(stop, &destroyed));
         REQUIRE(destroyed == (stop == 0 ? 0U : stop == 1 ? 1U : 2U));
     }
+    guint partial_destroyed = 0;
+    REQUIRE(!cleanup_early(4, &partial_destroyed) && partial_destroyed == 1);
     guint destroyed = 0;
     GBytes *recipient = NULL;
     {
@@ -380,8 +414,8 @@ int main(int argc, char **argv) {
     const struct {
         const gchar *name;
         gboolean (*test)(void);
-    } cases[] = {{"sizes", sizes}, {"text", text}, {"bytes", bytes}, {"lists", lists},
-                 {"maps", maps}, {"errors", errors}, {"cleanup", cleanup}};
+    } cases[] = {{"sizes", sizes}, {"text", text},     {"bytes", bytes},    {"lists", lists},
+                 {"maps", maps},   {"errors", errors}, {"cleanup", cleanup}};
     guint executed = 0;
     for (gsize i = 0; i < G_N_ELEMENTS(cases); i += 1) {
         if (argc == 1 || (argc == 2 && strcmp(argv[1], cases[i].name) == 0)) {

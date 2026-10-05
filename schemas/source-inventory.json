@@ -88,7 +88,18 @@
         "fuzz/parser_bad.c",
         "fuzz/replay-main.c",
         "fuzz/parser_good.c",
-        "tests/integration/runtime-demo.c"
+        "tests/integration/runtime-demo.c",
+        "foundation/src/sc-foundation.c",
+        "foundation/tests/contracts.c",
+        "foundation/tests/dependency-identity.c",
+        "foundation/tests/stateful-fuzzer.c",
+        "safety/qualification/foundation/F01.c",
+        "safety/qualification/foundation/F02.c",
+        "safety/qualification/foundation/F03.c",
+        "safety/qualification/foundation/F17.c",
+        "safety/qualification/foundation/F18.c",
+        "safety/qualification/foundation/F19.c",
+        "foundation/tests/recipes.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -1790,6 +1801,276 @@
               "items": {
                 "type": "string"
               }
+            }
+          }
+        },
+        "foundation/src/sc-foundation.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-runtime"
+            },
+            "targets": {
+              "const": [
+                "sc_foundation"
+              ]
+            }
+          }
+        },
+        "foundation/tests/contracts.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-test"
+            },
+            "targets": {
+              "const": [
+                "foundation_contracts"
+              ]
+            }
+          }
+        },
+        "foundation/tests/dependency-identity.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-test"
+            },
+            "targets": {
+              "const": [
+                "foundation_contracts",
+                "runtime_demo",
+                "F01_bad",
+                "F01_good",
+                "F02_bad",
+                "F02_good",
+                "F03_bad",
+                "F03_good",
+                "F17_bad",
+                "F17_good",
+                "F18_bad",
+                "F18_good",
+                "foundation_recipes"
+              ]
+            }
+          }
+        },
+        "foundation/tests/stateful-fuzzer.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-fuzz"
+            },
+            "targets": {
+              "const": [
+                "foundation_fuzzer"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F01.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F01_bad",
+                "F01_good"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F02.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F02_bad",
+                "F02_good"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F03.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F03_bad",
+                "F03_good"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F17.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F17_bad",
+                "F17_good"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F18.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F18_bad",
+                "F18_good"
+              ]
+            }
+          }
+        },
+        "safety/qualification/foundation/F19.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F19_backend"
+              ]
+            }
+          }
+        },
+        "foundation/tests/recipes.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-recipe"
+            },
+            "targets": {
+              "const": [
+                "foundation_recipes"
+              ]
             }
           }
         }

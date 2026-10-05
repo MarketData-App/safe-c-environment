@@ -534,14 +534,115 @@
       ]
     },
     "tests/integration/runtime-demo.c": {
-      "sha256": "1b3fbfec3fc4bf10231b07c8876967c58956cdd0cc45191c5a1df9a14881f28f",
+      "sha256": "4d5dd8d15e35de58c946c08e99e55435909b1c3564c9a92045079189678ca627",
       "role": "infrastructure",
       "targets": [
         "runtime_demo"
       ]
+    },
+    "foundation/src/sc-foundation.c": {
+      "sha256": "1ac6a51a3b2351d4ad36d61afa3bf3970361d00a2201517675f8418de41fbfbd",
+      "role": "foundation-runtime",
+      "targets": [
+        "sc_foundation"
+      ]
+    },
+    "foundation/tests/contracts.c": {
+      "sha256": "2e7f92270b5a21b9e481221362c2964d8603ae90116f270eb69345c66d299abe",
+      "role": "foundation-test",
+      "targets": [
+        "foundation_contracts"
+      ]
+    },
+    "foundation/tests/dependency-identity.c": {
+      "sha256": "0132233046a8ec4f1ed1e1bd20650069aea3cde5416cb994fd420b2373d3ac64",
+      "role": "foundation-test",
+      "targets": [
+        "foundation_contracts",
+        "runtime_demo",
+        "F01_bad",
+        "F01_good",
+        "F02_bad",
+        "F02_good",
+        "F03_bad",
+        "F03_good",
+        "F17_bad",
+        "F17_good",
+        "F18_bad",
+        "F18_good",
+        "foundation_recipes"
+      ]
+    },
+    "foundation/tests/stateful-fuzzer.c": {
+      "sha256": "3ecd437ed4d67a976359e8e38ae728d87fc3511df924d0d0dfca9d1485ba43d1",
+      "role": "foundation-fuzz",
+      "targets": [
+        "foundation_fuzzer"
+      ]
+    },
+    "safety/qualification/foundation/F01.c": {
+      "sha256": "83ec44da049371c92cdc184b1d1770068014879d1b5f3b2ca7bd651143fce23c",
+      "role": "qualification-only",
+      "targets": [
+        "F01_bad",
+        "F01_good"
+      ]
+    },
+    "safety/qualification/foundation/F02.c": {
+      "sha256": "b28d98bfca0442f55ff81e7c078e216ac3b9b0b32f1ea36a727abf8a8c5ef786",
+      "role": "qualification-only",
+      "targets": [
+        "F02_bad",
+        "F02_good"
+      ]
+    },
+    "safety/qualification/foundation/F03.c": {
+      "sha256": "86e601bedb61e4751e7f1149a6cd63c06692cc2403ac83c0f6d1e4ae8d6c678a",
+      "role": "qualification-only",
+      "targets": [
+        "F03_bad",
+        "F03_good"
+      ]
+    },
+    "safety/qualification/foundation/F17.c": {
+      "sha256": "e3eacfe46090cdf06774e1fd6f73d9d1175336ed580ce40fa30d981495d36fb9",
+      "role": "qualification-only",
+      "targets": [
+        "F17_bad",
+        "F17_good"
+      ]
+    },
+    "safety/qualification/foundation/F18.c": {
+      "sha256": "7f4c82a55d525c60ebfca61386e474d56a5b99d63a85a5a39bed01cb725d8148",
+      "role": "qualification-only",
+      "targets": [
+        "F18_bad",
+        "F18_good"
+      ]
+    },
+    "safety/qualification/foundation/F19.c": {
+      "sha256": "a78a2020066eaa4187dfb363f1dc7b6f3876741da7d543b947c58203fe3834a3",
+      "role": "qualification-only",
+      "targets": [
+        "F19_backend"
+      ]
+    },
+    "foundation/tests/recipes.c": {
+      "sha256": "e9e6c89b71e4bb33d99048779fd0eae708f29b8da8a17dccf0fd6f486afcee48",
+      "role": "foundation-recipe",
+      "targets": [
+        "foundation_recipes"
+      ]
     }
   },
   "format_files": [
+    "foundation/include/sc-foundation.h",
+    "foundation/src/sc-foundation.c",
+    "foundation/tests/contracts.c",
+    "foundation/tests/dependency-identity.c",
+    "foundation/tests/dependency-identity.h",
+    "foundation/tests/recipes.c",
+    "foundation/tests/stateful-fuzzer.c",
     "fuzz/harness.c",
     "fuzz/parser.h",
     "fuzz/parser_bad.c",
@@ -613,6 +714,12 @@
     "safety/qualification/C33/good.c",
     "safety/qualification/C34/bad.c",
     "safety/qualification/C34/good.c",
+    "safety/qualification/foundation/F01.c",
+    "safety/qualification/foundation/F02.c",
+    "safety/qualification/foundation/F03.c",
+    "safety/qualification/foundation/F17.c",
+    "safety/qualification/foundation/F18.c",
+    "safety/qualification/foundation/F19.c",
     "safety/qualification/support.c",
     "safety/qualification/support.h",
     "tests/integration/demo.c",

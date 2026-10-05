@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "dependency-identity.h"
+#include <glib.h>
 #include <link.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,7 +31,9 @@ static int observe(struct dl_phdr_info *info, size_t size, void *opaque) {
 }
 
 int sc_dependency_identity(void) {
+    g_log_set_always_fatal(G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING);
     Identity identity = {0, 0};
     int result = dl_iterate_phdr(observe, &identity);
-    return result == 0 && identity.failed == 0 && identity.found == 2 ? 0 : 1;
+    int flushed = fflush(stdout);
+    return result == 0 && identity.failed == 0 && identity.found == 2 && flushed == 0 ? 0 : 1;
 }

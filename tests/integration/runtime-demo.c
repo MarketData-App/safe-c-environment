@@ -1,17 +1,64 @@
 /* Infrastructure packaging/health demonstration; no application service. */
-#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
+#include "dependency-identity.h"
 #include "parser.h"
+#include "sc-foundation.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
+static int foundation_input(const gchar *input) {
+    gsize length = strnlen(input, 17);
+    g_autoptr(GError) error = NULL;
+    g_autoptr(ScText) text = sc_text_new(16, &error);
+    if (text == NULL || !sc_text_append(text, input, length, &error)) {
+        (void)puts("foundation input rejected");
+        return 64;
+    }
+    g_autofree gchar *snapshot = NULL;
+    gsize copied = 0;
+    if (!sc_text_snapshot(text, &snapshot, &copied, &error) || copied != length) {
+        return 9;
+    }
+    guint8 payload[] = {0, (guint8)length};
+    g_autoptr(GBytes) bytes = NULL;
+    g_autoptr(ScBytesList) list = sc_list_new(2, 4, &error);
+    g_autoptr(ScBytesMap) map = sc_map_new(2, 6, 8, &error);
+    if (!sc_bytes_copy(payload, sizeof(payload), 2, &bytes, &error) || list == NULL ||
+        map == NULL || !sc_list_append(list, bytes, &error) ||
+        !sc_map_put(map, "length", 6, bytes, &error)) {
+        return 10;
+    }
+    g_autoptr(GBytes) retained = NULL;
+    guint16 value = 0;
+    if (!sc_map_get_ref(map, "length", 6, &retained, &error) ||
+        !sc_bytes_read_u16be(retained, 0, &value, &error) || value != length ||
+        sc_list_length(list) != 1 || sc_map_length(map) != 1) {
+        return 11;
+    }
+    (void)puts("foundation input accepted");
+    return 0;
+}
+
 int main(int argc, char **argv) {
+    (void)g_log_set_always_fatal(G_LOG_FATAL_MASK | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL);
+    if (sc_dependency_identity() != 0) {
+        return 12;
+    }
     const uint8_t input[] = {2, 4, 5};
     const struct timespec interval = {1, 0};
     const unsigned iterations = argc == 2 && strcmp(argv[1], "--hold") == 0 ? 8U : 1U;
-    if (argc > 2 || (argc == 2 && strcmp(argv[1], "--hold") != 0))
-        return 2;
+    const gchar *text_input = "ok";
+    if (argc == 3 && strcmp(argv[1], "--input") == 0) {
+        text_input = argv[2];
+    } else if (argc > 2 || (argc == 2 && strcmp(argv[1], "--hold") != 0)) {
+        return 64;
+    }
+    int checked = foundation_input(text_input);
+    if (checked != 0) {
+        return checked;
+    }
     const char *const namespaces[] = {"pid", "net", "ipc", "mnt", "cgroup"};
     for (size_t i = 0; i < sizeof namespaces / sizeof namespaces[0]; ++i) {
         char path[64];

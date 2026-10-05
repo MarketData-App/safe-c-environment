@@ -33,42 +33,40 @@ G_GNUC_WARN_UNUSED_RESULT gboolean sc_range(gsize offset, gsize length, gsize to
  * Raw spans require actual valid initialized storage; checks do not prove that. */
 G_GNUC_WARN_UNUSED_RESULT ScText *sc_text_new(gsize maximum, GError **error);
 void sc_text_free(ScText *text);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_text_append(ScText *text, const gchar *data,
-                                                gsize length, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_text_append(ScText *text, const gchar *data, gsize length,
+                                                  GError **error);
 gsize sc_text_length(const ScText *text);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_text_snapshot(const ScText *text, gchar **out,
-                                                  gsize *length, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_text_snapshot(const ScText *text, gchar **out, gsize *length,
+                                                    GError **error);
 
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_copy(const void *data, gsize length,
-                                               gsize maximum, GBytes **out, GError **error);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_slice(GBytes *bytes, gsize offset,
-                                                gsize length, GBytes **out, GError **error);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_read_u16be(GBytes *bytes, gsize offset,
-                                                     guint16 *out, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_copy(const void *data, gsize length, gsize maximum,
+                                                 GBytes **out, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_slice(GBytes *bytes, gsize offset, gsize length,
+                                                  GBytes **out, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_bytes_read_u16be(GBytes *bytes, gsize offset, guint16 *out,
+                                                       GError **error);
 
 G_GNUC_WARN_UNUSED_RESULT ScBytesList *sc_list_new(gsize maximum, gsize payload_maximum,
-                                                 GError **error);
+                                                   GError **error);
 void sc_list_free(ScBytesList *list);
 gsize sc_list_length(const ScBytesList *list);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_append(ScBytesList *list, GBytes *value,
-                                                GError **error);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_replace(ScBytesList *list, gsize index,
-                                                 GBytes *value, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_append(ScBytesList *list, GBytes *value, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_replace(ScBytesList *list, gsize index, GBytes *value,
+                                                   GError **error);
 G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_get_ref(const ScBytesList *list, gsize index,
-                                                 GBytes **out, GError **error);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_remove(ScBytesList *list, gsize index,
-                                                GError **error);
+                                                   GBytes **out, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_list_remove(ScBytesList *list, gsize index, GError **error);
 
 G_GNUC_WARN_UNUSED_RESULT ScBytesMap *sc_map_new(gsize maximum, gsize key_maximum,
-                                               gsize payload_maximum, GError **error);
+                                                 gsize payload_maximum, GError **error);
 void sc_map_free(ScBytesMap *map);
 gsize sc_map_length(const ScBytesMap *map);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_map_put(ScBytesMap *map, const gchar *key,
-                                            gsize length, GBytes *value, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_map_put(ScBytesMap *map, const gchar *key, gsize length,
+                                              GBytes *value, GError **error);
 G_GNUC_WARN_UNUSED_RESULT gboolean sc_map_get_ref(const ScBytesMap *map, const gchar *key,
-                                                gsize length, GBytes **out, GError **error);
-G_GNUC_WARN_UNUSED_RESULT gboolean sc_map_remove(ScBytesMap *map, const gchar *key,
-                                               gsize length, GError **error);
+                                                  gsize length, GBytes **out, GError **error);
+G_GNUC_WARN_UNUSED_RESULT gboolean sc_map_remove(ScBytesMap *map, const gchar *key, gsize length,
+                                                 GError **error);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(ScText, sc_text_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(ScBytesList, sc_list_free)

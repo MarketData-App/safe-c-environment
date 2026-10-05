@@ -19,13 +19,9 @@ struct ScBytesMap {
     gsize payload;
 };
 
-GQuark sc_error_quark(void) {
-    return g_quark_from_static_string("sc-foundation-error");
-}
+GQuark sc_error_quark(void) { return g_quark_from_static_string("sc-foundation-error"); }
 
-static gboolean ready(GError **error) {
-    return error == NULL || *error == NULL;
-}
+static gboolean ready(GError **error) { return error == NULL || *error == NULL; }
 
 static gboolean fail(GError **error, ScError code, const gchar *message) {
     if (error != NULL && *error == NULL) {
@@ -109,8 +105,8 @@ gboolean sc_text_append(ScText *text, const gchar *data, gsize length, GError **
     }
     gsize next = 0;
     gsize terminated = 0;
-    if (!sc_size_add(text->value->len, length, &next) ||
-        !sc_size_add(next, 1, &terminated) || next > text->maximum) {
+    if (!sc_size_add(text->value->len, length, &next) || !sc_size_add(next, 1, &terminated) ||
+        next > text->maximum) {
         return fail(error, SC_ERROR_LIMIT, "text limit");
     }
     if (!text_span(data, length, error)) {
@@ -122,9 +118,7 @@ gboolean sc_text_append(ScText *text, const gchar *data, gsize length, GError **
     return TRUE;
 }
 
-gsize sc_text_length(const ScText *text) {
-    return text == NULL ? 0 : text->value->len;
-}
+gsize sc_text_length(const ScText *text) { return text == NULL ? 0 : text->value->len; }
 
 gboolean sc_text_snapshot(const ScText *text, gchar **out, gsize *length, GError **error) {
     if (out != NULL) {
@@ -144,8 +138,8 @@ gboolean sc_text_snapshot(const ScText *text, gchar **out, gsize *length, GError
     return TRUE;
 }
 
-gboolean sc_bytes_copy(const void *data, gsize length, gsize maximum,
-                       GBytes **out, GError **error) {
+gboolean sc_bytes_copy(const void *data, gsize length, gsize maximum, GBytes **out,
+                       GError **error) {
     if (out != NULL) {
         *out = NULL;
     }
@@ -162,8 +156,7 @@ gboolean sc_bytes_copy(const void *data, gsize length, gsize maximum,
     return TRUE;
 }
 
-gboolean sc_bytes_slice(GBytes *bytes, gsize offset, gsize length,
-                        GBytes **out, GError **error) {
+gboolean sc_bytes_slice(GBytes *bytes, gsize offset, gsize length, GBytes **out, GError **error) {
     if (out != NULL) {
         *out = NULL;
     }
@@ -201,9 +194,7 @@ gboolean sc_bytes_read_u16be(GBytes *bytes, gsize offset, guint16 *out, GError *
     return TRUE;
 }
 
-static void release_bytes(gpointer value) {
-    g_bytes_unref(value);
-}
+static void release_bytes(gpointer value) { g_bytes_unref(value); }
 
 ScBytesList *sc_list_new(gsize maximum, gsize payload_maximum, GError **error) {
     if (!ready(error)) {
@@ -342,8 +333,8 @@ static gboolean map_key(const ScBytesMap *map, const gchar *key, gsize length, G
     return text_span(key, length, error);
 }
 
-gboolean sc_map_put(ScBytesMap *map, const gchar *key, gsize length,
-                    GBytes *value, GError **error) {
+gboolean sc_map_put(ScBytesMap *map, const gchar *key, gsize length, GBytes *value,
+                    GError **error) {
     if (!ready(error)) {
         return FALSE;
     }
@@ -365,8 +356,8 @@ gboolean sc_map_put(ScBytesMap *map, const gchar *key, gsize length,
     }
     gsize entry = 0;
     gsize next = 0;
-    if (!sc_size_add(length, g_bytes_get_size(value), &entry) ||
-        !sc_size_add(base, entry, &next) || next > map->payload_maximum) {
+    if (!sc_size_add(length, g_bytes_get_size(value), &entry) || !sc_size_add(base, entry, &next) ||
+        next > map->payload_maximum) {
         return fail(error, SC_ERROR_LIMIT, "map payload limit");
     }
     gchar *owned_key = g_strndup(key, length);
@@ -376,8 +367,8 @@ gboolean sc_map_put(ScBytesMap *map, const gchar *key, gsize length,
     return TRUE;
 }
 
-gboolean sc_map_get_ref(const ScBytesMap *map, const gchar *key, gsize length,
-                        GBytes **out, GError **error) {
+gboolean sc_map_get_ref(const ScBytesMap *map, const gchar *key, gsize length, GBytes **out,
+                        GError **error) {
     if (out != NULL) {
         *out = NULL;
     }
