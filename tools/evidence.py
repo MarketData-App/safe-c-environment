@@ -81,7 +81,9 @@ def bounded(argv, timeout=30, limit=4*1024*1024, env=None, cwd=None):
 PROHIBITED_ENV = ('LIT_OPTS', 'FILECHECK_OPTS', 'ASAN_OPTIONS', 'LSAN_OPTIONS',
                   'MSAN_OPTIONS', 'TSAN_OPTIONS', 'UBSAN_OPTIONS', 'LLVM_PROFILE_FILE',
                   'CFLAGS', 'CXXFLAGS', 'CPPFLAGS', 'LDFLAGS', 'CMAKE_ARGS',
-                  'CTEST_TEST_ARGS', 'CTEST_PARALLEL_LEVEL', 'LD_PRELOAD', 'LD_LIBRARY_PATH')
+                  'CTEST_TEST_ARGS', 'CTEST_PARALLEL_LEVEL', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
+                  'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
+                  'PKG_CONFIG_PATH', 'PKG_CONFIG_LIBDIR', 'G_DEBUG', 'G_SLICE')
 RUNTIME_ENV = {'ASAN_OPTIONS': 'detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1:symbolize=1',
                'LSAN_OPTIONS': 'exitcode=23',
                'UBSAN_OPTIONS': 'halt_on_error=1:print_stacktrace=1',
@@ -121,6 +123,16 @@ class Runner:
         self.snapshot=snapshot
         self.session=self.launcher.create(self.build_profile,{'/src':snapshot})
         self.name=self.session['container_id'];self.alive=True
+        from containment import expected_binding
+        from policy import source_identity
+        self.input_binding=expected_binding(self.root,self.launcher.runner_identity,
+                                            self.lock['image_id'],self.launcher.value)
+        if source_identity(snapshot)[0] != self.input_binding['source']:
+            raise GateError('source changed during immutable job snapshot creation')
+        for key,path in [('dependency','foundation.lock.json'),
+                         ('api_policy','safety/foundation-api-policy.json'),
+                         ('fixture_inventory','safety/foundation-fixtures.json')]:
+            if (snapshot/path).is_file():self.input_binding[key]=file_hash(snapshot/path)
 
     def close(self):
         self.launcher.close();self.alive=False
@@ -237,6 +249,7 @@ print(base64.b64encode(p.read_bytes()).decode())"""
             result=self.launcher.execute(self.session,args,timeout=timeout,env=settings)
             if result['failure']:self.alive=False
         result['command']=list(args);result['image_id']=self.lock['image_id']
+        result['input_binding']=dict(self.input_binding)
         filename=f'{self.counter:04d}-{label}.json'
         result['evidence_path']=str(self.run_dir/'evidence'/filename)
         atomic_json(Path(result['evidence_path']),result);self.records.append(result)

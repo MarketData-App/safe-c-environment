@@ -1,0 +1,68 @@
+"""Finite native AST reduction for the existing trusted policy evaluator.
+
+Run inside the qualified builder. Native compiler output and the complete AST
+stay opaque on disk; stdout contains only rule IDs, identifiers and file paths.
+The exact SDK public/generated headers are imported through an actual Clang PCH
+so unrelated GLib header declarations are not treated as application API uses.
+"""
+from pathlib import Path
+import json
+import subprocess
+import sys
+
+sys.path.insert(0, '/src/tools')
+from qualification import ast_banned_calls, ast_foundation_uses
+
+
+def main():
+    if len(sys.argv) != 4:
+        raise ValueError('typed_policy_arguments')
+    source, profile, label = sys.argv[1:]
+    if '..' in Path(source).parts or Path(source).is_absolute():
+        raise ValueError('relative_source_required')
+    if not label.replace('-', '').replace('_', '').isalnum():
+        raise ValueError('typed_policy_label_required')
+    lock = json.loads(Path('/src/foundation.lock.json').read_text())
+    if profile not in lock['profiles']:
+        raise ValueError('locked_policy_profile_required')
+    prefix = Path('/opt/foundation') / profile
+    directory = Path('/work/foundation-policy') / label
+    directory.mkdir(parents=True, exist_ok=True)
+    flags = ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/tests', '-I/src/fuzz',
+             '-isystem', str(prefix / 'include/glib-2.0'),
+             '-isystem', str(prefix / 'lib/glib-2.0/include'),
+             '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
+             '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
+    pch = directory / 'public.pch'
+    commands = [
+        ['clang', *flags, '-x', 'c-header', '/src/foundation/include/sc-foundation.h', '-o', str(pch)],
+        ['clang', *flags, '-include-pch', str(pch), '-Xclang', '-ast-dump=json',
+         '-fsyntax-only', '/src/' + source],
+    ]
+    for index, command in enumerate(commands):
+        output = directory / ('native-' + str(index) + '.json')
+        errors = directory / ('native-' + str(index) + '.log')
+        with output.open('wb') as stream, errors.open('wb') as diagnostics:
+            result = subprocess.run(command, stdout=stream, stderr=diagnostics, timeout=45)
+        if result.returncode or output.stat().st_size > 32 * 1024 * 1024:
+            print(json.dumps({'status': 'BLOCKED', 'source': source,
+                              'exit_code': result.returncode, 'file_path': str(errors)}))
+            return 2
+    tree = json.loads(output.read_text())
+    policy = json.loads(Path('/src/safety/foundation-api-policy.json').read_text())
+    inventory = json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
+    findings = ast_foundation_uses(tree, policy, source, inventory)
+    for name in ast_banned_calls(tree):
+        findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
+    print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,
+                      'profile': profile, 'findings': findings,
+                      'ast_path': str(output), 'pch_path': str(pch)}))
+    return 1 if findings else 0
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except Exception as error:
+        print(json.dumps({'status': 'BLOCKED', 'error_type': type(error).__name__}))
+        raise SystemExit(2)

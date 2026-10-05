@@ -72,6 +72,8 @@ def inventory_gate(root, expected_contract=None):
     for p in actual:
         if file_hash(root/p) != declared[p]['sha256']:
             raise GateError('source fingerprint changed: ' + p)
+    from foundation import input_gate, fixture_inventory as foundation_fixtures, boundary_inventory
+    input_gate(root, artifacts=False);foundation_fixtures(root);boundary_inventory(root)
     if read_json(root/'safety/exceptions.json')['approved_exceptions']:
         raise GateError('no independently authorized exceptions supplied')
     return {'status':'PASS','sources':sorted(actual),'cases':len(fixtures['cases'])}
@@ -206,7 +208,7 @@ def configuration_gate(root):
     config=(root/'.clang-tidy').read_text()
     if "Checks: '-*,clang-analyzer-core.*,clang-analyzer-unix.*,bugprone-sizeof-expression'" not in config or "WarningsAsErrors: '*'" not in config:
         raise GateError('required clang-tidy check configuration changed')
-    for folder in ['src','include','tests/integration','fuzz']:
+    for folder in ['src','include','tests/integration','fuzz','foundation']:
         for p in (root/folder).rglob('*'):
             if p.suffix not in {'.c','.h'}:continue
             text=p.read_text()

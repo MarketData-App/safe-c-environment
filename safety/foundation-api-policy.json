@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "language": "C17",
+  "minimum_api": "2.70",
+  "oom_policy": "glib-fail-stop",
+  "approved_glib_functions": [
+    "g_bytes_ref",
+    "g_bytes_unref",
+    "g_bytes_get_size",
+    "g_bytes_equal",
+    "g_error_free",
+    "g_error_matches",
+    "g_clear_error",
+    "g_propagate_error",
+    "g_strcmp0",
+    "g_free"
+  ],
+  "approved_cleanup_types": [
+    "GBytes",
+    "GError",
+    "ScText",
+    "ScBytesList",
+    "ScBytesMap"
+  ],
+  "approved_macros": [
+    "g_autoptr",
+    "g_autofree",
+    "g_steal_pointer",
+    "g_clear_pointer",
+    "g_clear_error"
+  ],
+  "restricted_types": [
+    "GString",
+    "GPtrArray",
+    "GArray",
+    "GByteArray",
+    "GHashTable",
+    "GObject",
+    "GMainLoop",
+    "GMainContext",
+    "GList",
+    "GSList",
+    "GQueue"
+  ],
+  "forbidden_glib_functions": [
+    "g_bytes_new_static",
+    "g_bytes_new_take",
+    "g_bytes_get_data",
+    "g_bytes_unref_to_data",
+    "g_mem_set_vtable",
+    "g_try_malloc",
+    "g_try_malloc0",
+    "g_try_realloc"
+  ],
+  "raw_memory_functions": [
+    "malloc",
+    "calloc",
+    "realloc",
+    "free",
+    "memcpy",
+    "memmove",
+    "memset",
+    "strcpy",
+    "strncpy",
+    "strcat",
+    "strncat",
+    "strdup",
+    "alloca"
+  ],
+  "boundaries": {
+    "foundation/src/sc-foundation.c": "checked-adapter",
+    "foundation/tests/contracts.c": "ownership-and-contract-accounting",
+    "foundation/tests/dependency-identity.c": "loaded-library-observation",
+    "tests/integration/demo.c": "original-infrastructure-control",
+    "tests/integration/hardening.c": "original-hardening-control",
+    "tests/integration/runtime-demo.c": "qualified-runtime-demonstration",
+    "fuzz/parser_good.c": "original-parser-control",
+    "foundation/tests/stateful-fuzzer.c": "independent-bounded-fuzz-oracle"
+  },
+  "ownership_conventions": [
+    "valid live input objects",
+    "initialized readable input spans",
+    "empty owned output slots",
+    "matching cleanup functions",
+    "mutable object thread confinement",
+    "synchronized publication of immutable references"
+  ],
+  "boundary_inventory": {
+    "foundation/src/sc-foundation.c": {
+      "role": "foundation-runtime",
+      "targets": [
+        "sc_foundation"
+      ]
+    },
+    "foundation/tests/contracts.c": {
+      "role": "foundation-test",
+      "targets": [
+        "foundation_contracts"
+      ]
+    },
+    "foundation/tests/dependency-identity.c": {
+      "role": "foundation-test",
+      "targets": [
+        "foundation_contracts",
+        "runtime_demo",
+        "F01_bad",
+        "F01_good",
+        "F02_bad",
+        "F02_good",
+        "F03_bad",
+        "F03_good",
+        "F17_bad",
+        "F17_good",
+        "F18_bad",
+        "F18_good",
+        "foundation_recipes"
+      ]
+    },
+    "tests/integration/demo.c": {
+      "role": "isolated-demo",
+      "targets": [
+        "infrastructure_demo"
+      ]
+    },
+    "tests/integration/hardening.c": {
+      "role": "isolated-demo",
+      "targets": [
+        "hardening_probe"
+      ]
+    },
+    "tests/integration/runtime-demo.c": {
+      "role": "infrastructure",
+      "targets": [
+        "runtime_demo"
+      ]
+    },
+    "fuzz/parser_good.c": {
+      "role": "isolated-demo",
+      "targets": [
+        "C32_good",
+        "infrastructure_demo",
+        "runtime_demo"
+      ]
+    },
+    "foundation/tests/stateful-fuzzer.c": {
+      "role": "foundation-fuzz",
+      "targets": [
+        "foundation_fuzzer"
+      ]
+    }
+  }
+}

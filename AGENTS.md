@@ -1,6 +1,7 @@
 # Agent protocol
 
-This is a bootstrap-only safety starter. No application implementation is authorized.
+This is a bootstrap-only safety starter with an authorized reusable foundation
+in foundation/. No business application implementation is authorized.
 Read the feature specification, safety/contract.json, safety/coding-policy.md and
 external baseline identity before any later application work. A local file or
 checksum never authorizes its own baseline. Keep src/ and include/ empty until the
@@ -62,3 +63,32 @@ finite ceilings and run serially after harmless effective-limit preflight. An ol
 v2 report does not certify this amendment. Requalify on each actual child runner.
 Runtime-demo is infrastructure only; src/ and include/ remain empty. Production
 access/deployment requires a later approved application contract.
+
+Foundation amendment: read specs/foundation-contract.md and
+safety/foundation-api-policy.json before using the checked GLib boundary. Use
+the compiled foundation/tests/recipes.c examples. Ordinary checks use only the
+exact qualified /opt/foundation profile from foundation.lock.json; they must
+not acquire, upgrade, use ambient pkg-config, or substitute headers/libraries.
+The upstream GLib -fno-strict-aliasing option belongs to dependency builds only.
+First-party warnings, analyzers and instrumentation remain mandatory.
+
+Prefer initialized g_autoptr owners for GBytes, GError and opaque Sc types;
+return an automatic owner only through g_steal_pointer. Obtain owned text
+snapshots and free them with g_free. Retain a borrowed immutable byte object
+before releasing its current owner. Use checked byte reads, slices and logical
+container accessors. Static/take byte constructors, backing-field access,
+unchecked copies/indexing and arbitrary GLib APIs are forbidden outside exact
+inventoried boundaries. Matching cleanup, live pointer validity, initialized
+spans, mutable thread confinement and synchronized immutable publication remain
+caller obligations; the AST gate does not prove them.
+
+Check every annotated result. Preserve a pending GError, initialize owned output
+slots to NULL, and distinguish recoverable input/range/encoding/cap failures
+from the default glib-fail-stop allocation contract. No production allocation
+hook or recovery promise is approved. F19's backend injection is confined to an
+ordinary same-source static test-link variant in disposable Docker jobs.
+Require foundation doctor/check/selftest, its complete F01–F20 controls and named
+subchecks, individual pipeline variants, own 90% line/85% branch coverage,
+stateful oracle replay, actual linked/loaded profile identities, minimal runtime
+closure and fresh child qualification alongside every existing gate. Passing
+finite local checks remains VALIDATED_UNSEALED; application readiness is false.

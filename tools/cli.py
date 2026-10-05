@@ -86,16 +86,17 @@ def production_checks(q, full):
     for name in ['tidy','csa','gcc-analyzer','ast']:
         output=[];ok=True
         for rel in INFRA:
-            if name=='tidy':args=['clang-tidy','--config-file=/src/.clang-tidy','/src/'+rel,'--','-std=c17','-I/src/fuzz']
-            elif name=='csa':args=['clang','--analyze','-std=c17','-I/src/fuzz','-Xanalyzer','-analyzer-output=text','/src/'+rel]
-            elif name=='gcc-analyzer':args=['gcc','-std=c17','-I/src/fuzz','-O0','-fanalyzer','-Wanalyzer-too-complex','-Wanalyzer-symbol-too-complex','-Werror','-c','/src/'+rel,'-o','/work/analysis.o']
-            else:args=['clang','-std=c17','-I/src/fuzz','-Xclang','-ast-dump=json','-fsyntax-only','/src/'+rel]
+            from foundation import analysis_flags
+            flags=analysis_flags('gcc-O0' if name=='gcc-analyzer' else 'clang-O0')
+            if name=='tidy':args=['clang-tidy','--config-file=/src/.clang-tidy','/src/'+rel,'--',*flags]
+            elif name=='csa':args=['clang','--analyze',*flags,'-Xanalyzer','-analyzer-output=text','/src/'+rel]
+            elif name=='gcc-analyzer':args=['gcc',*flags,'-O0','-fanalyzer','-Wanalyzer-too-complex','-Wanalyzer-symbol-too-complex','-Werror','-c','/src/'+rel,'-o','/work/analysis.o']
+            else:args=['python3','/src/container/foundation-policy.py',rel,'clang-O0','normal-'+str(INFRA.index(rel))]
             r=q.runner.run(args,label='normal-'+name);output.append(r['evidence_path'])
             clean=passed(r)
             if name=='csa':clean=clean and 'warning:' not in r['output']
             if name=='ast':
-                from qualification import ast_banned_calls
-                clean=clean and not ast_banned_calls(json.loads(r['output']))
+                clean=clean and json.loads(r['output']).get('status')=='PASS'
             ok=ok and clean
         results.append(gate(name,'PASS' if ok else 'FAIL',{'source_coverage':INFRA},output))
     if full:

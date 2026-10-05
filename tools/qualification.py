@@ -10,7 +10,7 @@ PROFILE_FLAGS = {'asan':'-fsanitize=address,undefined','ubsan':'-fsanitize=undef
  'integer':'-fsanitize=undefined,unsigned-integer-overflow,implicit-integer-conversion',
  'msan':'-fsanitize=memory','tsan':'-fsanitize=thread',
  'fuzz':'-fsanitize=address,undefined,fuzzer-no-link','coverage':'-fcoverage-mapping'}
-INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c']
+INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c','foundation/src/sc-foundation.c','foundation/tests/contracts.c','foundation/tests/dependency-identity.c','foundation/tests/recipes.c']
 
 def designated_runtime_result(result,expected):
     if type(result.get('exit_code')) is not int or result['failure'] is not None or result['exit_code']==0 or expected not in result['output']:
@@ -23,15 +23,22 @@ class Qualifier:
         self.fixtures = {x['id']:x for x in read_json(root/'safety/fixtures.json')['cases']}
         self.builds = {}
 
-    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0):
+    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=()):
         cc = compiler or ('gcc' if profile=='gcc-analyzer' else 'clang')
         key = f'{profile}-{cc}-O{opt}-{case}-{variant}'
-        if key in self.builds:
-            return self.builds[key]
+        if foundation_case != 'NONE':
+            if foundation_case not in {'F01', 'F02', 'F03', 'F17', 'F18', 'F19'}:
+                raise GateError('unknown foundation runtime case')
+            key += '-' + foundation_case
+        if any(g not in {'NDEBUG', 'G_DISABLE_ASSERT', 'G_DISABLE_CHECKS'} for g in guards) or len(set(guards)) != len(guards):
+            raise GateError('unknown/duplicate first-party guard variant')
+        if guards:key += '-' + '-'.join(guards)
+        if key in self.builds:return self.builds[key]
         relative='build/'+key
         config=self.runner.run(['cmake','-S','/src','-B','/work/'+relative,'-G','Ninja',
             '-DCMAKE_C_COMPILER='+cc,'-DSAFETY_PROFILE='+profile,'-DSAFETY_CASE='+case,
-            '-DSAFETY_VARIANT='+variant,'-DCMAKE_C_FLAGS=-O'+str(opt)],timeout=60,label=key+'-configure')
+            '-DSAFETY_VARIANT='+variant,'-DCMAKE_C_FLAGS=-O'+str(opt),
+            '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards)],timeout=60,label=key+'-configure')
         result={'directory':relative,'configure':config,'build':None,'audit':None,'commands':[],'links':None}
         if passed(config):
             compile_result=self.runner.run(['cmake','--build','/work/'+relative,'--parallel','2','--verbose'],timeout=90,label=key+'-build')
@@ -39,6 +46,8 @@ class Qualifier:
             try:
                 database=read_json(self.runner.fetch(relative+'/compile_commands.json'))
                 sources=INFRA.copy()
+                if profile == 'fuzz':sources.append('foundation/tests/stateful-fuzzer.c')
+                if foundation_case != 'NONE':sources.append('safety/qualification/foundation/' + foundation_case + '.c')
                 if case in self.fixtures:
                     f=self.fixtures[case]
                     sources+=f['bad_sources'] if variant=='bad' else f['good_sources'] if variant=='good' else f['bad_sources']+f['good_sources']
@@ -233,3 +242,88 @@ def ast_call_sites(node):
         for child in value.get('inner',[]):walk(child,function)
     walk(node)
     return sites
+
+
+def ast_foundation_uses(node, policy, source, inventory):
+    """Extend the existing AST gate with actual first-party expressions.
+
+    Header declarations/inline definitions do not grant API permission. Exact
+    boundary paths must also exist in the protected source-to-target inventory;
+    ownership and input pointer validity remain documented caller conventions.
+    """
+    expected = policy['boundary_inventory'].get(source)
+    declared = inventory.get(source, {})
+    boundary = (source in policy['boundaries'] and expected is not None and
+                all(declared.get(key) == value for key, value in expected.items()))
+    allowed = set(policy['approved_glib_functions'])
+    forbidden = set(policy['forbidden_glib_functions'])
+    raw = set(policy['raw_memory_functions'])
+    restricted = set(policy['restricted_types'])
+    cleanup = set()
+    for name in policy['approved_cleanup_types']:
+        cleanup.update({'glib_autoptr_cleanup_' + name, 'glib_autoptr_clear_' + name})
+    cleanup.update({'g_autoptr_cleanup_generic_gfree', 'g_clear_pointer', 'g_steal_pointer'})
+    findings = []
+
+    def record(rule, function, name, value):
+        location = value.get('range', {}).get('begin', value.get('loc', {}))
+        findings.append({'rule': rule, 'function': function, 'name': name,
+                         'macro': 'expansionLoc' in location, 'source': source})
+
+    def reference(value):
+        if value.get('kind') == 'DeclRefExpr':
+            return value.get('referencedDecl', {})
+        for child in value.get('inner', []):
+            found = reference(child)
+            if found:
+                return found
+        return {}
+
+    def walk(value, function):
+        kind = value.get('kind')
+        if kind in {'NoSanitizeAttr', 'AsmStmt', 'GCCAsmStmt'}:
+            record('suppression-or-inline-assembly', function, kind, value)
+        if kind == 'DeclRefExpr':
+            declaration = value.get('referencedDecl', {})
+            name = declaration.get('name', '')
+            if declaration.get('kind') == 'FunctionDecl':
+                if name in forbidden:
+                    record('forbidden-glib-api', function, name, value)
+                elif not boundary and name in raw:
+                    record('raw-memory-api', function, name, value)
+                elif not boundary and name.startswith(('g_', 'glib_')) and name not in allowed | cleanup:
+                    record('unapproved-glib-api', function, name, value)
+        if not boundary and kind in {'VarDecl', 'ParmVarDecl', 'MemberExpr', 'DeclRefExpr'}:
+            type_name = value.get('type', {}).get('qualType', '')
+            if any(re.search(r'\b' + re.escape(name) + r'\b', type_name) for name in restricted):
+                record('restricted-mutable-type', function, type_name, value)
+        if not boundary and kind == 'ArraySubscriptExpr':
+            record('raw-indexing', function, kind, value)
+        if not boundary and kind == 'CallExpr' and value.get('inner'):
+            declaration = reference(value['inner'][0])
+            if declaration.get('kind') != 'FunctionDecl':
+                record('unknown-call-indirection', function, declaration.get('name', ''), value)
+            elif declaration.get('name') == 'g_free' and len(value['inner']) > 1:
+                argument_type = value['inner'][1].get('type', {}).get('qualType', '')
+                # Peel implicit pointer conversions to retain the owned type.
+                argument = value['inner'][1]
+                while argument.get('kind') == 'ImplicitCastExpr' and argument.get('inner'):
+                    argument = argument['inner'][0]
+                    argument_type = argument.get('type', {}).get('qualType', argument_type)
+                if not re.fullmatch(r'(?:gchar|char)\s*\*', argument_type):
+                    record('incompatible-owned-cleanup', function, argument_type, value)
+        for child in value.get('inner', []):
+            walk(child, function)
+
+    for declaration in node.get('inner', []):
+        if declaration.get('kind') != 'FunctionDecl':
+            continue
+        location = declaration.get('loc', {})
+        actual = location.get('expansionLoc', location)
+        if 'includedFrom' in actual:
+            continue
+        for body in declaration.get('inner', []):
+            if body.get('kind') == 'CompoundStmt':
+                walk(body, declaration.get('name', ''))
+    unique = {(row['rule'], row['function'], row['name'], row['macro']): row for row in findings}
+    return [unique[key] for key in sorted(unique)]

@@ -1,0 +1,894 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "allocation_profile",
+    "pipeline_subcases",
+    "coverage",
+    "fuzz_limits",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "allocation_profile": {
+      "const": "glib-fail-stop"
+    },
+    "pipeline_subcases": {
+      "const": [
+        {
+          "parent": "P01",
+          "name": "foundation-dependency-unavailable",
+          "variants": [
+            "missing-library",
+            "missing-header",
+            "missing-generated-config",
+            "missing-api",
+            "missing-notice",
+            "missing-provenance",
+            "ambient-pkg-config"
+          ]
+        },
+        {
+          "parent": "P02",
+          "name": "foundation-instrumentation-gap",
+          "variants": [
+            "missing-first-party-tu",
+            "uninstrumented-dependency-object",
+            "wrong-loaded-profile"
+          ]
+        },
+        {
+          "parent": "P04",
+          "name": "foundation-api-policy-bypass",
+          "variants": [
+            "direct-forbidden-api",
+            "macro-forbidden-api",
+            "backing-field",
+            "widened-allowlist",
+            "allocator-hook",
+            "sanitizer-suppression",
+            "renamed-application-source"
+          ]
+        },
+        {
+          "parent": "P07",
+          "name": "foundation-qualification-omitted",
+          "variants": [
+            "missing-F-case",
+            "missing-control",
+            "missing-profile",
+            "missing-runtime-library-export",
+            "missing-coverage-denominator"
+          ]
+        },
+        {
+          "parent": "P10",
+          "name": "foundation-artifact-substitution",
+          "variants": [
+            "same-version-library",
+            "stale-first-party-object",
+            "generated-header-substitution",
+            "runtime-image-substitution",
+            "copied-parent-report"
+          ]
+        },
+        {
+          "parent": "P11",
+          "name": "foundation-failure-masked",
+          "variants": [
+            "unexpected-critical",
+            "wrong-functional-failure",
+            "missing-msan-finding",
+            "unrelated-fatal",
+            "ordinary-oom-as-success"
+          ]
+        },
+        {
+          "parent": "P15",
+          "name": "foundation-policy-weakened",
+          "variants": [
+            "reduced-text-limit",
+            "unchecked-collection-index",
+            "recoverable-oom-relabel",
+            "runtime-as-qualification-fixture",
+            "child-policy-downgrade"
+          ]
+        },
+        {
+          "parent": "P16",
+          "name": "foundation-fuzz-bypassed",
+          "variants": [
+            "noop-harness",
+            "omitted-adapter-object",
+            "existing-counterexample-filtered"
+          ]
+        }
+      ]
+    },
+    "coverage": {
+      "const": {
+        "line": 90,
+        "branch": 85,
+        "include": [
+          "foundation/src/sc-foundation.c",
+          "foundation/include/sc-foundation.h"
+        ],
+        "exclude": [
+          "third_party",
+          "foundation/tests",
+          "tests/integration",
+          "safety/qualification"
+        ]
+      }
+    },
+    "fuzz_limits": {
+      "const": {
+        "input_bytes": 256,
+        "operations": 32,
+        "owners": 4,
+        "list_entries": 4,
+        "map_entries": 2,
+        "text_bytes": 16
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "prefixItems": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F01"
+            },
+            "name": {
+              "const": "cleanup"
+            },
+            "detector": {
+              "const": "asan"
+            },
+            "subchecks": {
+              "const": [
+                "early-return-zero",
+                "early-return-first",
+                "early-return-multiple",
+                "partial-initialization",
+                "missing-cleanup-accounting",
+                "missing-cleanup-leak"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F01.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F02"
+            },
+            "name": {
+              "const": "escaped-automatic-owner"
+            },
+            "detector": {
+              "const": "asan"
+            },
+            "subchecks": {
+              "const": [
+                "released-return-owner",
+                "steal-transfer-control"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F02.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F03"
+            },
+            "name": {
+              "const": "owner-alias"
+            },
+            "detector": {
+              "const": "asan"
+            },
+            "subchecks": {
+              "const": [
+                "unretained-alias",
+                "retained-alias-control"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F03.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F04"
+            },
+            "name": {
+              "const": "mutable-backing-access"
+            },
+            "detector": {
+              "const": "ast"
+            },
+            "subchecks": {
+              "const": [
+                "direct-backing-field",
+                "macro-backing-field",
+                "owned-snapshot-growth-control"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F05"
+            },
+            "name": {
+              "const": "logical-list-index"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "empty-index",
+                "one-past-logical",
+                "spare-capacity-index",
+                "debug-guard-mutant",
+                "optimized-guard-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F06"
+            },
+            "name": {
+              "const": "list-release-and-replacement"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "removal-accounting",
+                "whole-list-destruction",
+                "same-owner-replacement",
+                "different-owner-replacement",
+                "missing-destroy-mutant",
+                "missing-retain-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F07"
+            },
+            "name": {
+              "const": "map-ownership-and-limits"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "copied-key",
+                "duplicate-key",
+                "absent-key",
+                "count-limit",
+                "key-limit",
+                "payload-limit",
+                "replacement-accounting",
+                "contract-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F08"
+            },
+            "name": {
+              "const": "byte-constructor-policy"
+            },
+            "detector": {
+              "const": "ast"
+            },
+            "subchecks": {
+              "const": [
+                "direct-static-constructor",
+                "macro-static-constructor",
+                "direct-take-constructor",
+                "macro-take-constructor",
+                "copy-control"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F09"
+            },
+            "name": {
+              "const": "byte-regions"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "empty",
+                "full",
+                "end-empty",
+                "invalid-region",
+                "product-overflow",
+                "parent-release",
+                "region-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F10"
+            },
+            "name": {
+              "const": "checked-size"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "add-overflow",
+                "multiply-overflow",
+                "publish-only-success",
+                "supported-maxima",
+                "terminator-space",
+                "arithmetic-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F11"
+            },
+            "name": {
+              "const": "signed-and-narrow-length"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "negative-length",
+                "native-width-boundary",
+                "narrow-width-boundary",
+                "conversion-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F12"
+            },
+            "name": {
+              "const": "text-encoding"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "utf8-complete",
+                "nul-rejection",
+                "terminator",
+                "empty-text",
+                "initialized-arbitrary-bytes",
+                "validation-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F13"
+            },
+            "name": {
+              "const": "growth-limits"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "text-exact-cap",
+                "text-one-beyond",
+                "list-exact-cap",
+                "list-one-beyond",
+                "map-exact-cap",
+                "map-one-beyond",
+                "atomic-state-and-reference",
+                "allocation-order-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F14"
+            },
+            "name": {
+              "const": "error-and-output"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "propagation",
+                "omitted-error",
+                "pending-error",
+                "output-initialization",
+                "cleanup",
+                "contradictory-result-mutant",
+                "unexpected-critical-rejection"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F15"
+            },
+            "name": {
+              "const": "caller-api-policy"
+            },
+            "detector": {
+              "const": "warnings"
+            },
+            "subchecks": {
+              "const": [
+                "ignored-annotated-result",
+                "direct-forbidden-call",
+                "macro-forbidden-call",
+                "alias-forbidden-call",
+                "approved-call-control",
+                "comment-only-control"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F16"
+            },
+            "name": {
+              "const": "unconditional-guards"
+            },
+            "detector": {
+              "const": "functional"
+            },
+            "subchecks": {
+              "const": [
+                "NDEBUG",
+                "G_DISABLE_ASSERT",
+                "G_DISABLE_CHECKS",
+                "all-disabled",
+                "assertion-only-mutant"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F17"
+            },
+            "name": {
+              "const": "uninitialized-glib-copy"
+            },
+            "detector": {
+              "const": "msan"
+            },
+            "subchecks": {
+              "const": [
+                "intended-uninitialized-byte",
+                "origin-evidence",
+                "initialized-copy-control",
+                "linked-library-audit",
+                "loaded-library-audit"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F17.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F18"
+            },
+            "name": {
+              "const": "immutable-sharing"
+            },
+            "detector": {
+              "const": "tsan"
+            },
+            "subchecks": {
+              "const": [
+                "synchronized-publication",
+                "retained-reference-cleanup",
+                "mutable-metadata-race"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F18.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control",
+            "runtime_source",
+            "source_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "F19"
+            },
+            "name": {
+              "const": "glib-fail-stop"
+            },
+            "detector": {
+              "const": "ordinary"
+            },
+            "subchecks": {
+              "const": [
+                "real-backend-called",
+                "real-glib-fatal-path",
+                "no-injection-control",
+                "unrelated-abort-rejected",
+                "cgroup-oom-rejected",
+                "timeout-rejected",
+                "ordinary-job-termination-rejected",
+                "production-hook-absent"
+              ]
+            },
+            "required_control": {
+              "const": true
+            },
+            "runtime_source": {
+              "const": "safety/qualification/foundation/F19.c"
+            },
+            "source_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "detector",
+            "subchecks",
+            "required_control"
+          ],
+          "properties": {
+            "id": {
+              "const": "F20"
+            },
+            "name": {
+              "const": "foundation-end-to-end"
+            },
+            "detector": {
+              "const": "fuzz"
+            },
+            "subchecks": {
+              "const": [
+                "normal-profile-library-binding",
+                "stateful-fuzz-oracle",
+                "bad-mutant-counterexample",
+                "repaired-counterexample",
+                "clusterfuzzlite-real-adapter",
+                "runtime-valid-input",
+                "runtime-invalid-input",
+                "final-library-bytes",
+                "two-exports",
+                "complete-fresh-child",
+                "noop-harness-rejected",
+                "dependency-substitution-rejected"
+              ]
+            },
+            "required_control": {
+              "const": true
+            }
+          }
+        }
+      ],
+      "items": false
+    }
+  }
+}
