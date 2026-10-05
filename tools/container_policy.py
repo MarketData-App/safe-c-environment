@@ -27,7 +27,7 @@ def policy(root):
         raise GateError('mandatory container restrictions missing')
     if any(c[k]!='private' for k in ['pid_namespace','ipc_namespace','cgroup_namespace']):
         raise GateError('host namespace requested')
-    required={'acquire','build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
+    required={'acquire','build','dependency-build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
     if set(value['profiles'])!=required:raise GateError('container profile inventory mismatch')
     for name,p in value['profiles'].items():
         if any(p[k]<=0 for k in ['memory_bytes','cpus','pids','work_bytes','tmp_bytes','run_bytes','shm_bytes','work_inodes','wall_seconds']) or p['swap_bytes']!=0:

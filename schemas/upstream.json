@@ -10,7 +10,8 @@
     "nist_131_acquisition",
     "distributions",
     "remote_images",
-    "notice_sha256"
+    "notice_sha256",
+    "foundation_lock"
   ],
   "properties": {
     "schema_version": {
@@ -1125,6 +1126,10 @@
     },
     "notice_sha256": {
       "type": "string"
+    },
+    "foundation_lock": {
+      "type": "string",
+      "const": "foundation.lock.json"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema"

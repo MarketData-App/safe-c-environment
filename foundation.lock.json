@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "BUILD_IN_PROGRESS",
+  "glib_version": "2.90.0",
+  "minimum_api": "2.70",
+  "allocation_profile": "glib-fail-stop",
+  "inputs": [
+    {
+      "name": "glib",
+      "version": "2.90.0",
+      "url": "https://download.gnome.org/sources/glib/2.90/glib-2.90.0.tar.xz",
+      "path": "container/foundation-inputs/glib-2.90.0.tar.xz",
+      "sha256": "17d15cac2af80a33271127408e0abc2748eb297c595c2a26409e81e14e7d1b8f"
+    },
+    {
+      "name": "meson",
+      "version": "1.9.2",
+      "url": "https://files.pythonhosted.org/packages/d7/ab/115470e7c6dcce024e43e2e00986864c56e48c59554bb19f4b02ed72814c/meson-1.9.2-py3-none-any.whl",
+      "path": "container/foundation-inputs/meson-1.9.2-py3-none-any.whl",
+      "sha256": "1a284dc1912929098a6462401af58dc49ae3f324e94814a38a8f1020cee07cba"
+    },
+    {
+      "name": "pkgconf-bin",
+      "version": "1.8.1-4",
+      "url": "https://deb.debian.org/debian/pool/main/p/pkgconf/pkgconf-bin_1.8.1-4_amd64.deb",
+      "path": "container/foundation-inputs/pkgconf-bin_1.8.1-4_amd64.deb",
+      "sha256": "54efef2aef4db5fcb5e0f5b7746465000c6a779b06f3686d0ec3d2a901b20aeb",
+      "scope": "build tool or incidental upstream configuration headers; not approved application API"
+    },
+    {
+      "name": "libpkgconf3",
+      "version": "1.8.1-4",
+      "url": "https://deb.debian.org/debian/pool/main/p/pkgconf/libpkgconf3_1.8.1-4_amd64.deb",
+      "path": "container/foundation-inputs/libpkgconf3_1.8.1-4_amd64.deb",
+      "sha256": "85087cd04e57fd4ab7d6e816d348c335047823ab60c78878336b74f07b352ca1",
+      "scope": "build tool or incidental upstream configuration headers; not approved application API"
+    },
+    {
+      "name": "libffi-dev",
+      "version": "3.4.8-2",
+      "url": "https://deb.debian.org/debian/pool/main/libf/libffi/libffi-dev_3.4.8-2_amd64.deb",
+      "path": "container/foundation-inputs/libffi-dev_3.4.8-2_amd64.deb",
+      "sha256": "76b2b80193a656733e1408ebec5371334be5fd48eb5f50ab99d6baf6081d0f1b",
+      "scope": "build tool or incidental upstream configuration headers; not approved application API"
+    },
+    {
+      "name": "zlib1g-dev",
+      "version": "1:1.3.dfsg+really1.3.1-1+b1",
+      "url": "https://deb.debian.org/debian/pool/main/z/zlib/zlib1g-dev_1.3.dfsg+really1.3.1-1+b1_amd64.deb",
+      "path": "container/foundation-inputs/zlib1g-dev_1.3.dfsg+really1.3.1-1+b1_amd64.deb",
+      "sha256": "76ed5c858e1aef38b7be93acce5910e457e77bd6271471b9d05fb42e78826224",
+      "scope": "build tool or incidental upstream configuration headers; not approved application API"
+    },
+    {
+      "name": "pcre2",
+      "version": "10.46",
+      "url": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.tar.bz2",
+      "path": "container/foundation-inputs/pcre2-10.46.tar.bz2",
+      "sha256": "15fbc5aba6beee0b17aecb04602ae39432393aba1ebd8e39b7cabf7db883299f",
+      "selection": "exact source release selected by pinned GLib upstream wrap; separately CMake built without implicit downloads"
+    }
+  ],
+  "notices": {
+    "third_party/foundation-notices/glib-LGPL-2.1-or-later.txt": "5749785c8bdefafcb5d798270ed0a967036fe2ca63dcedade1627565dfef81d2",
+    "third_party/foundation-notices/glib-LicenseRef-old-glib-tests.txt": "fb261b2d5dbe76c4850f90da763210bc385e52428df6bbfd7b06295ac8a32914",
+    "third_party/foundation-notices/meson-COPYING": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "third_party/foundation-notices/glib-LLVM-exception.txt": "e34c58338bd89d43e709e226610d8f32b3e3c47f4ad9a99a8dc1d4ac7842488e",
+    "third_party/foundation-notices/glib-AFL-2.0.txt": "7ecc7db84298adb05d2cf10339c63a5315a1c5c270a68d97d7d40a53b508ccde",
+    "third_party/foundation-notices/glib-MPL-1.1.txt": "6214f8b1300bb9f37b16ebc146f8f61af0187e0025042ff95c8b3030744a8795",
+    "third_party/foundation-notices/pcre2-COPYING": "99272c55f3dcfa07a8a7e15a5c1a33096e4727de74241d65fa049fccfdd59507",
+    "third_party/foundation-notices/glib-LGPL-2.1-only.txt": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+    "third_party/foundation-notices/libpkgconf3-copyright": "676c75e54ff7e3b9892940fbf1b31763cb6f2a6527a5607a3640ac59a2441fba",
+    "third_party/foundation-notices/pkgconf-bin-copyright": "676c75e54ff7e3b9892940fbf1b31763cb6f2a6527a5607a3640ac59a2441fba",
+    "third_party/foundation-notices/glib-CC-BY-SA-3.0.txt": "3f941b3b89cf7b8370ceb83cc76d2120d471b58735d8ca60238a751a48d7f72f",
+    "third_party/foundation-notices/glib-Apache-2.0.txt": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+    "third_party/foundation-notices/zlib1g-dev-copyright": "9e5b96d63773a5d177ba264254390f792be07e41748ebd94730981c6cac31cc6",
+    "third_party/foundation-notices/glib-GPL-2.0-or-later.txt": "aaf135472f81c5b4a0dca9367e5bb5e9750032b5bebe5442b36e4c0a47430df3",
+    "third_party/foundation-notices/glib-MIT.txt": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+    "third_party/foundation-notices/glib-CC0-1.0.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+  },
+  "recipe": "container/build-foundation.py",
+  "recipe_sha256": "e62a93925af2c84d25ddf2042c69b92a0c187a6355a865bc473d623217419093",
+  "base_toolchain_image": "sha256:258f16bc894d8c5d1672d57bc52cc1b11430e912b51ec4d66a4445fb75caac0f",
+  "profiles": {},
+  "approved_api_dependency": "glib-2.0",
+  "transitive_runtime_dependency": "pcre2-8",
+  "local_patches": [],
+  "licensing": "GLib LGPL-2.1-or-later; retained component notices; first-party licensing unchanged; owner distribution review pending"
+}

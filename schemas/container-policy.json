@@ -277,7 +277,8 @@
         "probe",
         "probe-memory",
         "probe-pids",
-        "probe-cpu"
+        "probe-cpu",
+        "dependency-build"
       ],
       "properties": {
         "acquire": {
@@ -1497,6 +1498,72 @@
             "cpus": {
               "type": "number",
               "exclusiveMinimum": 0
+            },
+            "pids": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tmp_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shm_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "work_inodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wall_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "network": {
+              "type": "string"
+            },
+            "executable_work": {
+              "type": "boolean"
+            }
+          }
+        },
+        "dependency-build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "memory_bytes",
+            "swap_bytes",
+            "cpus",
+            "pids",
+            "work_bytes",
+            "tmp_bytes",
+            "run_bytes",
+            "shm_bytes",
+            "work_inodes",
+            "wall_seconds",
+            "network",
+            "executable_work"
+          ],
+          "properties": {
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "swap_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 0
             },
             "pids": {
               "type": "integer",

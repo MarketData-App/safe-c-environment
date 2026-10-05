@@ -96,7 +96,9 @@ def environment_gate(environment=None):
         raise GateError('prohibited inherited options: ' + ', '.join(bad))
 
 class Runner:
-    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path):
+    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build"):
+        if build_profile not in {"build", "dependency-build"}:raise GateError("unapproved build adapter profile")
+        self.build_profile=build_profile
         self.root, self.run_dir, self.lock, self.scratch = root.resolve(), run_dir, lock, scratch.resolve()
         scratch.mkdir(parents=True, exist_ok=True)
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -117,7 +119,7 @@ class Runner:
             shutil.copy2(self.root/relative,destination)
         for directory in ['src','include']:(snapshot/directory).mkdir(exist_ok=True)
         self.snapshot=snapshot
-        self.session=self.launcher.create('build',{'/src':snapshot})
+        self.session=self.launcher.create(self.build_profile,{'/src':snapshot})
         self.name=self.session['container_id'];self.alive=True
 
     def close(self):
