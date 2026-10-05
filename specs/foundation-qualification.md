@@ -24,6 +24,11 @@ exports and fresh-child combined qualification. The child verifies its inherited
 payload and executes all remaining checks without recursively making children.
 Scoped commands may pass their local gates while full acceptance remains BLOCKED.
 
+Missing locked input, recipe or notice files produce an explicit preflight
+GateError before candidate execution. The missing-notice experiment must record
+its expected rejection and continue with the remaining variants; an uncaught
+filesystem exception cannot stand in for that named result.
+
 Strict schemas reject missing/duplicate rows and controls, invalid statuses,
 stale bindings, substituted profile identities and weakened report semantics.
 Pipeline checks keep unchanged controls and record each rejection independently.

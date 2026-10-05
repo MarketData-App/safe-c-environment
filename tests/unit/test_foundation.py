@@ -2,11 +2,13 @@
 import copy
 from pathlib import Path
 import sys
+import shutil
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from evidence import GateError, read_json
-from foundation import fixture_inventory, validate_report, ordinary_gate, functional_gate, sdk_gate
+from foundation import fixture_inventory, validate_report, ordinary_gate, functional_gate, sdk_gate, input_gate
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -73,6 +75,25 @@ class FoundationReportTests(unittest.TestCase):
 
 
 class FoundationClassifierTests(unittest.TestCase):
+    def test_missing_locked_notice_is_an_explicit_preflight_rejection(self):
+        lock = read_json(ROOT / 'foundation.lock.json')
+        adaptation = read_json(ROOT / 'container/glib-test-compat.json')
+        files = {'foundation.lock.json', 'safety/foundation-api-policy.json',
+                 'schemas/foundation-lock.json', 'schemas/foundation-api-policy.json',
+                 lock['recipe'], 'container/glib-test-compat.json', adaptation['adapter'], adaptation['patch']}
+        files.update(row['path'] for row in lock['inputs'])
+        files.update(lock['notices'])
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary)
+            for relative in files:
+                target = candidate / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, target)
+            self.assertEqual(input_gate(candidate, artifacts=False)['status'], 'PASS')
+            (candidate / next(iter(lock['notices']))).unlink()
+            with self.assertRaisesRegex(GateError, 'foundation required input unavailable'):
+                input_gate(candidate, artifacts=False)
+
     def result(self, **changes):
         value = {'exit_code': 0, 'failure': None, 'evidence_complete': True,
                  'binary_unchanged': True, 'output': ''}

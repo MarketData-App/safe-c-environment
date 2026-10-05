@@ -17,6 +17,13 @@ NORMAL_PROFILES = {'gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'asan', 'ubsan',
 CONTRACT_GROUPS = {'sizes', 'text', 'bytes', 'lists', 'maps', 'errors', 'cleanup'}
 
 
+def required_hash(root, relative):
+    try:
+        return file_hash(root / relative)
+    except OSError as error:
+        raise GateError('foundation required input unavailable: ' + relative) from error
+
+
 def analysis_flags(profile):
     if profile not in {'gcc-O0', 'clang-O0'}:
         raise GateError('unapproved foundation analyzer dependency profile')
@@ -39,20 +46,20 @@ def input_gate(root, *, artifacts=True):
     if len(lock['inputs']) != 7 or len({row['name'] for row in lock['inputs']}) != 7:
         raise GateError('foundation input inventory incomplete')
     for row in lock['inputs']:
-        if not re.fullmatch(r'[0-9a-f]{64}', row['sha256']) or file_hash(root / row['path']) != row['sha256']:
+        if not re.fullmatch(r'[0-9a-f]{64}', row['sha256']) or required_hash(root, row['path']) != row['sha256']:
             raise GateError('foundation retained input identity mismatch')
     if len(lock['notices']) < 16:
         raise GateError('foundation required licensing evidence missing')
     for path, expected in lock['notices'].items():
-        if file_hash(root / path) != expected:
+        if required_hash(root, path) != expected:
             raise GateError('foundation notice identity mismatch')
-    if file_hash(root / lock['recipe']) != lock['recipe_sha256']:
+    if required_hash(root, lock['recipe']) != lock['recipe_sha256']:
         raise GateError('foundation build recipe changed')
     adaptation = read_json(root / 'container/glib-test-compat.json')
     if lock['local_patches'] != [adaptation]:
         raise GateError('foundation upstream adaptation identity changed')
     for key in ['adapter', 'patch']:
-        if file_hash(root / adaptation[key]) != adaptation[key + '_sha256']:
+        if required_hash(root, adaptation[key]) != adaptation[key + '_sha256']:
             raise GateError('foundation upstream adaptation material changed')
     if artifacts:
         if lock['status'] != 'ARTIFACTS_QUALIFIED' or set(lock['profiles']) != DEPENDENCY_PROFILES:
