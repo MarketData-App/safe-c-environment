@@ -11,6 +11,11 @@ def runtime_members():
             'opt/foundation/clang-O2/lib/libglib-2.0.so.0',
             'opt/foundation/clang-O2/lib/libpcre2-8.so.0'}
 
+def inventory_gate(members,expected):
+    if set(members)!=runtime_members() or members!=expected:
+        raise GateError('runtime image file inventory or exact tested bytes changed')
+    return True
+
 def runtime_smoke(q, *,hold=False):
     build=q.build('hardened',opt=2)
     if not q.built(build):raise GateError('runtime optimized release build failed')
@@ -95,7 +100,8 @@ def runtime_smoke(q, *,hold=False):
                     managed[name]={'target':member.linkname,'owner':'Docker-managed mount inventory link'}
                 elif not member.isdir():raise GateError('unexpected runtime link/special file')
         expected={name:file_hash(path) for name,path in members.items()}
-        if final_members!=expected or final_members['demo']!=fingerprint:raise GateError('runtime image does not contain exact tested bytes')
+        inventory_gate(final_members,expected)
+        if final_members['demo']!=fingerprint:raise GateError('runtime image does not contain exact tested bytes')
         logs=launcher.docker(['logs',record['container_id']],timeout=5)
         ok=passed(logs) and 'runtime-demo healthy sum=9' in logs['output'] and all(item['status']=='PASS' for item in inputs)
         result={'status':'PASS' if ok else 'FAIL','binary_sha256':fingerprint,'source_identity':__import__('policy').source_identity(q.root)[0],'build_directory':build['directory'],'toolchain_image_id':q.runner.lock['image_id'],'runtime_image_id':image,'registry_digest':None,'image_members':final_members,'entrypoint':obj['Config']['Entrypoint'],'profile':'runtime-demo','container_id':record['container_id'],'container_policy_hash':record['policy_hash'],'effective':record['effective'],'release_test_evidence':tested['evidence_path'],'evidence_path':str(directory/'runtime-smoke.json'),'application_release_ready':False,'production_approval':'NOT_REQUESTED'}

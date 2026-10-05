@@ -18,6 +18,28 @@ OPERATIONS = ['doctor', 'prepare', 'status', 'targets', 'tests', 'build', 'test'
               'readiness', 'stop']
 
 
+def failure_feedback(root,args,error):
+    """Keep rejected requests and missing prerequisites machine readable."""
+    identifier=uuid.uuid4().hex
+    try:identity=source_identity(root)[0]
+    except (GateError,OSError,ValueError):identity=None
+    result={'schema_version':1,'operation':args.operation,'status':'BLOCKED',
+            'run_id':identifier,'source_identity':identity,'profile':args.profile,
+            'context_namespace':None,'scope':'partial_feedback','acceptance':False,
+            'evidence_paths':[],'result':{'error_type':type(error).__name__,
+                'reason':str(error)[:2048] if isinstance(error,GateError) else 'Required developer infrastructure or retained data is unavailable.',
+                'complete_capture':False},'limitations':['Rejected requests do not execute an alternate route.']}
+    if root.is_dir() and not root.is_symlink():
+        try:
+            from developer_state import safe_directory
+            path=root/'artifacts/developer/runs'/identifier/'result.json'
+            safe_directory(path);atomic_json(path,result)
+        except (GateError,OSError):pass
+    if args.format=='json':print(json.dumps(result))
+    else:print(args.operation+': BLOCKED; '+result['result']['reason'])
+    return 1
+
+
 def configure_parser(parser):
     operations = parser.add_subparsers(dest='operation', required=True)
     for name in OPERATIONS:
@@ -141,6 +163,8 @@ def request(args, policy):
                  'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps','demo_workspace']:
         if hasattr(args, name) and getattr(args, name) is not None:
             value[name] = getattr(args, name)
+    if value.get('target') and not __import__('re').fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',value['target']):
+        raise GateError('developer target must be an actual local registered CMake identifier')
     if args.operation == 'build' and not value.get('target'):
         raise GateError('developer build requires a registered target')
     if value.get('demo_workspace'):
@@ -358,6 +382,22 @@ def execute(root, args, *, emit=True):
                     raise GateError('developer helper artifact path rejected')
                 runner.fetch(path, out / relative)
                 result['evidence_paths'].append(str(out / relative))
+            if args.operation=='debug' and native.get('debugger'):
+                import copy
+                from developer_report import binding
+                debugger=native['debugger']
+                binary=runner.fetch('developer-build/'+selected['target'],out/'debug-executable')
+                expected=copy.deepcopy(result)
+                expected['result']['debugger']['executable_sha256']=file_hash(binary)
+                if debugger.get('loaded_dependency'):
+                    dependency=debugger['loaded_dependency']
+                    profile=policy['profiles']['debug']['dependency_profile']
+                    prefix='/opt/foundation/'+profile+'/lib/'
+                    hashes=read_json(root/'foundation.lock.json')['profiles'][profile]['files']
+                    if not dependency['path'].startswith(prefix) or hashes.get('lib/'+Path(dependency['path']).name)!=dependency['sha256']:
+                        raise GateError('debugger loaded library does not match independent SDK identity')
+                binding(result,expected)
+                result['evidence_paths'].append(str(binary))
             if result['status']=='PASS' and not original:
                 retain(root,context,runner,native,policy['limits'])
             executed=None
@@ -426,6 +466,7 @@ def execute(root, args, *, emit=True):
         result['result'] = {'reason': 'This developer responsibility is not implemented yet.'}
     from developer_report import feedback
     feedback(result)
+    validate(root,'developer-feedback',result)
     atomic_json(out / 'result.json', result)
     if not emit:
         return result

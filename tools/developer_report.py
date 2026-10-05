@@ -3,6 +3,19 @@ from evidence import GateError
 from policy import exact_ids
 
 
+def binding(value,expected):
+    """Bind collected feedback to independently retained outer job identities."""
+    for key in ['source_identity','profile','context_namespace','demo_source_identity']:
+        if value.get(key)!=expected.get(key):
+            raise GateError('developer feedback source/worktree/profile binding rejected')
+    actual=value.get('result',{}).get('debugger')
+    original=expected.get('result',{}).get('debugger')
+    if original and (not actual or any(actual.get(key)!=original.get(key) for key in
+        ['executable_sha256','loaded_dependency','inferior_argv','observed_inferior_argv','breakpoint'])):
+        raise GateError('developer executable/dependency/source-symbol binding rejected')
+    return feedback(value)
+
+
 def feedback(value):
     if value.get('scope')!='partial_feedback' or value.get('acceptance') is not False:
         raise GateError('developer feedback cannot claim complete acceptance')
@@ -17,6 +30,8 @@ def feedback(value):
             raise GateError('failed selected test cannot pass feedback')
     debug=native.get('debugger')
     if debug:
+        if value['status']=='PASS' and debug.get('debug_session_status')!='PASS':
+            raise GateError('failed debugger session cannot pass feedback')
         if debug.get('debug_session_status')=='PASS':
             if (debug.get('inspection_requirements_met') is not True or
                     debug.get('complete_capture') is not True or not debug.get('frames') or
@@ -30,6 +45,8 @@ def feedback(value):
         if debug.get('recipe')=='breakpoint' and debug.get('inspection_requirements_met'):
             if debug['stop'].get('reason')!='breakpoint-hit' or not debug.get('breakpoint'):
                 raise GateError('unreached breakpoint cannot satisfy inspection')
+            if debug['stop'].get('bkptno')!=debug['breakpoint'].get('number'):
+                raise GateError('debugger stop did not reach the selected breakpoint')
     fuzz=native.get('fuzz_result')
     if fuzz and (fuzz.get('program_result_preserved') is not True or
                  (value['status']=='PASS' and fuzz.get('exit_code')!=0)):
@@ -42,11 +59,18 @@ def qualification(value,inventory,expected_source,expected_image):
         raise GateError('developer qualification source/image binding mismatch')
     exact_ids(value['cases'],[r['id'] for r in inventory['cases']])
     for case,required in zip(sorted(value['cases'],key=lambda r:r['id']),inventory['cases']):
+        if set(case)!={'id','status','control','subchecks'}:
+            raise GateError('malformed developer case record')
         if case['id']!=required['id']:
             raise GateError('developer case ordering mismatch')
         names=[r['name'] for r in case['subchecks']]
         if len(names)!=len(set(names)) or set(names)!=set(required['subchecks']):
             raise GateError('missing, duplicate or unknown developer subcheck')
+        for row in case['subchecks']:
+            if (not {'name','status','control','evidence_paths','reason'}.issubset(row) or
+                    row['status'] not in {'PASS','FAIL','BLOCKED'} or row['control'] not in {'PASS','FAIL','BLOCKED'} or
+                    (row['status']=='PASS' and (row['control']!='PASS' or not row['evidence_paths']))):
+                raise GateError('developer subcheck control/evidence missing or contradictory')
         complete=case['control']=='PASS' and all(r['status']=='PASS' and r['control']=='PASS' and
                      r['evidence_paths'] for r in case['subchecks'])
         if case['status']=='PASS' and not complete:
@@ -56,6 +80,10 @@ def qualification(value,inventory,expected_source,expected_image):
     actual=[(r['parent'],r['name'],r['variant']) for r in rows]
     if len(actual)!=len(set(actual)) or set(actual)!=expected:
         raise GateError('developer pipeline variant inventory mismatch')
+    for row in rows:
+        if (not {'parent','name','variant','status','control','evidence_paths','reason'}.issubset(row) or
+                (row['status']=='PASS' and (row['control']!='PASS' or not row['evidence_paths']))):
+            raise GateError('developer pipeline control/evidence incomplete')
     complete=all(c['status']=='PASS' for c in value['cases']) and all(r['status']=='PASS' and
         r['control']=='PASS' and r['evidence_paths'] for r in rows)
     if value['status']=='PASS' and not complete:

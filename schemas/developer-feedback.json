@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "status",
+    "run_id",
+    "source_identity",
+    "profile",
+    "context_namespace",
+    "scope",
+    "acceptance",
+    "evidence_paths",
+    "result",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "operation": {
+      "enum": [
+        "doctor",
+        "prepare",
+        "status",
+        "targets",
+        "tests",
+        "build",
+        "test",
+        "nav",
+        "diagnose",
+        "replay",
+        "debug",
+        "coverage",
+        "selftest",
+        "readiness",
+        "stop"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "source_identity": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "context_namespace": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scope": {
+      "const": "partial_feedback"
+    },
+    "acceptance": {
+      "const": false
+    },
+    "evidence_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4096
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED"
+          ]
+        },
+        "scope": {},
+        "acceptance": {
+          "type": "boolean"
+        },
+        "profile": {},
+        "targets": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "tests": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "compile_commands_sha256": {},
+        "selected_test": {
+          "type": "object"
+        },
+        "debugger": {
+          "type": "object"
+        },
+        "navigation": {
+          "type": "object"
+        },
+        "capabilities": {
+          "type": "object"
+        },
+        "state": {
+          "type": "object"
+        },
+        "incremental": {
+          "type": "object"
+        },
+        "steps": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "artifacts": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "error_type": {},
+        "property": {},
+        "reason": {},
+        "complete_capture": {
+          "type": "boolean"
+        },
+        "test_result": {
+          "type": "object"
+        },
+        "fuzz_result": {
+          "type": "object"
+        },
+        "original_binary_sha256": {},
+        "snapshot": {},
+        "source_bytes_retained": {
+          "type": "boolean"
+        },
+        "worktree": {},
+        "configuration": {
+          "type": "object"
+        },
+        "developer_tooling": {},
+        "combined_local_checks": {},
+        "independent_enforcement": {},
+        "scripted_workflow_trial": {},
+        "live_agent_trial": {},
+        "handoff_ready": {
+          "type": "boolean"
+        },
+        "application_started": {
+          "type": "boolean"
+        },
+        "production_authorized": {
+          "type": "boolean"
+        },
+        "finding_id": {},
+        "original_source_identity": {},
+        "original_profile": {},
+        "original_outcome": {
+          "type": "object"
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "bundle": {},
+        "original_replay_available": {
+          "type": "boolean"
+        },
+        "follow_up": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "source_identity": {},
+        "demo_source_identity": {},
+        "binary_sha256": {},
+        "test_id": {},
+        "files": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "raw_sha256": {},
+        "evidence_paths": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "stopped_containers": {},
+        "cleanup": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "global_cleanup": {
+          "type": "boolean"
+        },
+        "schema_version": {},
+        "run_id": {},
+        "image_id": {},
+        "cases": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "pipeline_variants": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "commands": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "measurements": {
+          "type": "array",
+          "maxItems": 4096
+        },
+        "limitations": {
+          "type": "array",
+          "maxItems": 4096
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64
+    },
+    "original_run_id": {
+      "type": "string"
+    },
+    "current_source_identity": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "debug_variant_of": {
+      "type": "string"
+    },
+    "demo_source_identity": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bundle": {
+      "type": "object"
+    },
+    "coverage": {
+      "type": "object"
+    }
+  }
+}

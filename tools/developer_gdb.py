@@ -217,7 +217,10 @@ class Session:
 
     def stopped(self, previous):
         while len(self.events) <= previous:
-            self.read()
+            record=self.read()
+            if record['kind']=='^' and record['class']=='error':
+                self.errors.append(record['fields'])
+                raise GateError('GDB rejected an asynchronous required typed operation')
         return self.events[-1]
 
     def close(self):

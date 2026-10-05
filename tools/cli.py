@@ -331,6 +331,9 @@ def main(argv=None):
         finally:
             runner.close();shutil.rmtree(scratch,ignore_errors=True)
     except (GateError,OSError,ValueError) as exc:
+        if args.command=='dev':
+            from developer import failure_feedback
+            return failure_feedback(root,args,exc)
         print('BLOCKED: '+str(exc));return 1
 
 if __name__=='__main__':

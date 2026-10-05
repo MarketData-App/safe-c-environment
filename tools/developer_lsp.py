@@ -212,6 +212,12 @@ class Client:
                   for address in addresses):
             self.handle(self.read())
 
+    def await_observed_index(self):
+        # Finish the background work actually announced by this local server.
+        # An ended local batch is still not a global completeness guarantee.
+        while any(value=='ACTIVE' for value in self.progress.values()):
+            self.handle(self.read())
+
     def close(self):
         try:
             if self.process.poll() is None:
@@ -297,6 +303,8 @@ def navigate(request, database, targets, policy):
         client.await_documents([address])
         others = [client.open(Path(source)) for source in sorted(known) if source != str(path)]
         client.await_documents(others)
+        if kind in {'references','workspace-symbols'}:
+            client.await_observed_index()
         params = {'textDocument': {'uri': address}}
         if kind in {'definition', 'references', 'hover'}:
             params['position'] = position(client.opened[address], request['line'], request['column'], client.encoding)

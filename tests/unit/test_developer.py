@@ -11,12 +11,54 @@ from developer_lsp import position, scalar_position, uri
 from developer_gdb import parse
 from developer_state import pack, restore
 from developer_bundle import relative_path
+from developer_report import feedback,qualification
+from developer_workspace import descriptor
+import copy
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class DeveloperInputTests(unittest.TestCase):
+    def test_debugger_outcome_contradictions_are_rejected(self):
+        debug={'debug_session_status':'PASS','inspection_requirements_met':True,'complete_capture':True,
+               'frames':[{'frame':{'func':'control'}}],'stop':{'reason':'breakpoint-hit','bkptno':'1'},
+               'breakpoint':{'number':'1'},'errors':[],'timed_out':False,'recipe':'breakpoint',
+               'inferior_outcome':{'status':'FAILED','exit_code':7}}
+        value={'scope':'partial_feedback','acceptance':False,'status':'PASS','result':{'debugger':debug}}
+        self.assertTrue(feedback(value))
+        for key,replacement in [('debug_session_status','FAIL'),('complete_capture',False),
+                                ('inspection_requirements_met',False),('timed_out',True),
+                                ('stop',{'reason':'exited-normally'}),('breakpoint',{'number':'2'}),
+                                ('inferior_outcome',{'status':'PASSED','exit_code':7})]:
+            changed=copy.deepcopy(value);changed['result']['debugger'][key]=replacement
+            with self.assertRaises(GateError):feedback(changed)
+
+    def test_workspace_registration_is_exact_and_typed(self):
+        with tempfile.TemporaryDirectory(dir='/work') as temporary:
+            workspace=Path(temporary);(workspace/'candidate.c').write_bytes(b'candidate')
+            context,files=descriptor(ROOT,workspace)
+            self.assertEqual(context['primary'],'candidate.c');self.assertEqual(set(files),{'candidate.c'})
+            (workspace/'unregistered.c').write_bytes(b'extra')
+            with self.assertRaises(GateError):descriptor(ROOT,workspace)
+
+    def test_developer_inventory_rejects_missing_controls_and_duplicate_rows(self):
+        inventory=read_json(ROOT/'safety/developer-fixtures.json')
+        value={'source_identity':'source','image_id':'image','status':'BLOCKED',
+               'cases':[{'id':r['id'],'status':'BLOCKED','control':'BLOCKED',
+                         'subchecks':[{'name':n,'status':'BLOCKED','control':'BLOCKED','evidence_paths':[],
+                                       'reason':'not executed'} for n in r['subchecks']]} for r in inventory['cases']],
+               'pipeline_variants':[{'parent':r['parent'],'name':r['name'],'variant':v,'status':'BLOCKED',
+                                    'control':'BLOCKED','evidence_paths':[],'reason':'not executed'}
+                                    for r in inventory['pipeline_subcases'] for v in r['variants']]}
+        self.assertTrue(qualification(value,inventory,'source','image'))
+        missing=copy.deepcopy(value);del missing['cases'][0]['subchecks'][0]['control']
+        with self.assertRaises(GateError):qualification(missing,inventory,'source','image')
+        duplicate=copy.deepcopy(value);duplicate['cases'][0]['subchecks'].append(copy.deepcopy(duplicate['cases'][0]['subchecks'][0]))
+        with self.assertRaises(GateError):qualification(duplicate,inventory,'source','image')
+        incomplete=copy.deepcopy(value);incomplete['status']='PASS'
+        with self.assertRaises(GateError):qualification(incomplete,inventory,'source','image')
+
     def test_bundle_paths_and_required_retained_byte_fields(self):
         self.assertEqual(str(relative_path('foundation/include/sc-foundation.h')),'foundation/include/sc-foundation.h')
         for name in ['', '../escape.c','/tmp/outside.c','foundation/../escape.c','x\ny.c']:
