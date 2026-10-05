@@ -19,6 +19,10 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     try:
+        args.output=args.output.absolute()
+        if (args.output!=args.output.resolve() or args.output.exists() or
+                any(p.is_symlink() for p in [args.output,*args.output.parents])):
+            raise ValueError('new canonical unlinked request output required')
         policy=json.loads((ROOT/'safety/container-policy.json').read_text())
         if any(os.environ.get(k) for k in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY',
                 'DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG']):
@@ -45,7 +49,8 @@ def main():
             'proposed_policy':proposed,
             'warning':'Proposal only. Changing daemon identity needs independent acquisition/requalification approval; this file and its checksum grant no authority.'}
         args.output.parent.mkdir(parents=True,exist_ok=True)
-        args.output.write_text(json.dumps(values,indent=2)+'\n')
+        with args.output.open('x') as destination:
+            destination.write(json.dumps(values,indent=2)+'\n')
         print(json.dumps({'status':values['status'],'approval':'PENDING','output':str(args.output)}));return 0
     except Exception as error:
         print(json.dumps({'status':'BLOCKED','error_type':type(error).__name__,'output':str(args.output)}));return 1

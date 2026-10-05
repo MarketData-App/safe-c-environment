@@ -7,7 +7,9 @@ No container starts, no Docker flags or endpoint come from the caller, and no
 dependency recipe runs. Ordinary safety checks remain offline.
 
 `ci/images export --destination DIRECTORY` requires a new absolute private
-directory outside the source tree. The local approved daemon must contain both
+directory outside the source tree. The path must equal its resolved canonical
+path; parent traversal and links are rejected before creating directories or
+consulting Docker. The local approved daemon must contain both
 locked images. The output is `images.tar.gz` and a transfer receipt identifying
 the archive hash, byte size, exact image IDs, lock hashes and pending publication
 licensing. Export preserves config identities; it does not promise that rebuilding

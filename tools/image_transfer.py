@@ -213,7 +213,7 @@ def observed_images(launcher,expected):
 def export(root,destination,out):
     destination=Path(destination)
     if not destination.is_absolute():raise GateError('absolute transfer destination required')
-    if (destination.is_relative_to(root) or destination.exists() or
+    if (destination!=destination.resolve() or destination.is_relative_to(root) or destination.exists() or
             any(p.is_symlink() for p in [destination,*destination.parents])):
         raise GateError('new external transfer directory required')
     if shutil.disk_usage(destination.parent).free<8*1024**3+MAX_BYTES:

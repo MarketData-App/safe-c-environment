@@ -22,6 +22,9 @@ hash and a proposed copy differing only in daemon identity. It never writes the
 active policy, starts a native workload, or issues an approval. The 15-second
 metadata operation has a 1 MiB capture ceiling. Missing Docker or malformed data
 is BLOCKED. The current local and proposed identities stay separate.
+The output must be a new canonical path with no linked ancestors. Existing or
+linked outputs are rejected before consulting Docker; exclusive creation never
+replaces an existing file. The caller owns the resulting request file.
 
 Before activation, the independent authority must approve a reusable ephemeral
 runner binding protocol. A literal GitHub daemon ID changes between VMs; silently

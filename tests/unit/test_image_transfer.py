@@ -8,10 +8,15 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
+from types import SimpleNamespace
+from importlib.machinery import SourceFileLoader
+from importlib.util import spec_from_loader,module_from_spec
+from contextlib import redirect_stdout
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tools'))
 from evidence import GateError
-from image_transfer import inspect_archive,stream_copy,verified
+from image_transfer import inspect_archive,stream_copy,verified,export
 
 
 class TransferTests(unittest.TestCase):
@@ -74,6 +79,47 @@ class TransferTests(unittest.TestCase):
         path=self.directory/'empty';path.write_bytes(b'')
         with self.assertRaises(GateError):
             with verified(path,'0'*64,self.ids):self.fail('empty input accepted')
+
+    def test_export_parent_traversal_rejected_before_creation(self):
+        root=self.directory/'source';root.mkdir()
+        sibling=self.directory/'sibling';sibling.mkdir()
+        destination=sibling/'..'/'source'/'export'
+        with mock.patch('image_transfer.shutil.disk_usage',return_value=SimpleNamespace(free=12*1024**3)):
+            with self.assertRaisesRegex(GateError,'new external transfer directory required'):
+                export(root,destination,self.directory/'receipts')
+        self.assertFalse((root/'export').exists())
+
+    def observer(self,output):
+        script=Path(__file__).resolve().parents[2]/'ci/runner-request'
+        loader=SourceFileLoader('test_runner_request',str(script))
+        module=module_from_spec(spec_from_loader(loader.name,loader));loader.exec_module(module)
+        metadata={'exit_code':0,'failure':None,'output':json.dumps({'ID':'finite-metadata-fixture'})}
+        with mock.patch.object(sys,'argv',['runner-request','--output',str(output)]),mock.patch.object(module,'bounded',return_value=metadata),redirect_stdout(io.StringIO()):
+            return module.main()
+
+    def test_request_new_output_control(self):
+        output=self.directory/'request.json'
+        self.assertEqual(self.observer(output),0)
+        value=json.loads(output.read_text())
+        self.assertEqual(value['status'],'REQUEST_RECORDED')
+        self.assertFalse(value['native_execution_authorized'])
+
+    def test_request_existing_output_preserved(self):
+        output=self.directory/'request.json';output.write_bytes(b'owned evidence')
+        self.assertEqual(self.observer(output),1)
+        self.assertEqual(output.read_bytes(),b'owned evidence')
+
+    def test_request_linked_output_preserved(self):
+        target=self.directory/'owned.json';target.write_bytes(b'owned evidence')
+        output=self.directory/'request.json';output.symlink_to(target)
+        self.assertEqual(self.observer(output),1)
+        self.assertEqual(target.read_bytes(),b'owned evidence')
+
+    def test_request_linked_parent_rejected(self):
+        target=self.directory/'owned';target.mkdir()
+        link=self.directory/'linked';link.symlink_to(target,target_is_directory=True)
+        self.assertEqual(self.observer(link/'request.json'),1)
+        self.assertFalse((target/'request.json').exists())
 
     def oci_archive(self,*,alter=False,additional=False):
         payloads={};roots=[];rows=[]
