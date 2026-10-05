@@ -8,8 +8,9 @@ Pinned GLib 2.90.0 core (LGPL-2.1-or-later) and PCRE2 10.46 are retained in
 container/foundation-inputs, with their upstream notices in
 third_party/foundation-notices. The lock is foundation.lock.json. Meson 1.9.2 and
 Debian pkgconf/configuration-header packages are build inputs only. Additional
-upstream components are not approved application APIs. No local source patches
-are currently applied. Dynamic runtime linking does not complete the owner's
+upstream components are not approved application APIs. A retained, hash-inventoried callback ABI patch adapts selected test
+registrations/callbacks and the narrowly inventoried library callbacks exercised by those tests. Exact
+original/adapted identities are in container/glib-test-compat.json. Dynamic runtime linking does not complete the owner's
 distribution obligations: retain source/recipe/patch material, preserve notices,
 and independently review the eventual distribution and replacement/relinking
 mechanism. The user's first-party code is not relicensed.

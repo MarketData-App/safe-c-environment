@@ -1,0 +1,112 @@
+{
+  "scope": "Typed callback ABI bridges for the selected upstream test execution paths; no sanitizer suppression or exported API/ownership semantic change",
+  "rows": [
+    {
+      "path": "glib/tests/bytes.c",
+      "original_sha256": "b4c2f30613a951b8527bb9194212bdf2f6e23de97c50b1c6d11f7cedb1a15849",
+      "adapted_sha256": "dd2e7730a87215002caa51d9e4e4d3d70e015aa93536ac6d2e4fe39db33c89e8",
+      "typed_bridges": 23
+    },
+    {
+      "path": "glib/tests/string.c",
+      "original_sha256": "2cc35e43e86907bb16862e08de03056458c848e0dc7b8a06509fcffd4255f89e",
+      "adapted_sha256": "ffe9147eb762e9d5942c276cb111a9f544a417aa1803435c2da9b53ae3971890",
+      "typed_bridges": 25
+    },
+    {
+      "path": "glib/tests/array-test.c",
+      "original_sha256": "fc6583cdc3d5146dd2bd68b42d3c3476b9edba4345632721d04d72dbd4eb8ee3",
+      "adapted_sha256": "ce275df96deb045c79b1cb663c051425a30ce6c58ca1562324c79f5f87762e29",
+      "typed_bridges": 107
+    },
+    {
+      "path": "glib/tests/hash.c",
+      "original_sha256": "9ff8191b17fc253437b18cc9f83cc0573237b258e4467f7ca009c75fe0f881b6",
+      "adapted_sha256": "d71bdfef44f235041c1e40b58555f64a94a23de5d04e38e29346fc9ea8497c36",
+      "typed_bridges": 79
+    },
+    {
+      "path": "glib/tests/error.c",
+      "original_sha256": "d00927ba243462756cbeb7d534aa060165d39c9ead8cd16d4f7af791048bcb64",
+      "adapted_sha256": "2f5f7945dc1bbce977cae868c051abcbb4c94888c36605eea5247d7b2e0fd4ee",
+      "typed_bridges": 11
+    },
+    {
+      "path": "glib/tests/autoptr.c",
+      "original_sha256": "33ee89f83760fe256c2159e72d466c372be2eea0186be87070d2291780487307",
+      "adapted_sha256": "0ec63c03c059acde08a5faf2994555cc4beaea5d189e4f9653efbcd029bab7f0",
+      "typed_bridges": 59
+    },
+    {
+      "path": "glib/tests/utf8-validate.c",
+      "original_sha256": "3c84c6228dd241a2c9058c9435eeb00dc6e6159a37a1753b3a1f77f281456fbf",
+      "adapted_sha256": "6735f9fac635368d298d89c79d0d9396dbe7ff9486e056c40eca6457550616e2",
+      "typed_bridges": 2
+    },
+    {
+      "path": "glib/tests/overflow.c",
+      "original_sha256": "873283fecbdde907b9549555ae0b1ac808dc4c88091dc68b945faaa3384b70d7",
+      "adapted_sha256": "a0b869ddbfb178da60e80e36636c73357735cd0f6baf3b523578e0dd501bc17d",
+      "typed_bridges": 6
+    },
+    {
+      "path": "glib/tests/refcount.c",
+      "original_sha256": "5622670c21b04b466196fb511c5ee8aa4446f3f0b33a751e60408d3061e833b4",
+      "adapted_sha256": "4db616679588e131004c6f1db7b7f4a063c9c2e244f7897e334b607085e70c7e",
+      "typed_bridges": 4
+    },
+    {
+      "path": "glib/gbytes.c",
+      "purpose": "real GBytes destructor callback ABI compatibility",
+      "original_sha256": "de75bfa19865b60db4292879dd65ebbc1fd2752d1a07e9a5e4ed6a2f4ae3ab54",
+      "adapted_sha256": "1caa9be54aea87b138529d48cbd7a7b6178743b1a6e430aea72a4ab6ad6559ce",
+      "typed_bridges": 1
+    },
+    {
+      "path": "glib/glist.c",
+      "purpose": "typed destructor callback forwarding preserves actual callback arity and argument types",
+      "original_sha256": "18c74cb781c0a003c5ae1d13fb1da73b859e1bf5b0978251d9013faca6d5d583",
+      "adapted_sha256": "965a5c1c3617f6875ff8c07f7e24ddd30143e13342d4c75768e7d130925bf0a5",
+      "typed_bridges": 1
+    },
+    {
+      "path": "glib/gslist.c",
+      "purpose": "typed destructor callback forwarding preserves actual callback arity and argument types",
+      "original_sha256": "70beddefdf81eefc8ebdc43328223f121d498fee23af3586094e0d6962df690f",
+      "adapted_sha256": "31437952af197bd7b7e93987e231a011cfdb6641e10f128f8e07e1b33c4c07da",
+      "typed_bridges": 1
+    },
+    {
+      "path": "glib/gtestutils.c",
+      "purpose": "typed destructor callback forwarding preserves actual callback arity and argument types",
+      "original_sha256": "f28d4412351ed1344e2ecb9dd0d160cf9ff2eafdc57f300f2f19bd2a37a57d13",
+      "adapted_sha256": "4aa3c0ce0cc28768ab8d5294173858347732e708c1a6b79d0be07dd947b54572",
+      "typed_bridges": 2
+    },
+    {
+      "path": "glib/garray.c",
+      "purpose": "synchronous typed comparator forwarding preserves two-argument comparison semantics",
+      "original_sha256": "97230a2dd268210d4139cb25d72c095474f1f232d59967a12e536756bc458afd",
+      "adapted_sha256": "5ebf38731813a8c5fc4deed41432e4f5964af0e6cca5f902667b3ab99c6989ca",
+      "typed_bridges": 1
+    },
+    {
+      "path": "glib/gvarianttypeinfo.c",
+      "purpose": "typed private variant-cache hash/equality callbacks used by upstream cleanup controls",
+      "original_sha256": "d25a79a7b4222efd74ad78fa1189fa7e1f075caf220f189bdd1c58f3f0325cae",
+      "adapted_sha256": "e48f901de34c833919f90cfcf5f70a4da01d4a89efabab62af809ab24542f71c",
+      "typed_bridges": 2
+    },
+    {
+      "path": "glib/gqueue.c",
+      "purpose": "typed queue destructor callback forwarding for upstream automatic-cleanup controls",
+      "original_sha256": "2d2ed2deb0386c63b082f7447549fc2161f6f61a9c1d809f75e1a826e47bb13b",
+      "adapted_sha256": "a4eea57a7766f2f347730ae958299222b0d1d178815c8ed48d76395d37df3686",
+      "typed_bridges": 1
+    }
+  ],
+  "adapter": "container/glib-test-compat.py",
+  "adapter_sha256": "db13046c30dc0ab3d51f26b911709eefe1eb872068d649a25ef82e7de2707da1",
+  "patch": "third_party/patches/glib-selected-tests-callback-abi.patch",
+  "patch_sha256": "1c265f7bc9b0c284e7064bff973fd55be5a20d2892e432e255a1eedff3b2c98f"
+}

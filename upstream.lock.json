@@ -1706,6 +1706,6 @@
     "clusterfuzzlite-run-fuzzers": "gcr.io/oss-fuzz-base/clusterfuzzlite-run-fuzzers@sha256:a042cc2d5b3416d231ca7b5f4df843e6012c7c718267fe026713fa0814911574",
     "base-builder": "gcr.io/oss-fuzz-base/base-builder@sha256:4d95d77396ce573bbfca794166cd2f1e28df5b3445a45132e52ef0e4ff7f566b"
   },
-  "notice_sha256": "ed44919d0e969eceb79037a6fa8898e10bb627f138aacf497e8bb51992acaafc",
+  "notice_sha256": "e34c3ba38104ca048f0513766945325ed52a8d7f4efdfd95888f033785df81ec",
   "foundation_lock": "foundation.lock.json"
 }

@@ -1,0 +1,4202 @@
+--- a/glib/tests/bytes.c
++++ b/glib/tests/bytes.c
+@@ -28,6 +28,11 @@
+   gpointer user_data;
+ };
+ 
++
++static void sc_qualified_callback_1(gpointer data) {
++  (void)data;
++  g_free(data);
++}
+ static const gchar NYAN[128] = {
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+@@ -175,6 +180,11 @@
+   g_assert_nonnull (count);
+   (*count)++;
+ }
++static void sc_qualified_callback_0(gpointer data) {
++  (void)data;
++  on_destroy_increment(data);
++}
++
+ 
+ static void
+ test_new_with_free_func (void)
+@@ -185,7 +195,7 @@
+   gsize size;
+ 
+   data = "test";
+-  bytes = g_bytes_new_with_free_func (data, 4, on_destroy_increment, &count);
++  bytes = g_bytes_new_with_free_func (data, 4,sc_qualified_callback_0, &count);
+   g_assert_nonnull (bytes);
+   g_assert_cmpint (count, ==, 0);
+   g_assert_true (g_bytes_get_data (bytes, &size) == data);
+@@ -340,7 +350,7 @@
+   gchar *sentinel = g_strdup ("hello");
+ 
+   /* Memory copied: free func and user_data don’t point to the bytes data */
+-  bytes = g_bytes_new_with_free_func (NYAN, N_NYAN, g_free, sentinel);
++  bytes = g_bytes_new_with_free_func (NYAN, N_NYAN,sc_qualified_callback_1, sentinel);
+   g_assert_true (g_bytes_get_data (bytes, NULL) == NYAN);
+ 
+   data = g_bytes_unref_to_data (bytes, &size);
+@@ -506,32 +516,158 @@
+   g_bytes_unref (NULL);
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_take();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_static();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_with_free_func();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_from_bytes();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_from_bytes_slice();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_from_bytes_shared_ref();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_hash();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_equal();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_compare();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_data_transferred();
++}
++
++static void sc_qualified_test_11_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_data_two_refs();
++}
++
++static void sc_qualified_test_12_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_data_non_malloc();
++}
++
++static void sc_qualified_test_13_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_data_different_free_func();
++}
++
++static void sc_qualified_test_14_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_array_transferred();
++}
++
++static void sc_qualified_test_15_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_array_transferred_oversize();
++}
++
++static void sc_qualified_test_16_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_array_two_refs();
++}
++
++static void sc_qualified_test_17_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_to_array_non_malloc();
++}
++
++static void sc_qualified_test_18_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_null();
++}
++
++static void sc_qualified_test_19_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_get_region();
++}
++
++static void sc_qualified_test_20_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_unref_null();
++}
++
+ int
+ main (int argc, char *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/bytes/new", test_new);
+-  g_test_add_func ("/bytes/new-take", test_new_take);
+-  g_test_add_func ("/bytes/new-static", test_new_static);
+-  g_test_add_func ("/bytes/new-with-free-func", test_new_with_free_func);
+-  g_test_add_func ("/bytes/new-from-bytes", test_new_from_bytes);
+-  g_test_add_func ("/bytes/new-from-bytes-slice", test_new_from_bytes_slice);
+-  g_test_add_func ("/bytes/new-from-bytes-shared-ref", test_new_from_bytes_shared_ref);
+-  g_test_add_func ("/bytes/hash", test_hash);
+-  g_test_add_func ("/bytes/equal", test_equal);
+-  g_test_add_func ("/bytes/compare", test_compare);
+-  g_test_add_func ("/bytes/to-data/transferred", test_to_data_transferred);
+-  g_test_add_func ("/bytes/to-data/two-refs", test_to_data_two_refs);
+-  g_test_add_func ("/bytes/to-data/non-malloc", test_to_data_non_malloc);
+-  g_test_add_func ("/bytes/to-data/different-free-func", test_to_data_different_free_func);
+-  g_test_add_func ("/bytes/to-array/transferred", test_to_array_transferred);
+-  g_test_add_func ("/bytes/to-array/transferred/oversize", test_to_array_transferred_oversize);
+-  g_test_add_func ("/bytes/to-array/two-refs", test_to_array_two_refs);
+-  g_test_add_func ("/bytes/to-array/non-malloc", test_to_array_non_malloc);
+-  g_test_add_func ("/bytes/null", test_null);
+-  g_test_add_func ("/bytes/get-region", test_get_region);
+-  g_test_add_func ("/bytes/unref-null", test_unref_null);
++  g_test_add_vtable("/bytes/new", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/bytes/new-take", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/bytes/new-static", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/bytes/new-with-free-func", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/bytes/new-from-bytes", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/bytes/new-from-bytes-slice", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/bytes/new-from-bytes-shared-ref", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/bytes/hash", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/bytes/equal", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/bytes/compare", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/bytes/to-data/transferred", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
++  g_test_add_vtable("/bytes/to-data/two-refs", 0, NULL, NULL, sc_qualified_test_11_test, NULL);
++  g_test_add_vtable("/bytes/to-data/non-malloc", 0, NULL, NULL, sc_qualified_test_12_test, NULL);
++  g_test_add_vtable("/bytes/to-data/different-free-func", 0, NULL, NULL, sc_qualified_test_13_test, NULL);
++  g_test_add_vtable("/bytes/to-array/transferred", 0, NULL, NULL, sc_qualified_test_14_test, NULL);
++  g_test_add_vtable("/bytes/to-array/transferred/oversize", 0, NULL, NULL, sc_qualified_test_15_test, NULL);
++  g_test_add_vtable("/bytes/to-array/two-refs", 0, NULL, NULL, sc_qualified_test_16_test, NULL);
++  g_test_add_vtable("/bytes/to-array/non-malloc", 0, NULL, NULL, sc_qualified_test_17_test, NULL);
++  g_test_add_vtable("/bytes/null", 0, NULL, NULL, sc_qualified_test_18_test, NULL);
++  g_test_add_vtable("/bytes/get-region", 0, NULL, NULL, sc_qualified_test_19_test, NULL);
++  g_test_add_vtable("/bytes/unref-null", 0, NULL, NULL, sc_qualified_test_20_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/string.c
++++ b/glib/tests/string.c
+@@ -818,37 +818,187 @@
+     }
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_chunks();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_chunk_insert();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_new();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_printf();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_assign();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_append_c();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_append();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_append_vprintf();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_prepend_c();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_prepend();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_insert();
++}
++
++static void sc_qualified_test_11_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_insert_unichar();
++}
++
++static void sc_qualified_test_12_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_equal();
++}
++
++static void sc_qualified_test_13_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_truncate();
++}
++
++static void sc_qualified_test_14_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_overwrite();
++}
++
++static void sc_qualified_test_15_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_nul_handling();
++}
++
++static void sc_qualified_test_16_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_up_down();
++}
++
++static void sc_qualified_test_17_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_set_size();
++}
++
++static void sc_qualified_test_18_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_to_bytes();
++}
++
++static void sc_qualified_test_19_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_replace();
++}
++
++static void sc_qualified_test_20_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_steal();
++}
++
++static void sc_qualified_test_21_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_new_take();
++}
++
++static void sc_qualified_test_22_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_new_take_null();
++}
++
++static void sc_qualified_test_23_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_copy();
++}
++
++static void sc_qualified_test_24_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_string_sized_new();
++}
++
+ int
+ main (int   argc,
+       char *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/string/chunks", test_string_chunks);
+-  g_test_add_func ("/string/chunk-insert", test_string_chunk_insert);
+-  g_test_add_func ("/string/new", test_string_new);
+-  g_test_add_func ("/string/printf", test_string_printf);
+-  g_test_add_func ("/string/assign", test_string_assign);
+-  g_test_add_func ("/string/append-c", test_string_append_c);
+-  g_test_add_func ("/string/append", test_string_append);
+-  g_test_add_func ("/string/append-vprintf", test_string_append_vprintf);
+-  g_test_add_func ("/string/prepend-c", test_string_prepend_c);
+-  g_test_add_func ("/string/prepend", test_string_prepend);
+-  g_test_add_func ("/string/insert", test_string_insert);
+-  g_test_add_func ("/string/insert-unichar", test_string_insert_unichar);
+-  g_test_add_func ("/string/equal", test_string_equal);
+-  g_test_add_func ("/string/truncate", test_string_truncate);
+-  g_test_add_func ("/string/overwrite", test_string_overwrite);
+-  g_test_add_func ("/string/nul-handling", test_string_nul_handling);
+-  g_test_add_func ("/string/up-down", test_string_up_down);
+-  g_test_add_func ("/string/set-size", test_string_set_size);
+-  g_test_add_func ("/string/to-bytes", test_string_to_bytes);
+-  g_test_add_func ("/string/replace", test_string_replace);
+-  g_test_add_func ("/string/steal", test_string_steal);
+-  g_test_add_func ("/string/new-take", test_string_new_take);
+-  g_test_add_func ("/string/new-take/null", test_string_new_take_null);
+-  g_test_add_func ("/string/copy", test_string_copy);
+-  g_test_add_func ("/string/sized-new", test_string_sized_new);
++  g_test_add_vtable("/string/chunks", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/string/chunk-insert", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/string/new", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/string/printf", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/string/assign", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/string/append-c", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/string/append", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/string/append-vprintf", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/string/prepend-c", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/string/prepend", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/string/insert", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
++  g_test_add_vtable("/string/insert-unichar", 0, NULL, NULL, sc_qualified_test_11_test, NULL);
++  g_test_add_vtable("/string/equal", 0, NULL, NULL, sc_qualified_test_12_test, NULL);
++  g_test_add_vtable("/string/truncate", 0, NULL, NULL, sc_qualified_test_13_test, NULL);
++  g_test_add_vtable("/string/overwrite", 0, NULL, NULL, sc_qualified_test_14_test, NULL);
++  g_test_add_vtable("/string/nul-handling", 0, NULL, NULL, sc_qualified_test_15_test, NULL);
++  g_test_add_vtable("/string/up-down", 0, NULL, NULL, sc_qualified_test_16_test, NULL);
++  g_test_add_vtable("/string/set-size", 0, NULL, NULL, sc_qualified_test_17_test, NULL);
++  g_test_add_vtable("/string/to-bytes", 0, NULL, NULL, sc_qualified_test_18_test, NULL);
++  g_test_add_vtable("/string/replace", 0, NULL, NULL, sc_qualified_test_19_test, NULL);
++  g_test_add_vtable("/string/steal", 0, NULL, NULL, sc_qualified_test_20_test, NULL);
++  g_test_add_vtable("/string/new-take", 0, NULL, NULL, sc_qualified_test_21_test, NULL);
++  g_test_add_vtable("/string/new-take/null", 0, NULL, NULL, sc_qualified_test_22_test, NULL);
++  g_test_add_vtable("/string/copy", 0, NULL, NULL, sc_qualified_test_23_test, NULL);
++  g_test_add_vtable("/string/sized-new", 0, NULL, NULL, sc_qualified_test_24_test, NULL);
+ 
+   return g_test_run();
+ }
+--- a/glib/tests/array-test.c
++++ b/glib/tests/array-test.c
+@@ -43,6 +43,29 @@
+ 
+ /* Assert that @garray contains @n_expected_elements as given in @expected_data.
+  * @garray must contain #gint elements. */
++
++static void sc_qualified_callback_5(gpointer data) {
++  (void)data;
++  g_free(data);
++}
++
++static gpointer sc_qualified_callback_6(gconstpointer data, gpointer user_data) {
++  (void)data;
++  (void)user_data;
++  return g_strdup(data);
++}
++
++static gint sc_qualified_callback_15(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_strcmp0(a, b);
++}
++
++static gboolean sc_qualified_callback_19(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_str_equal(a, b);
++}
+ static void
+ assert_int_array_equal (GArray     *garray,
+                         const gint *expected_data,
+@@ -76,6 +99,12 @@
+ 
+   *sum += GPOINTER_TO_INT (data);
+ }
++static void sc_qualified_callback_4(gpointer data, gpointer user_data) {
++  (void)data;
++  (void)user_data;
++  sum_up(data, user_data);
++}
++
+ 
+ /* Check that expanding an array with g_array_set_size() clears the new elements
+  * if @clear_ was specified during construction. */
+@@ -783,6 +812,12 @@
+ 
+   return *i1 - *i2;
+ }
++static gint sc_qualified_callback_0(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return int_compare(a, b);
++}
++
+ 
+ static void
+ array_copy (gconstpointer test_data)
+@@ -845,6 +880,13 @@
+ 
+   return *i1 - *i2;
+ }
++static gint sc_qualified_callback_1(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return int_compare_data(a, b, data);
++}
++
+ 
+ /* Check that g_array_sort() works correctly for various #GArray
+  * configurations. */
+@@ -859,7 +901,7 @@
+   garray = g_array_new (config->zero_terminated, config->clear_, sizeof (gint));
+ 
+   /* Sort empty array */
+-  g_array_sort (garray, int_compare);
++  g_array_sort (garray,sc_qualified_callback_0);
+ 
+   for (i = 0; i < 10000; i++)
+     {
+@@ -868,7 +910,7 @@
+     }
+   assert_int_array_zero_terminated (config, garray);
+ 
+-  g_array_sort (garray, int_compare);
++  g_array_sort (garray,sc_qualified_callback_0);
+   assert_int_array_zero_terminated (config, garray);
+ 
+   prev = -1;
+@@ -895,7 +937,7 @@
+   garray = g_array_new (config->zero_terminated, config->clear_, sizeof (gint));
+ 
+   /* Sort empty array */
+-  g_array_sort_with_data (garray, int_compare_data, NULL);
++  g_array_sort_with_data (garray,sc_qualified_callback_1, NULL);
+ 
+   for (i = 0; i < 10000; i++)
+     {
+@@ -904,7 +946,7 @@
+     }
+   assert_int_array_zero_terminated (config, garray);
+ 
+-  g_array_sort_with_data (garray, int_compare_data, NULL);
++  g_array_sort_with_data (garray,sc_qualified_callback_1, NULL);
+   assert_int_array_zero_terminated (config, garray);
+ 
+   prev = -1;
+@@ -925,6 +967,11 @@
+ {
+   num_clear_func_invocations += 1;
+ }
++static void sc_qualified_callback_2(gpointer data) {
++  (void)data;
++  my_clear_func(data);
++}
++
+ 
+ static void
+ array_clear_func (void)
+@@ -934,7 +981,7 @@
+   gint cur;
+ 
+   garray = g_array_new (FALSE, FALSE, sizeof (gint));
+-  g_array_set_clear_func (garray, my_clear_func);
++  g_array_set_clear_func (garray,sc_qualified_callback_2);
+ 
+   for (i = 0; i < 10; i++)
+     {
+@@ -964,6 +1011,12 @@
+ 
+   return *_a - *_b;
+ }
++static gint sc_qualified_callback_3(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return cmpint(a, b);
++}
++
+ 
+ /* Testing g_array_binary_search() function */
+ static void
+@@ -979,7 +1032,7 @@
+       g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
+                              "*assertion*!= NULL*");
+       i = 1;
+-      g_assert_false (g_array_binary_search (NULL, &i, cmpint, NULL));
++      g_assert_false (g_array_binary_search (NULL, &i,sc_qualified_callback_3, NULL));
+       g_test_assert_expected_messages ();
+ 
+       g_test_expect_message (G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL,
+@@ -994,7 +1047,7 @@
+   garray = g_array_sized_new (FALSE, FALSE, sizeof (guint), 0);
+ 
+   i = 1;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1003,13 +1056,13 @@
+   i = 1;
+   g_array_append_val (garray, i);
+ 
+-  g_assert_true (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_true (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 0;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 2;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1019,13 +1072,13 @@
+     g_array_append_val (garray, i);
+ 
+   for (i = 1; i < 3; i++)
+-    g_assert_true (g_array_binary_search (garray, &i, cmpint, NULL));
++    g_assert_true (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 0;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 4;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1035,13 +1088,13 @@
+     g_array_append_val (garray, i);
+ 
+   for (i = 1; i < 4; i++)
+-    g_assert_true (g_array_binary_search (garray, &i, cmpint, NULL));
++    g_assert_true (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 0;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 5;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1052,22 +1105,22 @@
+     g_array_append_val (garray, i);
+ 
+   for (i = 1; i < 10001; i++)
+-    g_assert_true (g_array_binary_search (garray, &i, cmpint, NULL));
++    g_assert_true (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   for (i = 1; i < 10001; i++)
+     {
+-      g_assert_true (g_array_binary_search (garray, &i, cmpint, &matched_index));
++      g_assert_true (g_array_binary_search (garray, &i,sc_qualified_callback_3, &matched_index));
+       g_assert_cmpint (i, ==, matched_index + 1);
+     }
+ 
+   /* Testing negative result */
+   i = 0;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, &matched_index));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, &matched_index));
+ 
+   i = 10002;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, &matched_index));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, &matched_index));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1077,13 +1130,13 @@
+     g_array_append_val (garray, i);
+ 
+   i = 0;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 2;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 10;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ 
+@@ -1094,10 +1147,10 @@
+     g_array_append_val (garray, i);
+ 
+   i = 100;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   i = 1;
+-  g_assert_false (g_array_binary_search (garray, &i, cmpint, NULL));
++  g_assert_false (g_array_binary_search (garray, &i,sc_qualified_callback_3, NULL));
+ 
+   g_array_free (garray, TRUE);
+ }
+@@ -1283,7 +1336,7 @@
+   for (i = 0; i < 10000; i++)
+     g_assert (g_ptr_array_index (gparray, i) == GINT_TO_POINTER (i));
+   
+-  g_ptr_array_foreach (gparray, sum_up, &sum);
++  g_ptr_array_foreach (gparray,sc_qualified_callback_4, &sum);
+   g_assert (sum == 49995000);
+ 
+   segment = g_ptr_array_free (gparray, FALSE);
+@@ -1308,7 +1361,7 @@
+       g_ptr_array_insert (gparray, index, GINT_TO_POINTER (i));
+     }
+ 
+-  g_ptr_array_foreach (gparray, sum_up, &sum);
++  g_ptr_array_foreach (gparray,sc_qualified_callback_4, &sum);
+   g_assert (sum == 49995000);
+ 
+   g_ptr_array_free (gparray, TRUE);
+@@ -1415,7 +1468,7 @@
+   gpointer *old_pdata_copy;
+   gsize len;
+ 
+-  gparray = g_ptr_array_new_with_free_func (g_free);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_5);
+   for (size_t i = 0; i < array_size; i++)
+     g_ptr_array_add (gparray, g_strdup_printf ("%" G_GSIZE_FORMAT, i));
+ 
+@@ -1425,7 +1478,7 @@
+   g_clear_pointer (&gparray, g_ptr_array_unref);
+ 
+   old_pdata_copy = g_memdup2 (pdata, len * sizeof (gpointer));
+-  gparray = g_ptr_array_new_take (g_steal_pointer (&pdata), len, g_free);
++  gparray = g_ptr_array_new_take (g_steal_pointer (&pdata), len,sc_qualified_callback_5);
+   g_assert_false (g_ptr_array_is_null_terminated (gparray));
+   g_assert_cmpuint (gparray->len, ==, array_size);
+ 
+@@ -1545,7 +1598,7 @@
+   gpointer *old_pdata_copy;
+   gsize len;
+ 
+-  gparray = g_ptr_array_new_null_terminated (array_size, g_free, TRUE);
++  gparray = g_ptr_array_new_null_terminated (array_size,sc_qualified_callback_5, TRUE);
+   g_assert_true (g_ptr_array_is_null_terminated (gparray));
+ 
+   for (size_t i = 0; i < array_size; i++)
+@@ -1559,7 +1612,7 @@
+   g_clear_pointer (&gparray, g_ptr_array_unref);
+ 
+   old_pdata_copy = g_memdup2 (pdata, len * sizeof (gpointer));
+-  gparray = g_ptr_array_new_take_null_terminated (g_steal_pointer (&pdata), g_free);
++  gparray = g_ptr_array_new_take_null_terminated (g_steal_pointer (&pdata),sc_qualified_callback_5);
+   g_assert_true (g_ptr_array_is_null_terminated (gparray));
+   assert_ptr_array_null_terminated (gparray, TRUE);
+   g_assert_cmpuint (gparray->len, ==, array_size);
+@@ -1603,7 +1656,7 @@
+   char *joined;
+ 
+   gparray = g_ptr_array_new_take_null_terminated (
+-    (gpointer) g_strsplit ("A.dot.separated.string", ".", -1), g_free);
++    (gpointer) g_strsplit ("A.dot.separated.string", ".", -1),sc_qualified_callback_5);
+ 
+   g_assert_cmpstr (
+     (const char *) g_ptr_array_index (gparray, 0), ==, "A");
+@@ -1719,15 +1772,14 @@
+   GPtrArray *gparray;
+   gpointer *old_pdata_copy;
+ 
+-  source_array = g_ptr_array_new_with_free_func (g_free);
++  source_array = g_ptr_array_new_with_free_func (sc_qualified_callback_5);
+   for (size_t i = 0; i < array_size; i++)
+     g_ptr_array_add (source_array, g_strdup_printf ("%" G_GSIZE_FORMAT, i));
+ 
+   g_assert_cmpuint (array_size, ==, source_array->len);
+   g_assert_nonnull (source_array->pdata);
+ 
+-  gparray = g_ptr_array_new_from_array (source_array->pdata, source_array->len,
+-                                        (GCopyFunc) g_strdup, NULL, g_free);
++  gparray = g_ptr_array_new_from_array (source_array->pdata, source_array->len,sc_qualified_callback_6, NULL,sc_qualified_callback_5);
+ 
+   old_pdata_copy =
+     g_memdup2 (source_array->pdata, source_array->len * sizeof (gpointer));
+@@ -1854,7 +1906,7 @@
+   GPtrArray *gparray;
+   GStrv old_pdata_copy;
+ 
+-  source_array = g_ptr_array_new_null_terminated (array_size, g_free, TRUE);
++  source_array = g_ptr_array_new_null_terminated (array_size,sc_qualified_callback_5, TRUE);
+   g_assert_true (g_ptr_array_is_null_terminated (source_array));
+ 
+   for (size_t i = 0; i < array_size; i++)
+@@ -1869,7 +1921,7 @@
+   g_clear_pointer (&source_array, g_ptr_array_unref);
+ 
+   gparray = g_ptr_array_new_from_null_terminated_array (
+-    (gpointer* ) old_pdata_copy, (GCopyFunc) g_strdup, NULL, g_free);
++    (gpointer* ) old_pdata_copy,sc_qualified_callback_6, NULL,sc_qualified_callback_5);
+   g_assert_true (g_ptr_array_is_null_terminated (gparray));
+   assert_ptr_array_null_terminated (gparray, TRUE);
+ 
+@@ -1977,7 +2029,7 @@
+ 
+   assert_ptr_array_null_terminated (gparray, null_terminated);
+ 
+-  g_ptr_array_foreach (gparray, sum_up, &sum);
++  g_ptr_array_foreach (gparray,sc_qualified_callback_4, &sum);
+   g_assert (sum == 49995000);
+ 
+   /* gparray2 should be an empty valid GPtrArray wrapper */
+@@ -1998,6 +2050,11 @@
+   num_free_func_invocations++;
+   g_free (data);
+ }
++static void sc_qualified_callback_7(gpointer data) {
++  (void)data;
++  my_free_func(data);
++}
++
+ 
+ static void
+ pointer_array_free_func (void)
+@@ -2008,16 +2065,16 @@
+   gchar *s;
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_unref (gparray);
+   g_assert_cmpint (num_free_func_invocations, ==, 0);
+ 
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_free (gparray, TRUE);
+   g_assert_cmpint (num_free_func_invocations, ==, 0);
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_add (gparray, g_strdup ("foo"));
+   g_ptr_array_add (gparray, g_strdup ("bar"));
+   g_ptr_array_add (gparray, g_strdup ("baz"));
+@@ -2042,7 +2099,7 @@
+   g_assert_cmpint (num_free_func_invocations, ==, 5);
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_full (10, my_free_func);
++  gparray = g_ptr_array_new_full (10,sc_qualified_callback_7);
+   g_ptr_array_add (gparray, g_strdup ("foo"));
+   g_ptr_array_add (gparray, g_strdup ("bar"));
+   g_ptr_array_add (gparray, g_strdup ("baz"));
+@@ -2056,7 +2113,7 @@
+   g_assert_cmpint (num_free_func_invocations, ==, 0);
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_add (gparray, g_strdup ("foo"));
+   g_ptr_array_add (gparray, g_strdup ("bar"));
+   g_ptr_array_add (gparray, g_strdup ("baz"));
+@@ -2065,7 +2122,7 @@
+   g_assert_cmpint (num_free_func_invocations, ==, 3);
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_add (gparray, g_strdup ("foo"));
+   g_ptr_array_add (gparray, g_strdup ("bar"));
+   g_ptr_array_add (gparray, g_strdup ("baz"));
+@@ -2073,7 +2130,7 @@
+   g_assert_cmpint (num_free_func_invocations, ==, 3);
+ 
+   num_free_func_invocations = 0;
+-  gparray = g_ptr_array_new_with_free_func (my_free_func);
++  gparray = g_ptr_array_new_with_free_func (sc_qualified_callback_7);
+   g_ptr_array_add (gparray, "foo");
+   g_ptr_array_add (gparray, "bar");
+   g_ptr_array_add (gparray, "baz");
+@@ -2089,6 +2146,12 @@
+   *dst = *((gsize *) src);
+   return dst;
+ }
++static gpointer sc_qualified_callback_8(gconstpointer data, gpointer user_data) {
++  (void)data;
++  (void)user_data;
++  return ptr_array_copy_func(data, user_data);
++}
++
+ 
+ /* Test the g_ptr_array_copy() function */
+ static void
+@@ -2151,8 +2214,8 @@
+   g_ptr_array_free (ptr_array2, TRUE);
+ 
+   /* Test copy through GCopyFunc */
+-  ptr_array2 = g_ptr_array_copy (ptr_array, ptr_array_copy_func, NULL);
+-  g_ptr_array_set_free_func (ptr_array2, g_free);
++  ptr_array2 = g_ptr_array_copy (ptr_array,sc_qualified_callback_8, NULL);
++  g_ptr_array_set_free_func (ptr_array2,sc_qualified_callback_5);
+ 
+   g_assert_cmpuint (ptr_array2->len, ==, ptr_array->len);
+   for (i = 0; i < array_size; i++)
+@@ -2289,7 +2352,7 @@
+       g_ptr_array_add (ptr_array2, &array_test[i + (array_size / 2)]);
+     }
+ 
+-  g_ptr_array_extend (ptr_array, ptr_array2, ptr_array_copy_func, NULL);
++  g_ptr_array_extend (ptr_array, ptr_array2,sc_qualified_callback_8, NULL);
+ 
+   for (i = 0; i < array_size; i++)
+     g_assert_cmpuint (*((gsize *) g_ptr_array_index (ptr_array, i)), ==, i);
+@@ -2387,6 +2450,12 @@
+ {
+   return GPOINTER_TO_INT (p1) - GPOINTER_TO_INT (p2);
+ }
++static gint sc_qualified_callback_14(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return ptr_compare_values(a, b);
++}
++
+ 
+ static gint
+ ptr_compare (gconstpointer p1, gconstpointer p2)
+@@ -2396,12 +2465,25 @@
+ 
+   return ptr_compare_values (i1, i2);
+ }
++static gint sc_qualified_callback_9(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return ptr_compare(a, b);
++}
++
+ 
+ static gint
+ ptr_compare_values_data (gconstpointer p1, gconstpointer p2, gpointer data)
+ {
+   return GPOINTER_TO_INT (p1) - GPOINTER_TO_INT (p2);
+ }
++static gint sc_qualified_callback_18(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return ptr_compare_values_data(a, b, data);
++}
++
+ 
+ static gint
+ ptr_compare_data (gconstpointer p1, gconstpointer p2, gpointer data)
+@@ -2411,6 +2493,13 @@
+ 
+   return ptr_compare_values_data (i1, i2, data);
+ }
++static gint sc_qualified_callback_13(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return ptr_compare_data(a, b, data);
++}
++
+ 
+ static void
+ pointer_array_sort (void)
+@@ -2423,7 +2512,7 @@
+   gparray = g_ptr_array_new ();
+ 
+   /* Sort empty array */
+-  g_ptr_array_sort (gparray, ptr_compare);
++  g_ptr_array_sort (gparray,sc_qualified_callback_9);
+ 
+   for (i = 0; i < 10000; i++)
+     {
+@@ -2431,7 +2520,7 @@
+       g_ptr_array_add (gparray, GINT_TO_POINTER (val));
+     }
+ 
+-  g_ptr_array_sort (gparray, ptr_compare);
++  g_ptr_array_sort (gparray,sc_qualified_callback_9);
+ 
+   prev = -1;
+   for (i = 0; i < 10000; i++)
+@@ -2461,6 +2550,11 @@
+   g_free (entry->name);
+   g_free (entry);
+ }
++static void sc_qualified_callback_10(gpointer data) {
++  (void)data;
++  file_list_entry_free(data);
++}
++
+ 
+ static gint
+ sort_filelist (gconstpointer a, gconstpointer b)
+@@ -2470,6 +2564,12 @@
+ 
+    return g_ascii_strcasecmp (entry1->name, entry2->name);
+ }
++static gint sc_qualified_callback_11(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return sort_filelist(a, b);
++}
++
+ 
+ static void
+ pointer_array_sort_example (void)
+@@ -2479,7 +2579,7 @@
+ 
+   g_test_summary ("Check that the doc-comment for g_ptr_array_sort() is correct");
+ 
+-  file_list = g_ptr_array_new_with_free_func (file_list_entry_free);
++  file_list = g_ptr_array_new_with_free_func (sc_qualified_callback_10);
+ 
+   entry = g_new0 (FileListEntry, 1);
+   entry->name = g_strdup ("README");
+@@ -2496,7 +2596,7 @@
+   entry->size = 23;
+   g_ptr_array_add (file_list, g_steal_pointer (&entry));
+ 
+-  g_ptr_array_sort (file_list, sort_filelist);
++  g_ptr_array_sort (file_list,sc_qualified_callback_11);
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+   entry = g_ptr_array_index (file_list, 0);
+@@ -2536,6 +2636,13 @@
+     }
+   return order;
+ }
++static gint sc_qualified_callback_12(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return sort_filelist_how(a, b, data);
++}
++
+ 
+ static void
+ pointer_array_sort_with_data_example (void)
+@@ -2546,7 +2653,7 @@
+ 
+   g_test_summary ("Check that the doc-comment for g_ptr_array_sort_with_data() is correct");
+ 
+-  file_list = g_ptr_array_new_with_free_func (file_list_entry_free);
++  file_list = g_ptr_array_new_with_free_func (sc_qualified_callback_10);
+ 
+   entry = g_new0 (FileListEntry, 1);
+   entry->name = g_strdup ("README");
+@@ -2564,7 +2671,7 @@
+   g_ptr_array_add (file_list, g_steal_pointer (&entry));
+ 
+   sort_mode = SORT_NAME;
+-  g_ptr_array_sort_with_data (file_list, sort_filelist_how, GINT_TO_POINTER (sort_mode));
++  g_ptr_array_sort_with_data (file_list,sc_qualified_callback_12, GINT_TO_POINTER (sort_mode));
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+   entry = g_ptr_array_index (file_list, 0);
+@@ -2575,7 +2682,7 @@
+   g_assert_cmpstr (entry->name, ==, "README");
+ 
+   sort_mode = SORT_SIZE;
+-  g_ptr_array_sort_with_data (file_list, sort_filelist_how, GINT_TO_POINTER (sort_mode));
++  g_ptr_array_sort_with_data (file_list,sc_qualified_callback_12, GINT_TO_POINTER (sort_mode));
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+   entry = g_ptr_array_index (file_list, 0);
+@@ -2598,12 +2705,12 @@
+   gparray = g_ptr_array_new ();
+ 
+   /* Sort empty array */
+-  g_ptr_array_sort_with_data (gparray, ptr_compare_data, NULL);
++  g_ptr_array_sort_with_data (gparray,sc_qualified_callback_13, NULL);
+ 
+   for (i = 0; i < 10000; i++)
+     g_ptr_array_add (gparray, GINT_TO_POINTER (g_random_int_range (0, 10000)));
+ 
+-  g_ptr_array_sort_with_data (gparray, ptr_compare_data, NULL);
++  g_ptr_array_sort_with_data (gparray,sc_qualified_callback_13, NULL);
+ 
+   prev = -1;
+   for (i = 0; i < 10000; i++)
+@@ -2627,7 +2734,7 @@
+   gparray = g_ptr_array_new ();
+ 
+   /* Sort empty array */
+-  g_ptr_array_sort_values (gparray, ptr_compare_values);
++  g_ptr_array_sort_values (gparray,sc_qualified_callback_14);
+ 
+   for (i = 0; i < 10000; i++)
+     {
+@@ -2635,7 +2742,7 @@
+       g_ptr_array_add (gparray, GINT_TO_POINTER (val));
+     }
+ 
+-  g_ptr_array_sort_values (gparray, ptr_compare_values);
++  g_ptr_array_sort_values (gparray,sc_qualified_callback_14);
+ 
+   prev = -1;
+   for (i = 0; i < 10000; i++)
+@@ -2655,7 +2762,7 @@
+   g_ptr_array_add (gparray, "bbbb");
+   g_ptr_array_add (gparray, "aaaa");
+ 
+-  g_ptr_array_sort_values (gparray, (GCompareFunc) g_strcmp0);
++  g_ptr_array_sort_values (gparray,sc_qualified_callback_15);
+ 
+   i = 0;
+   g_assert_cmpstr (g_ptr_array_index (gparray, i++), ==, NULL);
+@@ -2675,6 +2782,12 @@
+ 
+   return g_ascii_strcasecmp (entry1->name, entry2->name);
+ }
++static gint sc_qualified_callback_16(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return sort_filelist_values(a, b);
++}
++
+ 
+ static void
+ pointer_array_sort_values_example (void)
+@@ -2682,7 +2795,7 @@
+   GPtrArray *file_list = NULL;
+   FileListEntry *entry;
+ 
+-  file_list = g_ptr_array_new_with_free_func (file_list_entry_free);
++  file_list = g_ptr_array_new_with_free_func (sc_qualified_callback_10);
+ 
+   entry = g_new0 (FileListEntry, 1);
+   entry->name = g_strdup ("README");
+@@ -2699,7 +2812,7 @@
+   entry->size = 23;
+   g_ptr_array_add (file_list, g_steal_pointer (&entry));
+ 
+-  g_ptr_array_sort_values (file_list, sort_filelist_values);
++  g_ptr_array_sort_values (file_list,sc_qualified_callback_16);
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+   entry = g_ptr_array_index (file_list, 0);
+@@ -2734,6 +2847,13 @@
+     }
+   return order;
+ }
++static gint sc_qualified_callback_17(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return sort_filelist_how_values(a, b, data);
++}
++
+ 
+ static void
+ pointer_array_sort_values_with_data_example (void)
+@@ -2742,7 +2862,7 @@
+   FileListEntry *entry;
+   SortMode sort_mode;
+ 
+-  file_list = g_ptr_array_new_with_free_func (file_list_entry_free);
++  file_list = g_ptr_array_new_with_free_func (sc_qualified_callback_10);
+ 
+   entry = g_new0 (FileListEntry, 1);
+   entry->name = g_strdup ("README");
+@@ -2760,7 +2880,7 @@
+   g_ptr_array_add (file_list, g_steal_pointer (&entry));
+ 
+   sort_mode = SORT_NAME;
+-  g_ptr_array_sort_values_with_data (file_list, sort_filelist_how_values,
++  g_ptr_array_sort_values_with_data (file_list,sc_qualified_callback_17,
+                                      GINT_TO_POINTER (sort_mode));
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+@@ -2772,7 +2892,7 @@
+   g_assert_cmpstr (entry->name, ==, "README");
+ 
+   sort_mode = SORT_SIZE;
+-  g_ptr_array_sort_values_with_data (file_list, sort_filelist_how_values,
++  g_ptr_array_sort_values_with_data (file_list,sc_qualified_callback_17,
+                                      GINT_TO_POINTER (sort_mode));
+ 
+   g_assert_cmpuint (file_list->len, ==, 3);
+@@ -2796,12 +2916,12 @@
+   gparray = g_ptr_array_new ();
+ 
+   /* Sort empty array */
+-  g_ptr_array_sort_values_with_data (gparray, ptr_compare_values_data, NULL);
++  g_ptr_array_sort_values_with_data (gparray,sc_qualified_callback_18, NULL);
+ 
+   for (i = 0; i < 10000; i++)
+     g_ptr_array_add (gparray, GINT_TO_POINTER (g_random_int_range (0, 10000)));
+ 
+-  g_ptr_array_sort_values_with_data (gparray, ptr_compare_values_data, NULL);
++  g_ptr_array_sort_values_with_data (gparray,sc_qualified_callback_18, NULL);
+ 
+   prev = -1;
+   for (i = 0; i < 10000; i++)
+@@ -2824,8 +2944,8 @@
+ 
+   g_assert_false (g_ptr_array_find (array, "some-value", NULL));  /* NULL index */
+   g_assert_false (g_ptr_array_find (array, "some-value", &idx));  /* non-NULL index */
+-  g_assert_false (g_ptr_array_find_with_equal_func (array, "some-value", g_str_equal, NULL));  /* NULL index */
+-  g_assert_false (g_ptr_array_find_with_equal_func (array, "some-value", g_str_equal, &idx));  /* non-NULL index */
++  g_assert_false (g_ptr_array_find_with_equal_func (array, "some-value",sc_qualified_callback_19, NULL));  /* NULL index */
++  g_assert_false (g_ptr_array_find_with_equal_func (array, "some-value",sc_qualified_callback_19, &idx));  /* non-NULL index */
+ 
+   g_ptr_array_free (array, TRUE);
+ }
+@@ -2846,16 +2966,16 @@
+   g_ptr_array_add (array, "duplicated");
+   g_ptr_array_add (array, (gpointer) str_pointer);
+ 
+-  g_assert_true (g_ptr_array_find_with_equal_func (array, "random", g_str_equal, NULL));  /* NULL index */
+-  g_assert_true (g_ptr_array_find_with_equal_func (array, "random", g_str_equal, &idx));  /* non-NULL index */
++  g_assert_true (g_ptr_array_find_with_equal_func (array, "random",sc_qualified_callback_19, NULL));  /* NULL index */
++  g_assert_true (g_ptr_array_find_with_equal_func (array, "random",sc_qualified_callback_19, &idx));  /* non-NULL index */
+   g_assert_cmpuint (idx, ==, 1);
+ 
+-  g_assert_true (g_ptr_array_find_with_equal_func (array, "some", g_str_equal, &idx));  /* duplicate element */
++  g_assert_true (g_ptr_array_find_with_equal_func (array, "some",sc_qualified_callback_19, &idx));  /* duplicate element */
+   g_assert_cmpuint (idx, ==, 0);
+ 
+-  g_assert_false (g_ptr_array_find_with_equal_func (array, "nope", g_str_equal, NULL));
+-
+-  g_assert_true (g_ptr_array_find_with_equal_func (array, str_pointer, g_str_equal, &idx));
++  g_assert_false (g_ptr_array_find_with_equal_func (array, "nope",sc_qualified_callback_19, NULL));
++
++  g_assert_true (g_ptr_array_find_with_equal_func (array, str_pointer,sc_qualified_callback_19, &idx));
+   g_assert_cmpuint (idx, ==, 5);
+   idx = G_MAXUINT;
+   g_assert_true (g_ptr_array_find_with_equal_func (array, str_pointer, NULL, &idx));  /* NULL equal func */
+@@ -2884,6 +3004,11 @@
+   guint *counter = data;
+   *counter = *counter + 1;
+ }
++static void sc_qualified_callback_20(gpointer data) {
++  (void)data;
++  steal_destroy_notify(data);
++}
++
+ 
+ /* Test that g_ptr_array_steal_index() and g_ptr_array_steal_index_fast() can
+  * remove elements from a pointer array without the #GDestroyNotify being called. */
+@@ -2896,9 +3021,9 @@
+   GPtrArray *array;
+ 
+   if (null_terminated)
+-    array = g_ptr_array_new_null_terminated (0, steal_destroy_notify, null_terminated);
++    array = g_ptr_array_new_null_terminated (0,sc_qualified_callback_20, null_terminated);
+   else
+-    array = g_ptr_array_new_with_free_func (steal_destroy_notify);
++    array = g_ptr_array_new_with_free_func (sc_qualified_callback_20);
+ 
+   assert_ptr_array_null_terminated (array, null_terminated);
+ 
+@@ -3235,6 +3360,12 @@
+ 
+   return *i1 - *i2;
+ }
++static gint sc_qualified_callback_21(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return byte_compare(a, b);
++}
++
+ 
+ static int
+ byte_compare_data (gconstpointer p1, gconstpointer p2, gpointer data)
+@@ -3244,6 +3375,13 @@
+ 
+   return *i1 - *i2;
+ }
++static gint sc_qualified_callback_22(gconstpointer a, gconstpointer b, gpointer data) {
++  (void)a;
++  (void)b;
++  (void)data;
++  return byte_compare_data(a, b, data);
++}
++
+ 
+ static void
+ byte_array_sort (void)
+@@ -3260,7 +3398,7 @@
+       g_byte_array_append (gbarray, (guint8*) &val, 1);
+     }
+ 
+-  g_byte_array_sort (gbarray, byte_compare);
++  g_byte_array_sort (gbarray,sc_qualified_callback_21);
+ 
+   prev = 'a';
+   for (i = 0; i < gbarray->len; i++)
+@@ -3288,7 +3426,7 @@
+       g_byte_array_append (gbarray, (guint8*) &val, 1);
+     }
+ 
+-  g_byte_array_sort_with_data (gbarray, byte_compare_data, NULL);
++  g_byte_array_sort_with_data (gbarray,sc_qualified_callback_22, NULL);
+ 
+   prev = 'a';
+   for (i = 0; i < gbarray->len; i++)
+@@ -3338,7 +3476,7 @@
+ static void
+ add_array_test (const gchar         *test_path,
+                 const ArrayTestData *config,
+-                GTestDataFunc        test_func)
++                GTestFixtureFunc        test_func)
+ {
+   gchar *test_name = NULL;
+ 
+@@ -3346,8 +3484,512 @@
+                                test_path,
+                                config->zero_terminated ? "zero-terminated" : "non-zero-terminated",
+                                config->clear_ ? "clear" : "no-clear");
+-  g_test_add_data_func (test_name, config, test_func);
++  g_test_add_vtable(test_name, 0, config, NULL, test_func, NULL);
+   g_free (test_name);
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_zero_terminated();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_empty();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_overflow();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_zero_size();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_zero_terminated();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_zero_terminated_zero_size();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_new_take_zero_terminated_null();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_ref_count();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_steal();
++}
++
++static void sc_qualified_test_11_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_clear_func();
++}
++
++static void sc_qualified_test_12_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_array_binary_search();
++}
++
++static void sc_qualified_test_13_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_array_copy_sized();
++}
++
++static void sc_qualified_test_14_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_array_copy_zero_terminated();
++}
++
++static void sc_qualified_test_15_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_overflow_append_vals();
++}
++
++static void sc_qualified_test_16_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_overflow_set_size();
++}
++
++static void sc_qualified_test_17_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_remove_range_zero_terminated_null();
++}
++
++static void sc_qualified_test_18_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_set_size_zero_terminated_null();
++}
++
++static void sc_qualified_test_19_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_set_size(data);
++}
++
++static void sc_qualified_test_20_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_set_size_sized(data);
++}
++
++static void sc_qualified_test_21_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_append_val(data);
++}
++
++static void sc_qualified_test_22_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_prepend_val(data);
++}
++
++static void sc_qualified_test_23_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_prepend_vals(data);
++}
++
++static void sc_qualified_test_24_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_insert_vals(data);
++}
++
++static void sc_qualified_test_25_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_remove_index(data);
++}
++
++static void sc_qualified_test_26_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_remove_index_fast(data);
++}
++
++static void sc_qualified_test_27_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_remove_range(data);
++}
++
++static void sc_qualified_test_28_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_copy(data);
++}
++
++static void sc_qualified_test_29_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_sort(data);
++}
++
++static void sc_qualified_test_30_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  array_sort_with_data(data);
++}
++
++static void sc_qualified_test_31_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_free_null_terminated();
++}
++
++static void sc_qualified_test_32_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_add();
++}
++
++static void sc_qualified_test_33_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_insert();
++}
++
++static void sc_qualified_test_34_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take();
++}
++
++static void sc_qualified_test_35_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_empty();
++}
++
++static void sc_qualified_test_36_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_overflow();
++}
++
++static void sc_qualified_test_37_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_with_free_func();
++}
++
++static void sc_qualified_test_38_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_null_terminated();
++}
++
++static void sc_qualified_test_39_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_null_terminated_empty();
++}
++
++static void sc_qualified_test_40_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_null_terminated_with_free_func();
++}
++
++static void sc_qualified_test_41_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_take_null_terminated_from_gstrv();
++}
++
++static void sc_qualified_test_42_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_array();
++}
++
++static void sc_qualified_test_43_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_array_empty();
++}
++
++static void sc_qualified_test_44_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_array_overflow();
++}
++
++static void sc_qualified_test_45_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_array_with_copy_and_free_func();
++}
++
++static void sc_qualified_test_46_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_null_terminated_array();
++}
++
++static void sc_qualified_test_47_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_null_terminated_array_empty();
++}
++
++static void sc_qualified_test_48_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_null_terminated_array_with_copy_and_free_func();
++}
++
++static void sc_qualified_test_49_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_new_from_null_terminated_array_from_gstrv();
++}
++
++static void sc_qualified_test_50_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_ref_count(data);
++}
++
++static void sc_qualified_test_51_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_ref_count(data);
++}
++
++static void sc_qualified_test_52_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_free_func();
++}
++
++static void sc_qualified_test_53_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_copy(data);
++}
++
++static void sc_qualified_test_54_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_copy(data);
++}
++
++static void sc_qualified_test_55_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_extend(data);
++}
++
++static void sc_qualified_test_56_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_extend(data);
++}
++
++static void sc_qualified_test_57_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_extend_and_steal();
++}
++
++static void sc_qualified_test_58_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort();
++}
++
++static void sc_qualified_test_59_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_example();
++}
++
++static void sc_qualified_test_60_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_with_data();
++}
++
++static void sc_qualified_test_61_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_with_data_example();
++}
++
++static void sc_qualified_test_62_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_values();
++}
++
++static void sc_qualified_test_63_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_values_example();
++}
++
++static void sc_qualified_test_64_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_values_with_data();
++}
++
++static void sc_qualified_test_65_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_sort_values_with_data_example();
++}
++
++static void sc_qualified_test_66_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_find_empty();
++}
++
++static void sc_qualified_test_67_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_find_non_empty();
++}
++
++static void sc_qualified_test_68_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_remove_range();
++}
++
++static void sc_qualified_test_69_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_steal();
++}
++
++static void sc_qualified_test_70_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_steal_index(data);
++}
++
++static void sc_qualified_test_71_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  pointer_array_steal_index(data);
++}
++
++static void sc_qualified_test_72_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_steal();
++}
++
++static void sc_qualified_test_73_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_append();
++}
++
++static void sc_qualified_test_74_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_prepend();
++}
++
++static void sc_qualified_test_75_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_remove();
++}
++
++static void sc_qualified_test_76_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_remove_fast();
++}
++
++static void sc_qualified_test_77_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_remove_range();
++}
++
++static void sc_qualified_test_78_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_ref_count();
++}
++
++static void sc_qualified_test_79_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_set_size();
++}
++
++static void sc_qualified_test_80_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_sort();
++}
++
++static void sc_qualified_test_81_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_sort_with_data();
++}
++
++static void sc_qualified_test_82_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_new_take();
++}
++
++static void sc_qualified_test_83_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_new_take_overflow();
++}
++
++static void sc_qualified_test_84_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  byte_array_free_to_bytes();
+ }
+ 
+ int
+@@ -3366,98 +4008,98 @@
+   g_test_init (&argc, &argv, NULL);
+ 
+   /* array tests */
+-  g_test_add_func ("/array/new/zero-terminated", array_new_zero_terminated);
+-  g_test_add_func ("/array/new/take", array_new_take);
+-  g_test_add_func ("/array/new/take/empty", array_new_take_empty);
+-  g_test_add_func ("/array/new/take/overflow", array_new_take_overflow);
+-  g_test_add_func ("/array/new/take/zero-size", array_new_take_zero_size);
+-  g_test_add_func ("/array/new/take-zero-terminated", array_new_take_zero_terminated);
+-  g_test_add_func ("/array/new/take-zero-terminated/zero-size", array_new_take_zero_terminated_zero_size);
+-  g_test_add_func ("/array/new/take-zero-terminated/null", array_new_take_zero_terminated_null);
+-  g_test_add_func ("/array/ref-count", array_ref_count);
+-  g_test_add_func ("/array/steal", array_steal);
+-  g_test_add_func ("/array/clear-func", array_clear_func);
+-  g_test_add_func ("/array/binary-search", test_array_binary_search);
+-  g_test_add_func ("/array/copy/sized", test_array_copy_sized);
+-  g_test_add_func ("/array/copy/zero-terminated", test_array_copy_zero_terminated);
+-  g_test_add_func ("/array/overflow-append-vals", array_overflow_append_vals);
+-  g_test_add_func ("/array/overflow-set-size", array_overflow_set_size);
+-  g_test_add_func ("/array/remove-range/zero-terminated-null", array_remove_range_zero_terminated_null);
+-  g_test_add_func ("/array/set-size/zero-terminated-null", array_set_size_zero_terminated_null);
++  g_test_add_vtable("/array/new/zero-terminated", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/array/new/take", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/array/new/take/empty", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/array/new/take/overflow", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/array/new/take/zero-size", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/array/new/take-zero-terminated", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/array/new/take-zero-terminated/zero-size", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/array/new/take-zero-terminated/null", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/array/ref-count", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/array/steal", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
++  g_test_add_vtable("/array/clear-func", 0, NULL, NULL, sc_qualified_test_11_test, NULL);
++  g_test_add_vtable("/array/binary-search", 0, NULL, NULL, sc_qualified_test_12_test, NULL);
++  g_test_add_vtable("/array/copy/sized", 0, NULL, NULL, sc_qualified_test_13_test, NULL);
++  g_test_add_vtable("/array/copy/zero-terminated", 0, NULL, NULL, sc_qualified_test_14_test, NULL);
++  g_test_add_vtable("/array/overflow-append-vals", 0, NULL, NULL, sc_qualified_test_15_test, NULL);
++  g_test_add_vtable("/array/overflow-set-size", 0, NULL, NULL, sc_qualified_test_16_test, NULL);
++  g_test_add_vtable("/array/remove-range/zero-terminated-null", 0, NULL, NULL, sc_qualified_test_17_test, NULL);
++  g_test_add_vtable("/array/set-size/zero-terminated-null", 0, NULL, NULL, sc_qualified_test_18_test, NULL);
+ 
+   for (i = 0; i < G_N_ELEMENTS (array_configurations); i++)
+     {
+-      add_array_test ("/array/set-size", &array_configurations[i], array_set_size);
+-      add_array_test ("/array/set-size/sized", &array_configurations[i], array_set_size_sized);
+-      add_array_test ("/array/append-val", &array_configurations[i], array_append_val);
+-      add_array_test ("/array/prepend-val", &array_configurations[i], array_prepend_val);
+-      add_array_test ("/array/prepend-vals", &array_configurations[i], array_prepend_vals);
+-      add_array_test ("/array/insert-vals", &array_configurations[i], array_insert_vals);
+-      add_array_test ("/array/remove-index", &array_configurations[i], array_remove_index);
+-      add_array_test ("/array/remove-index-fast", &array_configurations[i], array_remove_index_fast);
+-      add_array_test ("/array/remove-range", &array_configurations[i], array_remove_range);
+-      add_array_test ("/array/copy", &array_configurations[i], array_copy);
+-      add_array_test ("/array/sort", &array_configurations[i], array_sort);
+-      add_array_test ("/array/sort-with-data", &array_configurations[i], array_sort_with_data);
++      add_array_test("/array/set-size", &array_configurations[i], sc_qualified_test_19_test);
++      add_array_test("/array/set-size/sized", &array_configurations[i], sc_qualified_test_20_test);
++      add_array_test("/array/append-val", &array_configurations[i], sc_qualified_test_21_test);
++      add_array_test("/array/prepend-val", &array_configurations[i], sc_qualified_test_22_test);
++      add_array_test("/array/prepend-vals", &array_configurations[i], sc_qualified_test_23_test);
++      add_array_test("/array/insert-vals", &array_configurations[i], sc_qualified_test_24_test);
++      add_array_test("/array/remove-index", &array_configurations[i], sc_qualified_test_25_test);
++      add_array_test("/array/remove-index-fast", &array_configurations[i], sc_qualified_test_26_test);
++      add_array_test("/array/remove-range", &array_configurations[i], sc_qualified_test_27_test);
++      add_array_test("/array/copy", &array_configurations[i], sc_qualified_test_28_test);
++      add_array_test("/array/sort", &array_configurations[i], sc_qualified_test_29_test);
++      add_array_test("/array/sort-with-data", &array_configurations[i], sc_qualified_test_30_test);
+     }
+ 
+   /* pointer arrays */
+-  g_test_add_func ("/pointerarray/free/null-terminated", pointer_array_free_null_terminated);
+-  g_test_add_func ("/pointerarray/add", pointer_array_add);
+-  g_test_add_func ("/pointerarray/insert", pointer_array_insert);
+-  g_test_add_func ("/pointerarray/new-take", pointer_array_new_take);
+-  g_test_add_func ("/pointerarray/new-take/empty", pointer_array_new_take_empty);
+-  g_test_add_func ("/pointerarray/new-take/overflow", pointer_array_new_take_overflow);
+-  g_test_add_func ("/pointerarray/new-take/with-free-func", pointer_array_new_take_with_free_func);
+-  g_test_add_func ("/pointerarray/new-take-null-terminated", pointer_array_new_take_null_terminated);
+-  g_test_add_func ("/pointerarray/new-take-null-terminated/empty", pointer_array_new_take_null_terminated_empty);
+-  g_test_add_func ("/pointerarray/new-take-null-terminated/with-free-func", pointer_array_new_take_null_terminated_with_free_func);
+-  g_test_add_func ("/pointerarray/new-take-null-terminated/from-gstrv", pointer_array_new_take_null_terminated_from_gstrv);
+-  g_test_add_func ("/pointerarray/new-from-array", pointer_array_new_from_array);
+-  g_test_add_func ("/pointerarray/new-from-array/empty", pointer_array_new_from_array_empty);
+-  g_test_add_func ("/pointerarray/new-from-array/overflow", pointer_array_new_from_array_overflow);
+-  g_test_add_func ("/pointerarray/new-from-array/with-copy-and-free-func", pointer_array_new_from_array_with_copy_and_free_func);
+-  g_test_add_func ("/pointerarray/new-from-null-terminated-array", pointer_array_new_from_null_terminated_array);
+-  g_test_add_func ("/pointerarray/new-from-null-terminated-array/empty", pointer_array_new_from_null_terminated_array_empty);
+-  g_test_add_func ("/pointerarray/new-from-null-terminated-array/with-copy-and-free-func", pointer_array_new_from_null_terminated_array_with_copy_and_free_func);
+-  g_test_add_func ("/pointerarray/new-from-null-terminated-array/from-gstrv", pointer_array_new_from_null_terminated_array_from_gstrv);
+-  g_test_add_data_func ("/pointerarray/ref-count/not-null-terminated", GINT_TO_POINTER (0), pointer_array_ref_count);
+-  g_test_add_data_func ("/pointerarray/ref-count/null-terminated", GINT_TO_POINTER (1), pointer_array_ref_count);
+-  g_test_add_func ("/pointerarray/free-func", pointer_array_free_func);
+-  g_test_add_data_func ("/pointerarray/array_copy/not-null-terminated", GINT_TO_POINTER (0), pointer_array_copy);
+-  g_test_add_data_func ("/pointerarray/array_copy/null-terminated", GINT_TO_POINTER (1), pointer_array_copy);
+-  g_test_add_data_func ("/pointerarray/array_extend/not-null-terminated", GINT_TO_POINTER (0), pointer_array_extend);
+-  g_test_add_data_func ("/pointerarray/array_extend/null-terminated", GINT_TO_POINTER (1), pointer_array_extend);
+-  g_test_add_func ("/pointerarray/array_extend_and_steal", pointer_array_extend_and_steal);
+-  g_test_add_func ("/pointerarray/sort", pointer_array_sort);
+-  g_test_add_func ("/pointerarray/sort/example", pointer_array_sort_example);
+-  g_test_add_func ("/pointerarray/sort-with-data", pointer_array_sort_with_data);
+-  g_test_add_func ("/pointerarray/sort-with-data/example", pointer_array_sort_with_data_example);
+-  g_test_add_func ("/pointerarray/sort-values", pointer_array_sort_values);
+-  g_test_add_func ("/pointerarray/sort-values/example", pointer_array_sort_values_example);
+-  g_test_add_func ("/pointerarray/sort-values-with-data", pointer_array_sort_values_with_data);
+-  g_test_add_func ("/pointerarray/sort-values-with-data/example", pointer_array_sort_values_with_data_example);
+-  g_test_add_func ("/pointerarray/find/empty", pointer_array_find_empty);
+-  g_test_add_func ("/pointerarray/find/non-empty", pointer_array_find_non_empty);
+-  g_test_add_func ("/pointerarray/remove-range", pointer_array_remove_range);
+-  g_test_add_func ("/pointerarray/steal", pointer_array_steal);
+-  g_test_add_data_func ("/pointerarray/steal_index/not-null-terminated", GINT_TO_POINTER (0), pointer_array_steal_index);
+-  g_test_add_data_func ("/pointerarray/steal_index/null-terminated", GINT_TO_POINTER (1), pointer_array_steal_index);
++  g_test_add_vtable("/pointerarray/free/null-terminated", 0, NULL, NULL, sc_qualified_test_31_test, NULL);
++  g_test_add_vtable("/pointerarray/add", 0, NULL, NULL, sc_qualified_test_32_test, NULL);
++  g_test_add_vtable("/pointerarray/insert", 0, NULL, NULL, sc_qualified_test_33_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take", 0, NULL, NULL, sc_qualified_test_34_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take/empty", 0, NULL, NULL, sc_qualified_test_35_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take/overflow", 0, NULL, NULL, sc_qualified_test_36_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take/with-free-func", 0, NULL, NULL, sc_qualified_test_37_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take-null-terminated", 0, NULL, NULL, sc_qualified_test_38_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take-null-terminated/empty", 0, NULL, NULL, sc_qualified_test_39_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take-null-terminated/with-free-func", 0, NULL, NULL, sc_qualified_test_40_test, NULL);
++  g_test_add_vtable("/pointerarray/new-take-null-terminated/from-gstrv", 0, NULL, NULL, sc_qualified_test_41_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-array", 0, NULL, NULL, sc_qualified_test_42_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-array/empty", 0, NULL, NULL, sc_qualified_test_43_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-array/overflow", 0, NULL, NULL, sc_qualified_test_44_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-array/with-copy-and-free-func", 0, NULL, NULL, sc_qualified_test_45_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-null-terminated-array", 0, NULL, NULL, sc_qualified_test_46_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-null-terminated-array/empty", 0, NULL, NULL, sc_qualified_test_47_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-null-terminated-array/with-copy-and-free-func", 0, NULL, NULL, sc_qualified_test_48_test, NULL);
++  g_test_add_vtable("/pointerarray/new-from-null-terminated-array/from-gstrv", 0, NULL, NULL, sc_qualified_test_49_test, NULL);
++  g_test_add_vtable("/pointerarray/ref-count/not-null-terminated", 0, GINT_TO_POINTER (0), NULL, sc_qualified_test_50_test, NULL);
++  g_test_add_vtable("/pointerarray/ref-count/null-terminated", 0, GINT_TO_POINTER (1), NULL, sc_qualified_test_51_test, NULL);
++  g_test_add_vtable("/pointerarray/free-func", 0, NULL, NULL, sc_qualified_test_52_test, NULL);
++  g_test_add_vtable("/pointerarray/array_copy/not-null-terminated", 0, GINT_TO_POINTER (0), NULL, sc_qualified_test_53_test, NULL);
++  g_test_add_vtable("/pointerarray/array_copy/null-terminated", 0, GINT_TO_POINTER (1), NULL, sc_qualified_test_54_test, NULL);
++  g_test_add_vtable("/pointerarray/array_extend/not-null-terminated", 0, GINT_TO_POINTER (0), NULL, sc_qualified_test_55_test, NULL);
++  g_test_add_vtable("/pointerarray/array_extend/null-terminated", 0, GINT_TO_POINTER (1), NULL, sc_qualified_test_56_test, NULL);
++  g_test_add_vtable("/pointerarray/array_extend_and_steal", 0, NULL, NULL, sc_qualified_test_57_test, NULL);
++  g_test_add_vtable("/pointerarray/sort", 0, NULL, NULL, sc_qualified_test_58_test, NULL);
++  g_test_add_vtable("/pointerarray/sort/example", 0, NULL, NULL, sc_qualified_test_59_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-with-data", 0, NULL, NULL, sc_qualified_test_60_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-with-data/example", 0, NULL, NULL, sc_qualified_test_61_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-values", 0, NULL, NULL, sc_qualified_test_62_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-values/example", 0, NULL, NULL, sc_qualified_test_63_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-values-with-data", 0, NULL, NULL, sc_qualified_test_64_test, NULL);
++  g_test_add_vtable("/pointerarray/sort-values-with-data/example", 0, NULL, NULL, sc_qualified_test_65_test, NULL);
++  g_test_add_vtable("/pointerarray/find/empty", 0, NULL, NULL, sc_qualified_test_66_test, NULL);
++  g_test_add_vtable("/pointerarray/find/non-empty", 0, NULL, NULL, sc_qualified_test_67_test, NULL);
++  g_test_add_vtable("/pointerarray/remove-range", 0, NULL, NULL, sc_qualified_test_68_test, NULL);
++  g_test_add_vtable("/pointerarray/steal", 0, NULL, NULL, sc_qualified_test_69_test, NULL);
++  g_test_add_vtable("/pointerarray/steal_index/not-null-terminated", 0, GINT_TO_POINTER (0), NULL, sc_qualified_test_70_test, NULL);
++  g_test_add_vtable("/pointerarray/steal_index/null-terminated", 0, GINT_TO_POINTER (1), NULL, sc_qualified_test_71_test, NULL);
+ 
+   /* byte arrays */
+-  g_test_add_func ("/bytearray/steal", byte_array_steal);
+-  g_test_add_func ("/bytearray/append", byte_array_append);
+-  g_test_add_func ("/bytearray/prepend", byte_array_prepend);
+-  g_test_add_func ("/bytearray/remove", byte_array_remove);
+-  g_test_add_func ("/bytearray/remove-fast", byte_array_remove_fast);
+-  g_test_add_func ("/bytearray/remove-range", byte_array_remove_range);
+-  g_test_add_func ("/bytearray/ref-count", byte_array_ref_count);
+-  g_test_add_func ("/bytearray/set-size", byte_array_set_size);
+-  g_test_add_func ("/bytearray/sort", byte_array_sort);
+-  g_test_add_func ("/bytearray/sort-with-data", byte_array_sort_with_data);
+-  g_test_add_func ("/bytearray/new-take", byte_array_new_take);
+-  g_test_add_func ("/bytearray/new-take-overflow", byte_array_new_take_overflow);
+-  g_test_add_func ("/bytearray/free-to-bytes", byte_array_free_to_bytes);
++  g_test_add_vtable("/bytearray/steal", 0, NULL, NULL, sc_qualified_test_72_test, NULL);
++  g_test_add_vtable("/bytearray/append", 0, NULL, NULL, sc_qualified_test_73_test, NULL);
++  g_test_add_vtable("/bytearray/prepend", 0, NULL, NULL, sc_qualified_test_74_test, NULL);
++  g_test_add_vtable("/bytearray/remove", 0, NULL, NULL, sc_qualified_test_75_test, NULL);
++  g_test_add_vtable("/bytearray/remove-fast", 0, NULL, NULL, sc_qualified_test_76_test, NULL);
++  g_test_add_vtable("/bytearray/remove-range", 0, NULL, NULL, sc_qualified_test_77_test, NULL);
++  g_test_add_vtable("/bytearray/ref-count", 0, NULL, NULL, sc_qualified_test_78_test, NULL);
++  g_test_add_vtable("/bytearray/set-size", 0, NULL, NULL, sc_qualified_test_79_test, NULL);
++  g_test_add_vtable("/bytearray/sort", 0, NULL, NULL, sc_qualified_test_80_test, NULL);
++  g_test_add_vtable("/bytearray/sort-with-data", 0, NULL, NULL, sc_qualified_test_81_test, NULL);
++  g_test_add_vtable("/bytearray/new-take", 0, NULL, NULL, sc_qualified_test_82_test, NULL);
++  g_test_add_vtable("/bytearray/new-take-overflow", 0, NULL, NULL, sc_qualified_test_83_test, NULL);
++  g_test_add_vtable("/bytearray/free-to-bytes", 0, NULL, NULL, sc_qualified_test_84_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/hash.c
++++ b/glib/tests/hash.c
+@@ -36,6 +36,77 @@
+ 
+ #include <glib.h>
+ 
++
++static void sc_qualified_callback_3(gpointer data) {
++  (void)data;
++  g_free(data);
++}
++
++static guint sc_qualified_callback_6(gconstpointer data) {
++  (void)data;
++  return g_direct_hash(data);
++}
++
++static gboolean sc_qualified_callback_7(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_direct_equal(a, b);
++}
++
++static guint sc_qualified_callback_8(gconstpointer data) {
++  (void)data;
++  return g_int_hash(data);
++}
++
++static gboolean sc_qualified_callback_9(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_int_equal(a, b);
++}
++
++static guint sc_qualified_callback_10(gconstpointer data) {
++  (void)data;
++  return g_int64_hash(data);
++}
++
++static gboolean sc_qualified_callback_11(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_int64_equal(a, b);
++}
++
++static guint sc_qualified_callback_12(gconstpointer data) {
++  (void)data;
++  return g_double_hash(data);
++}
++
++static gboolean sc_qualified_callback_13(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_double_equal(a, b);
++}
++
++static guint sc_qualified_callback_14(gconstpointer data) {
++  (void)data;
++  return g_string_hash(data);
++}
++
++static gboolean sc_qualified_callback_15(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_string_equal(a, b);
++}
++
++static guint sc_qualified_callback_17(gconstpointer data) {
++  (void)data;
++  return g_str_hash(data);
++}
++
++static gboolean sc_qualified_callback_18(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return g_str_equal(a, b);
++}
+ static int global_array[10000];
+ 
+ static void
+@@ -95,6 +166,13 @@
+ 
+   return FALSE;
+ }
++static gboolean sc_qualified_callback_24(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  return my_hash_callback_remove(key, value, data);
++}
++
+ 
+ static void
+ my_hash_callback_remove_test (gpointer key,
+@@ -106,6 +184,13 @@
+   if ((*d) % 2)
+     g_assert_not_reached ();
+ }
++static void sc_qualified_callback_25(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  my_hash_callback_remove_test(key, value, data);
++}
++
+ 
+ static void
+ my_hash_callback (gpointer key,
+@@ -114,12 +199,24 @@
+ {
+   handle_pair (key, value, user_data);
+ }
++static void sc_qualified_callback_23(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  my_hash_callback(key, value, data);
++}
++
+ 
+ static guint
+ my_hash (gconstpointer key)
+ {
+   return (guint) *((const gint*) key);
+ }
++static guint sc_qualified_callback_20(gconstpointer data) {
++  (void)data;
++  return my_hash(data);
++}
++
+ 
+ static gboolean
+ my_hash_equal (gconstpointer a,
+@@ -127,6 +224,12 @@
+ {
+   return *((const gint*) a) == *((const gint*) b);
+ }
++static gboolean sc_qualified_callback_21(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return my_hash_equal(a, b);
++}
++
+ 
+ 
+ 
+@@ -196,6 +299,11 @@
+ 
+   return sum;
+ }
++static guint sc_qualified_callback_1(gconstpointer data) {
++  (void)data;
++  return honeyman_hash(data);
++}
++
+ 
+ 
+ static gboolean
+@@ -203,6 +311,12 @@
+ {
+   return strcmp (a, b) == 0;
+ }
++static gboolean sc_qualified_callback_2(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return second_hash_cmp(a, b);
++}
++
+ 
+ 
+ 
+@@ -211,6 +325,11 @@
+ {
+   return 1;
+ }
++static guint sc_qualified_callback_0(gconstpointer data) {
++  (void)data;
++  return one_hash(data);
++}
++
+ 
+ 
+ static void
+@@ -236,6 +355,13 @@
+   g_assert ((i % 2) != 0);
+   g_assert (i != 3);
+ }
++static void sc_qualified_callback_5(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  not_even_foreach(key, value, data);
++}
++
+ 
+ static gboolean
+ remove_even_foreach (gpointer key,
+@@ -259,6 +385,13 @@
+ 
+   return ((i % 2) == 0) ? TRUE : FALSE;
+ }
++static gboolean sc_qualified_callback_4(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  return remove_even_foreach(key, value, data);
++}
++
+ 
+ 
+ 
+@@ -275,9 +408,7 @@
+ 
+   crcinit ();
+ 
+-  h = g_hash_table_new_full (simple_hash ? one_hash : honeyman_hash,
+-                             second_hash_cmp,
+-                             g_free, g_free);
++  h = g_hash_table_new_full (simple_hash ? sc_qualified_callback_0 : sc_qualified_callback_1,sc_qualified_callback_2,sc_qualified_callback_3,sc_qualified_callback_3);
+   g_assert (h != NULL);
+   for (i = 0; i < 20; i++)
+     {
+@@ -307,9 +438,9 @@
+   sprintf (key, "%d", 3);
+   g_hash_table_remove (h, key);
+   g_assert (g_hash_table_size (h) == 19);
+-  g_hash_table_foreach_remove (h, remove_even_foreach, NULL);
++  g_hash_table_foreach_remove (h,sc_qualified_callback_4, NULL);
+   g_assert (g_hash_table_size (h) == 9);
+-  g_hash_table_foreach (h, not_even_foreach, NULL);
++  g_hash_table_foreach (h,sc_qualified_callback_5, NULL);
+ 
+   for (i = 0; i < 20; i++)
+     {
+@@ -350,6 +481,13 @@
+   gint *test = user_data;
+   return (*v == *test);
+ }
++static gboolean sc_qualified_callback_22(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  return find_first(key, value, data);
++}
++
+ 
+ static void
+ direct_hash_test (void)
+@@ -382,7 +520,7 @@
+   gint       i, rc;
+   GHashTable     *h;
+ 
+-  h = g_hash_table_new (g_direct_hash, g_direct_equal);
++  h = g_hash_table_new (sc_qualified_callback_6,sc_qualified_callback_7);
+   g_assert (h != NULL);
+   for (i = 1; i <= 20; i++)
+     g_hash_table_insert (h, GINT_TO_POINTER (i),
+@@ -409,7 +547,7 @@
+   gint     values[20];
+   gint key;
+ 
+-  h = g_hash_table_new (g_int_hash, g_int_equal);
++  h = g_hash_table_new (sc_qualified_callback_8,sc_qualified_callback_9);
+   g_assert (h != NULL);
+   for (i = 0; i < 20; i++)
+     {
+@@ -438,7 +576,7 @@
+   gint64     values[20];
+   gint64 key;
+ 
+-  h = g_hash_table_new (g_int64_hash, g_int64_equal);
++  h = g_hash_table_new (sc_qualified_callback_10,sc_qualified_callback_11);
+   g_assert (h != NULL);
+   for (i = 0; i < 20; i++)
+     {
+@@ -480,7 +618,7 @@
+   gdouble values[20];
+   gdouble key;
+ 
+-  h = g_hash_table_new (g_double_hash, g_double_equal);
++  h = g_hash_table_new (sc_qualified_callback_12,sc_qualified_callback_13);
+   g_assert (h != NULL);
+   for (i = 0; i < 20; i++)
+     {
+@@ -529,6 +667,11 @@
+ 
+   g_string_free (s, TRUE);
+ }
++static void sc_qualified_callback_16(gpointer data) {
++  (void)data;
++  string_free(data);
++}
++
+ 
+ static void
+ string_hash_test (void)
+@@ -537,7 +680,7 @@
+   GHashTable     *h;
+   GString *s;
+ 
+-  h = g_hash_table_new_full ((GHashFunc)g_string_hash, (GEqualFunc)g_string_equal, string_free, NULL);
++  h = g_hash_table_new_full (sc_qualified_callback_14,sc_qualified_callback_15,sc_qualified_callback_16, NULL);
+   g_assert (h != NULL);
+   for (i = 0; i < 20; i++)
+     {
+@@ -579,12 +722,19 @@
+ 
+   (*pi)++;
+ }
++static void sc_qualified_callback_19(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  set_check(key, value, data);
++}
++
+ 
+ static void
+ set_hash_test (void)
+ {
+   GHashTable *hash_table =
+-    g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++    g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   int i;
+ 
+   for (i = 2; i < 5000; i += 7)
+@@ -596,7 +746,7 @@
+   g_assert (!g_hash_table_add (hash_table, g_strdup_printf ("%d", 2)));
+ 
+   i = 0;
+-  g_hash_table_foreach (hash_table, set_check, &i);
++  g_hash_table_foreach (hash_table,sc_qualified_callback_19, &i);
+   g_assert_cmpint (i, ==, g_hash_table_size (hash_table));
+ 
+   g_assert (g_hash_table_contains (hash_table, "2"));
+@@ -631,9 +781,9 @@
+   int result_array[10000];
+   int n_array[1];
+ 
+-  hash_table = g_hash_table_new (my_hash, my_hash_equal);
++  hash_table = g_hash_table_new (sc_qualified_callback_20,sc_qualified_callback_21);
+   fill_hash_table_and_array (hash_table);
+-  pvalue = g_hash_table_find (hash_table, find_first, &value);
++  pvalue = g_hash_table_find (hash_table,sc_qualified_callback_22, &value);
+   if (!pvalue || *pvalue != value)
+     g_assert_not_reached();
+ 
+@@ -671,7 +821,7 @@
+   fill_hash_table_and_array (hash_table);
+ 
+   init_result_array (result_array);
+-  g_hash_table_foreach (hash_table, my_hash_callback, result_array);
++  g_hash_table_foreach (hash_table,sc_qualified_callback_23, result_array);
+   verify_result_array (result_array);
+ 
+   for (i = 0; i < 10000; i++)
+@@ -679,14 +829,14 @@
+ 
+   fill_hash_table_and_array (hash_table);
+ 
+-  if (g_hash_table_foreach_remove (hash_table, my_hash_callback_remove, NULL) != 5000 ||
++  if (g_hash_table_foreach_remove (hash_table,sc_qualified_callback_24, NULL) != 5000 ||
+       g_hash_table_size (hash_table) != 5000)
+     g_assert_not_reached();
+ 
+-  g_hash_table_foreach (hash_table, my_hash_callback_remove_test, NULL);
++  g_hash_table_foreach (hash_table,sc_qualified_callback_25, NULL);
+   g_hash_table_destroy (hash_table);
+ 
+-  hash_table = g_hash_table_new (my_hash, my_hash_equal);
++  hash_table = g_hash_table_new (sc_qualified_callback_20,sc_qualified_callback_21);
+   fill_hash_table_and_array (hash_table);
+ 
+   n_array[0] = 1;
+@@ -716,6 +866,11 @@
+ {
+   destroy_counter++;
+ }
++static void sc_qualified_callback_26(gpointer data) {
++  (void)data;
++  value_destroy(data);
++}
++
+ 
+ static void
+ test_hash_ref (void)
+@@ -727,7 +882,7 @@
+   gboolean cde_seen = FALSE;
+   gboolean xyz_seen = FALSE;
+ 
+-  h = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, value_destroy);
++  h = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18, NULL,sc_qualified_callback_26);
+   g_hash_table_insert (h, "abc", "ABC");
+   g_hash_table_insert (h, "cde", "CDE");
+   g_hash_table_insert (h, "xyz", "XYZ");
+@@ -778,12 +933,23 @@
+   else
+     return g_str_hash (key);
+ }
++static guint sc_qualified_callback_27(gconstpointer data) {
++  (void)data;
++  return null_safe_str_hash(data);
++}
++
+ 
+ static gboolean
+ null_safe_str_equal (gconstpointer a, gconstpointer b)
+ {
+   return g_strcmp0 (a, b) == 0;
+ }
++static gboolean sc_qualified_callback_28(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return null_safe_str_equal(a, b);
++}
++
+ 
+ static void
+ test_lookup_null_key (void)
+@@ -795,7 +961,7 @@
+ 
+   g_test_bug ("https://bugzilla.gnome.org/show_bug.cgi?id=642944");
+ 
+-  h = g_hash_table_new (null_safe_str_hash, null_safe_str_equal);
++  h = g_hash_table_new (sc_qualified_callback_27,sc_qualified_callback_28);
+   g_hash_table_insert (h, "abc", "ABC");
+ 
+   res = g_hash_table_lookup_extended (h, NULL, &key, &value);
+@@ -817,6 +983,11 @@
+ {
+   destroy_key_counter++;
+ }
++static void sc_qualified_callback_29(gpointer data) {
++  (void)data;
++  key_destroy(data);
++}
++
+ 
+ static void
+ test_remove_all (void)
+@@ -824,7 +995,7 @@
+   GHashTable *h;
+   gboolean res;
+ 
+-  h = g_hash_table_new_full (g_str_hash, g_str_equal, key_destroy, value_destroy);
++  h = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_29,sc_qualified_callback_26);
+ 
+   g_hash_table_insert (h, "abc", "cde");
+   g_hash_table_insert (h, "cde", "xyz");
+@@ -876,13 +1047,18 @@
+   if (recursive_destruction_table)
+     g_hash_table_remove (recursive_destruction_table, value);
+ }
++static void sc_qualified_callback_30(gpointer data) {
++  (void)data;
++  recursive_value_destroy(data);
++}
++
+ 
+ static void
+ test_recursive_remove_all_subprocess (void)
+ {
+   GHashTable *h;
+ 
+-  h = g_hash_table_new_full (g_str_hash, g_str_equal, key_destroy, recursive_value_destroy);
++  h = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_29,sc_qualified_callback_30);
+   recursive_destruction_table = h;
+ 
+   /* Add more items compared to test_remove_all, as it would not fail otherwise. */
+@@ -926,6 +1102,11 @@
+ 
+   return g_str_hash (rkey->key);
+ }
++static guint sc_qualified_callback_31(gconstpointer data) {
++  (void)data;
++  return hash_func(data);
++}
++
+ 
+ static gboolean
+ eq_func (gconstpointer a, gconstpointer b)
+@@ -935,6 +1116,12 @@
+ 
+   return g_strcmp0 (aa->key, bb->key) == 0;
+ }
++static gboolean sc_qualified_callback_32(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return eq_func(a, b);
++}
++
+ 
+ static void
+ key_unref (gpointer data)
+@@ -948,6 +1135,11 @@
+   if (key->ref_count == 0)
+     g_free (key);
+ }
++static void sc_qualified_callback_33(gpointer data) {
++  (void)data;
++  key_unref(data);
++}
++
+ 
+ static RefCountedKey *
+ key_ref (RefCountedKey *key)
+@@ -977,7 +1169,7 @@
+   RefCountedKey *key1;
+   RefCountedKey *key2;
+ 
+-  h = g_hash_table_new_full (hash_func, eq_func, key_unref, key_unref);
++  h = g_hash_table_new_full (sc_qualified_callback_31,sc_qualified_callback_32,sc_qualified_callback_33,sc_qualified_callback_33);
+ 
+   key1 = key_new ("a");
+   key2 = key_new ("a");
+@@ -1034,12 +1226,22 @@
+ 
+   g_assert_not_reached ();
+ }
++static void sc_qualified_callback_34(gpointer data) {
++  (void)data;
++  fake_free(data);
++}
++
+ 
+ static void
+ value_destroy_insert (gpointer value)
+ {
+   g_hash_table_remove_all (global_hashtable);
+ }
++static void sc_qualified_callback_35(gpointer data) {
++  (void)data;
++  value_destroy_insert(data);
++}
++
+ 
+ static void
+ test_destroy_modify (void)
+@@ -1051,7 +1253,7 @@
+ 
+   fake_free_data = g_ptr_array_new ();
+ 
+-  global_hashtable = g_hash_table_new_full (g_str_hash, g_str_equal, fake_free, value_destroy_insert);
++  global_hashtable = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_34,sc_qualified_callback_35);
+ 
+   ffd = g_new0 (FakeFreeData, 1);
+   ffd->string = g_strdup ("a");
+@@ -1108,6 +1310,13 @@
+ {
+   return g_str_equal (key, data);
+ }
++static gboolean sc_qualified_callback_36(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  return find_str(key, value, data);
++}
++
+ 
+ static void
+ test_find (void)
+@@ -1115,7 +1324,7 @@
+   GHashTable *hash;
+   const gchar *value;
+ 
+-  hash = g_hash_table_new (g_str_hash, g_str_equal);
++  hash = g_hash_table_new (sc_qualified_callback_17,sc_qualified_callback_18);
+ 
+   g_hash_table_insert (hash, "a", "A");
+   g_hash_table_insert (hash, "b", "B");
+@@ -1124,25 +1333,25 @@
+   g_hash_table_insert (hash, "e", "E");
+   g_hash_table_insert (hash, "f", "F");
+ 
+-  value = g_hash_table_find (hash, find_str, "a");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "a");
+   g_assert_cmpstr (value, ==, "A");
+ 
+-  value = g_hash_table_find (hash, find_str, "b");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "b");
+   g_assert_cmpstr (value, ==, "B");
+ 
+-  value = g_hash_table_find (hash, find_str, "c");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "c");
+   g_assert_cmpstr (value, ==, "C");
+ 
+-  value = g_hash_table_find (hash, find_str, "d");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "d");
+   g_assert_cmpstr (value, ==, "D");
+ 
+-  value = g_hash_table_find (hash, find_str, "e");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "e");
+   g_assert_cmpstr (value, ==, "E");
+ 
+-  value = g_hash_table_find (hash, find_str, "f");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "f");
+   g_assert_cmpstr (value, ==, "F");
+ 
+-  value = g_hash_table_find (hash, find_str, "0");
++  value = g_hash_table_find (hash,sc_qualified_callback_36, "0");
+   g_assert (value == NULL);
+ 
+   g_hash_table_unref (hash);
+@@ -1155,6 +1364,13 @@
+ {
+   seen_key[((char*)key)[0] - 'a'] = TRUE;
+ }
++static void sc_qualified_callback_37(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  foreach_func(key, value, data);
++}
++
+ 
+ static void
+ test_foreach (void)
+@@ -1162,7 +1378,7 @@
+   GHashTable *hash;
+   gint i;
+ 
+-  hash = g_hash_table_new (g_str_hash, g_str_equal);
++  hash = g_hash_table_new (sc_qualified_callback_17,sc_qualified_callback_18);
+ 
+   g_hash_table_insert (hash, "a", "A");
+   g_hash_table_insert (hash, "b", "B");
+@@ -1174,7 +1390,7 @@
+   for (i = 0; i < 6; i++)
+     seen_key[i] = FALSE;
+ 
+-  g_hash_table_foreach (hash, foreach_func, NULL);
++  g_hash_table_foreach (hash,sc_qualified_callback_37, NULL);
+ 
+   for (i = 0; i < 6; i++)
+     g_assert (seen_key[i]);
+@@ -1195,6 +1411,13 @@
+ 
+   return FALSE;
+ }
++static gboolean sc_qualified_callback_38(gpointer key, gpointer value, gpointer data) {
++  (void)key;
++  (void)value;
++  (void)data;
++  return foreach_steal_func(key, value, data);
++}
++
+ 
+ 
+ static void
+@@ -1203,8 +1426,8 @@
+   GHashTable *hash;
+   GHashTable *hash2;
+ 
+-  hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+-  hash2 = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
++  hash = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3,sc_qualified_callback_3);
++  hash2 = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3,sc_qualified_callback_3);
+ 
+   g_hash_table_insert (hash, g_strdup ("a"), g_strdup ("A"));
+   g_hash_table_insert (hash, g_strdup ("b"), g_strdup ("B"));
+@@ -1213,7 +1436,7 @@
+   g_hash_table_insert (hash, g_strdup ("e"), g_strdup ("E"));
+   g_hash_table_insert (hash, g_strdup ("f"), g_strdup ("F"));
+ 
+-  g_hash_table_foreach_steal (hash, foreach_steal_func, hash2);
++  g_hash_table_foreach_steal (hash,sc_qualified_callback_38, hash2);
+ 
+   g_assert_cmpint (g_hash_table_size (hash), ==, 3);
+   g_assert_cmpint (g_hash_table_size (hash2), ==, 3);
+@@ -1237,7 +1460,7 @@
+   GHashTable *hash;
+   gchar *stolen_key = NULL, *stolen_value = NULL;
+ 
+-  hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
++  hash = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3,sc_qualified_callback_3);
+ 
+   g_hash_table_insert (hash, g_strdup ("a"), g_strdup ("A"));
+   g_hash_table_insert (hash, g_strdup ("b"), g_strdup ("B"));
+@@ -1272,7 +1495,7 @@
+ 
+   g_hash_table_unref (hash);
+ 
+-  hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  hash = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+ 
+   g_hash_table_add (hash, g_strdup ("a"));
+   g_hash_table_add (hash, g_strdup ("b"));
+@@ -1327,7 +1550,7 @@
+   GHashTable *hash;
+   const gchar *stolen_key = NULL, *stolen_value = NULL;
+ 
+-  hash = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
++  hash = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18, NULL, NULL);
+ 
+   g_hash_table_insert (hash, "b", "B");
+   g_hash_table_insert (hash, "c", "C");
+@@ -1378,7 +1601,7 @@
+   GHashTable *hash;
+   const gchar *original_key = NULL, *value = NULL;
+ 
+-  hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
++  hash = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3,sc_qualified_callback_3);
+ 
+   g_hash_table_insert (hash, g_strdup ("a"), g_strdup ("A"));
+   g_hash_table_insert (hash, g_strdup ("b"), g_strdup ("B"));
+@@ -1433,6 +1656,11 @@
+   g_assert_cmpint (*state, ==, 0);
+   *state = 1;
+ }
++static void sc_qualified_callback_39(gpointer data) {
++  (void)data;
++  inc_state(data);
++}
++
+ 
+ static void
+ test_new_similar (void)
+@@ -1442,8 +1670,7 @@
+   int state1;
+   int state2;
+ 
+-  hash1 = g_hash_table_new_full (g_str_hash, g_str_equal,
+-                                 g_free, inc_state);
++  hash1 = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3,sc_qualified_callback_39);
+   state1 = 0;
+   g_hash_table_insert (hash1,
+                        g_strdup ("test"),
+@@ -1572,13 +1799,18 @@
+ trivial_key_destroy (gpointer key)
+ {
+ }
++static void sc_qualified_callback_40(gpointer data) {
++  (void)data;
++  trivial_key_destroy(data);
++}
++
+ 
+ static void
+ test_internal_consistency (void)
+ {
+   GHashTable *h;
+ 
+-  h = g_hash_table_new_full (g_str_hash, g_str_equal, trivial_key_destroy, NULL);
++  h = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_40, NULL);
+ 
+   check_counts (h, 0, 0);
+   check_consistency (h);
+@@ -1624,6 +1856,11 @@
+   s[0] = 'x';
+   g_free (v);
+ }
++static void sc_qualified_callback_41(gpointer data) {
++  (void)data;
++  my_key_free(data);
++}
++
+ 
+ static void
+ my_value_free (gpointer v)
+@@ -1633,6 +1870,11 @@
+   s[0] = 'y';
+   g_free (v);
+ }
++static void sc_qualified_callback_42(gpointer data) {
++  (void)data;
++  my_value_free(data);
++}
++
+ 
+ static void
+ test_iter_replace (void)
+@@ -1644,7 +1886,7 @@
+ 
+   g_test_bug ("https://bugzilla.gnome.org/show_bug.cgi?id=662544");
+ 
+-  h = g_hash_table_new_full (g_str_hash, g_str_equal, my_key_free, my_value_free);
++  h = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_41,sc_qualified_callback_42);
+ 
+   g_hash_table_insert (h, g_strdup ("A"), g_strdup ("a"));
+   g_hash_table_insert (h, g_strdup ("B"), g_strdup ("b"));
+@@ -1667,13 +1909,17 @@
+ {
+   string[0] = 'b';
+ }
++static void sc_qualified_callback_43(gpointer data) {
++  (void)data;
++  replace_first_character(data);
++}
++
+ 
+ static void
+ test_set_insert_corruption (void)
+ {
+   GHashTable *hash_table =
+-    g_hash_table_new_full (g_str_hash, g_str_equal,
+-        (GDestroyNotify) replace_first_character, NULL);
++    g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_43, NULL);
+   GHashTableIter iter;
+   gchar a[] = "foo";
+   gchar b[] = "foo";
+@@ -1718,7 +1964,7 @@
+   gchar **strv;
+   guint n;
+ 
+-  set = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  set = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   g_hash_table_add (set, g_strdup ("xyz"));
+   g_hash_table_add (set, g_strdup ("xyz"));
+   g_hash_table_add (set, g_strdup ("abc"));
+@@ -1744,7 +1990,7 @@
+   GHashTable *set;
+   GPtrArray *array;
+ 
+-  set = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  set = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   g_hash_table_add (set, g_strdup ("xyz"));
+   g_hash_table_add (set, g_strdup ("xyz"));
+   g_hash_table_add (set, g_strdup ("abc"));
+@@ -1752,7 +1998,7 @@
+   array = g_hash_table_get_keys_as_ptr_array (set);
+   g_hash_table_steal_all (set);
+   g_hash_table_unref (set);
+-  g_ptr_array_set_free_func (array, g_free);
++  g_ptr_array_set_free_func (array,sc_qualified_callback_3);
+ 
+   g_assert_cmpint (array->len, ==, 2);
+   g_ptr_array_add (array, NULL);
+@@ -1773,7 +2019,7 @@
+   GHashTable *table;
+   GPtrArray *array;
+ 
+-  table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  table = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (0));
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (1));
+   g_hash_table_insert (table, g_strdup ("abc"), GUINT_TO_POINTER (2));
+@@ -1801,7 +2047,7 @@
+   GHashTable *table;
+   GPtrArray *array;
+ 
+-  table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  table = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (0));
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (1));
+   g_hash_table_insert (table, g_strdup ("abc"), GUINT_TO_POINTER (2));
+@@ -1824,7 +2070,7 @@
+ 
+   g_clear_pointer (&array, g_ptr_array_unref);
+ 
+-  table = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
++  table = g_hash_table_new_full (sc_qualified_callback_6,sc_qualified_callback_7, NULL,sc_qualified_callback_3);
+   g_hash_table_insert (table, GUINT_TO_POINTER (0), g_strdup ("xyz"));
+   g_hash_table_insert (table, GUINT_TO_POINTER (1), g_strdup ("xyz"));
+   g_hash_table_insert (table, GUINT_TO_POINTER (2), g_strdup ("abc"));
+@@ -1849,7 +2095,7 @@
+   GHashTable *table;
+   GPtrArray *array;
+ 
+-  table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
++  table = g_hash_table_new_full (sc_qualified_callback_17,sc_qualified_callback_18,sc_qualified_callback_3, NULL);
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (0));
+   g_hash_table_insert (table, g_strdup ("xyz"), GUINT_TO_POINTER (1));
+   g_hash_table_insert (table, g_strdup ("abc"), GUINT_TO_POINTER (2));
+@@ -1873,7 +2119,7 @@
+ 
+   g_clear_pointer (&array, g_ptr_array_unref);
+ 
+-  table = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
++  table = g_hash_table_new_full (sc_qualified_callback_6,sc_qualified_callback_7, NULL,sc_qualified_callback_3);
+   g_hash_table_insert (table, GUINT_TO_POINTER (0), g_strdup ("xyz"));
+   g_hash_table_insert (table, GUINT_TO_POINTER (1), g_strdup ("foo"));
+   g_hash_table_insert (table, GUINT_TO_POINTER (2), g_strdup ("abc"));
+@@ -1886,11 +2132,11 @@
+ 
+   g_assert_cmpint (array->len, ==, 3);
+   g_assert_true (
+-    g_ptr_array_find_with_equal_func (array, "xyz", g_str_equal, NULL));
++    g_ptr_array_find_with_equal_func (array, "xyz",sc_qualified_callback_18, NULL));
+   g_assert_true (
+-    g_ptr_array_find_with_equal_func (array, "foo", g_str_equal, NULL));
++    g_ptr_array_find_with_equal_func (array, "foo",sc_qualified_callback_18, NULL));
+   g_assert_true (
+-    g_ptr_array_find_with_equal_func (array, "abc", g_str_equal, NULL));
++    g_ptr_array_find_with_equal_func (array, "abc",sc_qualified_callback_18, NULL));
+ 
+   g_clear_pointer (&array, g_ptr_array_unref);
+ }
+@@ -1940,48 +2186,258 @@
+   g_assert_cmpfloat (max, <, 2.0);
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_hash_misc();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  second_hash_test(data);
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  second_hash_test(data);
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  direct_hash_test();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  direct_hash_test2();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  int_hash_test();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  int64_hash_test();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  int64_hash_collision_test();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  double_hash_test();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  double_hash_collision_test();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  string_hash_test();
++}
++
++static void sc_qualified_test_11_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  set_hash_test();
++}
++
++static void sc_qualified_test_12_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  set_ref_hash_test();
++}
++
++static void sc_qualified_test_13_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_hash_ref();
++}
++
++static void sc_qualified_test_14_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_remove_all();
++}
++
++static void sc_qualified_test_15_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_recursive_remove_all();
++}
++
++static void sc_qualified_test_16_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_recursive_remove_all_subprocess();
++}
++
++static void sc_qualified_test_17_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_find();
++}
++
++static void sc_qualified_test_18_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_foreach();
++}
++
++static void sc_qualified_test_19_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_foreach_steal();
++}
++
++static void sc_qualified_test_20_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_steal_extended();
++}
++
++static void sc_qualified_test_21_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_steal_extended_optional();
++}
++
++static void sc_qualified_test_22_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_steal_all_keys();
++}
++
++static void sc_qualified_test_23_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_steal_all_values();
++}
++
++static void sc_qualified_test_24_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_lookup_extended();
++}
++
++static void sc_qualified_test_25_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_similar();
++}
++
++static void sc_qualified_test_26_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_lookup_null_key();
++}
++
++static void sc_qualified_test_27_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_destroy_modify();
++}
++
++static void sc_qualified_test_28_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_internal_consistency();
++}
++
++static void sc_qualified_test_29_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_iter_replace();
++}
++
++static void sc_qualified_test_30_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_set_insert_corruption();
++}
++
++static void sc_qualified_test_31_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_set_to_strv();
++}
++
++static void sc_qualified_test_32_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_set_get_keys_as_ptr_array();
++}
++
++static void sc_qualified_test_33_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_set_get_values_as_ptr_array();
++}
++
++static void sc_qualified_test_34_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_primes();
++}
++
+ int
+ main (int argc, char *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/hash/misc", test_hash_misc);
+-  g_test_add_data_func ("/hash/one", GINT_TO_POINTER (TRUE), second_hash_test);
+-  g_test_add_data_func ("/hash/honeyman", GINT_TO_POINTER (FALSE), second_hash_test);
+-  g_test_add_func ("/hash/direct", direct_hash_test);
+-  g_test_add_func ("/hash/direct2", direct_hash_test2);
+-  g_test_add_func ("/hash/int", int_hash_test);
+-  g_test_add_func ("/hash/int64", int64_hash_test);
+-  g_test_add_func ("/hash/int64/collisions", int64_hash_collision_test);
+-  g_test_add_func ("/hash/double", double_hash_test);
+-  g_test_add_func ("/hash/double/collisions", double_hash_collision_test);
+-  g_test_add_func ("/hash/string", string_hash_test);
+-  g_test_add_func ("/hash/set", set_hash_test);
+-  g_test_add_func ("/hash/set-ref", set_ref_hash_test);
+-  g_test_add_func ("/hash/ref", test_hash_ref);
+-  g_test_add_func ("/hash/remove-all", test_remove_all);
+-  g_test_add_func ("/hash/recursive-remove-all", test_recursive_remove_all);
+-  g_test_add_func ("/hash/recursive-remove-all/subprocess", test_recursive_remove_all_subprocess);
+-  g_test_add_func ("/hash/find", test_find);
+-  g_test_add_func ("/hash/foreach", test_foreach);
+-  g_test_add_func ("/hash/foreach-steal", test_foreach_steal);
+-  g_test_add_func ("/hash/steal-extended", test_steal_extended);
+-  g_test_add_func ("/hash/steal-extended/optional", test_steal_extended_optional);
+-  g_test_add_func ("/hash/steal-all-keys", test_steal_all_keys);
+-  g_test_add_func ("/hash/steal-all-values", test_steal_all_values);
+-  g_test_add_func ("/hash/lookup-extended", test_lookup_extended);
+-  g_test_add_func ("/hash/new-similar", test_new_similar);
++  g_test_add_vtable("/hash/misc", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/hash/one", 0, GINT_TO_POINTER (TRUE), NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/hash/honeyman", 0, GINT_TO_POINTER (FALSE), NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/hash/direct", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/hash/direct2", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/hash/int", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/hash/int64", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/hash/int64/collisions", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/hash/double", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/hash/double/collisions", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/hash/string", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
++  g_test_add_vtable("/hash/set", 0, NULL, NULL, sc_qualified_test_11_test, NULL);
++  g_test_add_vtable("/hash/set-ref", 0, NULL, NULL, sc_qualified_test_12_test, NULL);
++  g_test_add_vtable("/hash/ref", 0, NULL, NULL, sc_qualified_test_13_test, NULL);
++  g_test_add_vtable("/hash/remove-all", 0, NULL, NULL, sc_qualified_test_14_test, NULL);
++  g_test_add_vtable("/hash/recursive-remove-all", 0, NULL, NULL, sc_qualified_test_15_test, NULL);
++  g_test_add_vtable("/hash/recursive-remove-all/subprocess", 0, NULL, NULL, sc_qualified_test_16_test, NULL);
++  g_test_add_vtable("/hash/find", 0, NULL, NULL, sc_qualified_test_17_test, NULL);
++  g_test_add_vtable("/hash/foreach", 0, NULL, NULL, sc_qualified_test_18_test, NULL);
++  g_test_add_vtable("/hash/foreach-steal", 0, NULL, NULL, sc_qualified_test_19_test, NULL);
++  g_test_add_vtable("/hash/steal-extended", 0, NULL, NULL, sc_qualified_test_20_test, NULL);
++  g_test_add_vtable("/hash/steal-extended/optional", 0, NULL, NULL, sc_qualified_test_21_test, NULL);
++  g_test_add_vtable("/hash/steal-all-keys", 0, NULL, NULL, sc_qualified_test_22_test, NULL);
++  g_test_add_vtable("/hash/steal-all-values", 0, NULL, NULL, sc_qualified_test_23_test, NULL);
++  g_test_add_vtable("/hash/lookup-extended", 0, NULL, NULL, sc_qualified_test_24_test, NULL);
++  g_test_add_vtable("/hash/new-similar", 0, NULL, NULL, sc_qualified_test_25_test, NULL);
+ 
+   /* tests for individual bugs */
+-  g_test_add_func ("/hash/lookup-null-key", test_lookup_null_key);
+-  g_test_add_func ("/hash/destroy-modify", test_destroy_modify);
+-  g_test_add_func ("/hash/consistency", test_internal_consistency);
+-  g_test_add_func ("/hash/iter-replace", test_iter_replace);
+-  g_test_add_func ("/hash/set-insert-corruption", test_set_insert_corruption);
+-  g_test_add_func ("/hash/set-to-strv", test_set_to_strv);
+-  g_test_add_func ("/hash/get-keys-as-ptr-array", test_set_get_keys_as_ptr_array);
+-  g_test_add_func ("/hash/get-values-as-ptr-array", test_set_get_values_as_ptr_array);
+-  g_test_add_func ("/hash/primes", test_primes);
++  g_test_add_vtable("/hash/lookup-null-key", 0, NULL, NULL, sc_qualified_test_26_test, NULL);
++  g_test_add_vtable("/hash/destroy-modify", 0, NULL, NULL, sc_qualified_test_27_test, NULL);
++  g_test_add_vtable("/hash/consistency", 0, NULL, NULL, sc_qualified_test_28_test, NULL);
++  g_test_add_vtable("/hash/iter-replace", 0, NULL, NULL, sc_qualified_test_29_test, NULL);
++  g_test_add_vtable("/hash/set-insert-corruption", 0, NULL, NULL, sc_qualified_test_30_test, NULL);
++  g_test_add_vtable("/hash/set-to-strv", 0, NULL, NULL, sc_qualified_test_31_test, NULL);
++  g_test_add_vtable("/hash/get-keys-as-ptr-array", 0, NULL, NULL, sc_qualified_test_32_test, NULL);
++  g_test_add_vtable("/hash/get-values-as-ptr-array", 0, NULL, NULL, sc_qualified_test_33_test, NULL);
++  g_test_add_vtable("/hash/primes", 0, NULL, NULL, sc_qualified_test_34_test, NULL);
+ 
+   return g_test_run ();
+ 
+--- a/glib/tests/error.c
++++ b/glib/tests/error.c
+@@ -405,22 +405,88 @@
+   g_error_free (error);
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_overwrite();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_prefix();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_prefix_literal();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_literal();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_copy();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_matches();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_clear();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_new_valist_invalid();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_extended();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_extended_duplicate();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_extended_non_static();
++}
++
+ int
+ main (int argc, char *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/error/overwrite", test_overwrite);
+-  g_test_add_func ("/error/prefix", test_prefix);
+-  g_test_add_func ("/error/prefix-literal", test_prefix_literal);
+-  g_test_add_func ("/error/literal", test_literal);
+-  g_test_add_func ("/error/copy", test_copy);
+-  g_test_add_func ("/error/matches", test_matches);
+-  g_test_add_func ("/error/clear", test_clear);
+-  g_test_add_func ("/error/new-valist/invalid", test_new_valist_invalid);
+-  g_test_add_func ("/error/extended", test_extended);
+-  g_test_add_func ("/error/extended/duplicate", test_extended_duplicate);
+-  g_test_add_func ("/error/extended/non-static", test_extended_non_static);
++  g_test_add_vtable("/error/overwrite", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/error/prefix", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/error/prefix-literal", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/error/literal", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/error/copy", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/error/matches", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/error/clear", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/error/new-valist/invalid", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/error/extended", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/error/extended/duplicate", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/error/extended/non-static", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/autoptr.c
++++ b/glib/tests/autoptr.c
+@@ -7,6 +7,12 @@
+ /* Should not cause any warnings with -Wextra */
+ G_DEFINE_AUTOPTR_CLEANUP_FUNC(HasNonVoidCleanup, non_void_cleanup)
+ 
++
++static gint sc_qualified_callback_0(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return strcmp(a, b);
++}
+ static void
+ test_autofree (void)
+ {
+@@ -602,7 +608,7 @@
+ static void
+ test_g_tree (void)
+ {
+-  g_autoptr(GTree) val = g_tree_new ((GCompareFunc)strcmp);
++  g_autoptr(GTree) val = g_tree_new (sc_qualified_callback_0);
+   g_assert_nonnull (val);
+ }
+ 
+@@ -693,6 +699,11 @@
+   gboolean *freed = ptr;
+   *freed = TRUE;
+ }
++static void sc_qualified_callback_1(gpointer data) {
++  (void)data;
++  mark_freed(data);
++}
++
+ 
+ static void
+ test_autolist (void)
+@@ -701,9 +712,9 @@
+   gboolean freed1 = FALSE;
+   gboolean freed2 = FALSE;
+   gboolean freed3 = FALSE;
+-  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed1);
+-  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed2);
+-  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed3);
++  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed1);
++  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed2);
++  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed3);
+ 
+   {
+     g_autolist(GBytes) l = NULL;
+@@ -733,9 +744,9 @@
+   gboolean freed1 = FALSE;
+   gboolean freed2 = FALSE;
+   gboolean freed3 = FALSE;
+-  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed1);
+-  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed2);
+-  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed3);
++  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed1);
++  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed2);
++  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed3);
+ 
+   {
+     g_autoslist(GBytes) l = NULL;
+@@ -762,9 +773,9 @@
+   gboolean freed1 = FALSE;
+   gboolean freed2 = FALSE;
+   gboolean freed3 = FALSE;
+-  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed1);
+-  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed2);
+-  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data), mark_freed, &freed3);
++  GBytes *b1 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed1);
++  GBytes *b2 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed2);
++  GBytes *b3 = g_bytes_new_with_free_func (data, sizeof(data),sc_qualified_callback_1, &freed3);
+ 
+   {
+     g_autoqueue(GBytes) q = g_queue_new ();
+@@ -784,68 +795,410 @@
+   g_assert_true (freed2);
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_autofree();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_async_queue();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_bookmark_file();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_bytes();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_checksum();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_date();
++}
++
++static void sc_qualified_test_6_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_date_time();
++}
++
++static void sc_qualified_test_7_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_dir();
++}
++
++static void sc_qualified_test_8_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_error();
++}
++
++static void sc_qualified_test_9_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_hash_table();
++}
++
++static void sc_qualified_test_10_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_hmac();
++}
++
++static void sc_qualified_test_11_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_io_channel();
++}
++
++static void sc_qualified_test_12_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_key_file();
++}
++
++static void sc_qualified_test_13_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_list();
++}
++
++static void sc_qualified_test_14_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_array();
++}
++
++static void sc_qualified_test_15_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_ptr_array();
++}
++
++static void sc_qualified_test_16_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_byte_array();
++}
++
++static void sc_qualified_test_17_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_main_context();
++}
++
++static void sc_qualified_test_18_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_main_context_pusher();
++}
++
++static void sc_qualified_test_19_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_main_loop();
++}
++
++static void sc_qualified_test_20_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_source();
++}
++
++static void sc_qualified_test_21_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_mapped_file();
++}
++
++static void sc_qualified_test_22_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_markup_parse_context();
++}
++
++static void sc_qualified_test_23_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_node();
++}
++
++static void sc_qualified_test_24_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_option_context();
++}
++
++static void sc_qualified_test_25_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_option_group();
++}
++
++static void sc_qualified_test_26_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_pattern_spec();
++}
++
++static void sc_qualified_test_27_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_queue();
++}
++
++static void sc_qualified_test_28_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_rand();
++}
++
++static void sc_qualified_test_29_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_regex();
++}
++
++static void sc_qualified_test_30_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_match_info();
++}
++
++static void sc_qualified_test_31_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_scanner();
++}
++
++static void sc_qualified_test_32_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_sequence();
++}
++
++static void sc_qualified_test_33_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_slist();
++}
++
++static void sc_qualified_test_34_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_string();
++}
++
++static void sc_qualified_test_35_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_string_chunk();
++}
++
++static void sc_qualified_test_36_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_thread();
++}
++
++static void sc_qualified_test_37_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_mutex();
++}
++
++static void sc_qualified_test_38_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_mutex_locker();
++}
++
++static void sc_qualified_test_39_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_rec_mutex_locker();
++}
++
++static void sc_qualified_test_40_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_rw_lock_lockers();
++}
++
++static void sc_qualified_test_41_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_auto_lock();
++}
++
++static void sc_qualified_test_42_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_cond();
++}
++
++static void sc_qualified_test_43_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_timer();
++}
++
++static void sc_qualified_test_44_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_time_zone();
++}
++
++static void sc_qualified_test_45_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_tree();
++}
++
++static void sc_qualified_test_46_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_variant();
++}
++
++static void sc_qualified_test_47_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_variant_builder();
++}
++
++static void sc_qualified_test_48_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_variant_iter();
++}
++
++static void sc_qualified_test_49_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_variant_dict();
++}
++
++static void sc_qualified_test_50_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_g_variant_type();
++}
++
++static void sc_qualified_test_51_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_strv();
++}
++
++static void sc_qualified_test_52_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_refstring();
++}
++
++static void sc_qualified_test_53_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_pathbuf();
++}
++
++static void sc_qualified_test_54_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_autolist();
++}
++
++static void sc_qualified_test_55_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_autoslist();
++}
++
++static void sc_qualified_test_56_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_autoqueue();
++}
++
+ int
+ main (int argc, gchar *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/autoptr/autofree", test_autofree);
+-  g_test_add_func ("/autoptr/g_async_queue", test_g_async_queue);
+-  g_test_add_func ("/autoptr/g_bookmark_file", test_g_bookmark_file);
+-  g_test_add_func ("/autoptr/g_bytes", test_g_bytes);
+-  g_test_add_func ("/autoptr/g_checksum", test_g_checksum);
+-  g_test_add_func ("/autoptr/g_date", test_g_date);
+-  g_test_add_func ("/autoptr/g_date_time", test_g_date_time);
+-  g_test_add_func ("/autoptr/g_dir", test_g_dir);
+-  g_test_add_func ("/autoptr/g_error", test_g_error);
+-  g_test_add_func ("/autoptr/g_hash_table", test_g_hash_table);
+-  g_test_add_func ("/autoptr/g_hmac", test_g_hmac);
+-  g_test_add_func ("/autoptr/g_io_channel", test_g_io_channel);
+-  g_test_add_func ("/autoptr/g_key_file", test_g_key_file);
+-  g_test_add_func ("/autoptr/g_list", test_g_list);
+-  g_test_add_func ("/autoptr/g_array", test_g_array);
+-  g_test_add_func ("/autoptr/g_ptr_array", test_g_ptr_array);
+-  g_test_add_func ("/autoptr/g_byte_array", test_g_byte_array);
+-  g_test_add_func ("/autoptr/g_main_context", test_g_main_context);
+-  g_test_add_func ("/autoptr/g_main_context_pusher", test_g_main_context_pusher);
+-  g_test_add_func ("/autoptr/g_main_loop", test_g_main_loop);
+-  g_test_add_func ("/autoptr/g_source", test_g_source);
+-  g_test_add_func ("/autoptr/g_mapped_file", test_g_mapped_file);
+-  g_test_add_func ("/autoptr/g_markup_parse_context", test_g_markup_parse_context);
+-  g_test_add_func ("/autoptr/g_node", test_g_node);
+-  g_test_add_func ("/autoptr/g_option_context", test_g_option_context);
+-  g_test_add_func ("/autoptr/g_option_group", test_g_option_group);
+-  g_test_add_func ("/autoptr/g_pattern_spec", test_g_pattern_spec);
+-  g_test_add_func ("/autoptr/g_queue", test_g_queue);
+-  g_test_add_func ("/autoptr/g_rand", test_g_rand);
+-  g_test_add_func ("/autoptr/g_regex", test_g_regex);
+-  g_test_add_func ("/autoptr/g_match_info", test_g_match_info);
+-  g_test_add_func ("/autoptr/g_scanner", test_g_scanner);
+-  g_test_add_func ("/autoptr/g_sequence", test_g_sequence);
+-  g_test_add_func ("/autoptr/g_slist", test_g_slist);
+-  g_test_add_func ("/autoptr/g_string", test_g_string);
+-  g_test_add_func ("/autoptr/g_string_chunk", test_g_string_chunk);
+-  g_test_add_func ("/autoptr/g_thread", test_g_thread);
+-  g_test_add_func ("/autoptr/g_mutex", test_g_mutex);
+-  g_test_add_func ("/autoptr/g_mutex_locker", test_g_mutex_locker);
+-  g_test_add_func ("/autoptr/g_rec_mutex_locker", test_g_rec_mutex_locker);
+-  g_test_add_func ("/autoptr/g_rw_lock_lockers", test_g_rw_lock_lockers);
+-  g_test_add_func ("/autoptr/g_auto_lock", test_g_auto_lock);
+-  g_test_add_func ("/autoptr/g_cond", test_g_cond);
+-  g_test_add_func ("/autoptr/g_timer", test_g_timer);
+-  g_test_add_func ("/autoptr/g_time_zone", test_g_time_zone);
+-  g_test_add_func ("/autoptr/g_tree", test_g_tree);
+-  g_test_add_func ("/autoptr/g_variant", test_g_variant);
+-  g_test_add_func ("/autoptr/g_variant_builder", test_g_variant_builder);
+-  g_test_add_func ("/autoptr/g_variant_iter", test_g_variant_iter);
+-  g_test_add_func ("/autoptr/g_variant_dict", test_g_variant_dict);
+-  g_test_add_func ("/autoptr/g_variant_type", test_g_variant_type);
+-  g_test_add_func ("/autoptr/strv", test_strv);
+-  g_test_add_func ("/autoptr/refstring", test_refstring);
+-  g_test_add_func ("/autoptr/pathbuf", test_pathbuf);
+-  g_test_add_func ("/autoptr/autolist", test_autolist);
+-  g_test_add_func ("/autoptr/autoslist", test_autoslist);
+-  g_test_add_func ("/autoptr/autoqueue", test_autoqueue);
++  g_test_add_vtable("/autoptr/autofree", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/autoptr/g_async_queue", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/autoptr/g_bookmark_file", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/autoptr/g_bytes", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/autoptr/g_checksum", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/autoptr/g_date", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
++  g_test_add_vtable("/autoptr/g_date_time", 0, NULL, NULL, sc_qualified_test_6_test, NULL);
++  g_test_add_vtable("/autoptr/g_dir", 0, NULL, NULL, sc_qualified_test_7_test, NULL);
++  g_test_add_vtable("/autoptr/g_error", 0, NULL, NULL, sc_qualified_test_8_test, NULL);
++  g_test_add_vtable("/autoptr/g_hash_table", 0, NULL, NULL, sc_qualified_test_9_test, NULL);
++  g_test_add_vtable("/autoptr/g_hmac", 0, NULL, NULL, sc_qualified_test_10_test, NULL);
++  g_test_add_vtable("/autoptr/g_io_channel", 0, NULL, NULL, sc_qualified_test_11_test, NULL);
++  g_test_add_vtable("/autoptr/g_key_file", 0, NULL, NULL, sc_qualified_test_12_test, NULL);
++  g_test_add_vtable("/autoptr/g_list", 0, NULL, NULL, sc_qualified_test_13_test, NULL);
++  g_test_add_vtable("/autoptr/g_array", 0, NULL, NULL, sc_qualified_test_14_test, NULL);
++  g_test_add_vtable("/autoptr/g_ptr_array", 0, NULL, NULL, sc_qualified_test_15_test, NULL);
++  g_test_add_vtable("/autoptr/g_byte_array", 0, NULL, NULL, sc_qualified_test_16_test, NULL);
++  g_test_add_vtable("/autoptr/g_main_context", 0, NULL, NULL, sc_qualified_test_17_test, NULL);
++  g_test_add_vtable("/autoptr/g_main_context_pusher", 0, NULL, NULL, sc_qualified_test_18_test, NULL);
++  g_test_add_vtable("/autoptr/g_main_loop", 0, NULL, NULL, sc_qualified_test_19_test, NULL);
++  g_test_add_vtable("/autoptr/g_source", 0, NULL, NULL, sc_qualified_test_20_test, NULL);
++  g_test_add_vtable("/autoptr/g_mapped_file", 0, NULL, NULL, sc_qualified_test_21_test, NULL);
++  g_test_add_vtable("/autoptr/g_markup_parse_context", 0, NULL, NULL, sc_qualified_test_22_test, NULL);
++  g_test_add_vtable("/autoptr/g_node", 0, NULL, NULL, sc_qualified_test_23_test, NULL);
++  g_test_add_vtable("/autoptr/g_option_context", 0, NULL, NULL, sc_qualified_test_24_test, NULL);
++  g_test_add_vtable("/autoptr/g_option_group", 0, NULL, NULL, sc_qualified_test_25_test, NULL);
++  g_test_add_vtable("/autoptr/g_pattern_spec", 0, NULL, NULL, sc_qualified_test_26_test, NULL);
++  g_test_add_vtable("/autoptr/g_queue", 0, NULL, NULL, sc_qualified_test_27_test, NULL);
++  g_test_add_vtable("/autoptr/g_rand", 0, NULL, NULL, sc_qualified_test_28_test, NULL);
++  g_test_add_vtable("/autoptr/g_regex", 0, NULL, NULL, sc_qualified_test_29_test, NULL);
++  g_test_add_vtable("/autoptr/g_match_info", 0, NULL, NULL, sc_qualified_test_30_test, NULL);
++  g_test_add_vtable("/autoptr/g_scanner", 0, NULL, NULL, sc_qualified_test_31_test, NULL);
++  g_test_add_vtable("/autoptr/g_sequence", 0, NULL, NULL, sc_qualified_test_32_test, NULL);
++  g_test_add_vtable("/autoptr/g_slist", 0, NULL, NULL, sc_qualified_test_33_test, NULL);
++  g_test_add_vtable("/autoptr/g_string", 0, NULL, NULL, sc_qualified_test_34_test, NULL);
++  g_test_add_vtable("/autoptr/g_string_chunk", 0, NULL, NULL, sc_qualified_test_35_test, NULL);
++  g_test_add_vtable("/autoptr/g_thread", 0, NULL, NULL, sc_qualified_test_36_test, NULL);
++  g_test_add_vtable("/autoptr/g_mutex", 0, NULL, NULL, sc_qualified_test_37_test, NULL);
++  g_test_add_vtable("/autoptr/g_mutex_locker", 0, NULL, NULL, sc_qualified_test_38_test, NULL);
++  g_test_add_vtable("/autoptr/g_rec_mutex_locker", 0, NULL, NULL, sc_qualified_test_39_test, NULL);
++  g_test_add_vtable("/autoptr/g_rw_lock_lockers", 0, NULL, NULL, sc_qualified_test_40_test, NULL);
++  g_test_add_vtable("/autoptr/g_auto_lock", 0, NULL, NULL, sc_qualified_test_41_test, NULL);
++  g_test_add_vtable("/autoptr/g_cond", 0, NULL, NULL, sc_qualified_test_42_test, NULL);
++  g_test_add_vtable("/autoptr/g_timer", 0, NULL, NULL, sc_qualified_test_43_test, NULL);
++  g_test_add_vtable("/autoptr/g_time_zone", 0, NULL, NULL, sc_qualified_test_44_test, NULL);
++  g_test_add_vtable("/autoptr/g_tree", 0, NULL, NULL, sc_qualified_test_45_test, NULL);
++  g_test_add_vtable("/autoptr/g_variant", 0, NULL, NULL, sc_qualified_test_46_test, NULL);
++  g_test_add_vtable("/autoptr/g_variant_builder", 0, NULL, NULL, sc_qualified_test_47_test, NULL);
++  g_test_add_vtable("/autoptr/g_variant_iter", 0, NULL, NULL, sc_qualified_test_48_test, NULL);
++  g_test_add_vtable("/autoptr/g_variant_dict", 0, NULL, NULL, sc_qualified_test_49_test, NULL);
++  g_test_add_vtable("/autoptr/g_variant_type", 0, NULL, NULL, sc_qualified_test_50_test, NULL);
++  g_test_add_vtable("/autoptr/strv", 0, NULL, NULL, sc_qualified_test_51_test, NULL);
++  g_test_add_vtable("/autoptr/refstring", 0, NULL, NULL, sc_qualified_test_52_test, NULL);
++  g_test_add_vtable("/autoptr/pathbuf", 0, NULL, NULL, sc_qualified_test_53_test, NULL);
++  g_test_add_vtable("/autoptr/autolist", 0, NULL, NULL, sc_qualified_test_54_test, NULL);
++  g_test_add_vtable("/autoptr/autoslist", 0, NULL, NULL, sc_qualified_test_55_test, NULL);
++  g_test_add_vtable("/autoptr/autoqueue", 0, NULL, NULL, sc_qualified_test_56_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/utf8-validate.c
++++ b/glib/tests/utf8-validate.c
+@@ -382,6 +382,18 @@
+     }
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  do_test(data);
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_utf8_get_char_validated();
++}
++
+ int
+ main (int argc, char *argv[])
+ {
+@@ -393,11 +405,11 @@
+   for (i = 0; global_test[i].text; i++)
+     {
+       path = g_strdup_printf ("/utf8/validate/%d", i);
+-      g_test_add_data_func (path, &global_test[i], do_test);
++      g_test_add_vtable(path, 0, &global_test[i], NULL, sc_qualified_test_0_test, NULL);
+       g_free (path);
+     }
+ 
+-  g_test_add_func ("/utf8/get-char-validated", test_utf8_get_char_validated);
++  g_test_add_vtable("/utf8/get-char-validated", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/overflow.c
++++ b/glib/tests/overflow.c
+@@ -185,17 +185,53 @@
+     }
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_guint_add();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_guint_mul();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_guint64_add();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_guint64_mul();
++}
++
++static void sc_qualified_test_4_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_gsize_add();
++}
++
++static void sc_qualified_test_5_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_checked_gsize_mul();
++}
++
+ int
+ main (int argc, char **argv)
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/glib/checked-math/guint-add", test_checked_guint_add);
+-  g_test_add_func ("/glib/checked-math/guint-mul", test_checked_guint_mul);
+-  g_test_add_func ("/glib/checked-math/guint64-add", test_checked_guint64_add);
+-  g_test_add_func ("/glib/checked-math/guint64-mul", test_checked_guint64_mul);
+-  g_test_add_func ("/glib/checked-math/gsize-add", test_checked_gsize_add);
+-  g_test_add_func ("/glib/checked-math/gsize-mul", test_checked_gsize_mul);
++  g_test_add_vtable("/glib/checked-math/guint-add", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/glib/checked-math/guint-mul", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++  g_test_add_vtable("/glib/checked-math/guint64-add", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/glib/checked-math/guint64-mul", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
++  g_test_add_vtable("/glib/checked-math/gsize-add", 0, NULL, NULL, sc_qualified_test_4_test, NULL);
++  g_test_add_vtable("/glib/checked-math/gsize-mul", 0, NULL, NULL, sc_qualified_test_5_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/tests/refcount.c
++++ b/glib/tests/refcount.c
+@@ -208,17 +208,41 @@
+ #endif
+ }
+ 
++static void sc_qualified_test_0_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_grefcount();
++}
++
++static void sc_qualified_test_1_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_grefcount_saturation();
++}
++
++static void sc_qualified_test_2_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_gatomicrefcount();
++}
++
++static void sc_qualified_test_3_test(gpointer fixture, gconstpointer data) {
++  (void)fixture;
++  (void)data;
++  test_gatomicrefcount_saturation();
++}
++
+ int
+ main (int   argc,
+       char *argv[])
+ {
+   g_test_init (&argc, &argv, NULL);
+ 
+-  g_test_add_func ("/refcount/grefcount", test_grefcount);
+-  g_test_add_func ("/refcount/grefcount/saturation", test_grefcount_saturation);
+-
+-  g_test_add_func ("/refcount/gatomicrefcount", test_gatomicrefcount);
+-  g_test_add_func ("/refcount/gatomicrefcount/saturation", test_gatomicrefcount_saturation);
++  g_test_add_vtable("/refcount/grefcount", 0, NULL, NULL, sc_qualified_test_0_test, NULL);
++  g_test_add_vtable("/refcount/grefcount/saturation", 0, NULL, NULL, sc_qualified_test_1_test, NULL);
++
++  g_test_add_vtable("/refcount/gatomicrefcount", 0, NULL, NULL, sc_qualified_test_2_test, NULL);
++  g_test_add_vtable("/refcount/gatomicrefcount/saturation", 0, NULL, NULL, sc_qualified_test_3_test, NULL);
+ 
+   return g_test_run ();
+ }
+--- a/glib/gbytes.c
++++ b/glib/gbytes.c
+@@ -239,6 +239,13 @@
+   return (GBytes *)bytes;
+ }
+ 
++static void
++sc_qualified_bytes_unref_notify (gpointer data)
++{
++  g_bytes_unref (data);
++}
++
++
+ /**
+  * g_bytes_new_from_bytes: (constructor) (not method):
+  * @bytes: a [struct@GLib.Bytes]
+@@ -282,7 +289,7 @@
+   /* Avoid referencing intermediate GBytes. In practice, this should
+    * only loop once.
+    */
+-  while (bytes->free_func == (gpointer)g_bytes_unref)
++  while (bytes->free_func == sc_qualified_bytes_unref_notify)
+     bytes = bytes->user_data;
+ 
+   g_return_val_if_fail (bytes != NULL, NULL);
+@@ -291,7 +298,7 @@
+   g_return_val_if_fail (length <= (gsize) (((gchar *)bytes->data + bytes->size) - base), NULL);
+ 
+   return g_bytes_new_with_free_func (base, length,
+-                                     (GDestroyNotify)g_bytes_unref, g_bytes_ref (bytes));
++                                     sc_qualified_bytes_unref_notify, g_bytes_ref (bytes));
+ }
+ 
+ /**
+--- a/glib/glist.c
++++ b/glib/glist.c
+@@ -131,6 +131,13 @@
+ g_list_free_1 (GList *list)
+ {
+   _g_list_free1 (list);
++}
++
++static void
++sc_qualified_list_destroy (gpointer data, gpointer user_data)
++{
++  GDestroyNotify *destroy = user_data;
++  (*destroy) (data);
+ }
+ 
+ /**
+@@ -159,7 +166,7 @@
+ g_list_free_full (GList          *list,
+                   GDestroyNotify  free_func)
+ {
+-  g_list_foreach (list, (GFunc) free_func, NULL);
++  g_list_foreach (list, sc_qualified_list_destroy, &free_func);
+   g_list_free (list);
+ }
+ 
+--- a/glib/gslist.c
++++ b/glib/gslist.c
+@@ -118,6 +118,13 @@
+ g_slist_free_1 (GSList *list)
+ {
+   _g_slist_free1 (list);
++}
++
++static void
++sc_qualified_list_destroy (gpointer data, gpointer user_data)
++{
++  GDestroyNotify *destroy = user_data;
++  (*destroy) (data);
+ }
+ 
+ /**
+@@ -146,7 +153,7 @@
+ g_slist_free_full (GSList         *list,
+ 		   GDestroyNotify  free_func)
+ {
+-  g_slist_foreach (list, (GFunc) free_func, NULL);
++  g_slist_foreach (list, sc_qualified_list_destroy, &free_func);
+   g_slist_free (list);
+ }
+ 
+--- a/glib/gtestutils.c
++++ b/glib/gtestutils.c
+@@ -3343,6 +3343,18 @@
+   g_slice_free (GTestCase, test_case);
+ }
+ 
++static void
++sc_qualified_test_case_destroy(gpointer data)
++{
++  g_test_case_free(data);
++}
++
++static void
++sc_qualified_test_suite_destroy(gpointer data)
++{
++  g_test_suite_free(data);
++}
++
+ /**
+  * g_test_suite_free:
+  * @suite: a test suite
+@@ -3354,11 +3366,11 @@
+ void
+ g_test_suite_free (GTestSuite *suite)
+ {
+-  g_slist_free_full (suite->cases, (GDestroyNotify)g_test_case_free);
++  g_slist_free_full (suite->cases, sc_qualified_test_case_destroy);
+ 
+   g_free (suite->name);
+ 
+-  g_slist_free_full (suite->suites, (GDestroyNotify)g_test_suite_free);
++  g_slist_free_full (suite->suites, sc_qualified_test_suite_destroy);
+ 
+   g_slice_free (GTestSuite, suite);
+ }
+--- a/glib/garray.c
++++ b/glib/garray.c
+@@ -923,6 +923,13 @@
+   return farray;
+ }
+ 
++static gint
++sc_qualified_array_compare (gconstpointer a, gconstpointer b, gpointer data)
++{
++  GCompareFunc *compare = data;
++  return (*compare) (a, b);
++}
++
+ /**
+  * g_array_sort:
+  * @array: an array
+@@ -948,8 +955,7 @@
+     g_sort_array (array->data,
+                   array->len,
+                   array->elt_size,
+-                  (GCompareDataFunc) compare_func,
+-                  NULL);
++                  sc_qualified_array_compare, &compare_func);
+ }
+ 
+ /**
+@@ -2435,8 +2441,7 @@
+     g_sort_array (array->pdata,
+                   array->len,
+                   sizeof (gpointer),
+-                  (GCompareDataFunc) compare_func,
+-                  NULL);
++                  sc_qualified_array_compare, &compare_func);
+ }
+ 
+ /* Please keep this doc-comment in sync with
+--- a/glib/gvarianttypeinfo.c
++++ b/glib/gvarianttypeinfo.c
+@@ -113,6 +113,17 @@
+ 
+ 
+ /* Hard-code the base types in a constant array */
++
++static guint sc_qualified_callback_0(gconstpointer data) {
++  (void)data;
++  return _g_variant_type_hash(data);
++}
++
++static gboolean sc_qualified_callback_1(gconstpointer a, gconstpointer b) {
++  (void)a;
++  (void)b;
++  return _g_variant_type_equal(a, b);
++}
+ static const GVariantTypeInfo g_variant_type_info_basic_table[24] = {
+ #define fixed_aligned(x)  x, x - 1, 0
+ #define not_a_type        0,     0, 0
+@@ -802,8 +813,7 @@
+ 
+       if (g_variant_type_info_table == NULL)
+         {
+-          g_variant_type_info_table = g_hash_table_new ((GHashFunc)_g_variant_type_hash,
+-                                                        (GEqualFunc)_g_variant_type_equal);
++          g_variant_type_info_table = g_hash_table_new (sc_qualified_callback_0,sc_qualified_callback_1);
+           g_ignore_leak (g_variant_type_info_table);
+         }
+       info = g_hash_table_lookup (g_variant_type_info_table, type_string);
+--- a/glib/gqueue.c
++++ b/glib/gqueue.c
+@@ -64,6 +64,13 @@
+   g_slice_free (GQueue, queue);
+ }
+ 
++static void
++sc_qualified_list_destroy (gpointer data, gpointer user_data)
++{
++  GDestroyNotify *destroy = user_data;
++  (*destroy) (data);
++}
++
+ /**
+  * g_queue_free_full:
+  * @queue: a pointer to a #GQueue
+@@ -81,7 +88,7 @@
+ g_queue_free_full (GQueue        *queue,
+                   GDestroyNotify  free_func)
+ {
+-  g_queue_foreach (queue, (GFunc) free_func, NULL);
++  g_queue_foreach (queue, sc_qualified_list_destroy, &free_func);
+   g_queue_free (queue);
+ }
+ 
+@@ -140,7 +147,7 @@
+   g_return_if_fail (queue != NULL);
+ 
+   if (free_func != NULL)
+-    g_queue_foreach (queue, (GFunc) free_func, NULL);
++    g_queue_foreach (queue, sc_qualified_list_destroy, &free_func);
+ 
+   g_queue_clear (queue);
+ }

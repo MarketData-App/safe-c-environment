@@ -427,6 +427,23 @@
           "items": {}
         }
       }
+    },
+    "foundation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lock",
+        "base_toolchain_image"
+      ],
+      "properties": {
+        "lock": {
+          "const": "foundation.lock.json"
+        },
+        "base_toolchain_image": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema"

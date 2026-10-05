@@ -65,3 +65,17 @@ inspection; documentation version strings are not dependency pins. Dynamic LGPL
 linking does not by itself fulfill distribution obligations. Retain source,
 notices, exact build material and any patches; owner distribution review remains
 external. First-party code is not relicensed.
+
+The first strict ASan/UBSan dependency run exposed callback ABI mismatches in
+upstream test registrations and library callbacks reached by byte-slice, list/queue cleanup, sorting, and
+upstream automatic-cleanup tests.
+These are actual function-type diagnostics, not memory-limit failures. The
+candidate retains the exact original archive plus a hash-inventoried adaptation:
+selected test callbacks gain typed forwarding functions, and narrowly inventoried library callbacks gain forwarding functions with the
+actual expected callback signatures. Callback identity comparisons remain
+consistent so slice reference flattening is preserved.
+Exported signatures, reference-count behavior, test inputs/assertions, and
+first-party/third-party sanitizer flags remain unchanged. The amendment is
+unsealed and requires the existing independent review; no exception or approval
+is inferred from a successful local build. Failed development runs remain opaque
+under `artifacts/foundation-sdk-*/` and are not accepted profile evidence.
