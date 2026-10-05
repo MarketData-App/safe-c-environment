@@ -10,7 +10,8 @@
     "subcases",
     "budgets",
     "coverage",
-    "required_gates"
+    "required_gates",
+    "containment"
   ],
   "properties": {
     "schema_version": {
@@ -171,6 +172,45 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "containment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cases",
+        "policy",
+        "fixtures",
+        "mandatory"
+      ],
+      "properties": {
+        "cases": {
+          "const": [
+            "D01",
+            "D02",
+            "D03",
+            "D04",
+            "D05",
+            "D06",
+            "D07",
+            "D08",
+            "D09",
+            "D10",
+            "D11",
+            "D12",
+            "D13",
+            "D14"
+          ]
+        },
+        "policy": {
+          "const": "safety/container-policy.json"
+        },
+        "fixtures": {
+          "const": "safety/containment-fixtures.json"
+        },
+        "mandatory": {
+          "const": true
+        }
       }
     }
   },

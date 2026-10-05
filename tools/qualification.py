@@ -10,7 +10,12 @@ PROFILE_FLAGS = {'asan':'-fsanitize=address,undefined','ubsan':'-fsanitize=undef
  'integer':'-fsanitize=undefined,unsigned-integer-overflow,implicit-integer-conversion',
  'msan':'-fsanitize=memory','tsan':'-fsanitize=thread',
  'fuzz':'-fsanitize=address,undefined,fuzzer-no-link','coverage':'-fcoverage-mapping'}
-INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c']
+INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c']
+
+def designated_runtime_result(result,expected):
+    if result['failure'] is not None or result['exit_code']==0 or expected not in result['output']:
+        raise GateError('runtime infrastructure failure cannot qualify a designated finding')
+    return True
 
 class Qualifier:
     def __init__(self, root, runner):
@@ -128,6 +133,8 @@ class Qualifier:
             if det not in ['csa','ast']:
                 ok = ok and result['exit_code'] != 0
             if det in ['asan','ubsan','integer','msan','tsan','fuzz']:
+                try:designated_runtime_result(result,expected)
+                except GateError:ok=False
                 ok = ok and result.get('binary_unchanged',False) and ('/src/' in result['output'])
                 if det=='msan':ok=ok and 'Uninitialized value was created' in result['output']
                 if det=='tsan':ok=ok and 'Previous' in result['output'] and 'worker' in result['output']

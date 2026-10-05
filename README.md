@@ -33,3 +33,10 @@ enforcement status. Give a future agent [the instantiation prompt](docs/instanti
 Read AGENTS.md before development. Independent approval, owner publication licensing
 and actual remote enforcement remain separate activation work. No automatic remote
 publishing, paid model calls, corpus provisioning or recurring jobs were performed.
+
+Docker containment commands: `./tools/safety sandbox plan --profile build`,
+`./tools/safety sandbox doctor`, `./tools/safety sandbox selftest`, and
+`./tools/safety runtime smoke`. See [the containment runbook](docs/docker-containment.md).
+The selftest alias runs the amended complete local suite, including fresh-child
+containment. Runtime smoke assembles and tests an infrastructure-only image without
+pushing or deploying it. Generated workload execution has no host fallback.

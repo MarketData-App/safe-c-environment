@@ -25,3 +25,12 @@ controls across that boundary. System libraries are uninstrumented and their int
 instructions are not certified. There are no additional opaque application libraries.
 Adding one requires a separately qualified boundary; no blanket unpoisoning or
 automatic variable initialization is used in the MSan profile.
+
+The Docker containment amendment is specified in [docker-containment.md](docker-containment.md).
+Docker adds namespace, filesystem, privilege and resource restrictions to Linux
+process virtual-memory separation. The C correctness gates remain mandatory.
+Accessible writable data and service permissions remain part of the workload's
+damage surface. D01–D14 qualify specific recorded controls, not arbitrary escape
+immunity or application correctness. The host kernel and independent launcher
+permissions remain trust dependencies. Final reports distinguish original native
+qualification, containment, runtime demo, remote CI and production authority.

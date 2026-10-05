@@ -17,6 +17,7 @@ safety_add_program(infrastructure_demo tests/integration/demo.c fuzz/parser_good
 add_test(NAME infrastructure.boundaries COMMAND infrastructure_demo)
 safety_add_program(hardening_probe tests/integration/hardening.c)
 add_test(NAME infrastructure.hardening COMMAND hardening_probe)
+safety_add_program(runtime_demo tests/integration/runtime-demo.c fuzz/parser_good.c)
 file(READ "${PROJECT_SOURCE_DIR}/fuzz/targets.json" fuzz_manifest)
 string(JSON fuzz_harness GET "${fuzz_manifest}" harness)
 string(JSON fuzz_bad GET "${fuzz_manifest}" parser_bad)

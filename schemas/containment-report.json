@@ -1,0 +1,210 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "policy_hash",
+    "source_identity",
+    "image_id",
+    "runner",
+    "cases",
+    "runtime_demo",
+    "storage_scope",
+    "sabotage",
+    "application_release_ready",
+    "independent_enforcement",
+    "remote_ci_execution",
+    "production_approval"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "policy_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_identity": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "image_id": {
+      "type": "string"
+    },
+    "runner": {
+      "type": "object"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "control",
+          "classification",
+          "subchecks",
+          "observations",
+          "evidence_paths",
+          "reproduce"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "D01",
+              "D02",
+              "D03",
+              "D04",
+              "D05",
+              "D06",
+              "D07",
+              "D08",
+              "D09",
+              "D10",
+              "D11",
+              "D12",
+              "D13",
+              "D14"
+            ]
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED"
+            ]
+          },
+          "control": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED"
+            ]
+          },
+          "classification": {
+            "enum": [
+              "CONTAINED_EXPECTED",
+              "CONTROL_FAILED",
+              "NOT_CONTAINED",
+              "POLICY_REJECTED_EXPECTED",
+              "BLOCKED",
+              "INFRASTRUCTURE_FAILURE",
+              "EVIDENCE_INCOMPLETE"
+            ]
+          },
+          "subchecks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "status"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "BLOCKED"
+                  ]
+                }
+              }
+            }
+          },
+          "observations": {
+            "type": "object"
+          },
+          "evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reproduce": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtime_demo": {
+      "type": "object"
+    },
+    "storage_scope": {
+      "type": "object"
+    },
+    "sabotage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parent",
+          "name",
+          "status",
+          "control",
+          "evidence_paths",
+          "reason"
+        ],
+        "properties": {
+          "parent": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED"
+            ]
+          },
+          "control": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED"
+            ]
+          },
+          "evidence_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "application_release_ready": {
+      "const": false
+    },
+    "independent_enforcement": {
+      "const": "UNSEALED"
+    },
+    "remote_ci_execution": {
+      "const": "NOT_RUN"
+    },
+    "production_approval": {
+      "const": "NOT_REQUESTED"
+    }
+  }
+}

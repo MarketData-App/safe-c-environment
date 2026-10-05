@@ -49,3 +49,16 @@ privileged container, or add broad ignorelists. The host outer evaluator alone m
 launch disposable unprivileged containers; native builds have read-only sources,
 offline networking and bounded scratch/resources. Stop before application work in
 all bootstrap states. Report missing infrastructure truthfully.
+
+Docker containment amendment: every candidate build/configure/try_run, Python or
+shell build helper, analyzer, test, sanitizer, fuzz job and runtime smoke executes
+through the protected Docker launcher. Use ./tools/safety sandbox doctor, sandbox
+plan --profile build, sandbox selftest and runtime smoke. The single policy is
+safety/container-policy.json; its required D inventory is safety/containment-fixtures.json.
+Docker/runner/controller failure BLOCKS execution. Never fall back to host native
+execution, pass arbitrary Docker flags, mount a daemon socket, inherit credentials,
+weaken confinement, or relax a mandatory limit. Resource probes have independent
+finite ceilings and run serially after harmless effective-limit preflight. An old
+v2 report does not certify this amendment. Requalify on each actual child runner.
+Runtime-demo is infrastructure only; src/ and include/ remain empty. Production
+access/deployment requires a later approved application contract.

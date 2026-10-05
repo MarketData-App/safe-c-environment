@@ -28,7 +28,7 @@ def initial_report(root, lock):
         'mandatory_gates':{'expected':read_json(root/'safety/contract.json')['required_gates'],'executed':[]},
         'baseline_identity':baseline_identity(root) if (root/'starter-export.json').exists() else None,
         'image_id':lock['image_id'],'runner':{'architecture':platform.machine(),'kernel':platform.release(),'platform':platform.system(),'image_libc':lock['libc'],'network':'none','source_mount':'read-only','scratch':'2 GiB tmpfs','memory':'3 GiB cgroup','pids':128,'cpus':2},
-        'gates':[], 'cases':[{'id':cid,'status':'BLOCKED','classification':'NOT_RUN','detector':'pending','bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0} for cid in C_IDS],
+        'containment':{'status':'BLOCKED','reason':'not executed'},'gates':[], 'cases':[{'id':cid,'status':'BLOCKED','classification':'NOT_RUN','detector':'pending','bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0} for cid in C_IDS],
         'sabotage':[{'id':pid,'status':'BLOCKED','control':'BLOCKED','subcases':[],'evidence_paths':[],'reason':'not executed'} for pid in P_IDS],
         'benchmark':{'execution_status':'BLOCKED','reason':'not executed'},'starter':{'status':'BLOCKED','reason':'not executed'},
         'reuse':{'upstream_integrity':'BLOCKED','lit':'BLOCKED','clusterfuzzlite':{'local_adapter_execution':'BLOCKED','remote_ci_execution':'NOT_RUN','remote_enforcement':'UNSEALED'},'upstream_mapping':'docs/upstream-map.md'},
@@ -37,6 +37,8 @@ def initial_report(root, lock):
         'limitations':['Finite fixtures do not prove arbitrary C safety.','P06 checks a defined decoy, not arbitrary forged native diagnostics.','Agent accounting checks submitted evidence, not comprehension.','No independently protected baseline or remote enforcement was verified.','First-party publication licensing awaits the owner.','Pinned built image is retained locally; APT rebuild recipe is not snapshot-complete.']}
 
 def doctor(q, *, probes=True):
+    q.runner.start()
+    container={'status':'PASS','runner':q.runner.launcher.runner_identity,'effective':q.runner.session['effective'],'policy_hash':q.runner.session['policy_hash']}
     script='''import shutil,hashlib,json,sys,subprocess,platform
 lock=json.load(open('/src/toolchain.lock.json'))
 errors=[]
@@ -49,7 +51,7 @@ if platform.machine()!=lock['architecture']:errors.append('architecture mismatch
 if subprocess.check_output(['getconf','GNU_LIBC_VERSION'],text=True).strip()!=lock['libc']:errors.append('libc mismatch')
 print(json.dumps({'errors':errors,'tools':lock['tools']}));sys.exit(bool(errors))'''
     tools=q.runner.run(['python3','-c',script],label='doctor-tool-identities')
-    result={'status':'PASS' if passed(tools) else 'BLOCKED','tool_evidence':tools['evidence_path'],'probes':[]}
+    result={'status':'PASS' if passed(tools) else 'BLOCKED','tool_evidence':tools['evidence_path'],'probes':[],'container':container}
     tidy=q.runner.run(['clang-tidy','--verify-config','--config-file=/src/.clang-tidy'],label='doctor-tidy-config')
     checks=q.runner.run(['clang-tidy','--list-checks','--config-file=/src/.clang-tidy'],label='doctor-tidy-checks')
     if not passed(tidy) or not passed(checks) or 'bugprone-sizeof-expression' not in checks['output']:
@@ -101,7 +103,7 @@ def production_checks(q, full):
             b=q.build(profile)
             ok=q.built(b);evidence=[r['evidence_path'] for r in [b['configure'],b['build']] if r]
             if ok:
-                for target in ['infrastructure_demo','hardening_probe']:
+                for target in ['infrastructure_demo','hardening_probe','runtime_demo']:
                     env={'LLVM_PROFILE_FILE':'/work/'+profile+'-'+target+'.profraw'} if profile=='coverage' else None
                     r=q.executable(b,target,env=env);ok=ok and passed(r);evidence.append(r['evidence_path'])
                 if profile=='coverage':
@@ -122,6 +124,7 @@ def production_checks(q, full):
     return results
 
 def finish(root, report, runner, command):
+    runner.close()
     report['finished_at']=datetime.now(timezone.utc).isoformat()
     report['commands'].append('./tools/safety '+command)
     report['mandatory_gates']['executed']=[row['name'] for row in report['gates']]
@@ -133,7 +136,7 @@ def finish(root, report, runner, command):
             report['gates'].append(gate('gate-inventory','FAIL',{'reason':str(exc)}))
     report['local_state']='PASS' if report['gates'] and all(r['status']=='PASS' for r in report['gates']) else 'FAIL'
     # Only complete CI can receive the unsealed local qualification state.
-    complete = command=='ci' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
+    complete = command=='ci' and report['containment'].get('status')=='PASS' and report['local_state']=='PASS' and all(r['status']=='PASS' for r in report['cases']+report['sabotage'])
     report['overall_state']='VALIDATED_UNSEALED' if complete else 'FAILED' if any(r['status']=='FAIL' for r in report['gates']) else 'BLOCKED'
     if command!='ci':report['blockers'].append('This command is scoped; final aggregate qualification has not passed.')
     validate(root,'report',report)
@@ -147,7 +150,7 @@ def finish(root, report, runner, command):
     lines += [f"| {r['id']} | {r['status']} | "+'; '.join(x['name']+': '+x['status'] for x in r['subcases'])+' |' for r in report['sabotage']]
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
-    lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz']},indent=2),'```']
+    lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz','containment']},indent=2),'```']
     (out/'bootstrap-report.md').write_text('\n'.join(lines)+'\n')
     atomic_json(runner.run_dir/'bootstrap-report.json',report)
     print(f"{report['overall_state']}: C {counted}/34, controls {controls}/34, P {pcount}/16; artifacts/bootstrap-report.json",flush=True)
@@ -168,7 +171,12 @@ def main(argv=None):
     b=subs.add_parser('benchmark');b.add_argument('--suite',choices=['curated'],required=True)
     s=subs.add_parser('starter');s.add_argument('operation',choices=['verify'])
     i=subs.add_parser('instantiate');i.add_argument('--destination',type=Path,required=True);i.add_argument('--name',required=True)
+    sb=subs.add_parser('sandbox');sb.add_argument('operation',choices=['doctor','plan','selftest']);sb.add_argument('--profile',default='build')
+    rt=subs.add_parser('runtime');rt.add_argument('operation',choices=['smoke'])
     args=parser.parse_args(argv);root=args.candidate.resolve()
+    sandbox_doctor=args.command=='sandbox' and args.operation=='doctor'
+    if args.command=='sandbox' and args.operation=='selftest':args.command='ci'
+    elif sandbox_doctor:args.command='doctor'
     try:
         environment_gate()
         if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
@@ -182,7 +190,14 @@ def main(argv=None):
             print(json.dumps(result,indent=2));return 0
         if args.command=='upstream':
             print(json.dumps(upstream_gate(root),indent=2));return 0
-        lock=read_json(root/'toolchain.lock.json');report=initial_report(root,lock)
+        lock=read_json(root/'toolchain.lock.json')
+        if args.command=='sandbox':
+            from container_policy import policy,make_plan
+            value=policy(root)
+            plan=make_plan(value,lock['image_id'],{},args.profile)
+            plan['source_snapshot']='trusted collector supplies a filtered immutable job snapshot'
+            print(json.dumps(plan,indent=2));return 0
+        report=initial_report(root,lock)
         run_dir=root/'artifacts/runs'/report['run_id'];run_dir.mkdir(parents=True)
         scratch=Path(tempfile.mkdtemp(prefix='safe-c-evidence-'))
         runner=Runner(root,run_dir,lock,scratch);q=Qualifier(root,runner)
@@ -195,7 +210,7 @@ def main(argv=None):
             report['gates'].append(gate('inventory',details=inventory_gate(root)))
             validate(root,'fixtures',read_json(root/'safety/fixtures.json'))
             if args.command in ['bootstrap','doctor','check-fast','check-full','selftest','ci']:
-                d=doctor(q,probes=args.command in ['bootstrap','doctor']);report['gates'].append(gate('doctor',d['status'],d,[d['tool_evidence']]))
+                d=doctor(q,probes=args.command in ['bootstrap','doctor'] and not sandbox_doctor);report['gates'].append(gate('doctor',d['status'],d,[d['tool_evidence']]))
             if args.command in ['check-fast','check-full','ci']:
                 report['gates']+=production_checks(q,args.command!='check-fast')
             if args.command in ['selftest','ci']:
@@ -219,7 +234,14 @@ def main(argv=None):
             if args.command in ['ci','benchmark']:
                 from benchmark import run_benchmark
                 report['benchmark']=run_benchmark(q);report['gates'].append(gate('benchmark',report['benchmark']['execution_status']))
-            if args.command in ['ci','starter']:
+            if args.command in ['selftest','ci']:
+                from containment import new_report,Suite
+                report['containment']=new_report(q)
+                Suite(q,report['containment']).run()
+            if args.command=='runtime':
+                from runtime import runtime_smoke
+                value=runtime_smoke(q);report['gates'].append(gate('runtime-demo',value['status'],value))
+            if args.command in ['ci','starter','selftest']:
                 from starter import verify_starter
                 report['starter']=verify_starter(root,lock,run_dir,instance=args.instance,expected=args.expected_baseline,baseline=args.baseline);report['gates'].append(gate('starter',report['starter']['status']))
             if args.command in ['check-fast','check-full','ci','selftest']:
@@ -231,6 +253,18 @@ def main(argv=None):
                     from protocol import run_protocol
                     report['review_protocol']=run_protocol(q)
                     report['gates'].append(gate('review-protocol',report['review_protocol']['status'],evidence=report['review_protocol']['evidence_paths']))
+            if args.command in ['selftest','ci']:
+                from containment import routing,container_sabotage,save
+                routing(q,report['containment'],report,instance=args.instance)
+                added=container_sabotage(q,report['containment']);report['containment']['sabotage']=added
+                for parent in report['sabotage']:
+                    parent['subcases'] += [{k:v for k,v in row.items() if k!='parent'} for row in added if row['parent']==parent['id']]
+                    parent['status']='PASS' if all(s['status']=='PASS' and s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
+                report['containment']['status']='PASS' if all(r['status']=='PASS' for r in report['containment']['cases']+added) else 'FAIL'
+                save(q,report['containment'])
+                report['gates'].append(gate('containment',report['containment']['status']))
+                report['gates'].append(gate('container-sabotage','PASS' if all(r['status']=='PASS' for r in added) else 'FAIL'))
+                report['gates'].append(gate('runtime-demo',report['containment']['runtime_demo'].get('status','BLOCKED')))
             upstream=upstream_gate(root);report['reuse']['upstream_integrity']=upstream
             report['gates'].append(gate('upstream',details=upstream))
             return finish(root,report,runner,args.command)

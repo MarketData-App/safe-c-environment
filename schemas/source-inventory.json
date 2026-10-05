@@ -87,7 +87,8 @@
         "fuzz/harness.c",
         "fuzz/parser_bad.c",
         "fuzz/replay-main.c",
-        "fuzz/parser_good.c"
+        "fuzz/parser_good.c",
+        "tests/integration/runtime-demo.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -1747,6 +1748,29 @@
           }
         },
         "fuzz/parser_good.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "tests/integration/runtime-demo.c": {
           "type": "object",
           "additionalProperties": false,
           "required": [

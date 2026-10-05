@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": "2.0",
+  "policy_version": "2.1-containment",
   "mode": "bootstrap",
   "cases": [
     {
@@ -357,6 +357,30 @@
     "starter",
     "ast",
     "qualification",
-    "review-protocol"
-  ]
+    "review-protocol",
+    "containment",
+    "container-sabotage",
+    "runtime-demo"
+  ],
+  "containment": {
+    "cases": [
+      "D01",
+      "D02",
+      "D03",
+      "D04",
+      "D05",
+      "D06",
+      "D07",
+      "D08",
+      "D09",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14"
+    ],
+    "policy": "safety/container-policy.json",
+    "fixtures": "safety/containment-fixtures.json",
+    "mandatory": true
+  }
 }

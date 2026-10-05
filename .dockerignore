@@ -6,3 +6,5 @@
 artifacts
 build
 __pycache__
+
+.agentwatch

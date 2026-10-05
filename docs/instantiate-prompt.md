@@ -8,3 +8,14 @@ the child; inherited parent results never certify it. Report local qualification
 and external enforcement separately. Keep src/ and include/ empty. Stop after
 instantiation/qualification; application implementation needs separate authorization
 and independently approved production mode, source/target/test inventory and specs.
+
+Docker containment is mandatory in this payload. First run `./tools/safety sandbox
+plan --profile build` and `./tools/safety sandbox doctor`. Use the standard safety
+commands for all native work, including configure-time probes and candidate
+scripts. Never execute a generated workload on the host when Docker is missing.
+Run the inherited D01–D14 controls and Docker sabotage variants on the actual
+approved runner. A daemon identity/controller/security/storage prerequisite that
+differs from the starter is a concrete blocker requiring an approved runner
+amendment and fresh qualification. Preserve runtime smoke as an infrastructure
+demo; define a separate service access contract before later application work.
+Do not inherit the parent's container report or recursively instantiate grandchildren.

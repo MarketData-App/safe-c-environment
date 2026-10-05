@@ -17,7 +17,8 @@
     ".clusterfuzzlite/",
     "fuzz/",
     "CMakeLists.txt",
-    "CMakePresets.json"
+    "CMakePresets.json",
+    "container/"
   ],
   "exceptions": "safety/exceptions.json; independent authorization only"
 }

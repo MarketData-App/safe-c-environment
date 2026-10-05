@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "helper": "safety/qualification/containment/probe.py",
+  "helper_sha256": "89506cef8d8c4f81a596c3e0711d1a27bc2796eae846045eec7977974c019a8a",
+  "finite_ceilings": {
+    "memory_bytes": 201326592,
+    "child_attempts": 64,
+    "child_seconds": 6,
+    "busy_seconds": 3,
+    "write_bytes": 25165824,
+    "inode_attempts": 96,
+    "log_bytes": 4194304,
+    "deadline_seconds": 8
+  },
+  "cases": [
+    {
+      "id": "D01",
+      "name": "Launch identity and privilege baseline",
+      "subchecks": [
+        "inspection",
+        "kernel-limits",
+        "identity",
+        "computation",
+        "mismatch-rejection"
+      ],
+      "mode": "identity",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D02",
+      "name": "Root/source/input immutability",
+      "subchecks": [
+        "root-write",
+        "source-write",
+        "input-write",
+        "hash-preserved",
+        "scratch-control"
+      ],
+      "mode": "immutability",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D03",
+      "name": "Unexposed host and sibling resources",
+      "subchecks": [
+        "unshared-canary",
+        "sibling-process",
+        "namespace-separation",
+        "mount-inventory",
+        "fixture-control"
+      ],
+      "mode": "resources",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D04",
+      "name": "No inherited authority or secrets",
+      "subchecks": [
+        "environment",
+        "authority",
+        "descriptors",
+        "home",
+        "socket-policy-rejection",
+        "allowed-variable"
+      ],
+      "mode": "secrets",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D05",
+      "name": "Network-off and integration scope",
+      "subchecks": [
+        "loopback-control",
+        "offline-denial",
+        "live-fixture-control",
+        "internal-network",
+        "no-ports",
+        "attachment-policy"
+      ],
+      "mode": "network",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D06",
+      "name": "Privilege and syscall restrictions",
+      "subchecks": [
+        "elevation-denied",
+        "forbidden-syscall-denied",
+        "seccomp-active",
+        "capability-attribution",
+        "permitted-syscall"
+      ],
+      "mode": "privilege",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D07",
+      "name": "Bounded memory runaway",
+      "subchecks": [
+        "finite-ceiling",
+        "limits-verified",
+        "memory-intervention",
+        "event-attribution",
+        "healthy-control"
+      ],
+      "mode": "memory",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D08",
+      "name": "Bounded task proliferation",
+      "subchecks": [
+        "finite-ceiling",
+        "limits-verified",
+        "task-refusal",
+        "event-attribution",
+        "children-reaped",
+        "healthy-control"
+      ],
+      "mode": "pids",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D09",
+      "name": "CPU quota plus deadline",
+      "subchecks": [
+        "finite-ceiling",
+        "quota-verified",
+        "usage-tolerance",
+        "throttling",
+        "independent-deadline",
+        "healthy-control"
+      ],
+      "mode": "cpu",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D10",
+      "name": "Writable-space and artifact bounds",
+      "subchecks": [
+        "byte-bound",
+        "inode-bound",
+        "normal-io",
+        "oversize-rejected",
+        "invalid-artifact-rejected",
+        "valid-artifact",
+        "scratch-freshness"
+      ],
+      "mode": "space",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D11",
+      "name": "Finite logs and bounded evidence",
+      "subchecks": [
+        "driver-policy",
+        "finite-output",
+        "rotation-observed",
+        "outer-overflow",
+        "normal-log",
+        "mandatory-incomplete-rejected"
+      ],
+      "mode": "logs",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D12",
+      "name": "Timeout shutdown and cleanup",
+      "subchecks": [
+        "timeout",
+        "children-cleanup",
+        "state-before-removal",
+        "cancellation-cleanup",
+        "failure-cleanup",
+        "unrelated-preserved",
+        "normal-exit"
+      ],
+      "mode": "deadline",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D13",
+      "name": "Crash containment and runtime-demo integrity",
+      "subchecks": [
+        "crash-container",
+        "runtime-health",
+        "canaries-unchanged",
+        "image-inventory",
+        "binary-identity",
+        "runtime-profile",
+        "normal-entrypoint"
+      ],
+      "mode": "runtime",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    },
+    {
+      "id": "D14",
+      "name": "End-to-end routing and starter inheritance",
+      "subchecks": [
+        "v2-routing",
+        "asan-pair",
+        "msan-pair",
+        "tsan-pair",
+        "fuzz-pair",
+        "clusterfuzzlite-routing",
+        "exports",
+        "fresh-child-containment"
+      ],
+      "mode": "routing",
+      "reproduce": "./tools/safety sandbox selftest",
+      "control": "permitted-operation control in the same protected profile"
+    }
+  ]
+}

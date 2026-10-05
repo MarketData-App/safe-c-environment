@@ -14,3 +14,19 @@ for manual evaluation only; no recurring schedule or corpus service was enabled.
 Remote code-change filtering never replaces committed regression replay. Forked PRs
 receive no storage credentials and cannot overwrite trusted corpora. Artifact inputs
 must be path/size validated before replay. Retain corpus by project/target namespace.
+
+Before enabling the amended baseline, qualify the native Linux x86-64/glibc runner
+with `sandbox doctor` and `sandbox selftest`. Independently approve its exact
+Docker endpoint/daemon identity and protected container policy. Separate the
+launcher account's Docker authority from generated workloads and protect the
+policy/evaluator/export manifest and expected payload digest. The bootstrap account
+currently has broad host/rootful daemon authority: local tests cannot prove this
+separation. Pin the toolchain image; reserve the policy's host headroom, concurrency,
+collector/log/image retention budgets and inspect real cgroup enforcement.
+
+Missing controllers, an unapproved daemon, absent seccomp/AppArmor, piped core
+handlers needing review, exhausted retention, or insufficient headroom require an
+operator-approved runner change and requalification. Do not restart/reconfigure a
+shared daemon or weaken a container flag to make CI green. Example activation
+work must follow completion of the containment addendum; no remote enforcement or
+production deployment has been activated by this local amendment.

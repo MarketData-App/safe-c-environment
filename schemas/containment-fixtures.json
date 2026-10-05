@@ -1,0 +1,128 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "helper",
+    "helper_sha256",
+    "finite_ceilings",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "helper": {
+      "type": "string"
+    },
+    "helper_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "finite_ceilings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory_bytes",
+        "child_attempts",
+        "child_seconds",
+        "busy_seconds",
+        "write_bytes",
+        "inode_attempts",
+        "log_bytes",
+        "deadline_seconds"
+      ],
+      "properties": {
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "child_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "child_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "busy_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "write_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inode_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "log_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "subchecks",
+          "mode",
+          "reproduce",
+          "control"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "D01",
+              "D02",
+              "D03",
+              "D04",
+              "D05",
+              "D06",
+              "D07",
+              "D08",
+              "D09",
+              "D10",
+              "D11",
+              "D12",
+              "D13",
+              "D14"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "subchecks": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string"
+          },
+          "reproduce": {
+            "type": "string"
+          },
+          "control": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "production_approved": false,
+  "application_artifact": null,
+  "allowed_destinations": [],
+  "service_accounts_and_permissions": [],
+  "writable_paths_and_quotas": [],
+  "request_and_concurrency_limits": null,
+  "validation_transactions_backups": null,
+  "restart_policy": null,
+  "selective_egress_enforcement": "PENDING",
+  "deployment_approval": null
+}

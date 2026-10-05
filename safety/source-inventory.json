@@ -531,6 +531,13 @@
         "C32_good",
         "infrastructure_demo"
       ]
+    },
+    "tests/integration/runtime-demo.c": {
+      "sha256": "1b3fbfec3fc4bf10231b07c8876967c58956cdd0cc45191c5a1df9a14881f28f",
+      "role": "infrastructure",
+      "targets": [
+        "runtime_demo"
+      ]
     }
   },
   "format_files": [
@@ -608,6 +615,7 @@
     "safety/qualification/support.c",
     "safety/qualification/support.h",
     "tests/integration/demo.c",
-    "tests/integration/hardening.c"
+    "tests/integration/hardening.c",
+    "tests/integration/runtime-demo.c"
   ]
 }
