@@ -113,7 +113,9 @@
         "F17_good",
         "F18_bad",
         "F18_good",
-        "foundation_recipes"
+        "foundation_recipes",
+        "F14_bad",
+        "F14_good"
       ]
     },
     "tests/integration/demo.c": {

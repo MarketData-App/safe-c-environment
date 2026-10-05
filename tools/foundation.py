@@ -196,6 +196,34 @@ def fail_stop_gate(result, static_hash):
             'scope': 'same-source ordinary static test-link variant; shared-image fault injection not claimed'}
 
 
+def ordinary_gate(result):
+    """Normal validation cannot reinterpret a negative experiment as success."""
+    if not passed(result) or result.get('evidence_complete') is not True:
+        raise GateError('foundation ordinary workload failed or evidence is incomplete')
+    if result.get('binary_unchanged', True) is not True:
+        raise GateError('foundation ordinary workload binary changed')
+    if re.search(r'GLib[^\n]*(?:CRITICAL|WARNING)|(?:ERROR|WARNING): (?:AddressSanitizer|MemorySanitizer|ThreadSanitizer)|LeakSanitizer|runtime error:|CONTRACT_FAILED|FOUNDATION_ORACLE_FAILED', result['output']):
+        raise GateError('foundation ordinary workload emitted a diagnostic')
+    return True
+
+
+def functional_gate(result, property_id):
+    if not (result.get('exit_code') == 1 and result.get('failure') is None and
+            result.get('evidence_complete') is True and result.get('binary_unchanged') is True and
+            result['output'].count('CONTRACT_FAILED ' + property_id + '\n') == 1):
+        raise GateError('foundation designated functional observation missing')
+    return True
+
+
+def sdk_gate(root, observed):
+    locked = read_json(root / 'foundation.lock.json')['profiles']
+    if set(observed) != set(locked):
+        raise GateError('foundation SDK profile inventory mismatch')
+    if any(observed[name] != record['files'] for name, record in locked.items()):
+        raise GateError('foundation SDK header/library/configuration identity mismatch')
+    return True
+
+
 def expected_binding(q):
     from containment import expected_binding as container_expected
     value = container_expected(q.root, q.runner.launcher.runner_identity,
@@ -226,6 +254,8 @@ def new_report(q):
 
 
 def validate_report(root, value, expected, *, complete=True):
+    from schema_check import validate
+    validate(root, 'foundation-report', value)
     if (value.get('schema_version') != 1 or
             value.get('allocation_profile') != 'glib-fail-stop' or
             value.get('application_release_ready') is not False or
@@ -295,6 +325,23 @@ def validate_report(root, value, expected, *, complete=True):
                         observed.get('input_binding') != expected or
                         observed.get('generated_header_sha256') != locked['files']['lib/glib-2.0/include/glibconfig.h']):
                     raise GateError('foundation linked/loaded dependency evidence mismatched')
+    runtime = value['runtime']
+    if runtime.get('status') == 'PASS':
+        if runtime.get('input_binding') != expected:
+            raise GateError('foundation runtime binding mismatched')
+        receipt = read_json(Path(runtime['evidence_path']))
+        for key in ['runtime_image_id', 'binary_sha256', 'image_members', 'input_binding']:
+            if runtime.get(key) != receipt.get(key):
+                raise GateError('foundation runtime artifact identity mismatched')
+    if value['coverage'].get('status') == 'PASS':
+        cov = value['coverage']
+        if cov.get('denominator') != ['foundation/src/sc-foundation.c', 'foundation/include/sc-foundation.h']:
+            raise GateError('foundation coverage denominator mismatched')
+        for category, minimum in [('lines', 90), ('branches', 85)]:
+            count = cov['totals'][category]['count']
+            covered = cov['totals'][category]['covered']
+            if count <= 0 or covered < 0 or covered > count or 100 * covered / count < minimum:
+                raise GateError('foundation actual coverage below contract')
     if value['status'] == 'PASS' and complete:
         if set(names) != NORMAL_PROFILES or any(row['status'] != 'PASS' for row in profiles):
             raise GateError('foundation mandatory normal profile incomplete')
@@ -313,13 +360,20 @@ def doctor(q):
     script = '''import hashlib,json,pathlib,sys
 lock=json.load(open('/src/foundation.lock.json'))
 errors=[]
+observed={}
 for profile,row in lock['profiles'].items():
+ observed[profile]={}
  for name,expected in row['files'].items():
   path=pathlib.Path('/opt/foundation')/profile/name
-  if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:errors.append(profile+'/'+name)
-print(json.dumps({'status':'FAIL' if errors else 'PASS','mismatched_paths':errors,'profiles':sorted(lock['profiles'])}))
+  actual=hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+  observed[profile][name]=actual
+  if actual!=expected:errors.append(profile+'/'+name)
+print(json.dumps({'status':'FAIL' if errors else 'PASS','mismatched_paths':errors,'profiles':sorted(lock['profiles']),'observed_files':observed}))
 sys.exit(bool(errors))'''
     identities = q.runner.run(['python3', '-c', script], label='foundation-sdk-inputs')
+    observed = json.loads(identities['output']).get('observed_files', {}) if passed(identities) else {}
+    if passed(identities):
+        sdk_gate(q.root, observed)
     build = q.build('strict')
     controls = []
     if q.built(build):
@@ -330,7 +384,7 @@ sys.exit(bool(errors))'''
                              'library_binding': binding, 'evidence_path': result['evidence_path']})
     ok = passed(identities) and q.built(build) and len(controls) == 3 and all(r['status'] == 'PASS' for r in controls)
     return {'status': 'PASS' if ok else 'BLOCKED', 'inputs': inputs,
-            'sdk_evidence_path': identities['evidence_path'], 'controls': controls,
+            'sdk_evidence_path': identities['evidence_path'], 'observed_files': observed, 'controls': controls,
             'build_audit': build['audit'], 'minimum_api': '2.70'}
 
 
@@ -352,7 +406,11 @@ def normal_checks(q, *, full=True):
             row['evidence_paths'].append(result['evidence_path'])
             expected = {'sizes', 'text', 'bytes', 'lists', 'maps', 'errors', 'cleanup'}
             controls = re.findall(r'^CONTRACT_PASS (\w+)$', result['output'], re.M)
-            if passed(result) and len(controls) == len(expected) and set(controls) == expected:
+            try:
+                clean = ordinary_gate(result)
+            except GateError:
+                clean = False
+            if clean and len(controls) == len(expected) and set(controls) == expected:
                 row['library_binding'] = loaded_binding(q, build, result)
                 observations=re.findall(r'^CONTRACT_CHECK (F[0-9]{2}/[a-z0-9-]+)$', result['output'], re.M)
                 expected_checks={r['id'] for r in read_json(q.root/'safety/foundation-contract-checks.json')['checks']}
@@ -364,7 +422,11 @@ def normal_checks(q, *, full=True):
                 row['binary_sha256'] = result['binary_sha256']
                 recipe = q.executable(build, 'foundation_recipes', label='foundation-recipe-' + name)
                 row['evidence_paths'].append(recipe['evidence_path'])
-                if passed(recipe) and recipe['output'].count('FOUNDATION_RECIPE_PASS') == 1:
+                try:
+                    recipe_clean = ordinary_gate(recipe)
+                except GateError:
+                    recipe_clean = False
+                if recipe_clean and recipe['output'].count('FOUNDATION_RECIPE_PASS') == 1:
                     row['recipe_library_binding'] = loaded_binding(q, build, recipe)
                     row['recipe_binary_sha256'] = recipe['binary_sha256']
                     row['status'] = 'PASS'
@@ -520,8 +582,11 @@ def functional_mutant_checks(q):
                 row['evidence_paths'] += [negative['evidence_path'],repaired['evidence_path']]
                 row['mutation']=bad['mutation']
                 row['negative_binary_sha256']=negative['binary_sha256'];row['control_binary_sha256']=repaired['binary_sha256']
-                row['bad']='PASS' if (negative['exit_code']==1 and negative['failure'] is None and negative['evidence_complete'] and negative['binary_unchanged'] and
-                    negative['output'].count('CONTRACT_FAILED '+definition['expected_check']+'\n')==1) else 'FAIL'
+                try:
+                    functional_gate(negative, definition['expected_check'])
+                    row['bad'] = 'PASS'
+                except GateError:
+                    row['bad'] = 'FAIL'
                 row['control']='PASS' if (passed(repaired) and repaired['binary_unchanged'] and
                     repaired['output'].count('CONTRACT_CHECK '+definition['expected_check']+'\n')==1) else 'FAIL'
                 row['negative_library_binding']=loaded_binding(q,bad,negative)

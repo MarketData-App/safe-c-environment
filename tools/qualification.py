@@ -27,7 +27,7 @@ class Qualifier:
         cc = compiler or ('gcc' if profile=='gcc-analyzer' else 'clang')
         key = f'{profile}-{cc}-O{opt}-{case}-{variant}'
         if foundation_case != 'NONE':
-            if foundation_case not in {'F01', 'F02', 'F03', 'F17', 'F18', 'F19'}:
+            if foundation_case not in {'F01', 'F02', 'F03', 'F14', 'F17', 'F18', 'F19'}:
                 raise GateError('unknown foundation runtime case')
             key += '-' + foundation_case
         if any(g not in {'NDEBUG', 'G_DISABLE_ASSERT', 'G_DISABLE_CHECKS'} for g in guards) or len(set(guards)) != len(guards):

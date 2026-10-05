@@ -193,7 +193,9 @@
         "contradictory-result-mutant",
         "unexpected-critical-rejection"
       ],
-      "required_control": true
+      "required_control": true,
+      "runtime_source": "safety/qualification/foundation/F14.c",
+      "source_sha256": "56ab8f49d34cafe84ed22c0d578b5d40c9b049f88126377dcd5fdeaf4da80526"
     },
     {
       "id": "F15",
@@ -355,12 +357,14 @@
         "wrong-functional-failure",
         "missing-msan-finding",
         "unrelated-fatal",
-        "ordinary-oom-as-success"
+        "ordinary-oom-as-success",
+        "cgroup-oom",
+        "timeout"
       ]
     },
     {
       "parent": "P15",
-      "name": "foundation-policy-weakened",
+      "name": "foundation-contract-downgrade",
       "variants": [
         "reduced-text-limit",
         "unchecked-collection-index",
@@ -371,7 +375,7 @@
     },
     {
       "parent": "P16",
-      "name": "foundation-fuzz-bypassed",
+      "name": "foundation-fuzzer-no-op",
       "variants": [
         "noop-harness",
         "omitted-adapter-object",

@@ -570,7 +570,9 @@
         "F17_good",
         "F18_bad",
         "F18_good",
-        "foundation_recipes"
+        "foundation_recipes",
+        "F14_bad",
+        "F14_good"
       ]
     },
     "foundation/tests/stateful-fuzzer.c": {
@@ -632,6 +634,14 @@
       "role": "foundation-recipe",
       "targets": [
         "foundation_recipes"
+      ]
+    },
+    "safety/qualification/foundation/F14.c": {
+      "sha256": "56ab8f49d34cafe84ed22c0d578b5d40c9b049f88126377dcd5fdeaf4da80526",
+      "role": "qualification-only",
+      "targets": [
+        "F14_bad",
+        "F14_good"
       ]
     }
   },
@@ -724,6 +734,7 @@
     "safety/qualification/support.h",
     "tests/integration/demo.c",
     "tests/integration/hardening.c",
-    "tests/integration/runtime-demo.c"
+    "tests/integration/runtime-demo.c",
+    "safety/qualification/foundation/F14.c"
   ]
 }

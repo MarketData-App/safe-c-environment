@@ -105,7 +105,7 @@ endif()
 
 set(FOUNDATION_CASE "NONE" CACHE STRING "Explicit inventoried foundation qualification case")
 if(NOT FOUNDATION_CASE STREQUAL "NONE")
-  if(NOT FOUNDATION_CASE MATCHES "^F(01|02|03|17|18|19)$")
+  if(NOT FOUNDATION_CASE MATCHES "^F(01|02|03|14|17|18|19)$")
     message(FATAL_ERROR "foundation runtime case is not inventoried")
   endif()
   file(READ "${PROJECT_SOURCE_DIR}/safety/foundation-fixtures.json" sc_fixtures)

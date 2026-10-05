@@ -83,12 +83,14 @@
             "wrong-functional-failure",
             "missing-msan-finding",
             "unrelated-fatal",
-            "ordinary-oom-as-success"
+            "ordinary-oom-as-success",
+            "cgroup-oom",
+            "timeout"
           ]
         },
         {
           "parent": "P15",
-          "name": "foundation-policy-weakened",
+          "name": "foundation-contract-downgrade",
           "variants": [
             "reduced-text-limit",
             "unchecked-collection-index",
@@ -99,7 +101,7 @@
         },
         {
           "parent": "P16",
-          "name": "foundation-fuzz-bypassed",
+          "name": "foundation-fuzzer-no-op",
           "variants": [
             "noop-harness",
             "omitted-adapter-object",
@@ -612,39 +614,22 @@
           }
         },
         {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "id",
-            "name",
-            "detector",
-            "subchecks",
-            "required_control"
-          ],
-          "properties": {
-            "id": {
-              "const": "F14"
-            },
-            "name": {
-              "const": "error-and-output"
-            },
-            "detector": {
-              "const": "functional"
-            },
-            "subchecks": {
-              "const": [
-                "propagation",
-                "omitted-error",
-                "pending-error",
-                "output-initialization",
-                "cleanup",
-                "contradictory-result-mutant",
-                "unexpected-critical-rejection"
-              ]
-            },
-            "required_control": {
-              "const": true
-            }
+          "const": {
+            "id": "F14",
+            "name": "error-and-output",
+            "detector": "functional",
+            "subchecks": [
+              "propagation",
+              "omitted-error",
+              "pending-error",
+              "output-initialization",
+              "cleanup",
+              "contradictory-result-mutant",
+              "unexpected-critical-rejection"
+            ],
+            "required_control": true,
+            "runtime_source": "safety/qualification/foundation/F14.c",
+            "source_sha256": "56ab8f49d34cafe84ed22c0d578b5d40c9b049f88126377dcd5fdeaf4da80526"
           }
         },
         {

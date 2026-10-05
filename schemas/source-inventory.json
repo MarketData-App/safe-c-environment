@@ -99,7 +99,8 @@
         "safety/qualification/foundation/F17.c",
         "safety/qualification/foundation/F18.c",
         "safety/qualification/foundation/F19.c",
-        "foundation/tests/recipes.c"
+        "foundation/tests/recipes.c",
+        "safety/qualification/foundation/F14.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -1880,7 +1881,9 @@
                 "F17_good",
                 "F18_bad",
                 "F18_good",
-                "foundation_recipes"
+                "foundation_recipes",
+                "F14_bad",
+                "F14_good"
               ]
             }
           }
@@ -2073,6 +2076,30 @@
               ]
             }
           }
+        },
+        "safety/qualification/foundation/F14.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "F14_bad",
+                "F14_good"
+              ]
+            }
+          }
         }
       }
     },
@@ -2080,7 +2107,99 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "const": [
+        "foundation/include/sc-foundation.h",
+        "foundation/src/sc-foundation.c",
+        "foundation/tests/contracts.c",
+        "foundation/tests/dependency-identity.c",
+        "foundation/tests/dependency-identity.h",
+        "foundation/tests/recipes.c",
+        "foundation/tests/stateful-fuzzer.c",
+        "fuzz/harness.c",
+        "fuzz/parser.h",
+        "fuzz/parser_bad.c",
+        "fuzz/parser_good.c",
+        "fuzz/replay-main.c",
+        "safety/qualification/C01/bad.c",
+        "safety/qualification/C01/good.c",
+        "safety/qualification/C02/bad.c",
+        "safety/qualification/C02/good.c",
+        "safety/qualification/C03/bad.c",
+        "safety/qualification/C03/good.c",
+        "safety/qualification/C04/bad.c",
+        "safety/qualification/C04/good.c",
+        "safety/qualification/C05/bad.c",
+        "safety/qualification/C05/good.c",
+        "safety/qualification/C06/bad.c",
+        "safety/qualification/C06/good.c",
+        "safety/qualification/C07/bad.c",
+        "safety/qualification/C07/good.c",
+        "safety/qualification/C08/bad.c",
+        "safety/qualification/C08/good.c",
+        "safety/qualification/C09/bad.c",
+        "safety/qualification/C09/good.c",
+        "safety/qualification/C10/bad.c",
+        "safety/qualification/C10/good.c",
+        "safety/qualification/C11/bad.c",
+        "safety/qualification/C11/good.c",
+        "safety/qualification/C12/bad.c",
+        "safety/qualification/C12/good.c",
+        "safety/qualification/C13/bad.c",
+        "safety/qualification/C13/good.c",
+        "safety/qualification/C14/bad.c",
+        "safety/qualification/C14/good.c",
+        "safety/qualification/C15/bad.c",
+        "safety/qualification/C15/good.c",
+        "safety/qualification/C16/bad.c",
+        "safety/qualification/C16/good.c",
+        "safety/qualification/C17/bad.c",
+        "safety/qualification/C17/good.c",
+        "safety/qualification/C18/bad.c",
+        "safety/qualification/C18/good.c",
+        "safety/qualification/C19/bad.c",
+        "safety/qualification/C19/good.c",
+        "safety/qualification/C20/bad.c",
+        "safety/qualification/C20/good.c",
+        "safety/qualification/C21/bad.c",
+        "safety/qualification/C21/good.c",
+        "safety/qualification/C22/bad.c",
+        "safety/qualification/C22/good.c",
+        "safety/qualification/C23/bad.c",
+        "safety/qualification/C23/good.c",
+        "safety/qualification/C24/bad.c",
+        "safety/qualification/C24/good.c",
+        "safety/qualification/C25/bad.c",
+        "safety/qualification/C25/good.c",
+        "safety/qualification/C26/bad.c",
+        "safety/qualification/C26/good.c",
+        "safety/qualification/C27/bad.c",
+        "safety/qualification/C27/good.c",
+        "safety/qualification/C28/bad.c",
+        "safety/qualification/C28/good.c",
+        "safety/qualification/C29/bad.c",
+        "safety/qualification/C29/good.c",
+        "safety/qualification/C30/bad.c",
+        "safety/qualification/C30/good.c",
+        "safety/qualification/C31/bad.c",
+        "safety/qualification/C31/good.c",
+        "safety/qualification/C33/bad.c",
+        "safety/qualification/C33/good.c",
+        "safety/qualification/C34/bad.c",
+        "safety/qualification/C34/good.c",
+        "safety/qualification/foundation/F01.c",
+        "safety/qualification/foundation/F02.c",
+        "safety/qualification/foundation/F03.c",
+        "safety/qualification/foundation/F17.c",
+        "safety/qualification/foundation/F18.c",
+        "safety/qualification/foundation/F19.c",
+        "safety/qualification/support.c",
+        "safety/qualification/support.h",
+        "tests/integration/demo.c",
+        "tests/integration/hardening.c",
+        "tests/integration/runtime-demo.c",
+        "safety/qualification/foundation/F14.c"
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema"
