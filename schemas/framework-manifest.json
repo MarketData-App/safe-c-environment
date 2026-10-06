@@ -1,0 +1,12 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
+ "required":["schema_version","framework_identity","files","images","qualification"],
+ "properties":{
+  "schema_version":{"const":1},
+  "framework_identity":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "files":{"type":"object","additionalProperties":{"type":"string","pattern":"^[0-9a-f]{64}$"}},
+  "images":{"type":"object","additionalProperties":false,"required":["sdk","developer","archive_sha256"],
+    "properties":{"sdk":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"developer":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+      "archive_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}},
+  "qualification":{"type":"object","additionalProperties":false,"required":["run_id","source_identity","overall_state"],
+    "properties":{"run_id":{"type":"string","pattern":"^[0-9a-f]{32}$"},"source_identity":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+      "overall_state":{"const":"VALIDATED_UNSEALED"}}}}}

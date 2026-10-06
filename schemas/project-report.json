@@ -1,0 +1,10 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
+ "required":["schema_version","project","framework_identity","source_identity","overall_state","gates"],
+ "properties":{
+  "schema_version":{"const":1},
+  "project":{"type":"string","pattern":"^[a-z][a-z0-9-]{1,62}$"},
+  "framework_identity":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "source_identity":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "overall_state":{"enum":["PASS","FAIL","BLOCKED"]},
+  "gates":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["name","status"],
+    "properties":{"name":{"type":"string"},"status":{"enum":["PASS","FAIL","BLOCKED","SKIPPED"]},"detail":{"type":"string"}}}}}}
