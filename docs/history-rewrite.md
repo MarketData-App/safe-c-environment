@@ -7,9 +7,9 @@ personal host path that the containment probe used for the D04 `home` subcheck.
 - The literal path check was replaced by a general check: no mount point is at or
   below `/home`, and `/home` is empty. The new check is equal to or stronger than
   the old one.
-- The `helper_sha256` pin in `safety/containment-fixtures.json` was updated in
-  both historical commits that contain the probe, so each commit stays
-  internally consistent.
+- The `helper_sha256` pin in `safety/containment-fixtures.json` was updated for
+  both historical versions of the probe, so every historical commit that
+  contains the probe stays internally consistent.
 - Those historical commits never executed the replacement check. It was first
   requalified by full CI run 27727adb1493412d86e394c8ddc20e15 (all 43 gates PASS,
   D04 PASS, control PASS) on source identity 11bbc534.

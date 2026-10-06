@@ -49,8 +49,13 @@ contains credentials, emails, home paths or the local login and host names. The
 pre-push hook also covers cherry-picks and rebases. Personal values are derived on
 the committing machine; list further private terms, one regular expression per
 line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks with
-`--no-verify`. The `privacy` workflow repeats the tree and history checks and the
-hook regression suite (`.githooks/tests/regression.sh`) on every push.
+`--no-verify`. The `privacy` workflow runs the tree and history checks and the
+hook regression suite (`.githooks/tests/regression.sh`) on every push, with the
+generic rules only: a GitHub runner has no local login, host or private patterns.
+Known limits: a commit that adds a vendored file together with its lock pin
+exempts that file's content; altered local remote-tracking refs can shorten a push
+range; content in formats other than text, UTF-16/32, gzip and zip is read only as
+printable runs.
 
 Reviews and approvals follow [the approval protocol](docs/approval-protocol.md):
 fresh-context adversarial agent approvers are the independent authority. The
