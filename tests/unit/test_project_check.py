@@ -196,8 +196,43 @@ class CtestInventoryTests(unittest.TestCase):
         self.assertEqual((p['missing'],p['extra']),(['project.greeting.test_greeting'],['project.greeting.test_other']))
         p=pc.ctest_inventory_problems(['project.greeting.test_greeting','project.run.hello','project.run.hello'],self.EXPECTED)
         self.assertEqual(p['extra'],['project.run.hello'])
+        p=pc.ctest_inventory_problems(['project.greeting.test_greeting','project.run.hello','project.x','project.x'],self.EXPECTED)
+        self.assertEqual(p['extra'],['project.x'])
         p=pc.ctest_inventory_problems(None,self.EXPECTED)
         self.assertEqual(p['missing'],['project.greeting.test_greeting','project.run.hello'])
+
+class InfrastructureTests(unittest.TestCase):
+    def check(self, fail_at):
+        c=object.__new__(pc.ProjectCheck)
+        c.project_dir,c.project,c.rows,c.tests,c.builds='app',PROJECT,{},{'unit':[],'integration':[]},{}
+        def step(label,argv,**kw):
+            if label.endswith(fail_at):raise pc.InfrastructureError('infrastructure: project container stopped during step '+label)
+            return {'exit_code':0,'failure':None,'output':'','evidence_path':'e/'+label}
+        c.step=step
+        flags=['-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-Wconversion','-Wsign-conversion','-Wshadow','-Wformat=2','-Wformat-security',
+               '-Wundef','-Wstrict-prototypes','-Wmissing-prototypes','-Wvla','-Wcast-qual','-Wwrite-strings',
+               '-Werror=implicit-function-declaration','-Werror=incompatible-pointer-types']
+        database=[] if fail_at=='never' else [{'file':'/src/'+f,'arguments':['cc',*flags,'-c','/src/'+f]} for f in pc.audit_sources('app',PROJECT)]
+        def read_text(label,path):
+            if fail_at=='compile-database':raise pc.InfrastructureError('infrastructure: x')
+            return json.dumps(database),'e'
+        c.read_text=read_text
+        return c
+    def test_infrastructure_error_during_audit_is_blocked_not_fail(self):
+        for fail_at in ['compile-database','link-audit']:
+            with self.subTest(fail_at=fail_at):
+                c=self.check(fail_at);build=pc.build_plan('app')[0]
+                with self.assertRaises(pc.InfrastructureError):c.build(build)
+                self.assertNotIn('gcc-O0',c.rows)
+                rows=pc.complete_rows(c.rows,None)
+                self.assertEqual([r['status'] for r in rows if r['name']=='gcc-O0'],['BLOCKED'])
+                self.assertEqual(pc.verdict(rows,'BLOCKED',[],True),('BLOCKED',2))
+    def test_project_audit_failure_still_fails(self):
+        c=self.check('never');build=pc.build_plan('app')[0]
+        with self.assertRaises(pc.Stop):c.build(build)
+        self.assertEqual(c.rows['gcc-O0']['status'],'FAIL');self.assertEqual(c.rows['gcc-O0']['details']['stage'],'audit')
+    def test_lifetime_exhaustion_is_infrastructure(self):
+        with self.assertRaises(pc.InfrastructureError):pc.capped_timeout(300,1500,1000,2000,reserve=60)
 
 class VerdictTests(unittest.TestCase):
     def rows(self,*statuses):return [{'name':str(i),'status':s} for i,s in enumerate(statuses)]

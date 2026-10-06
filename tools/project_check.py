@@ -53,6 +53,10 @@ RUNTIME_BYTES = 8*1024*1024
 CHUNK = 2*1024*1024
 SANITIZERS = ('AddressSanitizer', 'LeakSanitizer', 'MemorySanitizer', 'ThreadSanitizer',
               'UndefinedBehaviorSanitizer', 'runtime error')
+class InfrastructureError(GateError):
+    """The container, Docker or its lifetime failed; the gate is BLOCKED, never a project FAIL."""
+
+
 VERDICT_EXIT = {'PASS': 0, 'FAIL': 1, 'BLOCKED': 2, 'PASS_UNQUALIFIED_FRAMEWORK': 3}
 
 
@@ -174,7 +178,7 @@ def capped_timeout(requested, wall, deadline, now, reserve=CONTAINER_RESERVE):
     Returns (timeout, capped_by_lifetime). Raises GateError when the lifetime is exhausted."""
     remaining = deadline - now - reserve
     if remaining < 1:
-        raise GateError('project container lifetime exhausted before the step could run')
+        raise InfrastructureError('project container lifetime exhausted before the step could run')
     timeout = min(requested, wall, remaining)
     return timeout, timeout == remaining and remaining < min(requested, wall)
 
@@ -190,10 +194,8 @@ def ctest_inventory_problems(names, expected):
     if names is None:
         return {'missing': sorted(expected['unit']+expected['integration']), 'extra': [], 'reason': 'CTest inventory unavailable'}
     wanted = set(expected['unit']+expected['integration'])
-    problems = {'missing': sorted(wanted-set(names)), 'extra': sorted(set(names)-wanted)}
-    if len(names) != len(set(names)):
-        problems['extra'] += sorted({n for n in names if names.count(n) > 1})
-    return problems
+    duplicates = {n for n in names if names.count(n) > 1}
+    return {'missing': sorted(wanted-set(names)), 'extra': sorted((set(names)-wanted) | duplicates)}
 
 
 def verdict(rows, runtime_status, differences, development):
@@ -395,17 +397,23 @@ class ProjectCheck:
     def running(self):
         if self.record['lifecycle'] is not None:
             return False
-        state = self.launcher.json(['inspect', self.record['container_id']])[0]['State']
+        try:
+            state = self.launcher.json(['inspect', self.record['container_id']])[0]['State']
+        except (GateError, ValueError, KeyError, IndexError) as exc:
+            raise InfrastructureError('infrastructure: project container inspection failed') from exc
         return bool(state.get('Running'))
 
     # One protected `docker exec` in the project container; evidence on disk.
     # Container or exec failures raise GateError (BLOCKED), never a project FAIL.
     def step(self, label, argv, *, timeout, env=None, keep_output=True):
         if not self.running():
-            raise GateError('infrastructure: project container is not running before step '+label)
+            raise InfrastructureError('infrastructure: project container is not running before step '+label)
         timeout, capped = capped_timeout(timeout, self.wall, self.deadline, time.monotonic())
         self.counter += 1
-        result = self.launcher.execute(self.record, argv, timeout=timeout, env=env)
+        try:
+            result = self.launcher.execute(self.record, argv, timeout=timeout, env=env)
+        except GateError as exc:
+            raise InfrastructureError('infrastructure: protected exec refused step '+label+': '+str(exc)[:200]) from exc
         saved = {k: v for k, v in result.items() if k not in ('effective_settings', 'runner_identity')}
         saved.update(command=list(argv), environment=dict(env or {}), label=label, timeout=timeout,
                      capped_by_container_lifetime=capped)
@@ -416,11 +424,11 @@ class ProjectCheck:
         result['evidence_path'] = str(path)
         if not passed(result):
             if result['failure'] == 'TIMEOUT' and capped:
-                raise GateError('infrastructure: project container lifetime ended during step '+label)
+                raise InfrastructureError('infrastructure: project container lifetime ended during step '+label)
             if exec_infrastructure_error(result):
-                raise GateError('infrastructure: docker exec failed during step '+label)
+                raise InfrastructureError('infrastructure: docker exec failed during step '+label)
             if result['failure'] is None and not self.running():
-                raise GateError('infrastructure: project container stopped during step '+label)
+                raise InfrastructureError('infrastructure: project container stopped during step '+label)
         return result
 
     def set(self, name, status, details=None, evidence=()):
@@ -510,6 +518,8 @@ class ProjectCheck:
                 raise GateError('final link instrumentation missing')
             if profile == 'hardened' and any('-pie' not in row or '-Wl,-z,relro,-z,now,-z,noexecstack' not in row for row in actual):
                 raise GateError('final link hardening missing')
+        except InfrastructureError:
+            raise
         except (GateError, ValueError, KeyError) as exc:
             details.update(stage='audit', reason=str(exc)[:300])
             self.set(gate, 'FAIL', details, evidence)
@@ -551,6 +561,8 @@ class ProjectCheck:
         expected = expected_tests(self.project)
         try:
             names = parse_ctest_names(listing['output']) if passed(listing) else None
+        except InfrastructureError:
+            raise
         except GateError:
             names = None
         problems = ctest_inventory_problems(names, expected)
@@ -771,6 +783,18 @@ def runtime_start(launcher, run_dir, project, members):
     return result
 
 
+def complete_rows(rows, stopped_after):
+    """All 23 rows in policy order; a gate without a decided row is BLOCKED."""
+    reason = f'not run: gate {stopped_after} failed' if stopped_after else 'not run: run blocked'
+    result = []
+    for name in GATES:
+        if name not in rows:
+            rows[name] = gate_row(name, 'BLOCKED', {'reason': reason})
+            print(f'project gate {name}: BLOCKED', flush=True)
+        result.append(rows[name])
+    return result
+
+
 def snapshot_sources(root, scratch):
     snapshot = scratch/'source-snapshot'
     snapshot.mkdir()
@@ -860,12 +884,7 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
                 report['blockers'].append('container cleanup: '+(str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__))
         if scratch is not None:
             shutil.rmtree(scratch, ignore_errors=True)
-    reason = f'not run: gate {report["stopped_after"]} failed' if report['stopped_after'] else 'not run: run blocked'
-    for name in GATES:
-        if name not in rows:
-            rows[name] = gate_row(name, 'BLOCKED', {'reason': reason})
-            print(f'project gate {name}: BLOCKED', flush=True)
-    report['gates'] = [rows[name] for name in GATES]
+    report['gates'] = complete_rows(rows, report['stopped_after'])
     report['verdict'], report['exit_code'] = verdict(report['gates'], report['runtime']['status'],
                                                      report['framework_differences'], development)
     report['finished_at'] = datetime.now(timezone.utc).isoformat()
