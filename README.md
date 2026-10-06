@@ -52,6 +52,11 @@ line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks wit
 `--no-verify`. The `privacy` workflow repeats the tree and history checks and the
 hook regression suite (`.githooks/tests/regression.sh`) on every push.
 
+Reviews and approvals follow [the approval protocol](docs/approval-protocol.md):
+fresh-context adversarial agent approvers are the independent authority. The
+history was rewritten once before first publication; see
+[the history rewrite note](docs/history-rewrite.md).
+
 Docker containment commands: `./tools/safety sandbox plan --profile build`,
 `./tools/safety sandbox doctor`, `./tools/safety sandbox selftest`, and
 `./tools/safety runtime smoke`. See [the containment runbook](docs/docker-containment.md).

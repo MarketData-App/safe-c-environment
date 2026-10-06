@@ -72,6 +72,7 @@
     "docs/developer-workflow.md",
     "docs/docker-containment.md",
     "docs/foundation-recipes.md",
+    "docs/history-rewrite.md",
     "docs/instantiate-prompt.md",
     "docs/legacy-Makefile.txt",
     "docs/qualification.md",

@@ -16,3 +16,18 @@ runner changes need two separately launched approvers that both approve. Repair
 findings through the ledger and launch new approvers for the repaired source;
 an approval binds only the exact source identity it reviewed. Agent approval is
 model judgement, not proof; trusted tools still decide deterministic results.
+
+Owner decision, quoted: "let's use that workflow for reviews/approvals from here
+on out. use adversarial agent approvers, not human ones." The implementing agent
+recorded this quotation; the repository cannot verify it independently.
+
+Briefs: a brief lists every changed path since the last approved state, including
+untracked source inputs, and the exact source identity. Approvers may examine
+anything beyond the brief and must report scope gaps. A brief that omits a changed
+path voids the approval for that path.
+
+Records: each round keeps the full brief, every verdict verbatim and a record with
+digests, approver model, head commit and source identity under
+`artifacts/approvals/<round>-<head>/`. That directory is untracked because
+verdicts can contain local paths; the commit that lands approved work names the
+round and its outcome.
