@@ -22,15 +22,18 @@ From the repository root:
 ./tools/safety project check --project examples/hello-world --development
 ```
 
-In an instantiated project, run `./tools/safety project check` from the project
-root. The command runs every gate in one SDK container, then starts `hello world`
+This command builds the example: the framework root `CMakeLists.txt` reads
+`project.json` (project mode, `-DSAFE_C_PROJECT_DIR`), so the example has no
+`CMakeLists.txt` of its own. In an instantiated project, run
+`./tools/safety project check` from the project root. The command runs every gate in one SDK container, then starts `hello world`
 once in the runtime image and requires exit status 0.
 
 Expected output: one line per gate with `PASS`, then the verdict. The report is
 `artifacts/project-report.json`. The target time for a full run of this example
 on a GitHub-hosted Linux x86-64 runner is 6 to 10 minutes, including 30 seconds
-of fuzz exploration. This is a design target; it is not measured yet. A failure stops the run with a non-zero exit status and names the
-gate and the evidence file.
+of fuzz exploration. This is a design target; it is not measured yet. A failure
+stops the run with a non-zero exit status and names the gate and the evidence
+file.
 
 Run the program directly after a build:
 

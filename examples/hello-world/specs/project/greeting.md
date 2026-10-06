@@ -112,7 +112,10 @@ Inputs:
 - `argv[1]`, when not `NULL`, is NUL-terminated. `greeting_main` reads at
   most `GREETING_NAME_MAX + 1` bytes of it, so a longer argument gives
   `GREETING_NAME_TOO_LONG` without a scan of the whole argument.
-- `out` and `err` are valid streams open for writing, borrowed for the call.
+- `out` and `err` are valid, non-`NULL` streams, borrowed for the call. A
+  stream that rejects writes (for example one opened only for reading, or a
+  full device) is a defined input: a rejected write, newline or flush on `out`
+  returns 1, and a rejected write on `err` is ignored.
 
 Behaviour:
 
@@ -143,7 +146,7 @@ representable maximum.
 | Order | control byte then invalid UTF-8 → `GREETING_INVALID_UTF8`; each earlier failure with `capacity` 0 |
 | Capacity | 0, 1, exact − 1 (13 for `world`, 72 for 64 bytes), exact (14, 73), large (128) |
 | Status names | every enumerator; the value 7 → `GREETING_UNKNOWN` |
-| `greeting_main` | `argc` 1 and 3 → 2; `world` → 0 and `Hello, world!`; tab name, `NULL` name and a 70-byte name → 1 and the status name; a read-only `out` stream → 1 |
+| `greeting_main` | `argc` 1 and 3 → 2; `world` → 0 and `Hello, world!`; tab name, `NULL` name and a 70-byte name → 1 and the status name; an `out` stream that rejects writes (opened read-only) → 1; output captured with ISO C `tmpfile` |
 
 `fuzz/project/greeting_fuzz.c` checks the output and failure postconditions for
 arbitrary names with the capacities 0, 1, exact − 1, exact and 128: the exact

@@ -673,7 +673,7 @@
       ]
     },
     "examples/hello-world/tests/project/test_greeting.c": {
-      "sha256": "067ef0943fd2314ff3b5fed3661889bb72c8f077e7ecd53f7bffc41735fae704",
+      "sha256": "236819ae9e1202a307f151f824c63f7674ea3139258206e173012770211e07ab",
       "role": "example",
       "targets": [
         "project.greeting.test_greeting"

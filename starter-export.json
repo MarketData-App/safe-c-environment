@@ -85,7 +85,6 @@
     "docs/trust-boundary.md",
     "docs/upstream-map.md",
     "examples/hello-world/AGENTS.md",
-    "examples/hello-world/CMakeLists.txt",
     "examples/hello-world/README.md",
     "examples/hello-world/fuzz/project/corpus/greeting/seed-empty",
     "examples/hello-world/fuzz/project/corpus/greeting/seed-max",

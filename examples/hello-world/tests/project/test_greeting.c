@@ -1,6 +1,3 @@
-/* fmemopen is POSIX.1-2008; the build uses strict C17 without extensions. */
-#define _POSIX_C_SOURCE 200809L
-
 #include "greeting.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -123,15 +120,25 @@ static void status_names(void) {
     expect_name((enum greeting_status)7, "GREETING_UNKNOWN");
 }
 
-/* The buffers start zeroed, so the captured text is always NUL-terminated and
- * every byte is initialized for MemorySanitizer. */
-static FILE *open_capture(char *buffer, size_t size) {
-    FILE *stream = fmemopen(buffer, size, "w");
+/* Opens an ISO C temporary file that captures one output stream. */
+static FILE *open_capture(void) {
+    FILE *stream = tmpfile();
     if (stream == NULL) {
-        (void)fputs("fmemopen failed\n", stderr);
+        (void)fputs("tmpfile failed\n", stderr);
         exit(1);
     }
     return stream;
+}
+
+/* Reads the captured text back and closes the stream. The buffer starts zeroed
+ * and at most size - 1 bytes are read, so the text is always NUL-terminated and
+ * every byte is initialized for MemorySanitizer. */
+static void read_capture(FILE *stream, char *buffer, size_t size) {
+    rewind(stream);
+    const size_t count = fread(buffer, 1U, size - 1U, stream);
+    *(buffer + count) = '\0';
+    REQUIRE(ferror(stream) == 0);
+    REQUIRE(fclose(stream) == 0);
 }
 
 /* Runs greeting_main with captured streams and checks the exit status and the
@@ -140,11 +147,11 @@ static void expect_main(int argc, char **argv, int want, const char *want_out,
                         const char *want_err) {
     char out_text[128] = {0};
     char err_text[128] = {0};
-    FILE *out = open_capture(out_text, sizeof out_text - 1U);
-    FILE *err = open_capture(err_text, sizeof err_text - 1U);
+    FILE *out = open_capture();
+    FILE *err = open_capture();
     const int got = greeting_main(argc, argv, out, err);
-    REQUIRE(fclose(out) == 0);
-    REQUIRE(fclose(err) == 0);
+    read_capture(out, out_text, sizeof out_text);
+    read_capture(err, err_text, sizeof err_text);
     REQUIRE(got == want);
     REQUIRE(strcmp(out_text, want_out) == 0);
     REQUIRE(strcmp(err_text, want_err) == 0);

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_identity": "e17c368fba0bff8a2a43280c6bbd2c9776e8515f543fee95f071609390b78579",
+  "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
   "units": {
     "greeting": [
       "Is name_len bounded before any name byte is read?",
@@ -15,7 +15,7 @@
     {
       "id": "GREETING-0001",
       "origin": "reviewer:example-walkthrough",
-      "source_identity": "e17c368fba0bff8a2a43280c6bbd2c9776e8515f543fee95f071609390b78579",
+      "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
       "location": "src/greeting.c:100",
       "property": "out-of-bounds read of name when name_len exceeds the readable name buffer (for example SIZE_MAX)",
       "severity": "high if real: read past a borrowed caller buffer",
@@ -97,6 +97,9 @@
         185,
         190,
         193,
+        194,
+        195,
+        196,
         198
       ]
     }
