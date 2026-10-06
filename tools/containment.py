@@ -237,7 +237,7 @@ def routing(q,value,report,*,instance=False):
     native=q.runner.records
     routed=bool(native) and all(r.get('container_id') and r.get('profile') in q.runner.launcher.value['profiles'] and r.get('effective_settings') and r.get('container_policy_hash')==value['policy_hash'] for r in native)
     from policy import export_inventory
-    required={'safety/container-policy.json','safety/containment-fixtures.json','safety/qualification/containment/probe.py','tools/container_policy.py','tools/containment.py','tools/runtime.py','schemas/containment-report.json','container/runtime.Dockerfile','docs/docker-containment.md'}
+    required={'safety/container-policy.json','safety/containment-fixtures.json','safety/qualification/containment/probe.py','tools/container_policy.py','tools/host_capabilities.py','tools/containment.py','tools/runtime.py','schemas/containment-report.json','container/runtime.Dockerfile','docs/docker-containment.md'}
     exports=required.issubset(set(export_inventory(q.root)))
     child=True if instance else report['starter'].get('first_child_full_qualification')=='PASS'
     if not instance and child:
@@ -268,10 +268,25 @@ def container_sabotage(q,value):
         l.json=lambda args,info=info:info if args[0]=='info' else original_json(args)
         try:rejected('P01','docker-or-controller-unavailable/unsupported-'+name+'-controller',l.preflight)
         finally:l.json=original_json
-    for name,key,v in [('wrong-daemon','daemon_id','unapproved'),('unsupported-cgroup','cgroup_version','1')]:
-        old=l.value['runner'][key];l.value['runner'][key]=v
-        try:rejected('P01','docker-or-controller-unavailable/'+name,l.preflight)
-        finally:l.value['runner'][key]=old
+    def capability_rejected(name,expected):
+        def action():
+            try:l.preflight()
+            except Exception as exc:
+                if isinstance(exc,GateError) and expected in str(exc):raise
+            # A rejection for another reason does not prove this capability control.
+            return None
+        rejected('P01','docker-or-controller-unavailable/'+name,action)
+    original_context=l.inspect_context
+    remote=copy.deepcopy(original_context());remote.setdefault('Endpoints',{}).setdefault('docker',{})['Host']='tcp://127.0.0.1:1'
+    l.inspect_context=lambda remote=remote:remote
+    try:capability_rejected('remote-endpoint','local-unix-endpoint')
+    finally:l.inspect_context=original_context
+    for name,key,v,expected in [('missing-lsm','SecurityOptions',None,'linux-security-module'),('unsupported-cgroup','CgroupVersion','1','cgroup-v2')]:
+        info=original_json(['info','--format','{{json .}}'])
+        info[key]=[x for x in info.get('SecurityOptions') or [] if 'apparmor' not in x and 'selinux' not in x] if v is None else v
+        l.json=lambda args,info=info:info if args[0]=='info' else original_json(args)
+        try:capability_rejected(name,expected)
+        finally:l.json=original_json
     old_docker=l.docker
     l.docker=lambda *a,**k:{'exit_code':127,'failure':None,'output':''}
     try:rejected('P01','docker-or-controller-unavailable/missing-docker',l.preflight)

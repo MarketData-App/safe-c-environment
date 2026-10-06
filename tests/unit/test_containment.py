@@ -109,4 +109,126 @@ class ProbeHomeExposureTests(unittest.TestCase):
             (home/'someone').mkdir()
             self.assertTrue(self.probe.home_exposed('',home))
 
+class HostCapabilityTests(unittest.TestCase):
+    def info(self, **kw):
+        base={'ID':'any-daemon','Architecture':'x86_64','CgroupVersion':'2','MemoryLimit':True,'SwapLimit':True,
+              'PidsLimit':True,'CpuCfsQuota':True,'CpuCfsPeriod':True,
+              'SecurityOptions':['name=seccomp,profile=builtin','name=apparmor','name=cgroupns']}
+        base.update(kw); return base
+    def ctx(self, endpoint='unix:///var/run/docker.sock'): return {'Name':'default','Endpoints':{'docker':{'Host':endpoint}}}
+    def test_any_daemon_id_qualifies(self):
+        from host_capabilities import host_problems
+        self.assertEqual(host_problems(self.info(ID='other'),self.ctx(),{},'core'),[])
+    def test_rootless_socket_qualifies(self):
+        from host_capabilities import host_problems
+        self.assertEqual(host_problems(self.info(),self.ctx('unix:///run/user/1000/docker.sock'),{},'core'),[])
+    def test_selinux_qualifies_without_apparmor(self):
+        from host_capabilities import host_problems
+        i=self.info(SecurityOptions=['name=seccomp,profile=builtin','name=selinux'])
+        self.assertEqual(host_problems(i,self.ctx(),{},'core',True),[])
+    def test_selinux_must_enforce(self):
+        from host_capabilities import host_problems
+        i=self.info(SecurityOptions=['name=seccomp,profile=builtin','name=selinux'])
+        for enforcing in [False,None]:
+            with self.subTest(enforcing=enforcing):
+                self.assertIn('linux-security-module: SELinux not enforcing',host_problems(i,self.ctx(),{},'core',enforcing))
+        self.assertEqual(host_problems(self.info(),self.ctx(),{},'core',False),[])
+    def test_security_options_fail_closed_without_lsm(self):
+        from host_capabilities import security_options
+        with self.assertRaises(GateError):security_options(self.info(SecurityOptions=['name=seccomp,profile=builtin']))
+    def test_plan_security_label_follows_the_lsm(self):
+        value=policy(ROOT);image=read_json(ROOT/'toolchain.lock.json')['image_id']
+        apparmor=make_plan(value,image,{},'build')
+        self.assertEqual(apparmor,make_plan(value,image,{},'build',lsm='apparmor'))
+        self.assertEqual(apparmor['security'],['no-new-privileges','default-seccomp','docker-default-apparmor'])
+        selinux=make_plan(value,image,{},'build',lsm='selinux')
+        self.assertNotIn('docker-default-apparmor',selinux['security']);self.assertIn('container_t-selinux',selinux['security'])
+        validate_plan(selinux,value,image,{},'build',lsm='selinux')
+        with self.assertRaises(GateError):validate_plan(selinux,value,image,{},'build')
+        with self.assertRaises(GateError):make_plan(value,image,{},'build',lsm=None)
+    def launcher(self,d):
+        launcher=Launcher(ROOT,Path(d),read_json(ROOT/'toolchain.lock.json'))
+        launcher.read_core_pattern=lambda:'core'
+        return launcher
+    def fake_docker(self,calls,info):
+        def fake(argv,**kw):
+            calls.append(list(argv))
+            return {'exit_code':0,'failure':None,'output':json.dumps(info() if callable(info) else info)}
+        return fake
+    def clean_environ(self):
+        import os
+        from unittest import mock
+        return mock.patch.dict(os.environ,{k:'' for k in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG']})
+    def test_endpoint_and_daemon_are_bound_for_the_launcher_lifetime(self):
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d,self.clean_environ():
+            launcher=self.launcher(d);calls=[];state={'ctx':self.ctx(),'info':self.info(ID='first')}
+            launcher.inspect_context=lambda:state['ctx']
+            try:
+                with mock.patch('container_policy.bounded',side_effect=self.fake_docker(calls,lambda:state['info'])):
+                    launcher.qualify_host();self.assertEqual(launcher.endpoint,'unix:///var/run/docker.sock')
+                    launcher.qualify_host()
+                    state['ctx']=self.ctx('unix:///run/user/1000/docker.sock')
+                    with self.assertRaisesRegex(GateError,'daemon or endpoint changed'):launcher.qualify_host()
+                    self.assertEqual(launcher.prefix[-1],'unix:///var/run/docker.sock')
+                    state['ctx']=self.ctx();state['info']=self.info(ID='second')
+                    with self.assertRaisesRegex(GateError,'daemon or endpoint changed'):launcher.qualify_host()
+            finally:launcher.close()
+    def test_selinux_permissive_host_is_rejected_by_the_launcher(self):
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d,self.clean_environ():
+            launcher=self.launcher(d);calls=[];launcher.inspect_context=self.ctx
+            launcher.read_selinux_enforcing=lambda:False
+            try:
+                with mock.patch('container_policy.bounded',side_effect=self.fake_docker(calls,self.info(SecurityOptions=['name=seccomp,profile=builtin','name=selinux']))):
+                    with self.assertRaisesRegex(GateError,'SELinux not enforcing'):launcher.qualify_host()
+                    launcher.read_selinux_enforcing=lambda:True
+                    launcher.qualify_host()
+            finally:launcher.close()
+    def test_no_docker_call_for_remote_endpoint_or_inherited_setting(self):
+        import os,tempfile
+        from unittest import mock
+        for endpoint,environ in [('tcp://127.0.0.1:1',{}),('ssh://host',{}),('unix:///var/run/docker.sock',{'DOCKER_HOST':'unix:///x'}),('unix:///var/run/docker.sock',{'DOCKER_CONTEXT':'other'})]:
+            with self.subTest(endpoint=endpoint,environ=environ),tempfile.TemporaryDirectory() as d,self.clean_environ(),mock.patch.dict(os.environ,environ):
+                launcher=self.launcher(d);calls=[];inspected=[]
+                launcher.inspect_context=lambda endpoint=endpoint:inspected.append(1) or self.ctx(endpoint)
+                try:
+                    with mock.patch('container_policy.bounded',side_effect=self.fake_docker(calls,self.info())):
+                        with self.assertRaisesRegex(GateError,'host capability check failed'):launcher.preflight()
+                        with self.assertRaisesRegex(GateError,'host capability check failed'):launcher.docker(['ps'])
+                    self.assertEqual(calls,[])
+                    if environ:self.assertEqual(inspected,[])
+                finally:launcher.close()
+    def test_rejections_name_the_capability(self):
+        from host_capabilities import host_problems
+        cases=[(self.info(SecurityOptions=['name=seccomp,profile=builtin']),self.ctx(),{},'core','linux-security-module'),
+               (self.info(SecurityOptions=['name=apparmor']),self.ctx(),{},'core','seccomp'),
+               (self.info(),self.ctx('tcp://10.0.0.1:2376'),{},'core','local-unix-endpoint'),
+               (self.info(),self.ctx('ssh://host'),{},'core','local-unix-endpoint'),
+               (self.info(),self.ctx(),{'DOCKER_HOST':'unix:///x'},'core','inherited-docker-setting'),
+               (self.info(CgroupVersion='1'),self.ctx(),{},'core','cgroup-v2'),
+               (self.info(Architecture='aarch64'),self.ctx(),{},'core','architecture'),
+               (self.info(PidsLimit=False),self.ctx(),{},'core','resource-controllers'),
+               (self.info(),self.ctx(),{},'|/usr/lib/systemd/systemd-coredump','core-handling')]
+        for info,ctx,env,core,expected in cases:
+            with self.subTest(expected=expected):
+                problems=host_problems(info,ctx,env,core)
+                self.assertTrue(any(expected in p for p in problems),problems)
+    def test_security_options_follow_the_lsm(self):
+        from host_capabilities import security_options
+        self.assertIn('apparmor=docker-default',security_options(self.info()))
+        self.assertIn('label=type:container_t',security_options(self.info(SecurityOptions=['name=seccomp','name=selinux'])))
+    def test_project_profile_is_in_policy(self):
+        value=policy(ROOT); self.assertIn('project',value['profiles']); self.assertEqual(value['profiles']['project']['network'],'none')
+    def test_runner_block_pins_no_machine_identity(self):
+        self.assertEqual(policy(ROOT)['runner'],{'role':'portable','endpoint_scheme':'unix','architecture':'x86_64','cgroup_version':'2','lsm':['apparmor','selinux']})
+    def test_launcher_accepts_project_purpose(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            launcher=Launcher(ROOT,Path(d),read_json(ROOT/'toolchain.lock.json'),purpose='project')
+            launcher.close()
+            with self.assertRaises(GateError):Launcher(ROOT,Path(d),read_json(ROOT/'toolchain.lock.json'),purpose='unregistered')
+
 if __name__=='__main__':unittest.main()

@@ -557,6 +557,7 @@
     "tools/foundation_pipeline.py",
     "tools/foundation_report.py",
     "tools/fuzzing.py",
+    "tools/host_capabilities.py",
     "tools/image_transfer.py",
     "tools/ledger.py",
     "tools/lit_bridge.py",

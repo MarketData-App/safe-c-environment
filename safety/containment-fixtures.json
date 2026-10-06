@@ -235,7 +235,11 @@
     },
     {
       "parent": "P01",
-      "name": "docker-or-controller-unavailable/wrong-daemon"
+      "name": "docker-or-controller-unavailable/remote-endpoint"
+    },
+    {
+      "parent": "P01",
+      "name": "docker-or-controller-unavailable/missing-lsm"
     },
     {
       "parent": "P01",
