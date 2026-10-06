@@ -81,5 +81,29 @@ fresh ok-vendored;   mkdir third_party; echo "upstream author dev${AT}upstream-p
                      r ok-vendored-pinned ok "$(reach)"
 fresh ok-ssh-url;    echo "remote git${AT}github.com:org/repo.git" > a.txt; r ok-ssh-url ok "$(reach)"
 fresh ok-upper-nr;   git config user.email "1+Bot${AT}Users.Noreply.GitHub.com"; echo u > a.txt; r ok-uppercase-noreply ok "$(reach)"
+fresh nested-tag;    git tag -a inner -m "contact $BAD"; git -c advice.nestedTag=false tag -a outer -m clean inner; git tag -d inner >/dev/null
+                     if python3 .githooks/personal_info_check.py --history >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r nested-tag-history bad $o
+fresh tag-blob;      b=$(echo "$BAD" | git hash-object -w --stdin); git tag -a tb -m clean "$b"
+                     if git push -q origin tb >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r tag-to-blob bad $o
+fresh tag-tree;      mkdir t; echo "$BAD" > t/x.txt; git add t; tr=$(git write-tree --prefix=t/); git reset -q; git tag -a tt -m clean "$tr"
+                     if git push -q origin tt >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r tag-to-tree bad $o
+fresh bom-utf8;      { printf '\377\376'; echo "$BAD"; } > b.txt;  r bom-prefixed-utf8 bad "$(reach)"
+fresh gzip2;         echo "$BAD" | gzip | gzip > g2.gz;            r double-gzip bad "$(reach)"
+fresh utf32;         python3 -c "import sys;open('u.txt','wb').write(sys.argv[1].encode('utf-32-le'))" "$BAD"; r utf32-no-bom bad "$(reach)"
+fresh pin-unbound;   mkdir third_party; echo "upstream dev${AT}upstream-project.org" > third_party/n.txt
+                     printf '{"unrelated": "%s"}\n' "$(sha256sum third_party/n.txt | cut -c1-64)" > upstream.lock.json
+                     r vendored-unbound-pin bad "$(reach)"
+fresh short-binary;  printf 'x\000%s\000y' "$(basename "$HOME")" > s.bin; r short-local-in-binary bad "$(reach)"
+fresh gzip-trunc;    printf '%s\n%s\n' "$BAD" "$(head -c 4000 /dev/zero | tr '\0' a)" | gzip > t.gz; truncate -s -12 t.gz; r truncated-gzip bad "$(reach)"
+fresh gzip-trail;    { echo "$BAD" | gzip; printf 'trailing'; } > t.gz; r gzip-trailing-data bad "$(reach)"
+fresh zip;           python3 -c "import sys,zipfile;z=zipfile.ZipFile('a.zip','w',zipfile.ZIP_DEFLATED);z.writestr('m.txt',sys.argv[1]);z.close()" "$BAD"; r deflated-zip bad "$(reach)"
+fresh blob-ref;      b=$(echo "$BAD" | git hash-object -w --stdin)
+                     if git push -q origin "$b:refs/tags/rawblob" >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r direct-blob-ref bad $o
+fresh firstparty-pin; mkdir tools; echo "owner $BAD" > tools/x.py
+                     printf '{"files": {"tools/x.py": "%s"}}\n' "$(sha256sum tools/x.py | cut -c1-64)" > upstream.lock.json
+                     r lock-bound-first-party bad "$(reach)"
+fresh ok-wheel;      mkdir container; python3 -c "import sys,zipfile;z=zipfile.ZipFile('container/up-1.0-py3-none-any.whl','w',zipfile.ZIP_DEFLATED);z.writestr('METADATA','Author-email: '+sys.argv[1]);z.close()" "maintainer${AT}upstream-project.org"
+                     printf '{"inputs": [{"path": "container/up-1.0-py3-none-any.whl", "sha256": "%s"}]}\n' "$(sha256sum container/up-1.0-py3-none-any.whl | cut -c1-64)" > upstream.lock.json
+                     r ok-pinned-upstream-wheel ok "$(reach)"
 rm -rf "$BASE"
 exit $FAIL
