@@ -9,8 +9,10 @@ and read from untracked private pattern files, one regular expression per line:
 The complete content and name of every added or changed file is checked, not
 only the changed lines; merge commits are compared with every parent and
 submodule entries are skipped. Archives are expanded member by member (zip, tar,
-gzip, xz and bzip2, nested to a finite depth within one decompression budget);
-an undecodable member or an exceeded member cap is a finding. Text is read as
+gzip, xz and bzip2 with every stream, nested to a finite depth within one
+decompression budget), and the container bytes and metadata (tar owner, group,
+link target and pax records, zip comments, gzip header names) are checked too;
+an undecodable member, an exceeded member cap or depth limit is a finding. Text is read as
 UTF-8, UTF-16 or UTF-32 with or without a byte-order mark; other binary content
 is read as printable runs and searched byte-wise for local values. Commit
 author/committer and tag tagger emails must be GitHub noreply addresses (GitHub's
@@ -91,10 +93,21 @@ class Expansion:
 
 
 def inflate(data, state):
-    """Bounded gzip inflation that keeps partial output of truncated, multi-member
-    or trailing-data streams."""
-    out, rest = bytearray(), data
+    """Bounded gzip inflation of every member, keeping partial output of truncated or
+    trailing-data streams; header file names and comments are returned as metadata."""
+    out, rest, meta = bytearray(), data, []
     while rest[:2] == b'\x1f\x8b':
+        flags = rest[3] if len(rest) > 3 else 0
+        cursor = 10
+        if flags & 4 and len(rest) > 12:
+            cursor += 2 + int.from_bytes(rest[10:12], 'little')
+        for bit in (8, 16):
+            if flags & bit:
+                stop = rest.find(b'\0', cursor)
+                if stop < 0:
+                    break
+                meta.append(rest[cursor:stop].decode('latin-1'))
+                cursor = stop + 1
         engine = zlib.decompressobj(16 + zlib.MAX_WBITS)
         try:
             chunk = engine.decompress(rest, state.room())
@@ -105,40 +118,57 @@ def inflate(data, state):
         if not engine.eof:
             break
         rest = engine.unused_data
+    return bytes(out), meta
+
+
+def unpack(data, state, factory):
+    """Bounded decompression of every concatenated xz or bzip2 stream."""
+    out, rest = bytearray(), data
+    while rest:
+        engine = factory()
+        try:
+            chunk = engine.decompress(rest, max_length=state.room())
+        except (OSError, EOFError, lzma.LZMAError, ValueError):
+            break
+        state.take(len(chunk))
+        out += chunk
+        if not engine.eof:
+            break
+        rest = engine.unused_data.lstrip(b'\0')
     return bytes(out)
 
 
-def unpack(data, state, engine):
-    try:
-        out = engine.decompress(data, max_length=state.room())
-    except (OSError, EOFError, lzma.LZMAError, ValueError):
-        return b''
-    state.take(len(out))
-    return out
+def compressed(data):
+    return data[:2] == b'\x1f\x8b' or data[:6] == b'\xfd7zXZ\x00' or data[:3] == b'BZh'
 
 
 def expand(data, state, depth=0):
-    """(member names, leaf contents) of a blob, expanding archives member by member."""
+    """(member names and metadata, leaf contents, container bytes) of a blob,
+    expanding archives member by member."""
     if depth >= MAX_DEPTH:
-        return [], [data]
-    inner = None
+        if compressed(data) or data[:4] == b'PK\x03\x04' or data[257:262] == b'ustar':
+            state.problems.append('archive-depth-limit')
+        return [], [data], []
+    names, inner = [], None
     if data[:2] == b'\x1f\x8b':
-        inner = inflate(data, state)
+        inner, names = inflate(data, state)
     elif data[:6] == b'\xfd7zXZ\x00':
-        inner = unpack(data, state, lzma.LZMADecompressor())
+        inner = unpack(data, state, lzma.LZMADecompressor)
     elif data[:3] == b'BZh':
-        inner = unpack(data, state, bz2.BZ2Decompressor())
+        inner = unpack(data, state, bz2.BZ2Decompressor)
     if inner:
-        return expand(inner, state, depth + 1)
-    names, leaves = [], []
-    if data[:4] == b'PK\x03\x04':
+        more_names, leaves, containers = expand(inner, state, depth + 1)
+        return names + more_names, leaves, containers + [data]
+    leaves, containers = [], []
+    if data[:4] == b'PK\x03\x04' or b'PK\x05\x06' in data[-65558:]:
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                names.append(archive.comment.decode('latin-1'))
                 members = archive.infolist()
                 if len(members) > MEMBER_CAP:
                     state.problems.append('archive-member-cap')
                 for info in members[:MEMBER_CAP]:
-                    names.append(info.filename)
+                    names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]
                     try:
                         with archive.open(info) as member:
                             content = member.read(state.room())
@@ -146,37 +176,47 @@ def expand(data, state, depth=0):
                         state.problems.append('undecodable-archive-member')
                         continue
                     state.take(len(content))
-                    more_names, more = expand(content, state, depth + 1)
+                    more_names, more, more_containers = expand(content, state, depth + 1)
                     names += more_names
                     leaves += more
-            return names, leaves
+                    containers += more_containers
+            return names, leaves, containers + [data]
         except zipfile.BadZipFile:
-            pass
-    if len(data) > 262 and data[257:262] == b'ustar':
+            if data[:4] == b'PK\x03\x04':
+                state.problems.append('undecodable-archive')
+                return names, leaves, containers + [data]
+            names, leaves, containers = [], [], []
+    if len(data) >= 512 and (data[257:262] == b'ustar' or len(data) % 512 == 0):
+        count = 0
         try:
             with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
-                count = 0
                 for member in archive:
                     count += 1
                     if count > MEMBER_CAP:
                         state.problems.append('archive-member-cap')
                         break
-                    names.append(member.name)
+                    names += [member.name, member.uname, member.gname, member.linkname]
+                    names += [f'{key}={value}' for key, value in member.pax_headers.items()]
                     if member.isfile():
-                        content = archive.extractfile(member).read(state.room())
-                        state.take(len(content))
-                        more_names, more = expand(content, state, depth + 1)
+                        # Tar members are slices of a buffer already counted in the budget.
+                        content = archive.extractfile(member).read()
+                        more_names, more, more_containers = expand(content, state, depth + 1)
                         names += more_names
                         leaves += more
-            return names, leaves
+                        containers += more_containers
         except tarfile.TarError:
-            names, leaves = [], []
-    return [], [data]
+            if data[257:262] == b'ustar':
+                state.problems.append('undecodable-archive')
+        if count:
+            return names, leaves, containers + [data]
+        names, leaves, containers = [], [], []
+    return [], [data], []
 
 
-def decode(data):
+def decode(data, short=True):
     """Readable text of one leaf: UTF-8, UTF-16/UTF-32 with or without a byte-order
-    mark, and printable runs of other binary content."""
+    mark, and printable runs of other binary content (short runs only for leaves,
+    not for compressed container bytes)."""
     parts = [data.decode('utf-8', errors='replace')]
     for bom, codec in ((b'\xff\xfe\x00\x00', 'utf-32'), (b'\x00\x00\xfe\xff', 'utf-32'),
                        (b'\xff\xfe', 'utf-16'), (b'\xfe\xff', 'utf-16')):
@@ -189,7 +229,8 @@ def decode(data):
         # the bytes themselves so short values between NUL bytes are read.
         strides = [data] + [data[k::2] for k in range(2)] + [data[k::4] for k in range(4)]
         parts = [run.decode('ascii') for part in strides for run in PRINTABLE.findall(part)]
-        parts += [run.decode('ascii') for run in SHORT_RUNS.findall(data)]
+        if short:
+            parts += [run.decode('ascii') for run in SHORT_RUNS.findall(data)]
     return '\n'.join(parts)
 
 
@@ -296,13 +337,16 @@ class Scanner:
         if upstream and (path, hashlib.sha256(data).hexdigest()) in self.pinned(rev):
             return
         state = Expansion()
-        names, leaves = expand(data, state)
-        for member in names:
+        names, leaves, containers = expand(data, state)
+        for member in filter(None, names):
             self.name(f'{label}!{member}', member)
         for problem in sorted(set(state.problems)):
             self.findings.append(f'{label}: {problem}')
         for leaf in leaves:
             self.text(label, decode(leaf))
+        for container in containers:
+            self.text(label + '!container', decode(container, short=False))
+        for leaf in leaves + containers:
             if b'\0' in leaf:
                 for rx in self.raw:
                     match = rx.search(leaf)
@@ -326,6 +370,9 @@ class Scanner:
         self.identity(label, 'author', fields[1], fields[0])
         self.identity(label, 'committer', fields[3], fields[2])
         self.text(label + ':message', fields[4])
+        header = git('cat-file', 'commit', sha).partition('\n\n')[0]
+        self.text(label + ':header', '\n'.join(line for line in header.splitlines()
+                                               if not line.startswith(('tree ', 'parent '))))
         parents = git('rev-list', '--parents', '-n', '1', sha).split()[1:]
         base = ['--root'] if not parents else ['-m'] if len(parents) > 1 else []
         listing = git('diff-tree', '-r', '-z', '--no-commit-id', '--raw', '--diff-filter=ACMRT',
@@ -350,6 +397,8 @@ class Scanner:
             else:
                 self.findings.append(f'{label}: tagger-identity-not-noreply (missing)')
             self.text(label + ':message', message)
+            self.text(label + ':header', '\n'.join(line for line in header.splitlines()
+                                                   if not line.startswith(('object ', 'type '))))
             obj = re.search(r'^object ([0-9a-f]+)', header, re.M).group(1)
         target = kind(obj)
         if target == 'blob':
