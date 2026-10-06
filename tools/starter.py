@@ -37,6 +37,8 @@ def project_payload(root):
     if 'project.json' not in payload:raise GateError('starter example project is missing: '+EXAMPLE+'project.json')
     if CI_TEMPLATE not in exported:raise GateError('project CI workflow template is missing: '+CI_TEMPLATE)
     payload[CI_WORKFLOW]=CI_TEMPLATE
+    collisions=sorted(set(payload)&set(exported))
+    if collisions:raise GateError('project payload collides with exported framework files: '+', '.join(collisions))
     return payload
 
 def instance_files(root):

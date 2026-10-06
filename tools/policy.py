@@ -32,11 +32,18 @@ def source_identity(root):
 
 def project_mode(root):
     # A root project.json selects project mode; its files are checked by project_model.project_inventory.
-    return (Path(root)/'project.json').is_file()
+    path = Path(root)/'project.json'
+    return not path.is_symlink() and path.is_file()
 
 def bootstrap_source_rule(root, mode):
     if mode == 'bootstrap' and not project_mode(root) and any(p.suffix in {'.c', '.h'} for folder in ['src','include'] for p in (Path(root)/folder).rglob('*')):
         raise GateError('bootstrap mode selected despite application sources')
+
+def project_source_gate(root):
+    # Root project files leave the framework source inventory only when project.json declares them.
+    if project_mode(root):
+        from project_model import load_project, project_inventory
+        project_inventory(root, '.', load_project(root))
 
 def first_party_sources(root):
     root = Path(root)
@@ -80,6 +87,7 @@ def inventory_gate(root, expected_contract=None):
             if not (root/record['trigger_input']).is_file():
                 raise GateError('missing regression input')
     declared = read_json(root/'safety/source-inventory.json')['files']
+    project_source_gate(root)
     actual = first_party_sources(root)
     if actual != set(declared):
         raise GateError('first-party source/target inventory mismatch: ' + str(sorted(actual ^ set(declared))))

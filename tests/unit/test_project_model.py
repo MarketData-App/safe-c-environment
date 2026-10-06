@@ -1,4 +1,5 @@
-import json, sys, tempfile, unittest, hashlib
+import json, sys, tempfile, unittest, hashlib, io
+from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tools'))
 from evidence import GateError
@@ -218,34 +219,99 @@ class ProjectCliTests(unittest.TestCase):
         from unittest import mock
         with mock.patch.object(cli,'environment_gate',lambda:None):
             return cli.main(argv)
-    def test_project_check_routes_to_project_check_main(self):
-        import types
+    def test_project_check_routes_to_run_project_check(self):
+        import types, os
         from unittest import mock
         calls=[]
-        fake=types.ModuleType('project_check'); fake.main=lambda argv: calls.append(list(argv)) or 3
-        with mock.patch.dict(sys.modules,{'project_check':fake}):
-            self.assertEqual(self.run_cli(['project','check']),3)
-            self.assertEqual(self.run_cli(['project','check','--project','examples/hello-world','--development']),3)
-        self.assertEqual(calls,[['--project','.'],['--project','examples/hello-world','--development']])
+        fake=types.ModuleType('project_check')
+        fake.run_project_check=lambda root,project_dir,development=False: calls.append((root,project_dir,development)) or {'exit_code':3}
+        with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as elsewhere, mock.patch.dict(sys.modules,{'project_check':fake}):
+            d=Path(t).resolve(); cwd=os.getcwd(); os.chdir(elsewhere)
+            try:
+                self.assertEqual(self.run_cli(['--candidate',str(d),'project','check']),3)
+                self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project','examples/hello-world','--development']),3)
+                self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',str(d/'examples/hello-world')]),3)
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',elsewhere]),1)
+            finally: os.chdir(cwd)
+        self.assertEqual(calls,[(d,'.',False),(d,'examples/hello-world',True),(d,'examples/hello-world',False)])
     def test_project_requires_known_operation(self):
-        with self.assertRaises(SystemExit): self.run_cli(['project','build'])
+        with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()): self.run_cli(['project','build'])
+    def manifest_tree(self, d, bundle_ids=None, extra=None):
+        import policy
+        files={'tools/a.py':'a','toolchain.lock.json':json.dumps({'image_id':'sha256:'+'1'*64}),
+               'developer.lock.json':json.dumps({'image_id':'sha256:'+'2'*64}),
+               'ci/image-bundle.json':json.dumps({'archive_sha256':'3'*64,'image_ids':bundle_ids if bundle_ids is not None else ['sha256:'+'1'*64,'sha256:'+'2'*64]})}
+        files.update(extra or {}); self.make(d,extra=files)
+        report={'overall_state':'VALIDATED_UNSEALED','source_identity':policy.source_identity(d)[0],'run_id':'d'*32}
+        tree(d,{'artifacts/bootstrap-report.json':json.dumps(report)})
+        return report
+    def manifest_cli(self, d, fresh=True):
+        from unittest import mock
+        from contextlib import nullcontext
+        patch=mock.patch.object(pm,'_fresh_report',lambda root,report:None) if fresh else nullcontext()
+        with patch, redirect_stdout(io.StringIO()):
+            return self.run_cli(['--candidate',str(d),'framework','manifest'])
     def test_framework_manifest(self):
-        import io, policy
-        from contextlib import redirect_stdout
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t); self.make(d,extra={'tools/a.py':'a',
-                'toolchain.lock.json':json.dumps({'image_id':'sha256:'+'1'*64}),
-                'developer.lock.json':json.dumps({'image_id':'sha256:'+'2'*64}),
-                'ci/image-bundle.json':json.dumps({'archive_sha256':'3'*64})})
-            report={'overall_state':'VALIDATED_UNSEALED','source_identity':policy.source_identity(d)[0],'run_id':'d'*32}
-            tree(d,{'artifacts/bootstrap-report.json':json.dumps(report)})
-            with redirect_stdout(io.StringIO()):
-                self.assertEqual(self.run_cli(['--candidate',str(d),'framework','manifest']),0)
+            d=Path(t); report=self.manifest_tree(d)
+            self.assertEqual(self.manifest_cli(d),0)
             value=json.loads((d/pm.MANIFEST).read_text())
             self.assertEqual(value['images'],{'sdk':'sha256:'+'1'*64,'developer':'sha256:'+'2'*64,'archive_sha256':'3'*64})
             self.assertEqual(pm.check_manifest(d),[])
             tree(d,{'artifacts/bootstrap-report.json':json.dumps(dict(report,overall_state='PASS'))})
-            with redirect_stdout(io.StringIO()):
-                self.assertEqual(self.run_cli(['--candidate',str(d),'framework','manifest']),1)
+            self.assertEqual(self.manifest_cli(d),1)
+    def test_framework_manifest_runs_report_freshness_checks(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.manifest_tree(d)
+            with self.assertRaises(GateError): pm.framework_manifest(d)
+            self.assertEqual(self.manifest_cli(d,fresh=False),1)
+            self.assertFalse((d/pm.MANIFEST).exists())
+    def test_framework_manifest_requires_bundled_images(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.manifest_tree(d,bundle_ids=['sha256:'+'1'*64])
+            self.assertEqual(self.manifest_cli(d),1); self.assertFalse((d/pm.MANIFEST).exists())
+    def test_framework_manifest_missing_key_is_gate_error(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.manifest_tree(d,extra={'developer.lock.json':'{}'})
+            with self.assertRaises(GateError): pm.framework_manifest(d)
+            self.assertEqual(self.manifest_cli(d),1); self.assertFalse((d/pm.MANIFEST).exists())
+
+class ProjectModeFixRoundTests(unittest.TestCase):
+    make=ProjectModelTests.make
+    def test_undeclared_project_test_source_blocks_inventory(self):
+        import policy
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d); policy.project_source_gate(d)
+            tree(d,{'tests/project/x.c':'int x;'})
+            self.assertNotIn('tests/project/x.c',policy.first_party_sources(d))
+            with self.assertRaises(GateError): policy.project_source_gate(d)
+    def test_undeclared_project_fuzz_source_blocks_inventory(self):
+        import policy
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d,extra={'fuzz/project/other.c':'int x;'})
+            with self.assertRaises(GateError): policy.project_source_gate(d)
+    def test_no_project_json_leaves_project_gate_inactive(self):
+        import policy
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); tree(d,{'tests/project/x.c':'int x;'}); policy.project_source_gate(d)
+            self.assertIn('tests/project/x.c',policy.first_party_sources(d))
+    def test_symlinked_project_json_is_not_project_mode(self):
+        import policy, os
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t)/'p'; self.make(d); real=Path(t)/'real.json'; os.replace(d/'project.json',real); (d/'project.json').symlink_to(real)
+            self.assertFalse(policy.project_mode(d))
+            with self.assertRaises(GateError): policy.bootstrap_source_rule(d,'bootstrap')
+            self.assertIn('src/greeting.c',policy.first_party_sources(d))
+            with self.assertRaises(GateError): pm.undeclared_application_sources(d)
+    def test_instantiate_refuses_payload_collision(self):
+        import starter, shutil
+        with tempfile.TemporaryDirectory() as t:
+            parent=framework_copy(Path(t)/'parent'); child=Path(t)/'child'
+            (parent/'src').mkdir(); shutil.copy2(ROOT/'examples/hello-world/src/greeting.c',parent/'src/greeting.c')
+            manifest=json.loads((parent/'starter-export.json').read_text())
+            manifest['files']=sorted(manifest['files']+['src/greeting.c']); (parent/'starter-export.json').write_text(json.dumps(manifest))
+            with self.assertRaises(GateError): starter.instantiate(parent,child,'my-app',maintenance=True)
+            self.assertFalse(child.exists())
 
 if __name__=='__main__':unittest.main()

@@ -138,19 +138,49 @@ def write_manifest(root, report, images, framework_root=None):
     return value
 
 
+def _fresh_report(root, report):
+    """The same freshness checks as `safety report` and instantiate."""
+    fw = _framework_root(root, None)
+    validate(fw, 'report', report)
+    policy.validate_fresh_report(report, policy.source_identity(root)[0], read_json(root/'toolchain.lock.json')['image_id'],
+                                 policy.file_hash(root/'safety/contract.json'))
+    from containment import fresh_container_evidence
+    fresh_container_evidence(root, report, read_json(root/'toolchain.lock.json'))
+
+
 def framework_manifest(root):
     """`safety framework manifest`: bind the current qualified report and pinned images."""
     root = Path(root)
-    images = {'sdk': read_json(root/'toolchain.lock.json')['image_id'],
-              'developer': read_json(root/'developer.lock.json')['image_id'],
-              'archive_sha256': read_json(root/'ci/image-bundle.json')['archive_sha256']}
-    return write_manifest(root, read_json(root/'artifacts/bootstrap-report.json'), images)
+    try:
+        bundle = read_json(root/'ci/image-bundle.json')
+        images = {'sdk': read_json(root/'toolchain.lock.json')['image_id'],
+                  'developer': read_json(root/'developer.lock.json')['image_id'],
+                  'archive_sha256': bundle['archive_sha256']}
+        bundled = bundle['image_ids']
+        if not isinstance(bundled, list) or any(images[k] not in bundled for k in ('sdk', 'developer')):
+            raise GateError('framework manifest: sdk/developer image is not in ci/image-bundle.json image_ids')
+        report = read_json(root/'artifacts/bootstrap-report.json')
+        _fresh_report(root, report)
+    except (KeyError, TypeError) as error:
+        raise GateError(f'framework manifest input is incomplete: {error}') from error
+    return write_manifest(root, report, images)
+
+
+def _project_dir(root, value):
+    # --project is relative to the --candidate root, never to the current directory.
+    path = Path(value)
+    if not path.is_absolute():
+        return value
+    try:
+        return path.resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError as error:
+        raise GateError('--project must be inside the framework root') from error
 
 
 def execute(root, args):
     if args.command == 'project':
         import project_check
-        return project_check.main(['--project', args.project] + (['--development'] if args.development else []))
+        return project_check.run_project_check(Path(root), _project_dir(root, args.project), development=args.development)['exit_code']
     value = framework_manifest(root)
     print(json.dumps({'status': 'WRITTEN', 'path': str(Path(root)/MANIFEST), 'framework_identity': value['framework_identity'],
                       'files': len(value['files']), 'images': value['images']}, indent=2))
