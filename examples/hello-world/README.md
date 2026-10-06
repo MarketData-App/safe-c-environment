@@ -25,8 +25,7 @@ From the repository root:
 This command builds the example: the framework root `CMakeLists.txt` reads
 `project.json` (project mode, `-DSAFE_C_PROJECT_DIR`), so the example has no
 `CMakeLists.txt` of its own. In an instantiated project, run
-`./tools/safety project check` from the project root. The command runs every gate in one SDK container, then starts `hello world`
-once in the runtime image and requires exit status 0.
+`./tools/safety project check` X
 
 Expected output: one line per gate with `PASS`, then the verdict. The report is
 `artifacts/project-report.json`. The target time for a full run of this example
