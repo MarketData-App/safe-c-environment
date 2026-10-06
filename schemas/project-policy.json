@@ -1,0 +1,8 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
+ "required":["schema_version","gates","fuzz_seconds","coverage_source","forbidden_text"],
+ "properties":{
+  "schema_version":{"const":1},
+  "gates":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^[A-Za-z][A-Za-z0-9-]*$"}},
+  "fuzz_seconds":{"type":"integer","minimum":30},
+  "coverage_source":{"const":"safety/contract.json"},
+  "forbidden_text":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}}}}

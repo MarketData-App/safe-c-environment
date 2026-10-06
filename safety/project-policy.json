@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "gates": [
+    "format",
+    "gcc-O0",
+    "gcc-O2",
+    "clang-O0",
+    "clang-O2",
+    "hardened",
+    "tidy",
+    "csa",
+    "gcc-analyzer",
+    "ast",
+    "asan",
+    "ubsan",
+    "integer",
+    "msan",
+    "tsan",
+    "unit",
+    "integration",
+    "coverage",
+    "fuzz-replay",
+    "fuzz-exploration",
+    "clusterfuzzlite",
+    "inventory",
+    "review-protocol"
+  ],
+  "fuzz_seconds": 30,
+  "coverage_source": "safety/contract.json",
+  "forbidden_text": [
+    "#pragma GCC diagnostic",
+    "#pragma clang diagnostic",
+    "no_sanitize",
+    "__attribute__((optimize",
+    "NOLINT"
+  ]
+}
