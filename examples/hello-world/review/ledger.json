@@ -1,13 +1,17 @@
 {
   "schema_version": 1,
-  "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
+  "source_identity": "279bcb8418d2ced5fcb18e60ea754df82d9959a60cfef87e813b791fb19d67ad",
   "units": {
     "greeting": [
       "Is name_len bounded before any name byte is read?",
-      "Does UTF-8 decoding reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within name_len?",
-      "Does the printable check reject C0 controls, DEL and C1 controls?",
       "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
-      "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?",
+      "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?"
+    ],
+    "greeting_text": [
+      "Does UTF-8 validation reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within length?",
+      "Does the printable check reject C0 controls, DEL and C1 controls, and does invalid UTF-8 win over a control?"
+    ],
+    "greeting_main": [
       "Does greeting_main bound the argument scan, handle a NULL name and report usage, status and write errors?"
     ]
   },
@@ -15,17 +19,17 @@
     {
       "id": "GREETING-0001",
       "origin": "reviewer:example-walkthrough",
-      "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
-      "location": "src/greeting.c:100",
+      "source_identity": "279bcb8418d2ced5fcb18e60ea754df82d9959a60cfef87e813b791fb19d67ad",
+      "location": "src/greeting.c:23",
       "property": "out-of-bounds read of name when name_len exceeds the readable name buffer (for example SIZE_MAX)",
       "severity": "high if real: read past a borrowed caller buffer",
-      "rationale": "Illustrative example entry for the hello-world example, not a record of a real external review. A caller can pass a name_len larger than the readable name bytes; the UTF-8 scan would then read past the buffer. source_identity is the sha256 of json.dumps({path: sha256}, sort_keys=True) over the example files under src/, include/, tests/project/, fuzz/project/, specs/project/ and review/ (paths relative to examples/hello-world, review/ledger.json excluded).",
+      "rationale": "Illustrative example entry for the hello-world example, not a record of a real external review. A caller can pass a name_len larger than the readable name bytes; the UTF-8 scan would then read past the buffer. Each review unit names a source file, src/<unit>.c, and its locations are line numbers in that file. source_identity is the sha256 of json.dumps({path: sha256}, sort_keys=True) over the example files under src/, include/, tests/project/, fuzz/project/, specs/project/ and review/ (paths relative to examples/hello-world, review/ledger.json excluded).",
       "reproducer": "tests/project/test_greeting.c: expect(max, SIZE_MAX, 128U, GREETING_NAME_TOO_LONG, \"\") and expect(max, GREETING_NAME_MAX + 1U, ...)",
       "state": "REJECTED",
       "attempts": 0,
       "history": [
         {
-          "reason": "Not a defect: validate() rejects name_len > GREETING_NAME_MAX at src/greeting.c:100 before check_name() reads any byte; the SIZE_MAX and 65-byte boundary tests cover it and the fuzz target checks it for every input length.",
+          "reason": "Not a defect: validate() rejects name_len > GREETING_NAME_MAX at src/greeting.c:23 before greeting_check_text() reads any byte; the SIZE_MAX and 65-byte boundary tests cover it and the fuzz target checks it for every input length.",
           "duplicate_of": null
         }
       ],
@@ -37,70 +41,76 @@
       "unit": "greeting",
       "question": "Is name_len bounded before any name byte is read?",
       "locations": [
-        100,
-        103
-      ]
-    },
-    {
-      "unit": "greeting",
-      "question": "Does UTF-8 decoding reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within name_len?",
-      "locations": [
-        32,
-        36,
-        40,
-        45,
-        47,
-        51,
-        53,
-        57,
-        60,
-        84
-      ]
-    },
-    {
-      "unit": "greeting",
-      "question": "Does the printable check reject C0 controls, DEL and C1 controls?",
-      "locations": [
-        70,
-        73
+        23,
+        26
       ]
     },
     {
       "unit": "greeting",
       "question": "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
       "locations": [
-        108,
-        126,
-        127,
-        130,
-        136,
-        138
+        31,
+        49,
+        50,
+        53,
+        59,
+        61
       ]
     },
     {
       "unit": "greeting",
       "question": "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?",
       "locations": [
-        11,
-        116,
-        117,
-        122
+        9,
+        39,
+        40,
+        45
       ]
     },
     {
-      "unit": "greeting",
+      "unit": "greeting_text",
+      "question": "Does UTF-8 validation reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within length?",
+      "locations": [
+        14,
+        15,
+        23,
+        26,
+        32,
+        35,
+        44,
+        47,
+        57,
+        73,
+        74,
+        77,
+        78,
+        88
+      ]
+    },
+    {
+      "unit": "greeting_text",
+      "question": "Does the printable check reject C0 controls, DEL and C1 controls, and does invalid UTF-8 win over a control?",
+      "locations": [
+        102,
+        105,
+        121,
+        124
+      ]
+    },
+    {
+      "unit": "greeting_main",
       "question": "Does greeting_main bound the argument scan, handle a NULL name and report usage, status and write errors?",
       "locations": [
-        166,
-        169,
-        181,
-        185,
-        190,
-        193,
-        194,
-        195,
-        196,
-        198
+        12,
+        15,
+        27,
+        31,
+        36,
+        39,
+        40,
+        41,
+        42,
+        44
       ]
     }
   ]

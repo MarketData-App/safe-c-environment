@@ -106,7 +106,10 @@
         "examples/hello-world/src/greeting.c",
         "examples/hello-world/src/main.c",
         "examples/hello-world/tests/project/test_greeting.c",
-        "examples/hello-world/fuzz/project/greeting_fuzz.c"
+        "examples/hello-world/fuzz/project/greeting_fuzz.c",
+        "examples/hello-world/src/greeting_main.c",
+        "examples/hello-world/src/greeting_text.c",
+        "examples/hello-world/tests/project/test_greeting_main.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -2244,6 +2247,75 @@
               ]
             }
           }
+        },
+        "examples/hello-world/src/greeting_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "hello"
+              ]
+            }
+          }
+        },
+        "examples/hello-world/src/greeting_text.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "hello"
+              ]
+            }
+          }
+        },
+        "examples/hello-world/tests/project/test_greeting_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.greeting.test_greeting_main"
+              ]
+            }
+          }
         }
       }
     },
@@ -2347,9 +2419,13 @@
         "safety/qualification/developer/control.c",
         "safety/qualification/developer/developer-demo.h",
         "examples/hello-world/include/greeting.h",
+        "examples/hello-world/include/greeting_text.h",
         "examples/hello-world/src/greeting.c",
+        "examples/hello-world/src/greeting_main.c",
+        "examples/hello-world/src/greeting_text.c",
         "examples/hello-world/src/main.c",
         "examples/hello-world/tests/project/test_greeting.c",
+        "examples/hello-world/tests/project/test_greeting_main.c",
         "examples/hello-world/fuzz/project/greeting_fuzz.c"
       ]
     }
