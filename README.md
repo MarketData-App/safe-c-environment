@@ -42,6 +42,13 @@ Read AGENTS.md before development. Independent approval, owner publication licen
 and actual remote enforcement remain separate activation work. No automatic remote
 publishing, paid model calls, corpus provisioning or recurring jobs were performed.
 
+Enable the commit hooks once per clone with `git config core.hooksPath .githooks`.
+They block commits whose author or committer email is not a GitHub noreply address,
+and added lines or messages containing credentials, emails, home paths or the local
+login and host names. Personal values are derived on the committing machine; list
+further private terms, one regular expression per line, in the untracked
+`.git/info/personal-patterns`. Never bypass the hooks with `--no-verify`.
+
 Docker containment commands: `./tools/safety sandbox plan --profile build`,
 `./tools/safety sandbox doctor`, `./tools/safety sandbox selftest`, and
 `./tools/safety runtime smoke`. See [the containment runbook](docs/docker-containment.md).

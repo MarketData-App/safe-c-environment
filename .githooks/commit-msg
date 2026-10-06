@@ -1,0 +1,3 @@
+#!/bin/sh
+# Block commit messages that contain personal information or credentials.
+exec python3 "$(git rev-parse --show-toplevel)/.githooks/personal_info_check.py" --message "$1"
