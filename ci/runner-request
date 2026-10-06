@@ -12,9 +12,7 @@ import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 from evidence import bounded,passed
-from host_capabilities import host_problems
-
-LOCAL_ENDPOINT='unix:///var/run/docker.sock'
+from host_capabilities import active_lsm, context_endpoint, endpoint_problems, host_problems
 
 
 def main():
@@ -30,8 +28,14 @@ def main():
         if any(os.environ.get(k) for k in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY',
                 'DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG']):
             raise ValueError('inherited Docker setting')
+        inspected=bounded(['/usr/bin/docker','context','inspect'],timeout=15,limit=65536)
+        if not passed(inspected):raise ValueError('Docker context unavailable')
+        rows=json.loads(inspected['output'])
+        if not isinstance(rows,list) or len(rows)!=1 or not isinstance(rows[0],dict):raise ValueError('Docker context ambiguous')
+        context=rows[0]
+        if endpoint_problems(context,os.environ):raise ValueError('non-local Docker endpoint')
         with tempfile.TemporaryDirectory(prefix='safe-c-runner-request-') as config:
-            result=bounded(['/usr/bin/docker','--config',config,'--host',LOCAL_ENDPOINT,
+            result=bounded(['/usr/bin/docker','--config',config,'--host',context_endpoint(context),
                 'info','--format','{{json .}}'],env={'PATH':'/usr/bin:/bin','HOME':config,'LANG':'C.UTF-8'},
                 timeout=15,limit=1048576)
         if not passed(result):raise ValueError('Docker metadata unavailable')
@@ -39,6 +43,10 @@ def main():
         try:schema=importlib.metadata.version('jsonschema')
         except importlib.metadata.PackageNotFoundError:schema=None
         core=Path('/proc/sys/kernel/core_pattern').read_text()
+        enforcing=None
+        if active_lsm(info)=='selinux':
+            try:enforcing=Path('/sys/fs/selinux/enforce').read_text().strip()=='1'
+            except OSError:enforcing=None
         values={'schema_version':1,'status':'REQUEST_RECORDED','independent_approval':'PENDING',
             'native_execution_authorized':False,'production_authorized':False,
             'policy_sha256':hashlib.sha256((ROOT/'safety/container-policy.json').read_bytes()).hexdigest(),
@@ -47,7 +55,7 @@ def main():
             'github_context':{k:os.environ.get(k) for k in ['GITHUB_REPOSITORY','GITHUB_RUN_ID',
                 'GITHUB_RUN_ATTEMPT','RUNNER_ENVIRONMENT','RUNNER_ARCH','ImageOS','ImageVersion']},
             'host_jsonschema':schema,'core_pattern':core.strip(),
-            'host_capability_problems':host_problems(info,{'Endpoints':{'docker':{'Host':LOCAL_ENDPOINT}}},os.environ,core),
+            'host_capability_problems':host_problems(info,context,os.environ,core,enforcing),
             'locked_images':[json.loads((ROOT/name).read_text())['image_id'] for name in ['toolchain.lock.json','developer.lock.json']],
             'proposed_policy':policy,
             'warning':'Proposal only. The portable capability check pins no daemon identity; this file and its checksum grant no authority.'}

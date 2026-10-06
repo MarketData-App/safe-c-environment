@@ -43,8 +43,8 @@ def policy(root):
 
 def policy_hash(value):return digest(json.dumps(value,sort_keys=True,separators=(',',':')).encode())
 
-def validate_plan(plan,value, image, mounts, profile):
-    expected=make_plan(value,image,mounts,profile)
+def validate_plan(plan,value, image, mounts, profile, *, lsm='apparmor'):
+    expected=make_plan(value,image,mounts,profile,lsm=lsm)
     if plan!=expected:raise GateError('unsafe/missing/merged container override rejected before creation')
     return plan
 
@@ -69,7 +69,11 @@ def canonical_mount(path):
         if count>10000:raise GateError('mount input inventory exceeds bound')
     return str(path)
 
-def make_plan(value,image,mounts,profile):
+PLAN_LSM_LABELS={'apparmor':'docker-default-apparmor','selinux':'container_t-selinux'}
+
+def make_plan(value,image,mounts,profile,*,lsm='apparmor'):
+    """lsm is the active host LSM from preflight; host-independent callers describe the AppArmor plan."""
+    if lsm not in PLAN_LSM_LABELS:raise GateError('unapproved Linux security module for plan')
     if profile not in value['profiles']:raise GateError('unknown container profile')
     if not re.fullmatch(r'sha256:[0-9a-f]{64}',image):raise GateError('immutable image ID required')
     if profile in ['acquire','runtime']:raise GateError('acquisition/production execution requires separate authority')
@@ -77,7 +81,7 @@ def make_plan(value,image,mounts,profile):
     if any(k not in ['/src','/inputs','/fixture'] for k in mounts):raise GateError('unapproved mount target')
     return {'schema_version':1,'profile':profile,'image_id':image,'policy_hash':policy_hash(value),
             'user':f"{c['uid']}:{c['gid']}",'root_readonly':True,'capabilities':[],
-            'security':['no-new-privileges','default-seccomp','docker-default-apparmor'],
+            'security':['no-new-privileges','default-seccomp',PLAN_LSM_LABELS[lsm]],
             'namespaces':{'pid':'private','ipc':'private','cgroup':'private'},
             'mounts':{k:{'source':canonical_mount(v),'readonly':True,'recursive':'disabled'} for k,v in mounts.items()},
             'resources':dict(p),'restart':'no','devices':[],'ports':[],
@@ -111,7 +115,7 @@ class Launcher:
         self.purpose=purpose
         self.worktree_scope=__import__('hashlib').sha256(str(self.root.resolve()).encode()).hexdigest()
         self.runner_identity=None
-        self.info=None;self.endpoint=None;self.prefix=None
+        self.info=None;self.endpoint=None;self.prefix=None;self.daemon_id=None
         self.config=Path(tempfile.mkdtemp(prefix='safe-c-docker-config-'))
         self.env={'PATH':'/usr/bin:/bin','HOME':str(self.config),'LANG':'C.UTF-8'}
         self.records=[]
@@ -124,7 +128,8 @@ class Launcher:
     def inspect_context(self):
         r=bounded(['/usr/bin/docker','context','inspect'],timeout=15,limit=65536)
         if not passed(r):raise GateError('active Docker context unavailable')
-        rows=json.loads(r['output'])
+        try:rows=json.loads(r['output'])
+        except ValueError as exc:raise GateError('active Docker context unreadable') from exc
         if not isinstance(rows,list) or len(rows)!=1 or not isinstance(rows[0],dict):raise GateError('active Docker context ambiguous')
         return rows[0]
     def connect(self):
@@ -134,17 +139,29 @@ class Launcher:
         context=self.inspect_context()
         problems=endpoint_problems(context,os.environ)
         if problems:raise GateError('host capability check failed: '+'; '.join(problems))
-        self.endpoint=context_endpoint(context)
+        endpoint=context_endpoint(context)
+        # The first resolved endpoint is bound for this Launcher's lifetime, so
+        # admission, creation and disposal all address one daemon.
+        if self.endpoint is not None and endpoint!=self.endpoint:raise GateError('host capability check failed: daemon or endpoint changed during the run')
+        self.endpoint=endpoint
         self.prefix=['/usr/bin/docker','--config',str(self.config),'--host',self.endpoint]
         return context
     def qualify_host(self):
         context=self.connect()
         info=self.json(['info','--format','{{json .}}'])
-        core=Path('/proc/sys/kernel/core_pattern').read_text()
-        problems=host_problems(info,context,os.environ,core)
+        if not info.get('ID'):raise GateError('host capability check failed: daemon identity unavailable')
+        if self.daemon_id is not None and info.get('ID')!=self.daemon_id:raise GateError('host capability check failed: daemon or endpoint changed during the run')
+        enforcing=self.read_selinux_enforcing() if active_lsm(info)=='selinux' else None
+        problems=host_problems(info,context,os.environ,self.read_core_pattern(),enforcing)
         if problems:raise GateError('host capability check failed: '+'; '.join(problems))
-        self.info=info
+        self.daemon_id=info.get('ID');self.info=info
         return info,context
+    @staticmethod
+    def read_core_pattern():return Path('/proc/sys/kernel/core_pattern').read_text()
+    @staticmethod
+    def read_selinux_enforcing():
+        try:return Path('/sys/fs/selinux/enforce').read_text().strip()=='1'
+        except OSError:return None
     def host_info(self):
         if self.info is None:self.qualify_host()
         return self.info
@@ -191,8 +208,8 @@ class Launcher:
         return {'active_before':len(active),'available_memory_bytes':available,'reserved_memory_bytes':a['reserved_memory_bytes'],'finite_probe_memory_bytes':finite_memory,'disk_free_bytes':free,'retained_evidence_bytes':sum(sizes),'max_active':a['max_active']}
     def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0):
         self.preflight()
-        image=image or self.lock['image_id'];self.image_gate(profile,image);plan=make_plan(self.value,image,mounts,profile)
-        validate_plan(plan,self.value,image,mounts,profile)
+        image=image or self.lock['image_id'];self.image_gate(profile,image);lsm=active_lsm(self.info);plan=make_plan(self.value,image,mounts,profile,lsm=lsm)
+        validate_plan(plan,self.value,image,mounts,profile,lsm=lsm)
         if network is not None and (profile!='integration' or not network.startswith('safe-c-integration-')):raise GateError('unauthorized test network')
         if profile=='integration' and not network:raise GateError('integration requires a disposable internal network')
         c=self.value['common'];p=plan['resources'];name='safe-c-'+uuid.uuid4().hex
@@ -241,6 +258,9 @@ class Launcher:
             raise GateError('effective writable mounts/ulimits/groups differ')
 
         if p['network']=='none' and h['NetworkMode']!='none':raise GateError('effective network mismatch')
+        # The host-side /proc and /sys/fs/cgroup reads below (workload cgroup and
+        # namespace comparison) are the locality proof for the unix-socket endpoint:
+        # they succeed only when the daemon runs the workload on this kernel.
         if len(obj['Mounts'])!=len(plan['mounts']) or any(m['RW'] or m['Destination'] not in plan['mounts'] or m['Source']!=plan['mounts'][m['Destination']]['source'] for m in obj['Mounts']):raise GateError('unexpected effective bind mounts')
         pid=obj['State']['Pid']
         paths=Path(f'/proc/{pid}/cgroup').read_text().splitlines()

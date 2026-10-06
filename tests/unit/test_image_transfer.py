@@ -94,7 +94,9 @@ class TransferTests(unittest.TestCase):
         loader=SourceFileLoader('test_runner_request',str(script))
         module=module_from_spec(spec_from_loader(loader.name,loader));loader.exec_module(module)
         metadata={'exit_code':0,'failure':None,'output':json.dumps({'ID':'finite-metadata-fixture'})}
-        with mock.patch.object(sys,'argv',['runner-request','--output',str(output)]),mock.patch.object(module,'bounded',return_value=metadata),redirect_stdout(io.StringIO()):
+        context={'exit_code':0,'failure':None,'output':json.dumps([{'Name':'default','Endpoints':{'docker':{'Host':'unix:///var/run/docker.sock'}}}])}
+        def fake(argv,**kw):return context if argv[1:3]==['context','inspect'] else metadata
+        with mock.patch.object(sys,'argv',['runner-request','--output',str(output)]),mock.patch.object(module,'bounded',side_effect=fake),redirect_stdout(io.StringIO()):
             return module.main()
 
     def test_request_new_output_control(self):

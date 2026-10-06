@@ -271,8 +271,8 @@ def container_sabotage(q,value):
     def capability_rejected(name,expected):
         def action():
             try:l.preflight()
-            except GateError as exc:
-                if expected in str(exc):raise
+            except Exception as exc:
+                if isinstance(exc,GateError) and expected in str(exc):raise
             # A rejection for another reason does not prove this capability control.
             return None
         rejected('P01','docker-or-controller-unavailable/'+name,action)
