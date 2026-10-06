@@ -127,8 +127,8 @@
     },
     "sabotage_variants": {
       "type": "array",
-      "minItems": 68,
-      "maxItems": 68,
+      "minItems": 69,
+      "maxItems": 69,
       "items": {
         "type": "object",
         "additionalProperties": false,

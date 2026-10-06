@@ -10,6 +10,7 @@ import tempfile
 import time
 import uuid
 from evidence import GateError, bounded, read_json, digest, file_hash, atomic_json, passed
+from host_capabilities import active_lsm, context_endpoint, endpoint_problems, host_problems, inherited_problems, security_options
 
 MIB=1024*1024
 LABEL='org.safe-c.containment'
@@ -27,7 +28,7 @@ def policy(root):
         raise GateError('mandatory container restrictions missing')
     if any(c[k]!='private' for k in ['pid_namespace','ipc_namespace','cgroup_namespace']):
         raise GateError('host namespace requested')
-    required={'acquire','build','dependency-build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
+    required={'acquire','build','project','dependency-build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
     if set(value['profiles'])!=required:raise GateError('container profile inventory mismatch')
     for name,p in value['profiles'].items():
         if any(p[k]<=0 for k in ['memory_bytes','cpus','pids','work_bytes','tmp_bytes','run_bytes','shm_bytes','work_inodes','wall_seconds']) or p['swap_bytes']!=0:
@@ -105,14 +106,14 @@ def completion_gate(outcome,lifecycle):
 
 class Launcher:
     def __init__(self,root,run_dir,lock,*,purpose='qualification'):
-        if purpose not in {'qualification','development'}:raise GateError('unregistered container purpose')
+        if purpose not in {'qualification','development','project'}:raise GateError('unregistered container purpose')
         self.root=Path(root);self.run_dir=Path(run_dir);self.lock=lock;self.value=policy(self.root)
         self.purpose=purpose
         self.worktree_scope=__import__('hashlib').sha256(str(self.root.resolve()).encode()).hexdigest()
         self.runner_identity=None
+        self.info=None;self.endpoint=None;self.prefix=None
         self.config=Path(tempfile.mkdtemp(prefix='safe-c-docker-config-'))
         self.env={'PATH':'/usr/bin:/bin','HOME':str(self.config),'LANG':'C.UTF-8'}
-        self.prefix=['/usr/bin/docker','--config',str(self.config),'--host',self.value['runner']['endpoint']]
         self.records=[]
         self.approved_runtime_images=set()
     def image_gate(self,profile,image):
@@ -120,23 +121,45 @@ class Launcher:
             if image not in self.approved_runtime_images:raise GateError('runtime image has not been assembled and approved by the trusted adapter')
         elif image!=self.lock['image_id']:raise GateError('unapproved workload image rejected before creation')
         return True
-    def docker(self,args,**kw):return bounded(self.prefix+list(args),env=self.env,**kw)
+    def inspect_context(self):
+        r=bounded(['/usr/bin/docker','context','inspect'],timeout=15,limit=65536)
+        if not passed(r):raise GateError('active Docker context unavailable')
+        rows=json.loads(r['output'])
+        if not isinstance(rows,list) or len(rows)!=1 or not isinstance(rows[0],dict):raise GateError('active Docker context ambiguous')
+        return rows[0]
+    def connect(self):
+        """Resolve the active local Unix endpoint before any daemon is contacted."""
+        inherited=inherited_problems(os.environ)
+        if inherited:raise GateError('host capability check failed: '+'; '.join(inherited))
+        context=self.inspect_context()
+        problems=endpoint_problems(context,os.environ)
+        if problems:raise GateError('host capability check failed: '+'; '.join(problems))
+        self.endpoint=context_endpoint(context)
+        self.prefix=['/usr/bin/docker','--config',str(self.config),'--host',self.endpoint]
+        return context
+    def qualify_host(self):
+        context=self.connect()
+        info=self.json(['info','--format','{{json .}}'])
+        core=Path('/proc/sys/kernel/core_pattern').read_text()
+        problems=host_problems(info,context,os.environ,core)
+        if problems:raise GateError('host capability check failed: '+'; '.join(problems))
+        self.info=info
+        return info,context
+    def host_info(self):
+        if self.info is None:self.qualify_host()
+        return self.info
+    def docker(self,args,**kw):
+        if self.prefix is None:self.connect()
+        return bounded(self.prefix+list(args),env=self.env,**kw)
     def json(self,args):
         r=self.docker(args)
         if not passed(r):raise GateError('Docker API command failed: '+str(args[:2]))
         return json.loads(r['output'])
     def preflight(self):
-        for k in ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG']:
-            if os.environ.get(k):raise GateError('unapproved inherited Docker setting: '+k)
-        context=bounded(['/usr/bin/docker','context','show'],timeout=15)
-        if not passed(context) or context['output'].strip()!=self.value['runner']['context']:raise GateError('unapproved active Docker context')
-        info=self.json(['info','--format','{{json .}}']);expected=self.value['runner']
-        if info['ID']!=expected['daemon_id'] or info['Architecture']!=expected['architecture'] or info['CgroupVersion']!=expected['cgroup_version']:
-            raise GateError('unapproved runner/daemon/architecture/cgroup')
-        if expected['role']!='development-qualification' or expected['architecture']!='x86_64' or expected['cgroup_version']!='2' or expected['endpoint']!='unix:///var/run/docker.sock':raise GateError('unapproved production/remote/emulated runner')
-        if any(not info.get(k) for k in ['MemoryLimit','SwapLimit','PidsLimit','CpuCfsQuota','CpuCfsPeriod']):raise GateError('required resource controller unsupported')
+        info,context=self.qualify_host();expected=self.value['runner']
+        if (expected['role']!='portable' or expected['endpoint_scheme']!='unix' or expected['architecture']!='x86_64' or
+                expected['cgroup_version']!='2' or active_lsm(info) not in expected['lsm']):raise GateError('unapproved production/remote/emulated runner')
         security=info['SecurityOptions']
-        if not any('seccomp' in s for s in security) or expected['require_apparmor'] and not any('apparmor' in s for s in security):raise GateError('required confinement unavailable')
         image=self.json(['image','inspect',self.lock['image_id']])[0]
         cfg=image['Config']
         if image['Size']>self.value['aggregate']['owned_image_bytes']:raise GateError('retained toolchain-image storage exceeds approved project bound')
@@ -147,7 +170,7 @@ class Launcher:
         features=json.loads(runtime.get('org.opencontainers.runtime-spec.features','{}'))
         annotations=features.get('annotations',{})
         self.runner_identity={k:info.get(k) for k in ['ID','Name','ServerVersion','KernelVersion','OperatingSystem','Architecture','NCPU','MemTotal','CgroupDriver','CgroupVersion','SecurityOptions','Driver','DefaultRuntime']}
-        self.runner_identity.update(endpoint=expected['endpoint'],role=expected['role'],rootless=any('rootless' in x for x in security),runtime_annotations=annotations,controllers=Path('/sys/fs/cgroup/cgroup.controllers').read_text().split(),core_pattern=core)
+        self.runner_identity.update(endpoint=self.endpoint,role=expected['role'],lsm=active_lsm(info),rootless=any('rootless' in x for x in security),runtime_annotations=annotations,controllers=Path('/sys/fs/cgroup/cgroup.controllers').read_text().split(),core_pattern=core)
         return self.runner_identity
     def admission(self,plan,finite_memory=0):
         a=self.value['aggregate'];p=plan['resources']
@@ -176,7 +199,7 @@ class Launcher:
         argv=['create','--pull=never','--name',name,'--label',LABEL+'=1','--label','org.safe-c.profile='+profile,'--label','org.safe-c.source='+file_hash(self.root/'safety/contract.json'),
               '--label','org.safe-c.purpose='+self.purpose,'--label','org.safe-c.worktree='+self.worktree_scope,
               '--label','org.safe-c.run='+self.run_dir.name,
-              '--network',network or 'none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges','--security-opt=apparmor=docker-default',
+              '--network',network or 'none','--read-only','--cap-drop=ALL',*['--security-opt='+o for o in security_options(self.info)],
               '--ipc=private','--cgroupns=private','--restart=no','--user',plan['user'],
               '--memory',str(p['memory_bytes']),'--memory-swap',str(p['memory_bytes']),
               '--cpus',str(p['cpus']),'--pids-limit',str(p['pids']),
@@ -199,7 +222,7 @@ class Launcher:
             container=r['output'].strip()
             start=self.docker(['start',container])
             if not passed(start):self.docker(['rm','--force',container]);raise GateError('protected container startup failed')
-            record={'container_id':container,'name':name,'profile':profile,'plan':plan,'policy_hash':plan['policy_hash'],'runner':self.runner_identity,'reservation':reservation,'create_command':self.prefix[:1]+['--host',self.value['runner']['endpoint']]+argv,'effective':None,'lifecycle':None,'execution_path':'docker'}
+            record={'container_id':container,'name':name,'profile':profile,'plan':plan,'policy_hash':plan['policy_hash'],'runner':self.runner_identity,'reservation':reservation,'create_command':self.prefix[:1]+['--host',self.endpoint]+argv,'effective':None,'lifecycle':None,'execution_path':'docker'}
             self.records.append(record)
         finally:os.close(fd)
         if command is None:
@@ -209,7 +232,7 @@ class Launcher:
         return record
     def effective(self,container,plan,python_probe=True):
         obj=self.json(['inspect',container])[0];h=obj['HostConfig'];cfg=obj['Config'];p=plan['resources']
-        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},sorted(h['SecurityOpt'])==sorted(['no-new-privileges','apparmor=docker-default']),obj['AppArmorProfile']=='docker-default',not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
+        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},sorted(h['SecurityOpt'])==sorted(security_options(self.host_info())),(obj['AppArmorProfile']=='docker-default' if active_lsm(self.host_info())=='apparmor' else ':container_t:' in obj.get('ProcessLabel','')),not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
         if not all(checks):raise GateError('effective Docker settings mismatch')
         c=self.value['common']
         expected_tmpfs={'/tmp':f"rw,nosuid,nodev,noexec,size={p['tmp_bytes']},uid={c['uid']},gid={c['gid']}",'/run':f"rw,nosuid,nodev,noexec,size={p['run_bytes']},uid={c['uid']},gid={c['gid']}",'/work':f"rw,nosuid,nodev,exec,size={p['work_bytes']},nr_inodes={p['work_inodes']},uid={c['uid']},gid={c['gid']}"}
@@ -239,7 +262,8 @@ class Launcher:
         s=inside['status'];c=self.value['common']
         if inside['uid']!=c['uid'] or inside['gid']!=c['gid'] or int(s['CapEff'],16) or int(s['CapBnd'],16) or s['NoNewPrivs']!='1' or s['Seccomp']!='2' or inside['limits']!=limits or (inside.get('compute')!=45 if python_probe else not inside['runtime_health_observed']):raise GateError('in-container control verification failed')
         if python_probe:
-            if inside['apparmor_active']!='docker-default (enforce)':raise GateError('active AppArmor enforcement mismatch')
+            lsm=active_lsm(self.host_info())
+            if (inside['apparmor_active']!='docker-default (enforce)' if lsm=='apparmor' else ':container_t:' not in inside['apparmor_active']):raise GateError('active Linux security module enforcement mismatch')
             if any(inside['scratch'][path]['bytes']!=p[key] for path,key in [('/work','work_bytes'),('/tmp','tmp_bytes'),('/run','run_bytes'),('/dev/shm','shm_bytes')]) or inside['scratch']['/work']['inodes']!=p['work_inodes']:raise GateError('scratch byte/inode hard boundary not effective')
             expected_ulimits={'core':[0,0],'nofile':[c['nofile'],c['nofile']],'fsize':[c['file_bytes'],c['file_bytes']],'address':[-1,-1]}
             if inside['ulimits']!=expected_ulimits:raise GateError('effective ulimits mismatch or sanitizer address-space cap')

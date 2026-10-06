@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from evidence import GateError, Runner, atomic_json, file_hash, read_json, passed
 from policy import source_identity, baseline_identity
 from schema_check import validate
+from host_capabilities import security_options
 
 OPERATIONS = ['doctor', 'prepare', 'status', 'targets', 'tests', 'build', 'test',
               'nav', 'diagnose', 'replay', 'debug', 'coverage', 'selftest',
@@ -269,7 +270,7 @@ def stop(root, out, lock):
                             host.get('PidMode')!='' or host.get('CgroupnsMode')!='private' or
                             not host.get('ReadonlyRootfs') or actual['Config'].get('User')!='1001:1001' or
                             host.get('NetworkMode')!='none' or
-                            sorted(host.get('SecurityOpt',[]))!=['apparmor=docker-default','no-new-privileges'] or
+                            sorted(host.get('SecurityOpt',[]))!=sorted(security_options(launcher.host_info())) or
                             host.get('Memory')!=launcher.value['profiles'].get(profile,{}).get('memory_bytes') or
                             host.get('PidsLimit')!=launcher.value['profiles'].get(profile,{}).get('pids')):
                         raise GateError('development stop refused a foreign or mismatched container')
