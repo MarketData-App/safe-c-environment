@@ -37,6 +37,8 @@ compile_commands.json
 *.profraw
 *.profdata
 coverage/
+!safety/project-gate-fixtures/coverage/
+!safety/project-gate-fixtures/coverage/**
 
 # Debugging
 core

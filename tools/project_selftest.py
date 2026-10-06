@@ -201,7 +201,9 @@ def evaluate_clean(report):
     bad = [name for name in pc.GATES if rows.get(name) != 'PASS']
     ok = report.get('verdict') in CLEAN_VERDICTS and not bad and not report.get('blockers')
     failed = [name for name in bad if rows.get(name) == 'FAIL']
-    status = 'PASS' if ok else 'BLOCKED' if report.get('verdict') == 'BLOCKED' and not failed else 'FAIL'
+    # A gate or runtime failure is FAIL; anything else that is not a pass (infrastructure,
+    # container cleanup blockers) is BLOCKED.
+    status = 'PASS' if ok else 'FAIL' if failed or report.get('verdict') == 'FAIL' else 'BLOCKED'
     result = {'status': status, 'verdict': report.get('verdict'), 'stopped_after': report.get('stopped_after')}
     if not ok:
         result['not_passed'] = bad
@@ -229,6 +231,9 @@ def evaluate_fixture(gate, report):
         (rows.get(name, {}).get('status') == 'BLOCKED' and rows[name].get('details', {}).get('reason') == not_run))]
     if report.get('verdict') != 'FAIL' or failed != [gate] or first != gate:
         result['reason'] = 'the seeded defect did not fail exactly its target gate'
+    elif unexpected and all(rows.get(name, {}).get('status') == 'BLOCKED' for name in unexpected):
+        result.update(status='BLOCKED', reason='gates other than the target were blocked by infrastructure',
+                      unexpected=unexpected)
     elif unexpected:
         result['reason'] = 'gates other than the target are neither PASS nor BLOCKED as not run'
         result['unexpected'] = unexpected

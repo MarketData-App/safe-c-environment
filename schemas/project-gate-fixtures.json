@@ -15,7 +15,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "pattern": "^[A-Za-z0-9_+-][A-Za-z0-9_./+-]*$"
+      "pattern": "^(?!.*(^|/)\\.{1,2}(/|$))(?!.*//)[A-Za-z0-9_+-][A-Za-z0-9_./+-]*$"
     },
     "gate": {
       "enum": ["format", "gcc-O0", "gcc-O2", "clang-O0", "clang-O2", "hardened", "tidy", "csa",

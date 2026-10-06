@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "coverage",
+  "defect": "A new module source with 30 branches whose taken sides no test executes; line and branch coverage drop below the contract thresholds.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "src/seeded_uncovered.c",
+      "source": "seeded_uncovered.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/sources",
+      "value": "src/seeded_uncovered.c"
+    },
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

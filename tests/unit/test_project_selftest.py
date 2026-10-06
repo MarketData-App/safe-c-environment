@@ -1,4 +1,4 @@
-import hashlib, io, json, shutil, sys, tempfile, unittest
+import fnmatch, hashlib, io, json, shutil, subprocess, sys, tempfile, unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'tools'))
@@ -125,7 +125,8 @@ class ManifestTests(unittest.TestCase):
         def mutate(root):
             path = root/ps.FIXTURES/'ubsan/fixture.json';value = json.loads(path.read_text())
             value['operations'][0]['path'] = 'src/../../escape.c';path.write_text(json.dumps(value));rehash(root)
-        self.check_rejected(mutate, 'not plain')
+        # The schema pattern rejects it first; apply_fixture repeats the check (ApplyTests).
+        self.check_rejected(mutate, 'schema')
 
     def test_unknown_operation_is_rejected_by_schema(self):
         def mutate(root):
@@ -133,10 +134,70 @@ class ManifestTests(unittest.TestCase):
             value['operations'][0]['op'] = 'chmod';path.write_text(json.dumps(value));rehash(root)
         self.check_rejected(mutate, 'schema')
 
+    def test_dot_dot_path_is_rejected_by_schema(self):
+        for bad in ('src/../escape.c', '../escape.c', 'src/./x.c', 'src//x.c', '.hidden'):
+            def mutate(root, bad=bad):
+                path = root/ps.FIXTURES/'ubsan/fixture.json';value = json.loads(path.read_text())
+                value['operations'][0]['path'] = bad;path.write_text(json.dumps(value));rehash(root)
+            with self.subTest(path=bad):
+                self.check_rejected(mutate, 'schema')
+
     def test_symlinked_fixture_file_is_rejected(self):
         def mutate(root):
             (root/ps.FIXTURES/'asan/link.c').symlink_to(root/ps.FIXTURES/'asan/test_seeded.c')
         self.check_rejected(mutate, 'symlink')
+
+
+def gitignored(rel, lines):
+    """Minimal .gitignore evaluation for the patterns of this repository: last match wins,
+    `!` negates, a trailing `/` matches a directory (and so every path below it), a
+    pattern with an inner `/` is anchored at the root, `**` matches any depth."""
+    parts = rel.split('/')
+    candidates = [('/'.join(parts[:i]), i < len(parts)) for i in range(1, len(parts)+1)]
+    ignored = False
+    for raw in lines:
+        line = raw.rstrip('\n')
+        if not line.strip() or line.startswith('#'):
+            continue
+        negate = line.startswith('!')
+        pattern = line[1:] if negate else line
+        directory = pattern.endswith('/')
+        pattern = pattern.rstrip('/')
+        anchored = '/' in pattern
+        pattern = pattern.lstrip('/')
+        for path, is_dir in candidates:
+            if directory and not is_dir:
+                continue
+            name = path if anchored else path.rsplit('/', 1)[-1]
+            if fnmatch.fnmatchcase(name, pattern) or (pattern.endswith('/**') and path.startswith(pattern[:-3]+'/')):
+                ignored = not negate
+                break
+    return ignored
+
+
+class TrackingTests(unittest.TestCase):
+    """Every pinned fixture file must be committable: an ignored file is missing from a clean checkout."""
+
+    def fixture_paths(self):
+        manifest = json.loads((ROOT/ps.MANIFEST).read_text())
+        return [ps.FIXTURES+'/'+rel for rel in manifest['files']] + [ps.MANIFEST]
+
+    def test_no_fixture_file_is_gitignored(self):
+        lines = (ROOT/'.gitignore').read_text().splitlines()
+        ignored = [rel for rel in self.fixture_paths() if gitignored(rel, lines)]
+        self.assertEqual(ignored, [])
+
+    def test_ignore_evaluation_detects_a_directory_rule(self):
+        # Without the negation rules, `coverage/` hides the coverage fixture.
+        lines = [l for l in (ROOT/'.gitignore').read_text().splitlines() if 'project-gate-fixtures' not in l]
+        self.assertTrue(gitignored(ps.FIXTURES+'/coverage/fixture.json', lines))
+        self.assertFalse(gitignored(ps.FIXTURES+'/asan/fixture.json', lines))
+
+    @unittest.skipUnless((ROOT/'.git').exists() and shutil.which('git'), 'git checkout unavailable')
+    def test_git_does_not_ignore_fixture_files(self):
+        result = subprocess.run(['git', '-C', str(ROOT), 'check-ignore', '--no-index', *self.fixture_paths()],
+                                capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.stdout.split(), [])
 
 
 class ApplyTests(unittest.TestCase):
@@ -229,9 +290,11 @@ class EvaluationTests(unittest.TestCase):
     def test_stop_at_another_gate_fails(self):
         self.assertEqual(ps.evaluate_fixture('asan', report(['asan'], stopped='tidy'))['status'], 'FAIL')
 
-    def test_blocked_other_gate_with_other_reason_fails(self):
+    def test_passing_gate_after_target_fails(self):
+        # The run must stop at the target: a later gate that ran and passed is not a stop.
         value = report(['asan'])
-        value['gates'][pc.GATES.index('tsan')] = pc.gate_row('tsan', 'BLOCKED', {'reason': 'not run: run blocked'})
+        value['gates'][pc.GATES.index('tsan')] = pc.gate_row('tsan', 'BLOCKED', {'reason': 'not run: gate tidy failed'})
+        value['gates'][pc.GATES.index('tidy')] = pc.gate_row('tidy', 'FAIL')
         self.assertEqual(ps.evaluate_fixture('asan', value)['status'], 'FAIL')
 
     def test_infrastructure_block_is_blocked(self):
@@ -243,7 +306,18 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(ps.evaluate_clean(report(verdict='PASS'))['status'], 'PASS')
         self.assertEqual(ps.evaluate_clean(report(['tidy']))['status'], 'FAIL')
         self.assertEqual(ps.evaluate_clean(report(verdict='BLOCKED', blockers=['x']))['status'], 'BLOCKED')
-        self.assertEqual(ps.evaluate_clean(dict(report(), blockers=['x']))['status'], 'FAIL')
+        # Every gate passed but container cleanup reported a blocker: BLOCKED, not FAIL.
+        self.assertEqual(ps.evaluate_clean(dict(report(), blockers=['container cleanup: x']))['status'], 'BLOCKED')
+        runtime = dict(report(), verdict='FAIL')
+        self.assertEqual(ps.evaluate_clean(runtime)['status'], 'FAIL')
+
+    def test_non_target_gate_blocked_by_infrastructure_is_blocked(self):
+        value = report(['asan'])
+        value['gates'][pc.GATES.index('format')] = pc.gate_row('format', 'BLOCKED', {'reason': 'infrastructure'})
+        self.assertEqual(ps.evaluate_fixture('asan', value)['status'], 'BLOCKED')
+        # A non-target gate that failed or was skipped for another gate stays FAIL.
+        value['gates'][pc.GATES.index('tsan')] = pc.gate_row('tsan', 'FAIL')
+        self.assertEqual(ps.evaluate_fixture('asan', value)['status'], 'FAIL')
 
 
 class SelftestTests(unittest.TestCase):
