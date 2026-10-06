@@ -116,6 +116,14 @@ class ProjectModelMoreTests(unittest.TestCase):
         for name in ('feature spaced','pragma comment','spliced pragma','spliced feature','extension'):
             with self.subTest(header=name), tempfile.TemporaryDirectory() as t:
                 with self.assertRaises(GateError): self.inv(Path(t),extra={'include/greeting.h':cases[name]},mutate=None)
+    def test_token_pasting_forbidden(self):
+        for rel in ('src/greeting.c','include/greeting.h'):
+            with self.subTest(rel=rel), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={rel:'#define CAT(a, b) a '+'#'+'# b'},mutate=None)
+        # Line splicing and the %:%: digraph spell the same operator.
+        for text in ('#define CAT(a, b) a #\\\n# b','#define CAT(a, b) a %'+':%: b'):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':text},mutate=None)
     def test_ordinary_code_is_not_forbidden(self):
         with tempfile.TemporaryDirectory() as t:
             self.inv(Path(t),extra={'src/greeting.c':'#pragma once\n/* sanitize the input */ int has_feature_x(void);'},mutate=None)

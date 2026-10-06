@@ -32,7 +32,8 @@
     "#pragma clang diagnostic",
     "no_sanitize",
     "__attribute__((optimize",
-    "NOLINT"
+    "NOLINT",
+    "##"
   ],
   "forbidden_patterns": [
     "\\bno_sanitize",
@@ -45,6 +46,7 @@
     "\\b_Pragma\\b",
     "#\\s*pragma\\s+(GCC|clang)\\s+(diagnostic|optimize|push_options|attribute)\\b",
     "__attribute__\\s*\\(\\s*\\(\\s*_*optimize",
-    "NOLINT"
+    "NOLINT",
+    "##|%:%:"
   ]
 }
