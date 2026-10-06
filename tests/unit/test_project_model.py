@@ -243,6 +243,57 @@ def framework_copy(base):
         files=sorted(files+['starter-export.json'])),indent=2)+'\n')
     return base
 
+class ProjectModelRound3ProbeTests(unittest.TestCase):
+    """The round-3 approver probe cases (approver-final-3/probe.py) and R3-M1/R3-H2.
+
+    Fragments keep the forbidden spellings out of this file's own text."""
+    make=ProjectModelTests.make
+    inv=ProjectModelMoreTests.inv
+    PRAGMA='#pra'+'gma'
+    SYSHDR='GCC system'+'_header'
+    def refused(self, extra):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError) as caught: self.inv(Path(t),extra=extra,mutate=None)
+            return str(caught.exception)
+    def test_control_cases(self):
+        self.refused({'include/greeting.h':'#pragma once\n'+self.PRAGMA+' '+self.SYSHDR+'\n'})
+        self.refused({'include/greeting.h':'#pragma once\n#pra\\\ngma '+self.SYSHDR+'\n'})
+    def test_line_comment_fake_block_comment_with_split(self):
+        self.refused({'include/greeting.h':'#pragma once\n// /*\n#pra\\\ngma '+self.SYSHDR+'\n// */\n'})
+    def test_string_fake_block_comment_with_split_attribute(self):
+        source=('static const char a[] = "/*";\nint f(void) __attribute__((no_sani\\\n'
+                'tize("address")));\nstatic const char b[] = "*/";\n')
+        self.assertIn('forbidden', self.refused({'src/greeting.c':source}))
+    def test_angle_include_into_fuzz_project(self):
+        message=self.refused({'src/greeting.c':'#include <project/data.inc>\n','fuzz/project/data.inc':'int z;\n'})
+        self.assertIn('fuzz/project/data.inc', message)
+        message=self.refused({'src/greeting.c':'#include <project/corpus/greeting/seed>\n'})
+        self.assertIn('framework include directory', message)
+    def test_hidden_include_of_review_file(self):
+        self.refused({'src/greeting.c':'// /*\n#inc\\\nlude "../review/x.txt"\n// */\n','review/x.txt':'x\n'})
+    def test_form_feed_and_vertical_tab_before_hash(self):
+        for blank in ('\f','\v'):
+            with self.subTest(blank=repr(blank)):
+                message=self.refused({'src/greeting.c':blank+'#include "../review/x.txt"\n','review/x.txt':'x\n'})
+                self.assertIn('forbidden include', message)
+    def test_unlisted_non_c_file_under_fuzz_project(self):
+        self.assertIn('unlisted project file: fuzz/project/notes.inc', self.refused({'fuzz/project/notes.inc':'x\n'}))
+    def test_files_in_declared_corpus_and_regressions_are_allowed(self):
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'fuzz/project/corpus/greeting/seed.bin':'x','fuzz/project/regressions/greeting/crash-1':'y'})
+    def test_line_directive_and_other_directives(self):
+        for text in ('#line 7 "other.c"\nint x;','#ident "x"\nint x;','# 1 "x.h"\nint x;','#warning x\nint x;'):
+            with self.subTest(text=text[:8]):
+                self.assertIn('forbidden directive', self.refused({'src/greeting.c':text}))
+    def test_forbidden_word_inside_string_literal_still_refused_by_raw_text(self):
+        # The raw text check stays: a literal cannot carry a forbidden word either.
+        self.refused({'src/greeting.c':'const char *s = "NO'+'LINT";'})
+    def test_ordinary_literals_and_comments_pass(self):
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'src/greeting.c':'/* a "quote */\nconst char *s = "/* not a comment */";\n'
+                                                      "const char c = '\\'';\nint x;\n"},mutate=None)
+
+
 class ProjectModeInstantiateTests(unittest.TestCase):
     def test_instantiate_creates_project_mode(self):
         import starter, policy

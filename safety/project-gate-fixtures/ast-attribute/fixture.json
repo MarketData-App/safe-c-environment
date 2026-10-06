@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "ast",
+  "check": "attributes",
+  "defect": "A function attribute, produced by a macro whose name and spelling the inventory pre-check does not list, that removes all instrumentation from the function (Clang NakedAttr); only the AST attribute scan refuses it.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded_attribute.c",
+      "source": "test_seeded_attribute.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded_attribute.c"
+    }
+  ]
+}

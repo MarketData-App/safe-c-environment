@@ -5,10 +5,11 @@ import posixpath
 import re
 from pathlib import Path
 import policy
+import project_source
 from evidence import GateError, read_json
 from schema_check import validate
 
-PROJECT_PATHS = ('src/', 'include/', 'tests/project/', 'fuzz/project/', 'specs/project/', 'review/')
+PROJECT_PATHS = project_source.PROJECT_PATHS
 MANIFEST = 'framework-manifest.json'
 PROJECT_FILE = 'project.json'
 _CI_WORKFLOW = '.github/workflows/project-ci.yml'
@@ -45,49 +46,82 @@ def _dir_paths(project):
 
 
 def _normalized_source(text):
-    """Return the text after line splicing, with block comments replaced by one space."""
-    spliced = re.sub(r'\\\r?\n', '', text)
-    return re.sub(r'/\*.*?\*/', ' ', spliced, flags=re.S)
+    """The text after translation phases 1-3 (project_source.lex): trigraphs replaced,
+    lines spliced, each comment replaced by one space and every string or character
+    literal emptied (its prefix and quotes stay). Forbidden text and patterns are
+    checked on this code view and on the raw text."""
+    return project_source.lex(text).code
 
 
-def forbidden_pattern(text, patterns):
+def forbidden_pattern(text, patterns, code=None):
     """Return the first policy pattern found in the raw or normalized text, or None."""
-    variants = (text, _normalized_source(text))
+    variants = (text, _normalized_source(text) if code is None else code)
     for item, regex in patterns:
         if any(regex.search(v) for v in variants):
             return item
     return None
 
 
-_INCLUDE = re.compile(r'^[ \t]*(?:#|%:|\?\?=)[ \t]*(include_next|include|import)\b[ \t]*(.*)$', re.M)
+# Framework include directories a project target may have searched (cmake/Safety.cmake,
+# tools/foundation.py analysis_flags), relative to a child's root. An angle include must
+# not reach a project path through them.
+_FRAMEWORK_INCLUDE_DIRS = ('fuzz/', 'safety/qualification/')
 
 
-def include_problem(rel, text, headers, present):
-    """Return why an include directive in `text` (normalized source of `rel`) is forbidden, or None.
+def include_problem(rel, text, headers, present, tokens=None):
+    """Return why an include directive in `text` (the source of `rel`) is forbidden, or None.
 
-    A quoted include must resolve, as the compiler searches (the including file's
-    directory, then include/), to a header declared in project.json. An angle include
-    may not leave its search directory, and a file it would find under include/ must
-    be a declared header. Computed includes, #include_next and #import are forbidden."""
-    for match in _INCLUDE.finditer(text):
-        name, rest = match.group(1), match.group(2)
+    The directives come from the lexer, so comments, literals, line splices and form
+    feeds cannot hide or fake one. A quoted include must resolve, as the compiler
+    searches (the including file's directory, then include/), to a header declared in
+    project.json. An angle include may not leave its search directory, a file it would
+    find under include/ must be a declared header, and it may not reach a project path
+    through a framework include directory. Computed includes, #include_next and #import
+    are forbidden. The compiler dependency check in the ast gate is authoritative."""
+    tokens = project_source.lex(text).tokens if tokens is None else tokens
+    for _line, name, form, target in project_source.include_targets(tokens):
         if name != 'include':
             return '#'+name
-        quoted = re.match(r'"([^"\n]*)"', rest)
-        angled = re.match(r'<([^>\n]*)>', rest)
-        target = (quoted or angled).group(1) if (quoted or angled) else None
         if target is None:
             return 'computed include'
+        angled = form == 'angle'
         if not target or target.startswith('/') or '\\' in target or (angled and '..' in target.split('/')):
             return 'include path leaves its directory: '+target
-        if quoted:
+        if not angled:
             candidates = [posixpath.normpath(posixpath.join(posixpath.dirname(rel), target)),
                           posixpath.normpath('include/'+target)]
             found = next((c for c in candidates if c in present), None)
             if found not in headers:
                 return 'quoted include does not name a declared project header: '+target
-        elif posixpath.normpath('include/'+target) in present and posixpath.normpath('include/'+target) not in headers:
+            continue
+        local = posixpath.normpath('include/'+target)
+        if local in present and local not in headers:
             return 'angle include finds an undeclared file: '+target
+        if any(posixpath.normpath(d+target).startswith(PROJECT_PATHS) for d in _FRAMEWORK_INCLUDE_DIRS):
+            return 'angle include reaches a project path through a framework include directory: '+target
+    return None
+
+
+def source_problem(rel, text, forbidden, patterns, headers, present):
+    """The first inventory pre-check finding for one project file, or None.
+
+    Fast feedback only: the compiler-based checks of the ast gate are authoritative."""
+    lexed = project_source.lex(text)
+    for line, problem in lexed.problems:
+        return f'forbidden source form in {rel}:{line}: {problem}'
+    variants = (text, lexed.code)
+    for item in forbidden:
+        if any(item in v for v in variants):
+            return f'forbidden text in {rel}: {item}'
+    item = forbidden_pattern(text, patterns, lexed.code)
+    if item is not None:
+        return f'forbidden pattern in {rel}: {item}'
+    found = project_source.directive_problem(lexed.tokens)
+    if found is not None:
+        return f'forbidden directive in {rel}:{found[0]}: {found[1]}'
+    problem = include_problem(rel, text, headers, present, lexed.tokens)
+    if problem is not None:
+        return f'forbidden include in {rel}: {problem}'
     return None
 
 
@@ -336,9 +370,10 @@ def project_inventory(root, project_dir, project, framework_root=None):
                 raise GateError(f'fuzz corpus is missing or empty: {fuzz["corpus"]}')
     actual = project_files(root, project_dir)
     data_dirs = tuple(d.rstrip('/')+'/' for d in _dir_paths(project))
+    # Every file under the code paths must be declared; under fuzz/project/ only the
+    # declared corpus and regression directories may hold other files.
     code = {p for p in actual if not p.startswith(data_dirs) and not p.startswith(('specs/project/', 'review/'))
-            and p.startswith(('src/', 'include/', 'tests/project/', 'fuzz/project/'))
-            and (p.startswith('fuzz/project/') is False or p.endswith('.c'))}
+            and p.startswith(('src/', 'include/', 'tests/project/', 'fuzz/project/'))}
     listed = declared - {m['spec'] for m in project['modules']}
     for rel in sorted(code - listed):
         raise GateError(f'unlisted project file: {rel}')
@@ -351,14 +386,6 @@ def project_inventory(root, project_dir, project, framework_root=None):
     present = set(actual)
     # Every C file and every declared code path (a declared header can be included).
     for rel in sorted(p for p in actual if p.endswith(('.c', '.h')) or p in listed):
-        text = (base/rel).read_text(errors='replace')
-        variants = (text, _normalized_source(text))
-        for item in forbidden:
-            if any(item in v for v in variants):
-                raise GateError(f'forbidden text in {rel}: {item}')
-        item = forbidden_pattern(text, patterns)
-        if item is not None:
-            raise GateError(f'forbidden pattern in {rel}: {item}')
-        problem = include_problem(rel, variants[1], headers, present)
+        problem = source_problem(rel, (base/rel).read_text(errors='replace'), forbidden, patterns, headers, present)
         if problem is not None:
-            raise GateError(f'forbidden include in {rel}: {problem}')
+            raise GateError(problem)

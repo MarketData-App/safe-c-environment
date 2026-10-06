@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "ast",
+  "check": "identity",
+  "defect": "Code that differs between the GCC and Clang builds through a predefined macro that is not on the pre-check denylist; only the compiler-based build identity check sees it.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded_identity.c",
+      "source": "test_seeded_identity.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded_identity.c"
+    }
+  ]
+}

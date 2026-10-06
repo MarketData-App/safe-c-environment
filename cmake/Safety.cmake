@@ -1,7 +1,12 @@
 # Target-scoped C17 policy shared by qualification and future application targets.
 function(safety_target target)
   set_target_properties(${target} PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)
-  target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/safety/qualification ${PROJECT_SOURCE_DIR}/fuzz)
+  # Project targets (cmake/Project.cmake) see only their own include/ directory: the
+  # framework qualification and fuzz directories would let an angle include reach
+  # files the project policy does not scan.
+  if(NOT _SAFETY_PROJECT_TARGETS)
+    target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/safety/qualification ${PROJECT_SOURCE_DIR}/fuzz)
+  endif()
   if(NOT SAFETY_PROFILE STREQUAL "ordinary")
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror
       -Wconversion -Wsign-conversion -Wshadow -Wformat=2 -Wformat-security

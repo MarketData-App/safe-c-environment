@@ -79,4 +79,33 @@ class ProjectCMakeTests(unittest.TestCase):
                     ['--other','/src/a'],['/src/a']):
             with self.assertRaises(ValueError):parse(['a.c','p','x']+bad)
         with self.assertRaises(ValueError):parse(['a.c','p'])
+    def test_project_rules_flag(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        spec=importlib.util.spec_from_file_location('foundation_policy',ROOT/'container/foundation-policy.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        parse=module.parse_arguments
+        self.assertFalse(parse(['a.c','p','x','--include','/src/p/include'])[4])
+        self.assertTrue(parse(['a.c','p','x','--include','/src/p/include','--project-rules'])[4])
+        self.assertTrue(parse(['a.c','p','x','--project-rules','--include','/src/p/include'])[4])
+        with self.assertRaises(ValueError):parse(['a.c','p','x','--project-rules','--project-rules'])
+    def test_banned_attribute_nodes(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        from qualification import ast_banned_attributes,PROJECT_BANNED_ATTRIBUTES
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':'f','inner':[{'kind':'NakedAttr'},{'kind':'CompoundStmt','inner':[]}]},
+            {'kind':'FunctionDecl','name':'g','inner':[{'kind':'OptimizeNoneAttr','implicit':True}]},
+            {'kind':'FunctionDecl','name':'h','inner':[{'kind':'UnusedAttr'},{'kind':'NoStackProtectorAttr'}]}]}
+        self.assertEqual(ast_banned_attributes(tree),['NakedAttr','NoStackProtectorAttr','OptimizeNoneAttr'])
+        self.assertEqual(ast_banned_attributes({'kind':'TranslationUnitDecl','inner':[{'kind':'UnusedAttr'}]}),[])
+        for kind in ('NoSanitizeAttr','DisableSanitizerInstrumentationAttr','NoInstrumentFunctionAttr','NoProfileFunctionAttr'):
+            self.assertIn(kind,PROJECT_BANNED_ATTRIBUTES)
+    def test_project_targets_omit_framework_include_directories(self):
+        safety=re.sub(r'(?m)#.*$','',(ROOT/'cmake/Safety.cmake').read_text())
+        guarded=re.search(r'if\(NOT _SAFETY_PROJECT_TARGETS\)\s*target_include_directories\(\$\{target\} PRIVATE [^)]*/fuzz\)\s*endif\(\)',safety)
+        self.assertIsNotNone(guarded)
+        self.assertEqual(safety.count('target_include_directories'),1)
+        project=self.code()
+        body=project[project.index('function(safety_project'):]
+        self.assertLess(body.index('set(_SAFETY_PROJECT_TARGETS ON)'),body.index('safety_target('))
+        self.assertNotIn('_SAFETY_PROJECT_TARGETS',(ROOT/'CMakeLists.txt').read_text())
 if __name__=='__main__':unittest.main()

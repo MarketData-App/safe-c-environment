@@ -41,12 +41,17 @@ def report(failed=None, *, verdict=None, blockers=(), stopped=None):
 
 
 class ManifestTests(unittest.TestCase):
-    def test_repository_fixture_set_has_one_fixture_per_project_gate(self):
+    def test_repository_fixture_set_covers_every_project_gate(self):
         manifest, fixtures = ps.load_manifest(ROOT)
         self.assertEqual(manifest['gates'], list(pc.GATES))
-        self.assertEqual(len(fixtures), 23)
         self.assertEqual(list(fixtures), list(pc.GATES))
-        self.assertTrue(all(fixtures[g]['gate'] == g for g in pc.GATES))
+        self.assertTrue(all(fixtures[g] and all(f['gate'] == g for _, f in fixtures[g]) for g in pc.GATES))
+        # The ast gate proves its AST API scan, attribute scan and build identity check live.
+        self.assertEqual([(d, f.get('check')) for d, f in fixtures['ast']],
+                         [('ast', 'api'), ('ast-attribute', 'attributes'), ('ast-identity', 'identity')])
+        runs = ps.fixture_runs(fixtures)
+        self.assertEqual(len(runs), 25)
+        self.assertEqual([g for g, _, _ in ps.fixture_runs(fixtures, ['ast', 'tsan'])], ['ast', 'ast', 'ast', 'tsan'])
 
     def test_fixture_c_sources_are_in_the_source_inventory(self):
         inventory = json.loads((ROOT/'safety/source-inventory.json').read_text())['files']
@@ -141,6 +146,26 @@ class ManifestTests(unittest.TestCase):
                 value['operations'][0]['path'] = bad;path.write_text(json.dumps(value));rehash(root)
             with self.subTest(path=bad):
                 self.check_rejected(mutate, 'schema')
+
+    def test_fixture_directory_listed_twice_or_unlisted_is_rejected(self):
+        def twice(root):
+            value = json.loads((root/ps.MANIFEST).read_text());value['fixtures']['tsan'].append('asan')
+            (root/ps.MANIFEST).write_text(json.dumps(value))
+        self.check_rejected(twice, 'listed twice')
+        def unlisted(root):
+            value = json.loads((root/ps.MANIFEST).read_text());value['fixtures']['ast'].remove('ast-identity')
+            (root/ps.MANIFEST).write_text(json.dumps(value))
+        self.check_rejected(unlisted, 'directories differ')
+        def missing_gate(root):
+            value = json.loads((root/ps.MANIFEST).read_text());del value['fixtures']['tsan']
+            (root/ps.MANIFEST).write_text(json.dumps(value))
+        self.check_rejected(missing_gate, 'schema')
+
+    def test_second_fixture_for_another_gate_is_rejected(self):
+        def mutate(root):
+            path = root/ps.FIXTURES/'ast-identity/fixture.json';value = json.loads(path.read_text());value['gate'] = 'tidy'
+            path.write_text(json.dumps(value));rehash(root)
+        self.check_rejected(mutate, 'names another gate')
 
     def test_symlinked_fixture_file_is_rejected(self):
         def mutate(root):
@@ -254,11 +279,11 @@ class ApplyTests(unittest.TestCase):
 
     def test_every_repository_fixture_applies_to_the_example(self):
         _, fixtures = ps.load_manifest(ROOT)
-        for gate, fixture in fixtures.items():
-            with self.subTest(gate=gate), tempfile.TemporaryDirectory() as d:
+        for gate, name, fixture in ps.fixture_runs(fixtures):
+            with self.subTest(fixture=name), tempfile.TemporaryDirectory() as d:
                 project = Path(d)/'p'
                 shutil.copytree(ROOT/'examples/hello-world', project)
-                ps.apply_fixture(ROOT/ps.FIXTURES/gate, fixture, project)
+                ps.apply_fixture(ROOT/ps.FIXTURES/name, fixture, project)
                 value = pm.load_project(Path(d), 'p', framework_root=ROOT)
                 if gate == 'inventory':
                     with self.assertRaises(GateError):
@@ -316,6 +341,14 @@ class EvaluationTests(unittest.TestCase):
         value['gates'][pc.GATES.index('unit')] = pc.gate_row('unit', 'BLOCKED', {'reason': 'not run: gate ubsan failed'})
         self.assertEqual(ps.evaluate_fixture('ubsan', value)['status'], 'FAIL')
 
+    def test_named_check_must_fail(self):
+        value = report(['ast'])
+        value['gates'][pc.GATES.index('ast')] = pc.gate_row('ast', 'FAIL', {'failed_checks': ['api']})
+        self.assertEqual(ps.evaluate_fixture('ast', value, 'api')['status'], 'PASS')
+        result = ps.evaluate_fixture('ast', value, 'identity')
+        self.assertEqual((result['status'], result['failed_checks'], result['check']), ('FAIL', ['api'], 'identity'))
+        self.assertEqual(ps.evaluate_fixture('ast', report(['ast']), 'identity')['status'], 'FAIL')
+
     def test_infrastructure_block_is_blocked(self):
         value = report(verdict='BLOCKED', blockers=['InfrastructureError: docker'])
         self.assertEqual(ps.evaluate_fixture('asan', value)['status'], 'BLOCKED')
@@ -356,17 +389,48 @@ class SelftestTests(unittest.TestCase):
             self.assertTrue((root/ps.SELFTEST_ARTIFACTS/row['details']['run']/'project-gates.json').is_file())
         return row, calls
 
+    def runs(self):
+        return ps.fixture_runs(ps.load_manifest(ROOT)[1])
+
+    def outcome(self, runs, i):
+        """The report a correct project check gives for run i (0 is the clean example)."""
+        if i == 0:
+            return report()
+        gate, _, fixture = runs[i-1]
+        value = report([gate])
+        if fixture.get('check'):
+            value['gates'][pc.GATES.index(gate)] = pc.gate_row(gate, 'FAIL', {'failed_checks': [fixture['check']]})
+        return value
+
     def test_all_fixtures_exact_passes(self):
-        row, calls = self.run_selftest(lambda i: report() if i == 0 else report([pc.GATES[i-1]]))
+        runs = self.runs()
+        row, calls = self.run_selftest(lambda i: self.outcome(runs, i))
         self.assertEqual(row['name'], 'project-gates')
         self.assertEqual(row['status'], 'PASS', row)
-        self.assertEqual(len(calls), 24)
-        self.assertEqual([f['gate'] for f in row['details']['fixtures']], list(pc.GATES))
-        self.assertTrue(all(set(f) >= {'gate', 'status', 'first_fail', 'verdict'} for f in row['details']['fixtures']))
+        self.assertEqual(len(calls), 1+len(runs))
+        self.assertEqual([(f['gate'], f['fixture']) for f in row['details']['fixtures']], [(g, n) for g, n, _ in runs])
+        self.assertTrue(all(set(f) >= {'gate', 'fixture', 'status', 'first_fail', 'verdict'} for f in row['details']['fixtures']))
         self.assertEqual(row['details']['clean']['verdict'], 'PASS_UNQUALIFIED_FRAMEWORK')
         # The fixture was applied to the scratch copy: integration drops the run arguments.
-        self.assertEqual(calls[1+pc.GATES.index('integration')]['run']['args'], [])
+        self.assertEqual(calls[1+[n for _, n, _ in runs].index('integration')]['run']['args'], [])
         self.assertEqual(calls[0]['run']['args'], ['world'])
+        # Every ast fixture added its own test to the scratch project.
+        ast_calls = [calls[1+k] for k, (g, _, _) in enumerate(runs) if g == 'ast']
+        self.assertEqual(len({c['modules'][0]['tests'][-1] for c in ast_calls}), 3)
+
+    def test_missing_named_check_fails(self):
+        runs = self.runs()
+        row, _ = self.run_selftest(lambda i: report() if i == 0 else report([runs[i-1][0]]))
+        self.assertEqual(row['status'], 'FAIL')
+        self.assertEqual(sorted(f['fixture'] for f in row['details']['fixtures'] if f['status'] == 'FAIL'),
+                         ['ast', 'ast-attribute', 'ast-identity'])
+
+    def test_aggregate_requires_every_fixture(self):
+        clean = {'status': 'PASS'}
+        rows = [{'gate': g, 'fixture': g, 'status': 'PASS'} for g in pc.GATES]
+        self.assertEqual(ps.aggregate(clean, rows)['status'], 'PASS')
+        expected = [(g, n) for g, n, _ in self.runs()]
+        self.assertEqual(ps.aggregate(clean, rows, expected=expected)['status'], 'FAIL')
 
     def test_failing_clean_example_blocks_fixtures_and_fails(self):
         row, calls = self.run_selftest(lambda i: report(['tidy']))

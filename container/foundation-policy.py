@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, '/src/tools')
-from qualification import ast_banned_calls, ast_foundation_uses
+from qualification import ast_banned_attributes, ast_banned_calls, ast_foundation_uses
 
 
 def parse_arguments(arguments):
@@ -21,7 +21,12 @@ def parse_arguments(arguments):
     source, profile, label = arguments[:3]
     extra = arguments[3:]
     includes = []
+    project_rules = False
     while extra:
+        if extra[0] == '--project-rules' and not project_rules:
+            project_rules = True
+            extra = extra[1:]
+            continue
         if len(extra) < 2 or extra[0] != '--include':
             raise ValueError('typed_policy_arguments')
         directory_argument = extra[1]
@@ -30,11 +35,11 @@ def parse_arguments(arguments):
         # -idirafter keeps project headers from shadowing the fixed GLib headers.
         includes.extend(['-idirafter', directory_argument])
         extra = extra[2:]
-    return source, profile, label, includes
+    return source, profile, label, includes, project_rules
 
 
 def main():
-    source, profile, label, includes = parse_arguments(sys.argv[1:])
+    source, profile, label, includes, project_rules = parse_arguments(sys.argv[1:])
     if '..' in Path(source).parts or Path(source).is_absolute():
         raise ValueError('relative_source_required')
     if not label.replace('-', '').replace('_', '').isalnum():
@@ -89,6 +94,9 @@ def main():
     findings = ast_foundation_uses(tree, policy, policy_source, inventory)
     for name in ast_banned_calls(tree):
         findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
+    if project_rules:
+        for name in ast_banned_attributes(tree):
+            findings.append({'rule': 'project-attribute', 'name': name, 'source': source})
     print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,
                       'profile': profile, 'findings': findings,
                       'ast_path': str(output), 'pch_path': str(pch)}))

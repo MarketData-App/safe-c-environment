@@ -43,6 +43,8 @@ function(_project_path out dir relative)
 endfunction()
 
 function(safety_project project_dir)
+  # Function scope: safety_target omits the framework include directories for these targets.
+  set(_SAFETY_PROJECT_TARGETS ON)
   get_filename_component(project_dir "${project_dir}" ABSOLUTE)
   set(manifest "${project_dir}/project.json")
   if(NOT EXISTS "${manifest}")

@@ -112,6 +112,8 @@
         "examples/hello-world/tests/project/test_greeting_main.c",
         "safety/project-gate-fixtures/asan/test_seeded.c",
         "safety/project-gate-fixtures/ast/test_seeded.c",
+        "safety/project-gate-fixtures/ast-attribute/test_seeded_attribute.c",
+        "safety/project-gate-fixtures/ast-identity/test_seeded_identity.c",
         "safety/project-gate-fixtures/clang-O0/test_seeded.c",
         "safety/project-gate-fixtures/clang-O2/seeded_pick.c",
         "safety/project-gate-fixtures/clang-O2/test_seeded.c",
@@ -2364,6 +2366,52 @@
           }
         },
         "safety/project-gate-fixtures/ast/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-ast"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/ast-attribute/test_seeded_attribute.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-ast"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/ast-identity/test_seeded_identity.c": {
           "type": "object",
           "additionalProperties": false,
           "required": [

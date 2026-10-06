@@ -41,5 +41,9 @@ rules in the repository `AGENTS.md` also apply.
 - Never add warning or analyzer suppressions, sanitizer exclusions,
   optimization attributes or diagnostic pragmas. `project.json` holds no flags.
 - Never edit framework files. The framework manifest check stops on any change.
+- Follow the project source rules in `docs/agent-development-quickstart.md`
+  ("Project source rules"): only `#pragma once`, no build-identity branches,
+  quoted includes only of declared headers, no attribute that removes
+  instrumentation. The `ast` gate checks them with the compilers.
 - Report a failure truthfully. Propose a specification change to the owner
   when the specification is wrong.

@@ -721,6 +721,20 @@
         "project-gate-ast"
       ]
     },
+    "safety/project-gate-fixtures/ast-attribute/test_seeded_attribute.c": {
+      "sha256": "7b9106f0dcc4e594df9d3a4a3958c0c50ef65b3de378e0e82c9a2f2fd6370083",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-ast"
+      ]
+    },
+    "safety/project-gate-fixtures/ast-identity/test_seeded_identity.c": {
+      "sha256": "dd7c57f7f0e32c7eecad865ea2b40174de67f6e76a30000778e0839e3f91b5d6",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-ast"
+      ]
+    },
     "safety/project-gate-fixtures/clang-O0/test_seeded.c": {
       "sha256": "b4aea7d93920d7a6a4ca02b489b132eb8d8926a741d0d04a525baa0848f71f2e",
       "role": "qualification-only",
