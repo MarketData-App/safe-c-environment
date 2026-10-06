@@ -6,18 +6,29 @@ implementation. See [qualification commands](docs/qualification.md),
 `artifacts/bootstrap-report.md`. No application code or application release claim
 exists. Passing local qualification does not activate independent enforcement.
 
-Prerequisites: Linux x86-64/glibc, Docker, Python 3 with JSON Schema 4.19.2, and the
-exact retained image in toolchain.lock.json. Image acquisition is separate from
-ordinary offline checks; see container/README.md. The Makefile routes normal commands to the required safety entrypoint; its original
-skeleton is retained in docs/legacy-Makefile.txt.
+Two tiers apply. Framework qualification (`./tools/safety ci`) runs in this
+repository when framework files change. It covers all 41 gates, two exports and
+a fresh child. Project CI (`./tools/safety project check`) runs in every project
+on every push and pull request. It applies the 23 code gates to the project code
+and verifies `framework-manifest.json`. The target time for the hello-world
+example on a GitHub-hosted runner is 6 to 10 minutes. Nobody has measured this
+time yet.
 
-The exact SDK and developer images can be transferred together with
-`ci/images load --archive FILE --sha256 HASH`. The current payload descriptor is
-[ci/image-bundle.json](ci/image-bundle.json); its publication and owner licensing
-review are pending. Image transfer grants no baseline or runner approval. A newly
-cloned project on another machine still needs an independently approved target
-policy and its own complete qualification. See [CI activation](ci/README.md) and
-the [proposed GitHub runner migration](specs/github-runner-migration.md).
+Prerequisites: Linux x86-64, Docker, Python 3 with JSON Schema 4.19.2. Any host
+passes when the capability check at the start of each run passes: local Docker
+Unix socket (rootless allowed), cgroup v2 limits, seccomp, AppArmor or SELinux
+enforcing, no inherited DOCKER_* settings and non-piped core handling. A failed
+check BLOCKS the run. Windows, macOS and ARM64 are out of scope.
+
+The SDK and developer images come as one release archive, `images-sdk-developer-v2`:
+https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v2/images.tar.gz
+(sha256 `ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624`).
+Load it with `ci/images load --archive FILE --sha256 HASH`. The descriptor is
+[ci/image-bundle.json](ci/image-bundle.json). See container/README.md. Image
+transfer grants no baseline approval. See [CI activation](ci/README.md), the
+[hello-world example](examples/hello-world/README.md) and the
+[design](docs/superpowers/specs/2026-10-06-project-ci-design.md). The earlier
+[runner migration proposal](specs/github-runner-migration.md) is superseded.
 
 ```sh
 ./tools/safety bootstrap
@@ -33,6 +44,8 @@ the [proposed GitHub runner migration](specs/github-runner-migration.md).
 ./tools/safety benchmark --suite curated
 ./tools/safety starter verify
 ./tools/safety instantiate --destination ../example-project --name example-project
+./tools/safety project check --project examples/hello-world --development
+./tools/safety framework manifest
 ```
 
 Exports require complete current local CI. No history, secrets or passing evidence

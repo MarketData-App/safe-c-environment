@@ -2,13 +2,75 @@
 
 Read `AGENTS.md`, `specs/foundation-contract.md`, and
 `safety/foundation-api-policy.json` first. This repository currently authorizes
-foundation and infrastructure work. Application development requires a later
-approved contract; `src/` and `include/` stay empty.
+foundation and infrastructure work. In this repository `src/` and `include/`
+stay empty. A project that `instantiate` creates is in project mode and holds
+its own code (see "Project workflow").
 
 Use the retained development image and approved SDK. Missing images, retained
 inputs, tracing permission, symbols, or a required tool are blockers. Report the
 structured reason; do not install packages, change Docker settings, or execute a
 native build, analyzer, language server, test, or debugger on the host.
+
+## Project workflow
+
+Work in a project that `./tools/safety instantiate --destination DIR --name NAME`
+created. Follow these steps for each module:
+
+1. Write the specification in `specs/project/`. State inputs, limits,
+   ownership, borrowed lifetimes, nullable parameters, invariants, outputs and
+   failure behavior.
+2. Declare the module in `project.json`: spec, sources, headers, tests,
+   `reads_external_input` and fuzz targets. Declare programs and `run` there too.
+   The file never holds flags or gate settings.
+3. Write boundary tests in `tests/project/`. Cover zero, one, exact bounds,
+   one-past, signed-negative and representable maxima.
+4. Write a fuzz target in `fuzz/project/` for every module that reads external
+   input. Add seed inputs.
+5. Write the code in `src/` and `include/`.
+6. Record findings and review answers in `review/ledger.json`.
+7. Run `./tools/safety project check`. Read the gate that failed. Repair the
+   cause. Run it again.
+
+Exit codes: 0 PASS, 1 FAIL, 2 BLOCKED, 3 PASS_UNQUALIFIED_FRAMEWORK
+(`--development` only). The run stops at the first failed gate. Use
+`--project DIR` to name another project. The report is
+`artifacts/project-report.json`. The hello-world example in
+`examples/hello-world/` shows the complete layout.
+
+All builds and tests run in one SDK `project` container. One runtime-image
+container then starts the program once. Compiler and analyzer findings name file,
+line and check. Sanitizer reports go to an evidence file; read them with
+`tools/diagnostic_summary.py`.
+
+| Gate | What it runs |
+|---|---|
+| `format` | `clang-format --dry-run --Werror` with the repository `.clang-format` |
+| `gcc-O0` | GCC `-O0` build, warnings as errors, project tests |
+| `gcc-O2` | GCC `-O2` build, warnings as errors, project tests |
+| `clang-O0` | Clang `-O0` build, warnings as errors, project tests |
+| `clang-O2` | Clang `-O2` build, warnings as errors, project tests |
+| `hardened` | Build with `_FORTIFY_SOURCE=3`, stack protector and stack-clash protection; project tests |
+| `tidy` | `clang-tidy` with the repository `.clang-tidy` |
+| `csa` | Clang Static Analyzer (`clang --analyze`) |
+| `gcc-analyzer` | GCC `-fanalyzer` |
+| `ast` | API policy gate with `safety/foundation-api-policy.json` |
+| `asan` | Project tests under AddressSanitizer, no recovery |
+| `ubsan` | Project tests under UndefinedBehaviorSanitizer, no recovery |
+| `integer` | Project tests under the integer sanitizer, no recovery |
+| `msan` | Project tests under MemorySanitizer, no recovery |
+| `tsan` | Project tests under ThreadSanitizer, no recovery |
+| `unit` | `ctest` for the module tests in `tests/project/` |
+| `integration` | The program with the `run.args` from `project.json` exits 0 |
+| `coverage` | `llvm-cov` threshold: at least 90% lines and 85% branches |
+| `fuzz-replay` | Every seed and saved input runs through each fuzz target |
+| `fuzz-exploration` | Each fuzz target runs at least 30 seconds |
+| `clusterfuzzlite` | ClusterFuzzLite configuration check |
+| `inventory` | Every project source has a spec and tests; external input has a fuzz target |
+| `review-protocol` | `review/ledger.json` and review records follow the project `AGENTS.md` |
+
+The project check first verifies `framework-manifest.json`. A changed framework
+file stops the run and names the file. Use `./tools/safety ci` in the framework
+repository, then `./tools/safety framework manifest`.
 
 ## Prepare and discover
 

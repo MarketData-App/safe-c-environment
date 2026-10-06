@@ -1,8 +1,7 @@
 # Review and approval protocol
 
-Status: owner decision, binding for this repository. It extends AGENTS.md and will
-be folded into AGENTS.md with the next change that already requires a new developer
-live trial (AGENTS.md is part of the developer tooling identity).
+Status: owner decision, binding for this repository. AGENTS.md holds a short
+summary. This file is the detailed reference.
 
 Approver amendment (owner decision, 2026-10-05): the independent authority for
 reviews and approvals is a fresh-context adversarial agent approver, not a human.

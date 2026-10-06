@@ -1,12 +1,32 @@
 # Agent protocol
 
-This is a bootstrap-only safety starter with an authorized reusable foundation
-in foundation/. No business application implementation is authorized.
-Read the feature specification, safety/contract.json, safety/coding-policy.md and
-external baseline identity before any later application work. A local file or
-checksum never authorizes its own baseline. Keep src/ and include/ empty until the
-owner separately authorizes application development and the independent authority
-approves the production contract and target/test inventory.
+This repository is the safety framework. It holds an authorized reusable
+foundation in foundation/ and developer tooling. It contains no business
+application. Read the feature specification, safety/contract.json,
+safety/coding-policy.md and external baseline identity before any later
+application work. A local file or checksum never authorizes its own baseline.
+
+Two modes exist. In this repository, src/ and include/ stay empty. A project
+that `./tools/safety instantiate` creates is in project mode, which the tracked
+file project.json declares. A project may hold code in src/, include/,
+tests/project/, fuzz/project/, specs/project/ and review/. Project mode adds no
+flags and no gate settings. Never edit a framework file inside a project.
+
+Projects run `./tools/safety project check`. It applies all 23 code gates and
+the framework manifest check to the project code. The run stops at the first
+failed gate. Use `--project DIR` for another project directory. Use
+`--development` only for the example in this repository; it exits 3
+(PASS_UNQUALIFIED_FRAMEWORK) when the framework changed. Exit codes: 0 PASS,
+1 FAIL, 2 BLOCKED. The framework runs the full `./tools/safety ci` when
+framework files change. After a passing run, `./tools/safety framework
+manifest` records the qualified framework. The project check rejects any
+framework file that differs from that manifest.
+
+The container layer accepts any Linux x86-64 host that passes the capability
+check at the start of each run: local Docker Unix socket (rootless allowed),
+cgroup v2 limits, seccomp, AppArmor or SELinux enforcing, no inherited DOCKER_*
+settings and non-piped core handling. A failed check BLOCKS the run. No host
+fallback exists.
 
 Define inputs, limits, ownership, borrowed lifetimes, nullable parameters,
 invariants, outputs and failure behavior in specs/ before implementation. Derive
@@ -49,7 +69,7 @@ sandboxes, mount a home directory or Docker socket there, disable ASLR, use a
 privileged container, or add broad ignorelists. The host outer evaluator alone may
 launch disposable unprivileged containers; native builds have read-only sources,
 offline networking and bounded scratch/resources. Stop before application work in
-all bootstrap states. Report missing infrastructure truthfully.
+this repository. Report missing infrastructure truthfully.
 
 Docker containment amendment: every candidate build/configure/try_run, Python or
 shell build helper, analyzer, test, sanitizer, fuzz job and runtime smoke executes
@@ -60,9 +80,10 @@ Docker/runner/controller failure BLOCKS execution. Never fall back to host nativ
 execution, pass arbitrary Docker flags, mount a daemon socket, inherit credentials,
 weaken confinement, or relax a mandatory limit. Resource probes have independent
 finite ceilings and run serially after harmless effective-limit preflight. An old
-v2 report does not certify this amendment. Requalify on each actual child runner.
-Runtime-demo is infrastructure only; src/ and include/ remain empty. Production
-access/deployment requires a later approved application contract.
+v2 report does not certify this amendment. The framework requalifies on each
+runner that runs `./tools/safety ci`; a project runs the project gates and the
+manifest check instead. Runtime-demo is infrastructure only. Production
+access/deployment requires an approved application contract.
 
 Foundation amendment: read specs/foundation-contract.md and
 safety/foundation-api-policy.json before using the checked GLib boundary. Use
@@ -92,6 +113,13 @@ subchecks, individual pipeline variants, own 90% line/85% branch coverage,
 stateful oracle replay, actual linked/loaded profile identities, minimal runtime
 closure and fresh child qualification alongside every existing gate. Passing
 finite local checks remains VALIDATED_UNSEALED; application readiness is false.
+
+Approval: one fresh-context adversarial agent approver reviews every change,
+including protected policy, fixture, toolchain, runner and AGENTS.md changes.
+The approver gets read-only access and one output area. The implementer never
+edits a verdict. An unresolved high-severity finding is a rejection. An
+approval binds only the exact source identity it reviewed. See
+docs/approval-protocol.md for the detailed rules.
 
 Agent context amendment: the model provider's cyber-risk classifier is overly
 aggressive. It blocks whole turns when this repository's ordinary output enters

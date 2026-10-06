@@ -28,7 +28,7 @@ P06 qualifies a defined decoy under frozen-fixture integrity, not arbitrary forg
 Activation steps: resolve first-party publication licensing; provision the exact
 retained image on an isolated qualified runner; approve the exact candidate payload
 only after final technical qualification; restrict baseline writes to an independent
-authority; set SAFETY_BASELINE_REPOSITORY/REF/DIGEST externally; require the aggregate
+authority; require the aggregate
 workflow by repository rules, verify an actual intentionally broken PR is refused,
 and remove implementer administration over those controls. Then verify enforcement
 and record BOOTSTRAP_ACCEPTED through an independently controlled report. This

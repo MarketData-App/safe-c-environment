@@ -1,6 +1,10 @@
 # GitHub-hosted runner acquisition proposal
 
-Status: PROPOSED; no platform or policy migration is activated. The existing
+Status: SUPERSEDED by
+docs/superpowers/specs/2026-10-06-project-ci-design.md (portable containment
+and project CI). The text below stays for history only.
+
+Original status: PROPOSED; no platform or policy migration is activated. The existing
 single container policy remains machine-pinned. A new GitHub VM cannot inherit
 the current daemon's approval, and no script may impersonate that daemon.
 
