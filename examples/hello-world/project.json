@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "name": "hello-world",
+  "modules": [
+    {
+      "name": "greeting",
+      "spec": "specs/project/greeting.md",
+      "sources": ["src/greeting.c"],
+      "headers": ["include/greeting.h"],
+      "tests": ["tests/project/test_greeting.c"],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "greeting",
+          "harness": "fuzz/project/greeting_fuzz.c",
+          "corpus": "fuzz/project/corpus/greeting",
+          "regressions": "fuzz/project/regressions/greeting"
+        }
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "name": "hello",
+      "main": "src/main.c",
+      "modules": ["greeting"]
+    }
+  ],
+  "run": {
+    "program": "hello",
+    "args": ["world"],
+    "expect_exit": 0
+  }
+}
