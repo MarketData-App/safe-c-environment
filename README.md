@@ -51,9 +51,10 @@ the committing machine; list further private terms, one regular expression per
 line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks with
 `--no-verify`. The `privacy` workflow runs the tree and history checks and the
 hook regression suite (`.githooks/tests/regression.sh`) on every push, with the
-generic rules only: a GitHub runner has no owner login or private patterns, and
-its host name is a runner name. Archives are expanded member by member (zip, tar,
-gzip, xz, bzip2) to a finite depth. Known limits: a commit or tag that adds a
+generic rules plus the runner's own login and host name as local values: a GitHub
+runner has no owner login, owner host name or private patterns. Archives are
+expanded member by member (zip, tar, gzip, xz, bzip2, every stream) to a finite
+depth, and their container bytes and metadata are checked too. Known limits: a commit or tag that adds a
 vendored or upstream-archive file together with a lock entry for it exempts that
 file's content, locally and in CI; altered local remote-tracking refs can shorten
 a push range; other formats are read as text or printable runs.
