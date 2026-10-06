@@ -12,9 +12,10 @@ the configuration's real compiler with its real flags as `-E -MD` and checks:
 - identity: the project-origin code of the `-E -fdirectives-only` pass (the
   project's own tokens after conditional inclusion, no macro expanded) and the
   project's #define/#undef lines are the same in every configuration;
-- build-macros: project code and project macro definitions name no predefined
-  or command-line macro whose definition differs between configurations (from
-  `-dM -E` of each configuration);
+- build-macros: project code and project macro bodies name no macro whose
+  definition differs between configurations (`-dM -E` of the unit with its
+  headers; object-like macros expanded, numbers compared by value, and a macro
+  that names a differing macro differs too);
 - preprocess: every unit preprocesses in every configuration.
 
 System macros may expand differently per compiler (NULL, INT_MAX, DBL_MAX); the
@@ -100,15 +101,8 @@ def _run(command, cwd, log):
     return done.stdout.decode('utf-8', 'replace'), None
 
 
-def predefined(job):
-    """Predefined and command-line macros of one configuration."""
-    index, name, argv, cwd, source = job
-    text, error = _run(ps.predefined_argv(argv, source), cwd, WORK/f'macros-{index:02d}.log')
-    return name, (None if error else ps.parse_macros(text)), error
-
-
 def run_one(job):
-    index, name, unit, argv, cwd, source, replacement, prefixes, build_macros = job
+    index, name, unit, argv, cwd, source, replacement, prefixes = job
     depfile = WORK/f'{index:04d}.d'
     full, error = _run(ps.preprocess_argv(argv, ps.dependency_pass(str(depfile)), source, replacement), cwd,
                        WORK/f'{index:04d}-full.log')
@@ -117,6 +111,9 @@ def run_one(job):
     if error is None:
         bare, error = _run(ps.preprocess_argv(argv, ps.DIRECTIVES_PASS, source, replacement), cwd,
                            WORK/f'{index:04d}-directives.log')
+    if error is None:
+        defined, error = _run(ps.preprocess_argv(argv, ps.MACROS_PASS, source, replacement), cwd,
+                              WORK/f'{index:04d}-macros.log')
     if error is not None:
         return {'config': name, 'unit': unit, 'error': error, 'log': str(WORK/f'{index:04d}-*.log')}
     dependencies = [posixpath.normpath(d if d.startswith('/') else posixpath.join(cwd, d))
@@ -126,8 +123,7 @@ def run_one(job):
     code, _bare_directives = ps.split_origin(ps.scan_preprocessed(bare, unit, prefixes)['lines'])
     return {'config': name, 'unit': unit, 'dependencies': dependencies, 'markers': scan['markers'],
             'directives': [(f, l, n) for f, l, n, _r in found if n not in ps.MACRO_DIRECTIVES],
-            'defines': ps.define_stream(found), 'stream': code,
-            'macro_uses': ps.build_macro_uses(code, found, build_macros)}
+            'defines': ps.define_stream(found), 'stream': code, 'found': found, 'macros': ps.parse_macros(defined)}
 
 
 def _add(rows, key, row):
@@ -145,11 +141,17 @@ def _difference(unit, kind, found):
             'other_token': found['other_token']}
 
 
-def evaluate(plan, runs, macro_errors=()):
-    """The policy result from the per-run scans (pure; runs in configuration order)."""
+def evaluate(plan, runs):
+    """The policy result from the per-run scans (pure; runs in configuration order).
+
+    Build macros: per unit, the macros whose definitions differ between the
+    configurations (`-dM -E` of that unit) may not be named by project code or a
+    project macro body."""
     names = [c['name'] for c in plan['configs']]
     pragmas, markers, uses, dependencies, differences = {}, {}, {}, {}, []
-    errors = [dict(e) for e in macro_errors]
+    errors = []
+    tables = {unit: [] for unit in plan['units']}
+    scanned = {unit: [] for unit in plan['units']}
     code = {unit: [] for unit in plan['units']}
     defines = {unit: [] for unit in plan['units']}
     for run in runs:
@@ -163,8 +165,8 @@ def evaluate(plan, runs, macro_errors=()):
         for file, line, problem in run['markers']:
             _add(markers, (file, line, problem), {'file': _rel(file), 'line': line, 'problem': problem,
                                                  'configs': [run['config']]})
-        for file, line, name in run.get('macro_uses', []):
-            _add(uses, (file, line, name), {'file': _rel(file), 'line': line, 'macro': name, 'configs': [run['config']]})
+        tables[unit].append(run['macros'])
+        scanned[unit].append((run['config'], run['stream'], run['found']))
         dependencies.setdefault(_rel(unit), set()).update(run['dependencies'])
         code[unit].append((run['config'], run['stream']))
         defines[unit].append((run['config'], run.get('defines', [])))
@@ -173,7 +175,13 @@ def evaluate(plan, runs, macro_errors=()):
         for unit in plan['units']:
             if (name, unit) not in covered:
                 errors.append({'unit': _rel(unit), 'config': name, 'error': 'no compile command'})
+    differing_count = 0
     for unit in plan['units']:
+        differing = ps.differing_macros(tables[unit]) if tables[unit] else set()
+        differing_count = max(differing_count, len(differing))
+        for config, stream, directives_found in scanned[unit]:
+            for file, line, name in ps.build_macro_uses(stream, directives_found, differing):
+                _add(uses, (file, line, name), {'file': _rel(file), 'line': line, 'macro': name, 'configs': [config]})
         for kind, streams in (('code', code[unit]), ('defines', defines[unit])):
             found = ps.first_difference(streams)
             if found is not None:
@@ -184,7 +192,7 @@ def evaluate(plan, runs, macro_errors=()):
             'units': [_rel(u) for u in plan['units']], 'runs': len(runs),
             'preprocess_errors': errors[:LIMIT], 'pragmas': list(pragmas.values())[:LIMIT],
             'markers': list(markers.values())[:LIMIT], 'differences': differences[:LIMIT],
-            'build_macros': list(uses.values())[:LIMIT],
+            'build_macros': list(uses.values())[:LIMIT], 'differing_macros': differing_count,
             'dependencies': {unit: sorted(paths) for unit, paths in sorted(dependencies.items())}}
 
 
@@ -200,27 +208,15 @@ def main(argv):
             raise ValueError('unit_under_src_required')
     WORK.mkdir(parents=True, exist_ok=True)
     prefixes = ps.origin_prefixes(root)
-    tables = commands(plan)
-    probes = []
-    for index, (name, table) in enumerate(tables):
-        first = next((table[u] for u in plan['units'] if u in table), None)
-        if first is not None:
-            argv, cwd, source, replacement = first
-            probes.append((index, name, argv, cwd, source))
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        macros = list(pool.map(predefined, probes))
-    macro_errors = [{'unit': None, 'config': name, 'error': 'predefined macros: '+error} for name, _t, error in macros if error]
-    build_macros = ps.differing_macros([t for _n, t, _e in macros if t is not None])
     jobs, index = [], 0
-    for name, table in tables:
+    for name, table in commands(plan):
         for unit in plan['units']:
             if unit in table:
-                jobs.append((index, name, unit, *table[unit], prefixes, build_macros))
+                jobs.append((index, name, unit, *table[unit], prefixes))
                 index += 1
     with ThreadPoolExecutor(max_workers=2) as pool:
         runs = list(pool.map(run_one, jobs))
-    result = evaluate(plan, runs, macro_errors)
-    result['differing_macros'] = len(build_macros)
+    result = evaluate(plan, runs)
     (WORK/'result.json').write_text(json.dumps(result, sort_keys=True))
     print(json.dumps(result, sort_keys=True))
     return 0 if result['status'] == 'PASS' else 1

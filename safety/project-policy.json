@@ -67,7 +67,17 @@
     "__PIE__",
     "__pie__",
     "__PIC__",
-    "__pic__"
+    "__pic__",
+    "__asan_",
+    "__lsan_",
+    "__msan_",
+    "__tsan_",
+    "__ubsan_",
+    "__hwasan_",
+    "__dfsan_",
+    "__sanitizer_",
+    "__llvm_profile",
+    "__gcov"
   ],
   "forbidden_patterns": [
     "(#|%:|\\?\\?=)\\s*pragma\\b(?!\\s+once\\b)",

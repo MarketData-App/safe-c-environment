@@ -84,10 +84,12 @@ PROHIBITED_ENV = ('LIT_OPTS', 'FILECHECK_OPTS', 'ASAN_OPTIONS', 'LSAN_OPTIONS',
                   'CTEST_TEST_ARGS', 'CTEST_PARALLEL_LEVEL', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                   'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'LIBRARY_PATH',
                   'PKG_CONFIG_PATH', 'PKG_CONFIG_LIBDIR', 'G_DEBUG', 'G_SLICE')
-RUNTIME_ENV = {'ASAN_OPTIONS': 'detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1:symbolize=1',
+# Every sanitizer value names a nonzero exit code: the environment overrides options
+# that code compiled into a program (a *_default_options hook) may set.
+RUNTIME_ENV = {'ASAN_OPTIONS': 'detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1:symbolize=1:exitcode=21',
                'LSAN_OPTIONS': 'exitcode=23',
-               'UBSAN_OPTIONS': 'halt_on_error=1:print_stacktrace=1',
-               'MSAN_OPTIONS': 'halt_on_error=1:exit_code=24:print_stats=1',
+               'UBSAN_OPTIONS': 'halt_on_error=1:print_stacktrace=1:exitcode=22',
+               'MSAN_OPTIONS': 'halt_on_error=1:exit_code=24:exitcode=24:print_stats=1',
                'TSAN_OPTIONS': 'halt_on_error=1:exitcode=25',
                'ASAN_SYMBOLIZER_PATH': '/usr/lib/llvm-19/bin/llvm-symbolizer'}
 

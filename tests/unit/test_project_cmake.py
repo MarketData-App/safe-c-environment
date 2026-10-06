@@ -99,6 +99,34 @@ class ProjectCMakeTests(unittest.TestCase):
         self.assertEqual(ast_banned_attributes({'kind':'TranslationUnitDecl','inner':[{'kind':'UnusedAttr'}]}),[])
         for kind in ('NoSanitizeAttr','DisableSanitizerInstrumentationAttr','NoInstrumentFunctionAttr','NoProfileFunctionAttr'):
             self.assertIn(kind,PROJECT_BANNED_ATTRIBUTES)
+    def test_project_runtime_interface_and_builtin_rules(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        from qualification import ast_project_findings
+        us='_'+'_'
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':us+'asan_default_options','inner':[]},
+            {'kind':'FunctionDecl','name':us+'sanitizer_set_death_callback','inner':[{'kind':'WeakAttr'}]},
+            {'kind':'FunctionDecl','name':'f','inner':[{'kind':'CompoundStmt','inner':[
+                {'kind':'CallExpr','inner':[{'kind':'ImplicitCastExpr','inner':[
+                    {'kind':'DeclRefExpr','referencedDecl':{'kind':'FunctionDecl','name':'__builtin_constant_p'}}]}]},
+                {'kind':'CallExpr','inner':[{'kind':'DeclRefExpr','referencedDecl':{'name':us+'lsan_disable'}}]},
+                {'kind':'DeclRefExpr','referencedDecl':{'name':us+'llvm_profile_runtime'}}]}]},
+            {'kind':'VarDecl','name':us+'gcov_x'},
+            {'kind':'FunctionDecl','name':'g','inner':[{'kind':'NakedAttr'}]}]}
+        self.assertEqual(ast_project_findings(tree),[
+            ('project-attribute','NakedAttr'),('project-builtin','__builtin_constant_p'),
+            ('runtime-interface',us+'asan_default_options'),('runtime-interface',us+'gcov_x'),
+            ('runtime-interface',us+'llvm_profile_runtime'),('runtime-interface',us+'lsan_disable'),
+            ('runtime-interface',us+'sanitizer_set_death_callback')])
+        self.assertEqual(ast_project_findings({'kind':'TranslationUnitDecl','inner':[{'kind':'FunctionDecl','name':'asan_like'}]}),[])
+    def test_runtime_sanitizer_options_name_nonzero_exit_codes(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        from evidence import RUNTIME_ENV
+        for name in ('ASAN_OPTIONS','UBSAN_OPTIONS','LSAN_OPTIONS','MSAN_OPTIONS','TSAN_OPTIONS'):
+            options=dict(item.split('=',1) for item in RUNTIME_ENV[name].split(':'))
+            self.assertNotEqual(int(options.get('exitcode','0')),0,name)
+        self.assertIn('halt_on_error=1',RUNTIME_ENV['ASAN_OPTIONS'])
+        self.assertIn('halt_on_error=1',RUNTIME_ENV['UBSAN_OPTIONS'])
     def test_project_targets_omit_framework_include_directories(self):
         safety=re.sub(r'(?m)#.*$','',(ROOT/'cmake/Safety.cmake').read_text())
         guarded=re.search(r'if\(NOT _SAFETY_PROJECT_TARGETS\)\s*target_include_directories\(\$\{target\} PRIVATE [^)]*/fuzz\)\s*endif\(\)',safety)

@@ -63,9 +63,10 @@ class ContainerEvaluationTests(unittest.TestCase):
     plan = {'project_root': '/src/p', 'units': ['/src/p/src/a.c', '/src/p/fuzz/project/h.c'],
             'configs': [{'name': 'gcc-O0', 'database': 'x'}, {'name': 'clang-O0', 'database': 'y'}]}
 
-    def run_row(self, config, unit, stream, directives=(), markers=(), deps=(), defines=(), uses=()):
+    def run_row(self, config, unit, stream, directives=(), markers=(), deps=(), defines=(), macros=None, found=()):
         return {'config': config, 'unit': unit, 'stream': list(stream), 'directives': list(directives),
-                'markers': list(markers), 'dependencies': list(deps), 'defines': list(defines), 'macro_uses': list(uses)}
+                'markers': list(markers), 'dependencies': list(deps), 'defines': list(defines),
+                'macros': macros or {}, 'found': list(found)}
 
     def test_clean_runs_pass(self):
         module = container_module()
@@ -80,19 +81,21 @@ class ContainerEvaluationTests(unittest.TestCase):
         a, h = self.plan['units']
         base = [('/src/p/src/a.c', 3, 'int')]
         define = [('/src/p/src/a.c', 1, '#'), ('/src/p/src/a.c', 1, 'define'), ('/src/p/src/a.c', 1, 'V')]
-        runs = [self.run_row('gcc-O0', a, base, directives=[('/src/p/src/a.c', 2, 'pragma')], defines=define + [('/src/p/src/a.c', 1, '1')],
-                             uses=[('/src/p/src/a.c', 5, 'BUILD_X')]),
-                self.run_row('clang-O0', a, base + [('/src/p/src/a.c', 4, 'y')], defines=define + [('/src/p/src/a.c', 1, '2')],
+        uses = [('/src/p/src/a.c', 5, 'int'), ('/src/p/src/a.c', 5, 'BUILD_X')]
+        runs = [self.run_row('gcc-O0', a, base + uses, directives=[('/src/p/src/a.c', 2, 'pragma')], defines=define + [('/src/p/src/a.c', 1, '1')],
+                             macros={'BUILD_X': (None, '1'), 'SAME': (None, '0x10')}),
+                self.run_row('clang-O0', a, base + [('/src/p/src/a.c', 4, 'y')] + uses, defines=define + [('/src/p/src/a.c', 1, '2')],
                              markers=[('/src/p/src/a.c', 1, 'project file marked as a system header')],
-                             uses=[('/src/p/src/a.c', 5, 'BUILD_X')]),
+                             macros={'BUILD_X': (None, '2'), 'SAME': (None, '16')}),
                 self.run_row('gcc-O0', h, base),
                 {'config': 'clang-O0', 'unit': h, 'error': 'exit 1', 'log': '/work/l'}]
         result = module.evaluate(self.plan, runs)
         self.assertEqual(result['failed_checks'], ['preprocess', 'pragmas', 'markers', 'identity', 'build-macros'])
         self.assertEqual(result['pragmas'], [{'file': 'p/src/a.c', 'line': 2, 'directive': 'pragma', 'configs': ['gcc-O0']}])
         self.assertEqual(result['build_macros'], [{'file': 'p/src/a.c', 'line': 5, 'macro': 'BUILD_X', 'configs': ['gcc-O0', 'clang-O0']}])
+        self.assertGreaterEqual(result['differing_macros'], 1)
         self.assertEqual(result['differences'], [
-            {'unit': 'p/src/a.c', 'stream': 'code', 'file': None, 'line': None, 'token': None, 'baseline': 'gcc-O0',
+            {'unit': 'p/src/a.c', 'stream': 'code', 'file': 'p/src/a.c', 'line': 5, 'token': 'int', 'baseline': 'gcc-O0',
              'config': 'clang-O0', 'other_file': 'p/src/a.c', 'other_line': 4, 'other_token': 'y'},
             {'unit': 'p/src/a.c', 'stream': 'defines', 'file': 'p/src/a.c', 'line': 1, 'token': '1', 'baseline': 'gcc-O0',
              'config': 'clang-O0', 'other_file': 'p/src/a.c', 'other_line': 1, 'other_token': '2'}])
@@ -101,10 +104,8 @@ class ContainerEvaluationTests(unittest.TestCase):
     def test_missing_command_is_an_error(self):
         module = container_module()
         a = self.plan['units'][0]
-        result = module.evaluate(dict(self.plan, units=[a]), [self.run_row('gcc-O0', a, [])],
-                                 [{'unit': None, 'config': 'gcc-O0', 'error': 'predefined macros: exit 1'}])
-        self.assertEqual(result['preprocess_errors'], [{'unit': None, 'config': 'gcc-O0', 'error': 'predefined macros: exit 1'},
-                                                       {'unit': 'p/src/a.c', 'config': 'clang-O0', 'error': 'no compile command'}])
+        result = module.evaluate(dict(self.plan, units=[a]), [self.run_row('gcc-O0', a, [])])
+        self.assertEqual(result['preprocess_errors'], [{'unit': 'p/src/a.c', 'config': 'clang-O0', 'error': 'no compile command'}])
 
     def test_commands_use_the_database_and_fall_back_for_harnesses(self):
         module = container_module()
@@ -181,6 +182,9 @@ class AstRowTests(unittest.TestCase):
         self.assertEqual((clean, row['attributes'], checks), (False, ['NakedAttr'], {'attributes'}))
         clean, row, checks = self.row({'status': 'FAIL', 'findings': [{'rule': 'raw-indexing', 'name': 'x'}]}, 1)
         self.assertEqual((clean, checks), (False, {'api'}))
+        clean, row, checks = self.row({'status': 'FAIL', 'findings': [{'rule': 'runtime-interface', 'name': '__'+'asan_default_options'},
+                                                                      {'rule': 'project-builtin', 'name': '__builtin_constant_p'}]}, 1)
+        self.assertEqual((clean, checks), (False, {'runtime-interface', 'builtins'}))
         self.assertEqual(self.row(None, 2)[2], {'ast-scan'})
         self.assertEqual(self.row({'status': 'BLOCKED'}, 2)[2], {'ast-scan'})
 

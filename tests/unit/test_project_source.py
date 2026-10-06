@@ -244,14 +244,54 @@ class PreprocessedTests(unittest.TestCase):
         self.assertIsNone(ps.first_difference([('gcc', a), ('clang', b)]))
 
 
+GCC_MACROS = (
+    '#define '+US+'GNUC'+US+' 14\n#define '+US+'INT_MAX'+US+' 0x7fffffff\n#define INT_MAX '+US+'INT_MAX'+US+'\n'
+    '#define INT_MIN (-INT_MAX - 1)\n#define '+US+'DBL_MAX'+US+' ((double)1.79769313486231570814527423731704357e+308L)\n'
+    '#define DBL_MAX '+US+'DBL_MAX'+US+'\n#define '+US+'FLT_MAX'+US+' 3.40282346638528859811704183484516925e+38F\n'
+    '#define NULL ((void *)0)\n#define va_start(v,l) '+US+'builtin_va_start(v,l)\n'
+    '#define G_CHECK(major, minor) (('+US+'GNUC'+US+' > (major)) || (minor))\n'
+    '#define '+US+'glibc_clang_prereq(maj, min) 0\n#define ONLY_GCC 1\n#define E\n')
+CLANG_MACROS = (
+    '#define '+US+'GNUC'+US+' 4\n#define '+US+'INT_MAX'+US+' 2147483647\n#define INT_MAX '+US+'INT_MAX'+US+'\n'
+    '#define INT_MIN (-'+US+'INT_MAX'+US+' -1)\n#define '+US+'DBL_MAX'+US+' 1.7976931348623157e+308\n'
+    '#define DBL_MAX '+US+'DBL_MAX'+US+'\n#define '+US+'FLT_MAX'+US+' 3.40282347e+38F\n'
+    '#define NULL ((void*)0)\n#define va_start(ap, param) '+US+'builtin_va_start(ap, param)\n'
+    '#define G_CHECK(major, minor) (('+US+'GNUC'+US+' > (major)) || (minor))\n'
+    '#define '+US+'glibc_clang_prereq(maj, min) (('+US+'clang_major'+US+' << 16) >= (maj))\n#define E\n')
+
+
 class MacroTests(unittest.TestCase):
-    def test_parse_and_compare_predefined_macros(self):
-        gcc = ps.parse_macros('#define '+US+'GNUC'+US+' 14\n#define '+US+'INT_MAX'+US+' 0x7fffffff\n#define F(x) (x)\n#define E\n')
-        clang = ps.parse_macros('#define '+US+'INT_MAX'+US+' 2147483647\n#define F(x) (x)\n#define E\n')
-        self.assertEqual(gcc['F'], '(x) (x)')
-        self.assertEqual(gcc['E'], ' ')
-        self.assertEqual(ps.differing_macros([gcc, clang]) - ps.TIME_MACROS, {US+'GNUC'+US, US+'INT_MAX'+US})
-        self.assertTrue(ps.TIME_MACROS <= ps.differing_macros([gcc, gcc]))
+    def test_parse_macros(self):
+        table = ps.parse_macros(GCC_MACROS)
+        self.assertEqual(table['va_start'], (('v', 'l'), US+'builtin_va_start(v,l)'))
+        self.assertEqual(table['E'], (None, ''))
+        self.assertEqual(table['NULL'], (None, '((void *)0)'))
+
+    def test_canonical_numbers(self):
+        self.assertEqual(ps.canonical_number('0x7fffffff'), ps.canonical_number('2147483647'))
+        self.assertEqual(ps.canonical_number('0x7fffffffffffffffL'), ps.canonical_number('9223372036854775807l'))
+        self.assertEqual(ps.canonical_number('18446744073709551615UL'), ps.canonical_number('0xffffffffffffffffLU'))
+        self.assertNotEqual(ps.canonical_number('1U'), ps.canonical_number('1'))
+        self.assertEqual(ps.canonical_number('010'), ps.canonical_number('8'))
+        self.assertEqual(ps.canonical_number('3.40282346638528859811704183484516925e+38F'), ps.canonical_number('3.40282347e+38F'))
+        self.assertNotEqual(ps.canonical_number('1.5F'), ps.canonical_number('1.5'))
+        self.assertEqual(ps.canonical_number('0x1p-2'), ps.canonical_number('0.25'))
+        self.assertEqual(ps.canonical_number('x'), 'x')
+        self.assertEqual(ps.canonical_tokens(['(', '(', 'double', ')', '1.5L', ')']), ps.canonical_tokens(['1.5']))
+
+    def test_differing_macros(self):
+        found = ps.differing_macros([ps.parse_macros(GCC_MACROS), ps.parse_macros(CLANG_MACROS)]) - ps.TIME_MACROS
+        # Equal values in other spellings do not differ; compiler-dependent values do.
+        for name in ('INT_MAX', 'INT_MIN', 'DBL_MAX', US+'DBL_MAX'+US, US+'FLT_MAX'+US, 'NULL', 'va_start', 'E', US+'INT_MAX'+US):
+            self.assertNotIn(name, found, name)
+        for name in (US+'GNUC'+US, 'G_CHECK', US+'glibc_clang_prereq', 'ONLY_GCC'):
+            self.assertIn(name, found, name)
+        self.assertTrue(ps.TIME_MACROS <= ps.differing_macros([ps.parse_macros(GCC_MACROS)] * 2))
+        self.assertEqual(ps.differing_macros([]), set(ps.TIME_MACROS))
+
+    def test_object_and_function_like_forms_differ(self):
+        found = ps.differing_macros([ps.parse_macros('#define F(x) x\n'), ps.parse_macros('#define F x\n')])
+        self.assertIn('F', found)
 
     def test_build_macro_uses(self):
         names = {'BUILD_X'}
@@ -259,6 +299,13 @@ class MacroTests(unittest.TestCase):
         found = [('/src/p/src/a.c', 1, 'define', ['V', 'BUILD_X']), ('/src/p/src/a.c', 2, 'define', ['BUILD_X', '1']),
                  ('/src/p/src/a.c', 4, 'undef', ['BUILD_X'])]
         self.assertEqual(ps.build_macro_uses(code, found, names), [('/src/p/src/a.c', 3, 'BUILD_X'), ('/src/p/src/a.c', 1, 'BUILD_X')])
+
+    def test_runtime_interface_prefixes_match_the_ast_rule_and_policy(self):
+        import json
+        from qualification import RUNTIME_INTERFACE_PREFIXES
+        self.assertEqual(ps.RUNTIME_INTERFACE_PREFIXES, RUNTIME_INTERFACE_PREFIXES)
+        policy = json.loads((Path(__file__).resolve().parents[2]/'safety/project-policy.json').read_text())
+        self.assertTrue(set(RUNTIME_INTERFACE_PREFIXES) <= set(policy['forbidden_text']))
 
 
 class DifferenceTests(unittest.TestCase):
@@ -307,11 +354,9 @@ class DependencyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ps.preprocess_argv(['gcc', 'b.c'], ['-E'], 'a.c', 'h.c')
 
-    def test_predefined_argv(self):
-        argv = ['clang', '-std=c17', '-DX=1', '-include', '/src/f.h', '-o', 'x.o', '-c', '/src/p/src/a.c']
-        self.assertEqual(ps.predefined_argv(argv, '/src/p/src/a.c'), ['clang', '-std=c17', '-DX=1', '-dM', '-E', '-x', 'c', '/dev/null'])
-        with self.assertRaises(ValueError):
-            ps.predefined_argv(['clang', 'b.c'], 'a.c')
+    def test_macros_pass(self):
+        self.assertEqual(ps.preprocess_argv(['clang', '-include', 'f.h', '-c', 'a.c'], ps.MACROS_PASS),
+                         ['clang', '-include', 'f.h', 'a.c', '-E', '-dM'])
 
     def problems(self, deps, project_dir='examples/p', unit='examples/p/src/a.c'):
         return ps.dependency_problems(deps, unit, project_dir, {'include/a.h'}, {'fuzz/parser.h'})

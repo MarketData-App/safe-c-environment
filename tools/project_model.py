@@ -112,6 +112,8 @@ def source_problem(rel, text, forbidden, patterns, headers, present):
     variants = (text, lexed.code)
     for item in forbidden:
         if any(item in v for v in variants):
+            if item in project_source.RUNTIME_INTERFACE_PREFIXES:
+                return f'forbidden runtime interface name in {rel}: {item}'
             return f'forbidden text in {rel}: {item}'
     item = forbidden_pattern(text, patterns, lexed.code)
     if item is not None:

@@ -294,7 +294,40 @@ class ProjectModelRound3ProbeTests(unittest.TestCase):
                                                       "const char c = '\\'';\nint x;\n"},mutate=None)
 
 
-class ProjectModeInstantiateTests(unittest.TestCase):
+class ProjectModelRound4ProbeTests(unittest.TestCase):
+    """The round-4 probe cases (approver-final-4/probe4.py) that the pre-check decides."""
+    make=ProjectModelTests.make
+    inv=ProjectModelMoreTests.inv
+    US='_'+'_'
+    def refused(self, extra):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError) as caught: self.inv(Path(t),extra=extra,mutate=None)
+            return str(caught.exception)
+    def test_sanitizer_runtime_hooks_are_refused(self):
+        for text in ('const char *'+self.US+'asan_default_options(void);\nconst char *'+self.US+'asan_default_options(void) { return "x"; }\n',
+                     'void '+self.US+'sanitizer_set_death_callback(void (*cb)(void)) __attribute__((weak));\n',
+                     'const char *'+self.US+'lsan_default_suppressions(void);\n',
+                     'extern int '+self.US+'llvm_profile_runtime;\n','void '+self.US+'gcov_dump(void);\n'):
+            with self.subTest(text=text[:30]):
+                message=self.refused({'tests/project/test_greeting.c':text})
+                self.assertTrue(message.startswith('forbidden runtime interface name'), message)
+    def test_inventory_gate_names_the_runtime_interface_check(self):
+        import project_check as pc
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d, extra={'src/greeting.c':'void '+self.US+'ubsan_x(void);'})
+            row=pc.inventory_gate(d,'.',pm.load_project(d),ROOT)
+            self.assertEqual((row['status'],row['details']['failed_checks']),('FAIL',['runtime-interface']))
+            (d/'src/greeting.c').write_text('int x; // NO'+'LINT')
+            row=pc.inventory_gate(d,'.',pm.load_project(d),ROOT)
+            self.assertEqual(row['details']['failed_checks'],['inventory'])
+    def test_compiler_dependent_macro_and_builtin_pass_the_pre_check(self):
+        # The ast gate decides these (build-macros and builtins checks).
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'src/greeting.c':'int f(int n);\nint f(int n) { return __builtin_constant_p(n) + '
+                                                      +self.US+'glibc_clang_prereq(3, 0); }\n'},mutate=None)
+
+
+
     def test_instantiate_creates_project_mode(self):
         import starter, policy
         with tempfile.TemporaryDirectory() as t:
