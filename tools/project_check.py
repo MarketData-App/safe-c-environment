@@ -30,15 +30,24 @@ from schema_check import validate
 GATES = ('format', 'gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'hardened', 'tidy', 'csa', 'gcc-analyzer', 'ast',
          'asan', 'ubsan', 'integer', 'msan', 'tsan', 'unit', 'integration', 'coverage', 'fuzz-replay',
          'fuzz-exploration', 'clusterfuzzlite', 'inventory', 'review-protocol')
-# (gate, Safety.cmake profile, compiler, optimization). Sanitizer profiles add -O1 in Safety.cmake.
+# (gate, Safety.cmake profile, compiler, optimization), in execution order. Sanitizer
+# profiles add -O1 in Safety.cmake. The asan profile is -fsanitize=address,undefined, a
+# superset of ubsan, so ubsan and integer build and run before asan: an undefined-behavior
+# defect then fails its own gate first. The report keeps the policy order (GATES).
 BUILDS = (('gcc-O0', 'strict', 'gcc', 0), ('gcc-O2', 'strict', 'gcc', 2), ('clang-O0', 'strict', 'clang', 0),
-          ('clang-O2', 'strict', 'clang', 2), ('hardened', 'hardened', 'clang', 2), ('asan', 'asan', 'clang', 0),
-          ('ubsan', 'ubsan', 'clang', 0), ('integer', 'integer', 'clang', 0), ('msan', 'msan', 'clang', 0),
+          ('clang-O2', 'strict', 'clang', 2), ('hardened', 'hardened', 'clang', 2), ('ubsan', 'ubsan', 'clang', 0),
+          ('integer', 'integer', 'clang', 0), ('asan', 'asan', 'clang', 0), ('msan', 'msan', 'clang', 0),
           ('tsan', 'tsan', 'clang', 0), ('coverage', 'coverage', 'clang', 0))
 # Test failures in these builds belong to `unit`/`integration`; a test failure in a
 # sanitizer or coverage build belongs to that build's gate, so one defect names one gate.
 TEST_BUILDS = ('gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'hardened')
 ANALYZERS = ('tidy', 'csa', 'gcc-analyzer', 'ast')
+# The order in which gates are decided. `unit` and `integration` are decided after the
+# last TEST_BUILDS build, or right after the first test build whose tests fail.
+EXECUTION_ORDER = ('inventory', 'review-protocol', 'format',
+                   *(b[0] for b in BUILDS if b[0] in TEST_BUILDS), 'unit', 'integration',
+                   *(b[0] for b in BUILDS if b[0] not in TEST_BUILDS), *ANALYZERS,
+                   'clusterfuzzlite', 'fuzz-replay', 'fuzz-exploration')
 HARDENED_FLAGS = ('-fstack-protector-strong', '-fstack-clash-protection', '-D_FORTIFY_SOURCE=3', '-fPIE')
 FUZZ_ENV = {'CC': 'clang', 'CXX': 'clang++',
             'CFLAGS': '-O1 -g -fno-omit-frame-pointer -fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all',

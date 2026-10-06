@@ -848,7 +848,7 @@
       ]
     },
     "safety/project-gate-fixtures/ubsan/test_seeded.c": {
-      "sha256": "e8709974f309369d41e0bcd95284035c5bd0999b9c5e779551a4b95017935573",
+      "sha256": "bfa83e41ec3bc870a7a715452c5ff3736cec81571c78382101025fb05b19e070",
       "role": "qualification-only",
       "targets": [
         "project-gate-ubsan"

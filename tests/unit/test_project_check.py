@@ -125,7 +125,7 @@ class PlanTests(unittest.TestCase):
             d=Path(t);make(d/'my app');project=pm.load_project(d,'my app',framework_root=ROOT)
             self.assertEqual(pc.inventory_gate(d,'my app',project,ROOT)['status'],'PASS')
             builds=pc.build_plan('my app')
-            self.assertEqual([b['gate'] for b in builds],['gcc-O0','gcc-O2','clang-O0','clang-O2','hardened','asan','ubsan','integer','msan','tsan','coverage'])
+            self.assertEqual([b['gate'] for b in builds],['gcc-O0','gcc-O2','clang-O0','clang-O2','hardened','ubsan','integer','asan','msan','tsan','coverage'])
             configure=builds[0]['configure']
             self.assertIn('-DSAFE_C_PROJECT_DIR=/src/my app',configure)
             self.assertEqual(configure[:3],['cmake','-S','/src'])
@@ -140,6 +140,19 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(fuzz,['bash','/src/container/project-fuzz-build.sh','my app','greeting','fuzz/project/greeting_fuzz.c','src/greeting.c'])
             self.assertEqual(pc.analyzer_argv('ast','my app/src/greeting.c',0,'my app')[-2:],['--include','/src/my app/include'])
             self.assertIn('-I/src/my app/include',pc.analyzer_argv('tidy','my app/src/greeting.c',0,'my app'))
+    def test_execution_order_runs_ubsan_and_integer_before_asan(self):
+        # asan is -fsanitize=address,undefined (a superset of ubsan): ubsan and integer decide first.
+        self.assertEqual(sorted(pc.EXECUTION_ORDER),sorted(pc.GATES))
+        self.assertEqual(len(pc.EXECUTION_ORDER),23)
+        order=pc.EXECUTION_ORDER
+        self.assertLess(order.index('ubsan'),order.index('asan'))
+        self.assertLess(order.index('integer'),order.index('asan'))
+        self.assertEqual([g for g in order if g in {b[0] for b in pc.BUILDS}],[b[0] for b in pc.BUILDS])
+        self.assertEqual(order[:3],('inventory','review-protocol','format'))
+        self.assertEqual(order[-8:],('coverage','tidy','csa','gcc-analyzer','ast','clusterfuzzlite','fuzz-replay','fuzz-exploration'))
+        self.assertEqual(order.index('unit'),order.index('hardened')+1)
+        # The report keeps the policy order.
+        self.assertLess(pc.GATES.index('asan'),pc.GATES.index('ubsan'))
     def test_root_project_uses_src_directly(self):
         self.assertIn('-DSAFE_C_PROJECT_DIR=/src',pc.build_plan('.')[0]['configure'])
         self.assertEqual(pc.audit_sources('.',PROJECT)[0],'src/greeting.c')

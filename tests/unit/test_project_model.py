@@ -88,6 +88,37 @@ class ProjectModelMoreTests(unittest.TestCase):
     def test_forbidden_text(self):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'int x; // NOLINT'},mutate=None)
+    def test_forbidden_sanitizer_and_pragma_patterns(self):
+        # Built from fragments so this file does not itself hold the forbidden spellings.
+        us='_'+'_'; feat=us+'has_feature'
+        cases={'no_sanitize':'__attribute__((no'+'_sanitize("address"))) int f(void);',
+               'ignorelist':'// -fsanitize-'+'ignorelist=x.txt',
+               'sanitize macro':'#if defined('+us+'SANITIZE_ADDRESS'+us+')\n#endif',
+               'feature':'#if '+feat+'(address_sanitizer)\n#endif',
+               'feature spaced':'#if '+feat+' ( memory_sanitizer )\n#endif',
+               'feature thread':'#if '+feat+'(thread_sanitizer)\n#endif',
+               'feature ub':'#if '+feat+'(undefined_behavior_sanitizer)\n#endif',
+               'extension':'#if '+us+'has_extension(address_sanitizer)\n#endif',
+               'pragma operator':'_'+'Pragma("GCC diagnostic ignored \\"-Wconversion\\"")',
+               'pragma spaced':'#  pragma   GCC  diagnostic ignored "-Wconversion"',
+               'pragma clang':'# pragma clang diagnostic push',
+               'pragma optimize':'#pragma GCC optimize("O0")',
+               'pragma comment':'#/**/pragma GCC diagnostic push',
+               'spliced pragma':'_Pra\\\ngma("x")',
+               'spliced feature':feat+'\\\n(address_sanitizer)',
+               'attribute optimize':'__attribute__ (( optimize("O0"))) int f(void);',
+               'no_address_safety':'__attribute__((no'+'_address_safety_analysis)) int f(void);',
+               'disable instrumentation':'__attribute__((disable'+'_sanitizer_instrumentation)) int f(void);',
+               'nolint':'int x; // NO'+'LINT'}
+        for name,text in cases.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':text},mutate=None)
+        for name in ('feature spaced','pragma comment','spliced pragma','spliced feature','extension'):
+            with self.subTest(header=name), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'include/greeting.h':cases[name]},mutate=None)
+    def test_ordinary_code_is_not_forbidden(self):
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'src/greeting.c':'#pragma once\n/* sanitize the input */ int has_feature_x(void);'},mutate=None)
     def test_missing_spec(self):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaises(GateError): self.inv(Path(t),mutate=lambda d:(d/'specs/project/greeting.md').unlink())

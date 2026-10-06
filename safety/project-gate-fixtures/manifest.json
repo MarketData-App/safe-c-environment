@@ -70,8 +70,8 @@
     "tidy/test_seeded.c": "526727d77d43f8ae0bad06c5d5ccc767de0c763b00cd505de307aa3f42738612",
     "tsan/fixture.json": "092c267fc9a7efb41e7be1712afd790586eb1447041ab59ec8cb3057fcbb8013",
     "tsan/test_seeded.c": "ac6b9e09813870add8659494828f39755b3056bd0e1ec4784827e5413d987c71",
-    "ubsan/fixture.json": "2c18d114403a883da803d2d6476e135b1157c5f80efaf279203f6ab4593a62c9",
-    "ubsan/test_seeded.c": "e8709974f309369d41e0bcd95284035c5bd0999b9c5e779551a4b95017935573",
+    "ubsan/fixture.json": "5ee9e7a1354e0f4892a31dd35c22069a67b1bd55e7b9a4045afdc5ce5d71db43",
+    "ubsan/test_seeded.c": "bfa83e41ec3bc870a7a715452c5ff3736cec81571c78382101025fb05b19e070",
     "unit/fixture.json": "f451402ba65c08f4b6ecc5507e0a89fb6deb5793d4756c8747a02e31fe510852",
     "unit/test_seeded.c": "3e1759eef7e14a65972fad4a56927006643e42e282f8c7cad96dcb55b9ed35c5"
   }
