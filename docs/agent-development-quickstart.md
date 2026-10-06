@@ -4,7 +4,9 @@ Read `AGENTS.md`, `specs/foundation-contract.md`, and
 `safety/foundation-api-policy.json` first. This repository currently authorizes
 foundation and infrastructure work. In this repository `src/` and `include/`
 stay empty. A project that `instantiate` creates is in project mode and holds
-its own code (see "Project workflow").
+its own code (see "Project workflow"). A root `project.json` does not switch the
+CMake configure. Only `./tools/safety project check` sets `SAFE_C_PROJECT_DIR` and
+builds project targets. A plain configure always builds the framework.
 
 Use the retained development image and approved SDK. Missing images, retained
 inputs, tracing permission, symbols, or a required tool are blockers. Report the

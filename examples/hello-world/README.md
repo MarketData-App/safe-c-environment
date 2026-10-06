@@ -25,8 +25,9 @@ From the repository root:
 ./tools/safety project check --project examples/hello-world --development
 ```
 
-This command builds the example: the framework root `CMakeLists.txt` reads
-`project.json` (project mode, `-DSAFE_C_PROJECT_DIR`), so the example has no
+This command builds the example: the project command sets
+`SAFE_C_PROJECT_DIR`, and only then does the framework root `CMakeLists.txt`
+read `project.json` and build the project targets. The example has no
 `CMakeLists.txt` of its own. In an instantiated project, run
 `./tools/safety project check` from the project root. The command runs every
 gate in one SDK container, then starts `hello world` once in the runtime image
