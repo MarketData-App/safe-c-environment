@@ -2,8 +2,19 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "clang-O2",
-  "defect": "Only optimizing clang rewrites a memcmp compared with zero into a call to bcmp, which the test redeclares with a warning attribute; the backend warning is an error under -Werror. gcc never emits bcmp calls and the unoptimized builds keep memcmp; every build compiles the same code.",
+  "defect": "A call to a function whose warning attribute is an error under -Werror, placed in a C99 inline definition. clang -O2 inlines the definition into main, so the call reaches code generation. gcc -O2 does not inline into main (main runs once and inlining would grow it), and the unoptimized builds call the external definition, which has no such call.",
   "operations": [
+    {
+      "op": "add",
+      "path": "src/seeded_pick.c",
+      "source": "seeded_pick.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/sources",
+      "value": "src/seeded_pick.c"
+    },
     {
       "op": "add",
       "path": "tests/project/test_seeded.c",

@@ -223,6 +223,7 @@
     "safety/project-gate-fixtures/clang-O0/fixture.json",
     "safety/project-gate-fixtures/clang-O0/test_seeded.c",
     "safety/project-gate-fixtures/clang-O2/fixture.json",
+    "safety/project-gate-fixtures/clang-O2/seeded_pick.c",
     "safety/project-gate-fixtures/clang-O2/test_seeded.c",
     "safety/project-gate-fixtures/clusterfuzzlite/fixture.json",
     "safety/project-gate-fixtures/clusterfuzzlite/seeded_fuzz.c",
