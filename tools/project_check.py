@@ -23,6 +23,7 @@ import uuid
 from pathlib import Path
 import policy
 import project_model as pm
+import project_source
 from foundation import analysis_flags
 from evidence import GateError, RUNTIME_ENV, atomic_json, digest, environment_gate, file_hash, passed, read_json
 from schema_check import validate
@@ -293,8 +294,73 @@ def analyzer_argv(name, rel, index, project_dir):
                 '-Werror', '-c', '/src/'+rel, '-o', f'/work/project/analysis/gcc-{index}.o']
     if name == 'ast':
         return ['python3', '/src/container/foundation-policy.py', rel, 'clang-O0', f'project-{index}',
-                '--include', include_dir(project_dir)]
+                '--include', include_dir(project_dir), '--project-rules']
     raise GateError('unknown analyzer: '+name)
+
+
+# The AST policy scan's own flags (container/foundation-policy.py, profile clang-O0):
+# its public header is a PCH, which -include reproduces for preprocessing.
+def _ast_scan_flags(project_dir):
+    prefix = '/opt/foundation/clang-O0'
+    return ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/tests', '-I/src/fuzz',
+            '-idirafter', include_dir(project_dir), '-isystem', prefix+'/include/glib-2.0',
+            '-isystem', prefix+'/lib/glib-2.0/include', '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
+            '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70', '-include', '/src/foundation/include/sc-foundation.h']
+
+
+def source_policy_plan(project_dir, project):
+    """Every configuration in which a gate compiles or analyzes project code.
+
+    The gate builds come from their compilation databases (exact flags); the fuzz
+    build mirrors container/project-fuzz-build.sh with FUZZ_ENV; the analyzers use
+    analyzer_argv's flags (`clang --analyze` defines __clang_analyzer__); the AST
+    scan uses its own flags. Every project translation unit is preprocessed in
+    every configuration."""
+    include = '-I'+include_dir(project_dir)
+    configs = [{'name': b['gate'], 'database': '/work/'+b['directory']+'/compile_commands.json'}
+               for b in build_plan(project_dir)]
+    configs += [{'name': 'fuzz', 'argv': ['clang', *FUZZ_ENV['CFLAGS'].split(), '-std=c17',
+                                          '-I'+container_dir(project_dir)+'/include']},
+                {'name': 'tidy', 'argv': ['clang', *analysis_flags('clang-O0'), include]},
+                {'name': 'csa', 'argv': ['clang', *analysis_flags('clang-O0'), include, '-D__clang_analyzer__=1']},
+                {'name': 'gcc-analyzer', 'argv': ['gcc', *analysis_flags('gcc-O0'), include, '-O0', '-fanalyzer']},
+                {'name': 'ast-scan', 'argv': ['clang', *_ast_scan_flags(project_dir)], 'gnu_source_probe': True}]
+    return {'project_root': container_dir(project_dir), 'units': ['/src/'+rel for rel in project_c_files(project_dir, project)],
+            'configs': configs}
+
+
+def framework_headers(root, project_dir):
+    """Exported framework headers (relative to the framework root) outside the project's own files."""
+    prefix = None if project_dir == '.' else project_dir.rstrip('/')+'/'
+    result = set()
+    for rel in pm._exported_framework_list(Path(root)):
+        if not rel.endswith('.h'):
+            continue
+        if (prefix is not None and rel.startswith(prefix)) or (prefix is None and rel.startswith(pm.PROJECT_PATHS)):
+            continue
+        result.add(rel)
+    return result
+
+
+def source_policy_findings(result, project_dir, project, root):
+    """(failed checks, details) from the container result plus the host dependency check."""
+    if not isinstance(result, dict) or result.get('status') not in ('PASS', 'FAIL'):
+        kind = result.get('error_type') if isinstance(result, dict) else None
+        raise GateError('project source policy did not complete'+(': '+str(kind)[:80] if kind else ''))
+    headers = {h for m in project['modules'] for h in m['headers']}
+    known = framework_headers(root, project_dir)
+    dependency_rows = []
+    for unit, paths in sorted(result.get('dependencies', {}).items()):
+        for problem in project_source.dependency_problems(paths, unit, project_dir, headers, known):
+            dependency_rows.append(dict(problem, unit=unit))
+    failed = list(result.get('failed_checks', []))
+    if dependency_rows:
+        failed.append('dependencies')
+    details = {k: result.get(k) for k in ('configurations', 'units', 'runs', 'preprocess_errors', 'pragmas',
+                                          'markers', 'differences', 'build_macros', 'differing_macros')}
+    details['dependency_problems'] = dependency_rows[:20]
+    details['failed_checks'] = sorted(set(failed))
+    return details['failed_checks'], details
 
 
 def fuzz_build_argv(project_dir, fuzz, module):
@@ -629,7 +695,7 @@ class ProjectCheck:
         self.set('coverage', 'PASS' if ok else 'FAIL', details, evidence)
 
     def analyzer(self, name):
-        evidence, failures = [], []
+        evidence, failures, checks = [], [], set()
         files = project_c_files(self.project_dir, self.project)
         for index, rel in enumerate(files):
             r = self.step(f'{name}-{index}', analyzer_argv(name, rel, index, self.project_dir), timeout=300)
@@ -639,16 +705,51 @@ class ProjectCheck:
             if name == 'csa' and 'warning:' in r['output']:
                 clean = False
             if name == 'ast':
-                try:
-                    value = json.loads(r['output'])
-                    row['status'] = value.get('status') if isinstance(value, dict) else None
-                except ValueError:
-                    row['status'] = None
-                clean = clean and row['status'] == 'PASS'
+                clean = self.ast_row(r, row, checks) and clean
             if not clean:
                 row['findings'] = diagnostics(r['output'])
                 failures.append(row)
-        self.set(name, 'FAIL' if failures else 'PASS', {'files': files, 'failures': failures}, evidence)
+        details = {'files': files, 'failures': failures}
+        if name == 'ast':
+            failed, details['source_policy'] = self.source_policy(evidence)
+            checks.update(failed)
+            details['failed_checks'] = sorted(checks)
+        self.set(name, 'FAIL' if failures or checks else 'PASS', details, evidence)
+
+    @staticmethod
+    def ast_row(result, row, checks):
+        """Status and rule names of one AST policy scan; adds the failed check names."""
+        try:
+            value = json.loads(result['output'])
+        except ValueError:
+            value = None
+        value = value if isinstance(value, dict) else {}
+        row['status'] = value.get('status')
+        findings = [f for f in value.get('findings', []) if isinstance(f, dict)] if isinstance(value.get('findings'), list) else []
+        row['rules'] = sorted({str(f.get('rule'))[:80] for f in findings})
+        row['attributes'] = sorted({str(f.get('name'))[:80] for f in findings if f.get('rule') == 'project-attribute'})
+        if row['status'] == 'PASS' and passed(result):
+            return True
+        if row['attributes']:
+            checks.add('attributes')
+        if any(f.get('rule') != 'project-attribute' for f in findings):
+            checks.add('api')
+        if not findings:
+            checks.add('ast-scan')
+        return False
+
+    def source_policy(self, evidence):
+        """The compiler-based pragma, include, marker and identity checks (one container step)."""
+        plan = source_policy_plan(self.project_dir, self.project)
+        r = self.step('ast-source-policy', ['python3', '/src/container/project-source-policy.py',
+                                            json.dumps(plan, separators=(',', ':'))], timeout=600)
+        evidence.append(r['evidence_path'])
+        lines = r['output'].strip().splitlines()
+        try:
+            result = json.loads(lines[-1]) if lines else None
+        except ValueError:
+            result = None
+        return source_policy_findings(result, self.project_dir, self.project, self.snapshot)
 
     def fuzz(self):
         targets = [(m, f) for m in self.project['modules'] for f in m['fuzz']]

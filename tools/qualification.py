@@ -241,6 +241,31 @@ def ast_banned_calls(node):
     walk(node)
     return sorted(result)
 
+# Project code may not carry an attribute that removes sanitizer, coverage or
+# profile instrumentation, stack protection or optimization from a function. The
+# check uses Clang's semantic attribute nodes, so every spelling (GNU, [[]],
+# underscored, declspec, macro-produced or #pragma clang attribute) maps to one kind.
+PROJECT_BANNED_ATTRIBUTES = frozenset({
+    'NoSanitizeAttr', 'NoSanitizeSpecificAttr', 'DisableSanitizerInstrumentationAttr',
+    'NoInstrumentFunctionAttr', 'NoProfileFunctionAttr', 'OptimizeNoneAttr',
+    'NoStackProtectorAttr', 'NakedAttr', 'NoSplitStackAttr'})
+
+
+def ast_banned_attributes(node):
+    """Sorted kinds of PROJECT_BANNED_ATTRIBUTES nodes anywhere in a Clang JSON AST."""
+    result = set()
+    stack = [node]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, dict):
+            if value.get('kind') in PROJECT_BANNED_ATTRIBUTES:
+                result.add(value['kind'])
+            stack.extend(value.get('inner', []))
+        elif isinstance(value, list):
+            stack.extend(value)
+    return sorted(result)
+
+
 def ast_call_sites(node):
     sites=[]
     def callee(value):

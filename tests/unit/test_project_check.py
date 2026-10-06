@@ -138,7 +138,7 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(pc.audit_sources('my app',project),['my app/src/greeting.c','my app/tests/project/test_greeting.c','my app/src/main.c'])
             fuzz=pc.fuzz_build_argv('my app',project['modules'][0]['fuzz'][0],project['modules'][0])
             self.assertEqual(fuzz,['bash','/src/container/project-fuzz-build.sh','my app','greeting','fuzz/project/greeting_fuzz.c','src/greeting.c'])
-            self.assertEqual(pc.analyzer_argv('ast','my app/src/greeting.c',0,'my app')[-2:],['--include','/src/my app/include'])
+            self.assertEqual(pc.analyzer_argv('ast','my app/src/greeting.c',0,'my app')[-3:],['--include','/src/my app/include','--project-rules'])
             self.assertIn('-I/src/my app/include',pc.analyzer_argv('tidy','my app/src/greeting.c',0,'my app'))
     def test_execution_order_runs_ubsan_and_integer_before_asan(self):
         # asan is -fsanitize=address,undefined (a superset of ubsan): ubsan and integer decide first.
