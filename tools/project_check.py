@@ -150,6 +150,19 @@ def detectors(output):
     return sorted({name for name in SANITIZERS if name in output})
 
 
+# A sanitizer or libFuzzer report banner. A gate FAILs when its captured output holds
+# one even if the exit status is 0: a test or harness can fork, ignore a failing child
+# or reset the exit code, but it cannot remove the runtime's report from the output.
+SANITIZER_BANNERS = ('ERROR: AddressSanitizer', 'ERROR: LeakSanitizer', 'WARNING: MemorySanitizer',
+                     'WARNING: ThreadSanitizer', 'ERROR: ThreadSanitizer', 'ERROR: HWAddressSanitizer',
+                     'runtime error:', 'ERROR: libFuzzer', 'SUMMARY: ', 'DEADLYSIGNAL', 'AddressSanitizer: nested bug')
+
+
+def sanitizer_banner(output):
+    """The first sanitizer or libFuzzer banner in `output`, or None."""
+    return next((b for b in SANITIZER_BANNERS if b in output), None)
+
+
 _DIAGNOSTIC = re.compile(r'^(?P<file>[^:\n]+):(?P<line>\d+):(?:\d+:)? (?P<kind>error|warning): (?P<text>.*?)(?: \[(?P<check>[^\]\s]+)\])?$', re.M)
 
 
@@ -459,7 +472,8 @@ _COPY = ('import pathlib,shutil,sys;s=pathlib.Path(sys.argv[1]);d=pathlib.Path(s
 
 # AST policy rule -> failed check name of the ast gate; every other rule is the API policy.
 PROJECT_RULE_CHECKS = {'project-attribute': 'attributes', 'runtime-interface': 'runtime-interface',
-                       'project-builtin': 'builtins'}
+                       'project-builtin': 'builtins', 'reserved-declaration': 'reserved-identifier',
+                       'fuzzer-entry': 'fuzzer-entry', 'banned-call': 'banned-call'}
 
 
 class ProjectCheck:
@@ -656,10 +670,14 @@ class ProjectCheck:
                                                     '--output-on-failure', '--timeout', str(self.test_timeout),
                                                     '-L', '^'+label+'$'], timeout=900, env=env)
             evidence.append(r['evidence_path'])
-            row = {'status': 'PASS' if passed(r) else 'FAIL', 'tests': expected[label]}
-            if not passed(r):
+            banner = sanitizer_banner(r['output'])
+            ok = passed(r) and banner is None
+            row = {'status': 'PASS' if ok else 'FAIL', 'tests': expected[label]}
+            if not ok:
                 row.update(failed_tests=parse_failed_tests(r['output']), detectors=detectors(r['output']),
                            failure=r['failure'])
+                if banner is not None:
+                    row['reason'] = 'sanitizer report in the output with exit status '+str(r['exit_code'])
             result[label] = row
         return result
 
@@ -790,8 +808,10 @@ class ProjectCheck:
                     r = self.step('fuzz-replay-'+fuzz['name'], [binary, '/src/'+rel, '-runs=1'], timeout=120, env=dict(RUNTIME_ENV))
                     evidence.append(r['evidence_path'])
                     replayed += 1
-                    if not passed(r):
-                        failures.append({'target': fuzz['name'], 'input': rel, 'detectors': detectors(r['output']), 'failure': r['failure']})
+                    banner = sanitizer_banner(r['output'])
+                    if not passed(r) or banner is not None:
+                        failures.append({'target': fuzz['name'], 'input': rel, 'detectors': detectors(r['output']),
+                                         'failure': r['failure'], 'banner': banner})
         self.set('fuzz-replay', 'FAIL' if failures or not replayed else 'PASS', {'inputs': replayed, 'failures': failures}, evidence)
         seconds = self.project_policy['fuzz_seconds']
         evidence, rows = [], []
@@ -810,10 +830,12 @@ class ProjectCheck:
             evidence.append(crashes['evidence_path'])
             crashed = json.loads(crashes['output']) if passed(crashes) else ['failure inventory unavailable']
             stats = fuzz_stats(r['output'])
-            ok = passed(r) and not crashed and stats['executions'] > 0 and stats['coverage_edges'] > 1 and r['seconds'] >= seconds
+            banner = sanitizer_banner(r['output'])
+            ok = (passed(r) and banner is None and not crashed and stats['executions'] > 0
+                  and stats['coverage_edges'] > 1 and r['seconds'] >= seconds)
             rows.append({'target': fuzz['name'], 'status': 'PASS' if ok else 'FAIL', **stats, 'seed': 12345, 'budget_seconds': seconds,
                          'wall_seconds': r['seconds'], 'failure_artifacts': [posixpath.basename(c) for c in crashed],
-                         'detectors': detectors(r['output']), 'failure': r['failure']})
+                         'detectors': detectors(r['output']), 'failure': r['failure'], 'banner': banner})
         failed = [row['target'] for row in rows if row['status'] != 'PASS']
         self.set('fuzz-exploration', 'FAIL' if failed or not rows else 'PASS', {'targets': rows, 'failed_targets': failed}, evidence)
 

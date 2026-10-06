@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 /* Seeded defect: the entry point has the wrong name, so the libFuzzer link fails. */
-int LLVMFuzzerTestOneInputSeeded(const uint8_t *data, size_t size);
+int seeded_fuzz_entry(const uint8_t *data, size_t size);
 
-int LLVMFuzzerTestOneInputSeeded(const uint8_t *data, size_t size) {
+int seeded_fuzz_entry(const uint8_t *data, size_t size) {
     if (data == NULL || size == 0U) {
         return 0;
     }

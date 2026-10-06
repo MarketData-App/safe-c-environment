@@ -241,66 +241,178 @@ def ast_banned_calls(node):
     walk(node)
     return sorted(result)
 
-# Project code may not carry an attribute that removes sanitizer, coverage or
-# profile instrumentation, stack protection or optimization from a function. The
-# check uses Clang's semantic attribute nodes, so every spelling (GNU, [[]],
-# underscored, declspec, macro-produced or #pragma clang attribute) maps to one kind.
-PROJECT_BANNED_ATTRIBUTES = frozenset({
-    'NoSanitizeAttr', 'NoSanitizeSpecificAttr', 'DisableSanitizerInstrumentationAttr',
-    'NoInstrumentFunctionAttr', 'NoProfileFunctionAttr', 'OptimizeNoneAttr',
-    'NoStackProtectorAttr', 'NakedAttr', 'NoSplitStackAttr'})
+# Project code is auditable C. The AST project rules are allowlists, not denylists:
+# a reserved identifier the project declares, a __builtin_ it calls, or an attribute
+# kind on a project declaration is refused unless it is on the short allowlist below.
+# A declaration, reference or attribute in a system or GLib header is exempt; only
+# project-origin source locations are checked.
+
+# Reserved identifiers (__* or _<uppercase>*) a project may declare or define. The
+# language reserves them for the implementation; a project that defines one can reach
+# the sanitizer, libc or linker runtime. The allowlist is empty.
+PROJECT_ALLOWED_RESERVED_DECLS = frozenset()
+
+# __builtin_ functions a project may call. Every other __builtin_ (object_size,
+# dynamic_object_size, constant_p, ... which depend on the optimization level, and
+# the codegen/runtime ones) is refused. va_* and offsetof back the <stdarg.h> and
+# <stddef.h> macros; the overflow builtins and trap/unreachable/expect are ordinary.
+PROJECT_ALLOWED_BUILTINS = frozenset({
+    '__builtin_va_start', '__builtin_va_end', '__builtin_va_arg', '__builtin_va_copy',
+    '__builtin_offsetof', '__builtin_expect', '__builtin_expect_with_probability',
+    '__builtin_unreachable', '__builtin_trap',
+    '__builtin_add_overflow', '__builtin_sub_overflow', '__builtin_mul_overflow',
+    '__builtin_add_overflow_p', '__builtin_sub_overflow_p', '__builtin_mul_overflow_p'})
+
+# Attribute kinds a project declaration may carry. Linkage and placement attributes
+# (AsmLabel, Alias, WeakRef, IFunc, Weak, Constructor, Destructor, Section, Used,
+# Visibility-as-export) and the instrumentation attributes are not here, so they are
+# refused. Clang-inserted implicit attributes are skipped before this check.
+PROJECT_ALLOWED_ATTRIBUTES = frozenset({
+    'CleanupAttr', 'FormatAttr', 'FormatArgAttr', 'NonNullAttr', 'ReturnsNonNullAttr',
+    'WarnUnusedResultAttr', 'UnusedAttr', 'MaybeUnusedAttr', 'AlignedAttr', 'NoReturnAttr',
+    'C11NoReturnAttr', 'CXX11NoReturnAttr', 'ConstAttr', 'PureAttr', 'DeprecatedAttr',
+    'FallThroughAttr', 'SentinelAttr', 'RestrictAttr', 'MallocAttr', 'AllocSizeAttr',
+    'AllocAlignAttr', 'PackedAttr', 'ColdAttr', 'HotAttr', 'NoThrowAttr', 'NoInlineAttr',
+    'AlwaysInlineAttr', 'FlattenAttr', 'MayAliasAttr', 'CountedByAttr', 'ModeAttr',
+    'TransparentUnionAttr', 'EnumExtensibilityAttr', 'FlagEnumAttr', 'NonStringAttr',
+    'ReturnsTwiceAttr'})
+
+# Run-time symbol lookup lets project code bypass the AST name rules.
+PROJECT_BANNED_CALLS = frozenset({'dlsym', 'dlvsym', 'dlopen', 'dlmopen'})
+
+# Project code may not reach the sanitizer, profile or coverage runtimes: their hooks
+# (*_default_options, death callbacks, suppressions) can turn a detected defect into a
+# passing run. These prefixes are also the pre-check text list.
+RUNTIME_INTERFACE_PREFIXES = ('__asan_', '__lsan_', '__msan_', '__tsan_', '__ubsan_', '__hwasan_', '__dfsan_',
+                              '__sanitizer_', '__llvm_profile', '__gcov')
+# The only libFuzzer entry a harness may name; the init/counter hooks switch off fuzzing.
+FUZZER_ENTRY = 'LLVMFuzzerTestOneInput'
+
+_DECL_KINDS = frozenset({'FunctionDecl', 'VarDecl', 'ParmVarDecl', 'FieldDecl', 'TypedefDecl', 'RecordDecl',
+                         'EnumDecl', 'EnumConstantDecl'})
+
+
+def _is_reserved(name):
+    return bool(name) and (name.startswith('__') or (len(name) >= 2 and name[0] == '_' and name[1].isupper()))
+
+
+def _loc_file(location):
+    """The source file of a Clang loc, following macro expansion and spelling."""
+    while isinstance(location, dict):
+        for key in ('expansionLoc', 'spellingLoc'):
+            if key in location:
+                location = location[key]
+                break
+        else:
+            return location.get('file')
+    return None
 
 
 def ast_banned_attributes(node):
-    """Sorted kinds of PROJECT_BANNED_ATTRIBUTES nodes anywhere in a Clang JSON AST."""
+    """Sorted kinds of attribute nodes a project declaration may not carry (allowlist complement).
+
+    Kept for the project rules; an attribute from a system/GLib header or a
+    Clang-inserted implicit attribute is exempt. `node` is a subtree already known
+    to be project origin."""
     result = set()
     stack = [node]
     while stack:
         value = stack.pop()
         if isinstance(value, dict):
-            if value.get('kind') in PROJECT_BANNED_ATTRIBUTES:
-                result.add(value['kind'])
+            kind = value.get('kind', '')
+            if kind.endswith('Attr') and not value.get('implicit') and kind not in PROJECT_ALLOWED_ATTRIBUTES:
+                result.add(kind)
             stack.extend(value.get('inner', []))
         elif isinstance(value, list):
             stack.extend(value)
     return sorted(result)
 
 
-# Project code may not reach the sanitizer, profile or coverage runtimes: their
-# hooks (*_default_options, death callbacks, suppressions) can turn a detected
-# defect into a passing run.
-RUNTIME_INTERFACE_PREFIXES = ('__asan_', '__lsan_', '__msan_', '__tsan_', '__ubsan_', '__hwasan_', '__dfsan_',
-                              '__sanitizer_', '__llvm_profile', '__gcov')
-# Builtins whose value depends on the optimization level.
-PROJECT_BANNED_BUILTINS = frozenset({'__builtin_constant_p'})
-_DECL_KINDS = frozenset({'FunctionDecl', 'VarDecl', 'ParmVarDecl', 'FieldDecl', 'TypedefDecl', 'RecordDecl',
-                         'EnumDecl', 'EnumConstantDecl'})
+def ast_project_findings(node, origin_prefixes=None):
+    """Sorted (rule, name) findings of the allowlist project rules in a Clang JSON AST.
 
+    A source location counts as project origin when its file is under one of
+    `origin_prefixes` (a tuple of absolute path prefixes); with no prefixes, the
+    file name is ignored and every location is treated as project origin (the
+    conservative default for a single-unit scan). Rules:
+    - reserved-declaration: a project declaration or definition of a reserved
+      identifier that is not in PROJECT_ALLOWED_RESERVED_DECLS;
+    - runtime-interface: a declaration of, or reference to, a name with a
+      RUNTIME_INTERFACE_PREFIXES prefix;
+    - fuzzer-entry: a project `LLVMFuzzer*` name other than LLVMFuzzerTestOneInput;
+    - project-builtin: a call of a __builtin_ not in PROJECT_ALLOWED_BUILTINS;
+    - banned-call: a call of a PROJECT_BANNED_CALLS function (dlsym, dlopen, ...);
+    - project-attribute: an attribute kind on a project declaration not in
+      PROJECT_ALLOWED_ATTRIBUTES.
+    """
+    result = set()
+    prefixes = tuple(origin_prefixes) if origin_prefixes is not None else None
 
-def ast_project_findings(node):
-    """Sorted (rule, name) findings of the project rules in a Clang JSON AST.
+    def origin(file):
+        return prefixes is None or (isinstance(file, str) and file.startswith(prefixes))
 
-    project-attribute: PROJECT_BANNED_ATTRIBUTES nodes. runtime-interface: a
-    declaration of, or reference to, a name with a RUNTIME_INTERFACE_PREFIXES prefix.
-    project-builtin: a reference to a PROJECT_BANNED_BUILTINS builtin."""
-    result = set((('project-attribute', kind) for kind in ast_banned_attributes(node)))
-    stack = [node]
-    while stack:
-        value = stack.pop()
-        if isinstance(value, dict):
-            names = []
-            if value.get('kind') in _DECL_KINDS and isinstance(value.get('name'), str):
-                names.append(value['name'])
-            if value.get('kind') == 'DeclRefExpr':
-                names.append(str(value.get('referencedDecl', {}).get('name', '')))
-            for name in names:
-                if name.startswith(RUNTIME_INTERFACE_PREFIXES):
-                    result.add(('runtime-interface', name))
-                if name in PROJECT_BANNED_BUILTINS:
+    def classify_name(name):
+        if not name:
+            return
+        if name.startswith(RUNTIME_INTERFACE_PREFIXES):
+            result.add(('runtime-interface', name))
+        if name.startswith('LLVMFuzzer') and name != FUZZER_ENTRY:
+            result.add(('fuzzer-entry', name))
+
+    # Clang's JSON omits a loc 'file' when it is unchanged from the previously printed
+    # location in pre-order. A single running current file reproduces that, so every
+    # node is attributed to its real source file. referencedDecl locs are cross
+    # references with their own file and are read independently.
+    state = {'file': None}
+
+    def walk(value):
+        if isinstance(value, list):
+            for child in value:
+                walk(child)
+            return
+        if not isinstance(value, dict):
+            return
+        for candidate in (value.get('loc'), value.get('range', {}).get('begin'), value.get('range', {}).get('end')):
+            found = _loc_file(candidate)
+            if found is not None:
+                state['file'] = found
+                break
+        current = state['file']
+        kind = value.get('kind', '')
+        here = origin(current)
+        # Clang creates an implicit FunctionDecl for a builtin at its first use; such a
+        # compiler-made declaration is no project declaration (calls are checked below).
+        if (here and kind in _DECL_KINDS and isinstance(value.get('name'), str)
+                and not value.get('isImplicit') and not value['name'].startswith('__builtin_')):
+            name = value['name']
+            classify_name(name)
+            if (_is_reserved(name) and name not in PROJECT_ALLOWED_RESERVED_DECLS
+                    and not name.startswith(RUNTIME_INTERFACE_PREFIXES)
+                    and not (name.startswith('LLVMFuzzer') and name != FUZZER_ENTRY)):
+                result.add(('reserved-declaration', name))
+        if (here and kind.endswith('Attr') and not value.get('implicit')
+                and kind not in PROJECT_ALLOWED_ATTRIBUTES):
+            result.add(('project-attribute', kind))
+        if kind == 'DeclRefExpr':
+            declaration = value.get('referencedDecl', {}) or {}
+            name = declaration.get('name', '')
+            ref_file = _loc_file(declaration.get('loc'))
+            # A reference site is project origin by its own location (current).
+            if here:
+                classify_name(name)
+                if name.startswith('__builtin_') and name not in PROJECT_ALLOWED_BUILTINS:
                     result.add(('project-builtin', name))
-            stack.extend(value.get('inner', []))
-        elif isinstance(value, list):
-            stack.extend(value)
+                elif (_is_reserved(name) and name not in PROJECT_ALLOWED_RESERVED_DECLS
+                        and not name.startswith(RUNTIME_INTERFACE_PREFIXES)
+                        and not name.startswith('__builtin_') and origin(ref_file)):
+                    # A reserved name that resolves to a project file, not a system header.
+                    result.add(('reserved-declaration', name))
+                if name in PROJECT_BANNED_CALLS:
+                    result.add(('banned-call', name))
+        for child in value.get('inner', []):
+            walk(child)
+
+    walk(node)
     return sorted(result)
 
 

@@ -275,5 +275,34 @@ class VerdictTests(unittest.TestCase):
             (d/pm.MANIFEST).write_text('{')
             self.assertTrue(pc.framework_differences(d,ROOT,image)[0].startswith('invalid: '))
 
+class SanitizerBannerTests(unittest.TestCase):
+    def test_banner_detection(self):
+        self.assertIsNone(pc.sanitizer_banner('all tests passed\nexit 0\n'))
+        self.assertEqual(pc.sanitizer_banner('x\n==1==ERROR: AddressSanitizer: heap-use-after-free\n'), 'ERROR: AddressSanitizer')
+        self.assertEqual(pc.sanitizer_banner('a.c:3:5: runtime error: signed integer overflow\n'), 'runtime error:')
+        for text, banner in (('WARNING: MemorySanitizer: use-of-uninitialized-value', 'WARNING: MemorySanitizer'),
+                             ('WARNING: ThreadSanitizer: data race', 'WARNING: ThreadSanitizer'),
+                             ('==2==ERROR: LeakSanitizer: detected memory leaks', 'ERROR: LeakSanitizer'),
+                             ('==ERROR: libFuzzer: deadly signal', 'ERROR: libFuzzer'),
+                             ('SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior', 'SUMMARY: ')):
+            self.assertEqual(pc.sanitizer_banner(text), banner)
+
+    def test_banner_fails_a_test_run_with_exit_zero(self):
+        # A test that forks, ignores the failing child and exits 0 still leaves the banner.
+        c=object.__new__(pc.ProjectCheck)
+        c.project,c.project_dir=PROJECT,'app'
+        c.test_timeout=10
+        outputs={'asan-ctest-inventory':json.dumps({'tests':[{'name':n} for n in pc.expected_tests(PROJECT)['unit']+pc.expected_tests(PROJECT)['integration']]}),
+                 'asan-ctest-unit':'1/1 Test #1: project.greeting.test_greeting ... Passed\n==7==ERROR: AddressSanitizer: heap-buffer-overflow\n',
+                 'asan-ctest-integration':'all passed\n'}
+        def step(label,argv,**kw):
+            return {'exit_code':0,'failure':None,'output':outputs.get(label,''),'evidence_path':'e/'+label}
+        c.step=step
+        result=c.run_tests('asan','asan-dir','asan',[])
+        self.assertEqual(result['unit']['status'],'FAIL')
+        self.assertIn('AddressSanitizer',result['unit']['detectors'])
+        self.assertEqual(result['integration']['status'],'PASS')
+
+
 if __name__=='__main__':
     unittest.main()

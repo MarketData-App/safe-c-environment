@@ -81,30 +81,51 @@ line and check. Sanitizer reports go to an evidence file; read them with
   must not select code. Do not use a macro whose definition differs between
   builds (for example `__OPTIMIZE__`, `__clang__`, `__GXX_ABI_VERSION`,
   `__VERSION__`, `_FORTIFY_SOURCE`, `__DATE__`, `__glibc_clang_prereq`,
-  `G_GNUC_CHECK_VERSION`, and `tolower` or `toupper`, which are macros only when
-  optimizing: call `(tolower)(c)`), in code or in a macro body. Do not use
-  `__builtin_constant_p`.
+  `G_GNUC_CHECK_VERSION`). If the build-macros check names a C library
+  function-like macro (for example `tolower`, `toupper`, `htons`, `ntohs`,
+  `htonl`, `ntohl`, which glibc makes macros only when optimizing), call it as
+  `(name)(args)` to use the function. This applies in code and in macro bodies.
 - Do not declare or use a sanitizer, profile or coverage runtime name (names that
   start with `__asan_`, `__lsan_`, `__msan_`, `__tsan_`, `__ubsan_`, `__hwasan_`,
   `__dfsan_`, `__sanitizer_`, `__llvm_profile` or `__gcov`), for example an
-  options hook or a death callback. The test environment sets a nonzero
-  sanitizer exit code in every sanitizer options variable.
+  options hook or a death callback. Do not find symbols at run time
+  (`dlsym`, `dlvsym`, `dlopen`, `dlmopen`). The test environment sets a nonzero
+  sanitizer exit code in every sanitizer options variable, and a sanitizer gate
+  also fails when its output holds a sanitizer report, whatever the exit status.
+- A fuzz harness declares and defines only `LLVMFuzzerTestOneInput`; it does not
+  use `LLVMFuzzerInitialize` or another libFuzzer hook. Set up lazily inside
+  `LLVMFuzzerTestOneInput` (a `static` first-call guard), not in an init hook.
 - Include project files only with quoted includes of headers that `project.json`
   declares. Never include a file from `review/`, `specs/`, a fuzz corpus or a
   regression directory, another `.c` file, or an undeclared file.
-- Do not use an attribute that removes sanitizer, coverage or profile
-  instrumentation, stack protection or optimization from a function, in any
-  spelling (`no_sanitize*`, `disable_sanitizer_instrumentation`,
-  `no_instrument_function`, `no_profile_instrument_function`, `optnone`,
-  `optimize`, `no_stack_protector`, `naked`, `no_split_stack`).
+- The project rules are allowlists, not denylists. A project declaration may
+  carry only an ordinary attribute (for example `cleanup`, `format`, `nonnull`,
+  `warn_unused_result`, `unused`, `aligned`, `noreturn`, `const`, `pure`,
+  `fallthrough`); a linkage or placement attribute (`asm` label, `alias`,
+  `weakref`, `ifunc`, `weak`, `constructor`, `destructor`, `section`, `used`)
+  and an instrumentation attribute are refused. Project code may declare no
+  reserved identifier (a name that starts with `__` or `_` and an uppercase
+  letter) and may call only an ordinary `__builtin_` (the `va_` family,
+  `__builtin_offsetof`, `__builtin_expect`, `__builtin_unreachable`,
+  `__builtin_trap`, the overflow builtins); `__builtin_constant_p`,
+  `__builtin_object_size` and the other optimization-dependent builtins are
+  refused.
 - The `inventory` gate runs a fast text pre-check with a C lexer. The `ast` gate
   runs the authoritative checks with the compilers: it preprocesses every project
   translation unit in every gate configuration with the real flags, refuses a
   `#pragma` that survives preprocessing in project code, refuses a compiler
   dependency that is not a declared header (or a framework or system header),
   compares the project code of all configurations, refuses uses of macros with
-  build-dependent definitions, and refuses the attribute nodes, the runtime names
-  and `__builtin_constant_p` in the Clang AST. A finding names the file, the line and the check.
+  build-dependent definitions, and applies the allowlist rules (attributes,
+  reserved identifiers, builtins, runtime names, the libFuzzer entry and
+  run-time lookup) to the Clang AST. A finding names the file, the line and the
+  check.
+
+A project can still subvert a gate at run time: a test may fork and ignore a
+failing child, re-execute itself with other sanitizer options, or find a symbol
+at run time. The name and macro rules cannot close this class. The sanitizer
+report banner check (a gate fails when its output holds a sanitizer or libFuzzer
+report whatever the exit status) and adversarial review are the controls.
 
 The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework

@@ -59,7 +59,8 @@
       "ast",
       "ast-attribute",
       "ast-identity",
-      "ast-build-macro"
+      "ast-build-macro",
+      "ast-asmlabel"
     ],
     "asan": [
       "asan"
@@ -107,6 +108,8 @@
     "asan/test_seeded.c": "febb09feb1b8d1015fab42740c55c1ed09473a8ef6350c9eef3a0ec768752feb",
     "ast/fixture.json": "bb52ade8e37dd4328bc90cfeeed26588e034cb7b0a191daebd7ce2a8dd1a0fc0",
     "ast/test_seeded.c": "8ab293a0ffba6a4e1e8a97041a90fef9bf788a662eed3a6b8b2230d01018f3fc",
+    "ast-asmlabel/fixture.json": "e41924e8213fdc09a3717bd69bf10344a0b95efce4d06c166a4763c65ed7cd4f",
+    "ast-asmlabel/test_seeded_asmlabel.c": "9397c378e803cb75cdf3b5a12f01fb6c9c93629f3cf6da716c6058b4a85dde97",
     "ast-attribute/fixture.json": "daf2262d8bc8f31f21dff66dbe3e494c6da7f23d116eac8ba09b54755b44fbe0",
     "ast-attribute/test_seeded_attribute.c": "7b9106f0dcc4e594df9d3a4a3958c0c50ef65b3de378e0e82c9a2f2fd6370083",
     "ast-build-macro/fixture.json": "7719c54fc8914e70085b9e8cdbf4ada3ebdf366bfefbe1f99f6e4a48eef006ca",
@@ -118,8 +121,8 @@
     "clang-O2/fixture.json": "110a1949622f2510455e4e79f55956717693656b5fd605c449245c40ab7a3b05",
     "clang-O2/seeded_pick.c": "96707bfa701753cdf2c670b3979e0b0360c8a78f2d7a69dfca6f325b75034a0a",
     "clang-O2/test_seeded.c": "f966502d90b43d87ba4fbab4695b706c02bf50c2a8dff0d09ca85c3593859984",
-    "clusterfuzzlite/fixture.json": "e52b643a22e18d122aeb7be3df70618abbfa5196122e6cbb471723458142752e",
-    "clusterfuzzlite/seeded_fuzz.c": "38a902d23b0972d510da18b08b0a0c6b493b4e907b9c32d3a980ba7d90f99af8",
+    "clusterfuzzlite/fixture.json": "3d619d6138a956c800c3cc30b316bc7cd1d1b52e06967a5cb7844ff6e26c1864",
+    "clusterfuzzlite/seeded_fuzz.c": "3d1d00091936fe8c47a17516c6ac44964d1dbb7010adfb21f6dc6aac47b82b86",
     "coverage/fixture.json": "9c4c738422557d3cffdd1e72897cee13f5594c2c484b56cd65abb9e303150a31",
     "coverage/seeded_uncovered.c": "d143f8e7e2fa3cc869a653c27ca6dbe1483703cea660714ee1ae1811e4d44078",
     "coverage/test_seeded.c": "47d39de4b87797f9be584492b3d2134a3c90782a44a27ff64213b95f9c610592",

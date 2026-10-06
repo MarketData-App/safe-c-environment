@@ -49,12 +49,12 @@ class ManifestTests(unittest.TestCase):
         # The ast gate proves its AST API scan, attribute scan and build identity check live.
         self.assertEqual([(d, f.get('check')) for d, f in fixtures['ast']],
                          [('ast', 'api'), ('ast-attribute', 'attributes'), ('ast-identity', 'identity'),
-                          ('ast-build-macro', 'build-macros')])
+                          ('ast-build-macro', 'build-macros'), ('ast-asmlabel', 'attributes')])
         self.assertEqual([(d, f.get('check')) for d, f in fixtures['inventory']],
                          [('inventory', 'inventory'), ('inventory-runtime-interface', 'runtime-interface')])
         runs = ps.fixture_runs(fixtures)
-        self.assertEqual(len(runs), 27)
-        self.assertEqual([g for g, _, _ in ps.fixture_runs(fixtures, ['ast', 'tsan'])], ['ast']*4 + ['tsan'])
+        self.assertEqual(len(runs), 28)
+        self.assertEqual([g for g, _, _ in ps.fixture_runs(fixtures, ['ast', 'tsan'])], ['ast']*5 + ['tsan'])
 
     def test_fixture_c_sources_are_in_the_source_inventory(self):
         inventory = json.loads((ROOT/'safety/source-inventory.json').read_text())['files']
@@ -419,14 +419,14 @@ class SelftestTests(unittest.TestCase):
         self.assertEqual(calls[0]['run']['args'], ['world'])
         # Every ast fixture added its own test to the scratch project.
         ast_calls = [calls[1+k] for k, (g, _, _) in enumerate(runs) if g == 'ast']
-        self.assertEqual(len({c['modules'][0]['tests'][-1] for c in ast_calls}), 4)
+        self.assertEqual(len({c['modules'][0]['tests'][-1] for c in ast_calls}), 5)
 
     def test_missing_named_check_fails(self):
         runs = self.runs()
         row, _ = self.run_selftest(lambda i: report() if i == 0 else report([runs[i-1][0]]))
         self.assertEqual(row['status'], 'FAIL')
         self.assertEqual(sorted(f['fixture'] for f in row['details']['fixtures'] if f['status'] == 'FAIL'),
-                         ['ast', 'ast-attribute', 'ast-build-macro', 'ast-identity', 'inventory', 'inventory-runtime-interface'])
+                         ['ast', 'ast-asmlabel', 'ast-attribute', 'ast-build-macro', 'ast-identity', 'inventory', 'inventory-runtime-interface'])
 
     def test_aggregate_requires_every_fixture(self):
         clean = {'status': 'PASS'}

@@ -749,6 +749,13 @@
         "project-gate-ast"
       ]
     },
+    "safety/project-gate-fixtures/ast-asmlabel/test_seeded_asmlabel.c": {
+      "sha256": "9397c378e803cb75cdf3b5a12f01fb6c9c93629f3cf6da716c6058b4a85dde97",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-ast"
+      ]
+    },
     "safety/project-gate-fixtures/clang-O0/test_seeded.c": {
       "sha256": "b4aea7d93920d7a6a4ca02b489b132eb8d8926a741d0d04a525baa0848f71f2e",
       "role": "qualification-only",
@@ -771,7 +778,7 @@
       ]
     },
     "safety/project-gate-fixtures/clusterfuzzlite/seeded_fuzz.c": {
-      "sha256": "38a902d23b0972d510da18b08b0a0c6b493b4e907b9c32d3a980ba7d90f99af8",
+      "sha256": "3d1d00091936fe8c47a17516c6ac44964d1dbb7010adfb21f6dc6aac47b82b86",
       "role": "qualification-only",
       "targets": [
         "project-gate-clusterfuzzlite"
