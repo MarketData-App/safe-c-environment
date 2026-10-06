@@ -7,16 +7,28 @@ permission and runs on `ubuntu-24.04`.
 
 ## Workflows
 
-Three workflows share the same two setup steps:
+Three workflows share the same setup steps:
 
-1. Install the hashed controller dependencies. The step creates a venv in
+1. Use a plain core pattern. The step runs `sudo sysctl -w
+   kernel.core_pattern=core`. This is the reviewed platform setting for
+   disposable GitHub-hosted runners. The capability check rejects piped core
+   handlers (apport, systemd-coredump) and stays unchanged. A self-hosted host
+   must configure a non-piped core pattern itself.
+2. Install the hashed controller dependencies. The step creates a venv in
    `$RUNNER_TEMP/controller`, runs `pip install --require-hashes
    --only-binary=:all: -r ci/controller-requirements.txt` and adds the venv
    `bin` directory to `PATH`.
-2. Load the qualified images. The step reads `url` and `archive_sha256` from
-   `ci/image-bundle.json`, downloads the archive with `curl` (HTTPS only, retries,
+3. Load the qualified images. The step reads `url` and `archive_sha256` from
+   `ci/image-bundle.json`, downloads the archive with `curl` (HTTPS only, also across redirects; retries,
    size limit 3 GiB), and runs `ci/images load --archive FILE --sha256 HASH`.
    The load verifies the digest.
+
+## Manifest trust
+
+`framework-manifest.json` is unsigned. The manifest check is tamper-evident for
+accidental or unreviewed framework edits. It is not tamper-proof: a person who
+edits the framework files can recompute the manifest. The controls are code
+review and the framework CI on GitHub.
 
 The workflows differ in the steps after setup:
 
@@ -30,7 +42,7 @@ The workflows differ in the steps after setup:
   except that it runs `./tools/safety project check` at the project root.
 - `.github/workflows/safety.yml` runs the full framework qualification. It starts
   manually and on pull requests, except pull requests that change only project
-  paths (`src/`, `include/`, `tests/project/`, `fuzz/project/`,
+  paths (`project.json`, `src/`, `include/`, `tests/project/`, `fuzz/project/`,
   `specs/project/`, `review/`) or example READMEs. After setup it runs
   `./tools/safety sandbox doctor` and `./tools/safety ci`, then uploads
   `artifacts/bootstrap-report.json` and `artifacts/bootstrap-report.md` as
