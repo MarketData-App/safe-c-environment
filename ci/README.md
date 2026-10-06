@@ -30,6 +30,10 @@ accidental or unreviewed framework edits. It is not tamper-proof: a person who
 edits the framework files can recompute the manifest. The controls are code
 review and the framework CI on GitHub.
 
+`qualification.source_identity` in the manifest is a local evidence binding of the
+qualifying checkout. Projects verify `framework_identity` over the exported
+framework files.
+
 The workflows differ in the steps after setup:
 
 - `.github/workflows/example.yml` runs on every push and pull request. It runs

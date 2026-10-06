@@ -116,6 +116,29 @@ class ManifestInstantiateTests(unittest.TestCase):
                 (parent/'tools/project_model.py').write_bytes((ROOT/'tools/project_model.py').read_bytes())
                 self.assertEqual(starter.instantiate(parent,child,'my-app')['status'],'CREATED_UNSEALED')
             self.assertEqual(pm.check_manifest(child),[])
+    def fresh_parent(self, parent):
+        tree(parent,{'toolchain.lock.json':json.dumps({'image_id':'sha256:'+'1'*64}),
+                     'artifacts/bootstrap-report.json':json.dumps({'local_state':'PASS','commands':['./tools/safety ci']})})
+        if not (parent/'safety/contract.json').exists():
+            tree(parent,{'safety/contract.json':'{}'})
+    def test_normal_instantiate_requires_parent_manifest(self):
+        import starter, containment
+        with tempfile.TemporaryDirectory() as t:
+            parent=framework_copy(Path(t)/'parent'); child=Path(t)/'child'; self.fresh_parent(parent)
+            with mock.patch.object(starter,'validate_fresh_report',lambda *a:None), \
+                 mock.patch.object(containment,'fresh_container_evidence',lambda *a:None):
+                with self.assertRaises(GateError) as raised: starter.instantiate(parent,child,'my-app')
+            self.assertIn(pm.MANIFEST,str(raised.exception))
+            self.assertIn('./tools/safety framework manifest',str(raised.exception))
+            self.assertFalse(child.exists())
+            self.assertEqual(sorted(p.name for p in Path(t).iterdir()),['parent'])
+    def test_maintenance_instantiate_allows_missing_manifest(self):
+        import starter
+        with tempfile.TemporaryDirectory() as t:
+            parent=framework_copy(Path(t)/'parent'); child=Path(t)/'child'
+            self.assertFalse((parent/pm.MANIFEST).exists())
+            self.assertEqual(starter.instantiate(parent,child,'my-app',maintenance=True)['status'],'CREATED_UNSEALED')
+            self.assertFalse((child/pm.MANIFEST).exists())
     def test_symlinked_parent_manifest_is_refused(self):
         import starter
         with tempfile.TemporaryDirectory() as t:
