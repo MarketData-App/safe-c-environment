@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "clang-O2",
+  "defect": "A forced-vectorization loop pragma on a loop with a loop-carried dependence; only the optimizing clang build runs the vectorizer and reports the failed transformation (-Wpass-failed). The pragma is clang-only and hidden from gcc.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

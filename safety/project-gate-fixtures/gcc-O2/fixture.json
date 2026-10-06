@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "gcc-O2",
+  "defect": "A constant out-of-bounds index that becomes visible only after inlining; gcc reports it only with optimization (-Warray-bounds needs -ftree-vrp). gcc-O0 neither inlines nor runs that analysis, and the earlier builds pass.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

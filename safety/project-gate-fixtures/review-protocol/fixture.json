@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "review-protocol",
+  "defect": "The high-severity example finding is OPEN.",
+  "operations": [
+    {
+      "op": "json_set",
+      "path": "review/ledger.json",
+      "pointer": "/findings/0/state",
+      "value": "OPEN"
+    }
+  ]
+}

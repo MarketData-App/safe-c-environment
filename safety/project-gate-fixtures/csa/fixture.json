@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "csa",
+  "defect": "A dead store (deadcode.DeadStores). The clang-tidy configuration enables only the core and unix analyzer checks, so only the csa gate reports it.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

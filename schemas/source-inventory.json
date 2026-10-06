@@ -106,7 +106,29 @@
         "examples/hello-world/src/greeting.c",
         "examples/hello-world/src/main.c",
         "examples/hello-world/tests/project/test_greeting.c",
-        "examples/hello-world/fuzz/project/greeting_fuzz.c"
+        "examples/hello-world/fuzz/project/greeting_fuzz.c",
+        "safety/project-gate-fixtures/asan/test_seeded.c",
+        "safety/project-gate-fixtures/ast/test_seeded.c",
+        "safety/project-gate-fixtures/clang-O0/test_seeded.c",
+        "safety/project-gate-fixtures/clang-O2/test_seeded.c",
+        "safety/project-gate-fixtures/clusterfuzzlite/seeded_fuzz.c",
+        "safety/project-gate-fixtures/coverage/seeded_uncovered.c",
+        "safety/project-gate-fixtures/coverage/test_seeded.c",
+        "safety/project-gate-fixtures/csa/test_seeded.c",
+        "safety/project-gate-fixtures/format/test_seeded.c",
+        "safety/project-gate-fixtures/fuzz-exploration/seeded_fuzz.c",
+        "safety/project-gate-fixtures/fuzz-replay/seeded_fuzz.c",
+        "safety/project-gate-fixtures/gcc-O0/test_seeded.c",
+        "safety/project-gate-fixtures/gcc-O2/test_seeded.c",
+        "safety/project-gate-fixtures/gcc-analyzer/test_seeded.c",
+        "safety/project-gate-fixtures/hardened/test_seeded.c",
+        "safety/project-gate-fixtures/integer/test_seeded.c",
+        "safety/project-gate-fixtures/inventory/seeded_unlisted.c",
+        "safety/project-gate-fixtures/msan/test_seeded.c",
+        "safety/project-gate-fixtures/tidy/test_seeded.c",
+        "safety/project-gate-fixtures/tsan/test_seeded.c",
+        "safety/project-gate-fixtures/ubsan/test_seeded.c",
+        "safety/project-gate-fixtures/unit/test_seeded.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -2241,6 +2263,512 @@
             "targets": {
               "const": [
                 "fuzz-greeting"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/asan/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-asan"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/ast/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-ast"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/clang-O0/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-clang-O0"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/clang-O2/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-clang-O2"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/clusterfuzzlite/seeded_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-clusterfuzzlite"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/coverage/seeded_uncovered.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-coverage"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/coverage/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-coverage"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/csa/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-csa"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/format/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-format"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/fuzz-exploration/seeded_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-fuzz-exploration"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/fuzz-replay/seeded_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-fuzz-replay"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/gcc-O0/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-gcc-O0"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/gcc-O2/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-gcc-O2"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/gcc-analyzer/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-gcc-analyzer"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/hardened/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-hardened"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/integer/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-integer"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/inventory/seeded_unlisted.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-inventory"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/msan/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-msan"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/tidy/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-tidy"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/tsan/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-tsan"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/ubsan/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-ubsan"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/unit/test_seeded.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-unit"
               ]
             }
           }
