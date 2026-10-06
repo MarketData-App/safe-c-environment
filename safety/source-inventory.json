@@ -659,7 +659,7 @@
       "sha256": "dc1ff0c16ab24c9ee310be305d8bc73bde5184607222068d1a3d9734493d4444"
     },
     "examples/hello-world/src/greeting.c": {
-      "sha256": "3288b568a1ff3bf8b7fc11b7cde9de2cabb5bdb9bfa715daaeea957e411ac435",
+      "sha256": "e2fe6d10bc324674fa0321b08bad7ff8f1dbf542a94a4c5aaf9b4be2d1473145",
       "role": "example",
       "targets": [
         "hello"
@@ -673,17 +673,38 @@
       ]
     },
     "examples/hello-world/tests/project/test_greeting.c": {
-      "sha256": "236819ae9e1202a307f151f824c63f7674ea3139258206e173012770211e07ab",
+      "sha256": "68f74252653a4a7be3214f030f15b283ff5f9bff9b5fed76e0bab76e8d7c6834",
       "role": "example",
       "targets": [
         "project.greeting.test_greeting"
       ]
     },
     "examples/hello-world/fuzz/project/greeting_fuzz.c": {
-      "sha256": "812ab4887cf06bc1a5aa98e060e53eec3eb4799baee30c77d7334d3416c682d1",
+      "sha256": "d9ed7ec62760622fbadb9dddcc761e19b02ac47d3008359f72235304c73e57f5",
       "role": "example",
       "targets": [
         "fuzz-greeting"
+      ]
+    },
+    "examples/hello-world/src/greeting_main.c": {
+      "sha256": "de763cbd707e3709ad3568f2acb106d15f9a7f122ac1a6fe92a4351d6af5c164",
+      "role": "example",
+      "targets": [
+        "hello"
+      ]
+    },
+    "examples/hello-world/src/greeting_text.c": {
+      "sha256": "219685087429e21095efea213718662b9671eebed9e52f745f4eb88b4d366070",
+      "role": "example",
+      "targets": [
+        "hello"
+      ]
+    },
+    "examples/hello-world/tests/project/test_greeting_main.c": {
+      "sha256": "0b6be0697b0f3b840eff8c44ece42b4105a6ac09069f557195f03bb1da879e38",
+      "role": "example",
+      "targets": [
+        "project.greeting.test_greeting_main"
       ]
     },
     "safety/project-gate-fixtures/asan/test_seeded.c": {
@@ -936,9 +957,13 @@
     "safety/qualification/developer/control.c",
     "safety/qualification/developer/developer-demo.h",
     "examples/hello-world/include/greeting.h",
+    "examples/hello-world/include/greeting_text.h",
     "examples/hello-world/src/greeting.c",
+    "examples/hello-world/src/greeting_main.c",
+    "examples/hello-world/src/greeting_text.c",
     "examples/hello-world/src/main.c",
     "examples/hello-world/tests/project/test_greeting.c",
+    "examples/hello-world/tests/project/test_greeting_main.c",
     "examples/hello-world/fuzz/project/greeting_fuzz.c"
   ]
 }

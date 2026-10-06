@@ -4,8 +4,11 @@ This example shows the full safe-C chain on a small program:
 
 - a specification with input limits: `specs/project/greeting.md`;
 - a public interface: `include/greeting.h`;
-- the implementation: `src/greeting.c` and the program `src/main.c`;
-- boundary and error tests: `tests/project/test_greeting.c`;
+- the implementation: `src/greeting.c`, `src/greeting_text.c` (with the
+  internal header `include/greeting_text.h`), `src/greeting_main.c` and the
+  program `src/main.c`;
+- boundary and error tests: `tests/project/test_greeting.c` and
+  `tests/project/test_greeting_main.c`;
 - a libFuzzer target with a seed corpus: `fuzz/project/greeting_fuzz.c`;
 - a review ledger: `review/ledger.json`. Its finding GREETING-0001 is an
   illustrative example entry, not a record of a real external review;
@@ -83,3 +86,9 @@ hello $'\t'      # "hello: GREETING_NOT_PRINTABLE" on stderr, exit status 1
 - `hello` reads at most 65 bytes of its argument for the same reason.
 - `src/main.c` only calls `greeting_main`. The program logic is in the module,
   so the unit tests reach every branch and the coverage gate measures it.
+- The `gcc-analyzer` gate runs GCC `-fanalyzer` with fixed limits that a
+  project cannot change. GCC analyzes a same-file function again at every call
+  site, so the example splits the module into three files, drives tests from
+  tables, writes `REQUIRE` and `CHECK` as macros and avoids byte loops in test
+  code. The spec section "Test structure and the analyzer budget" lists the
+  rules.

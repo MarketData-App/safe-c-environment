@@ -1,7 +1,21 @@
 # Module `greeting` specification
 
 Status: example specification for the hello-world project. Write and review
-this file before `src/greeting.c` changes.
+this file before any module source changes.
+
+## Files
+
+| File | Contents |
+|---|---|
+| `include/greeting.h` | public interface |
+| `src/greeting.c` | `greeting_format`, `greeting_status_name` |
+| `src/greeting_text.c`, `include/greeting_text.h` | internal `greeting_check_text`: UTF-8 and printable checks |
+| `src/greeting_main.c` | `greeting_main`, the program logic of `hello` |
+| `src/main.c` | `main`, which only calls `greeting_main` |
+
+The module has three translation units so that each GCC `-fanalyzer` run stays
+within the framework's fixed analysis budget. GCC analyzes a call to a function
+in the same file again for every call site; a call into another file is opaque.
 
 ## Purpose
 
@@ -133,23 +147,40 @@ Calls are reentrant when they use different streams.
 
 ## Derived tests
 
-`tests/project/test_greeting.c` holds one check for each row below. The
-boundary rows are zero, one, the exact limit, one past the limit and the
+`tests/project/test_greeting.c` holds the `greeting_format` and status-name
+rows below; `tests/project/test_greeting_main.c` holds the `greeting_main` row.
+The boundary rows are zero, one, the exact limit, one past the limit and the
 representable maximum.
 
 | Assertion | Cases |
 |---|---|
 | NULL arguments | `name`, `out`, `written` each `NULL`; all `NULL` with `capacity` 0 |
 | Length bounds | 0, 1, 64, 65, `SIZE_MAX` |
-| UTF-8 | valid 2-, 3- and 4-byte forms; U+10FFFF; U+E000; lone 0x80; 0xC0 0xAF; 0xF5 lead; 0xFF; truncated 2- and 3-byte forms; bad continuation; overlong 3- and 4-byte forms; U+D800; U+DFFF; U+110000 |
+| UTF-8 | valid 2-, 3- and 4-byte forms; U+10FFFF; U+E000; lone 0x80; 0xC0 0xAF; 0xF5 lead; 0xFF; truncated 2- and 3-byte forms; bad second, third (below 0x80 and above 0xBF) and fourth continuation bytes; overlong 3- and 4-byte forms; U+D800; U+DFFF; U+110000 |
 | Printable | U+001F, U+0020, U+007E, U+007F, NUL inside the name, tab, U+0080, U+0085, U+009F, U+00A0 |
 | Order | control byte then invalid UTF-8 → `GREETING_INVALID_UTF8`; each earlier failure with `capacity` 0 |
 | Capacity | 0, 1, exact − 1 (13 for `world`, 72 for 64 bytes), exact (14, 73), large (128) |
 | Status names | every enumerator; the value 7 → `GREETING_UNKNOWN` |
-| `greeting_main` | `argc` 1 and 3 → 2; `world` → 0 and `Hello, world!`; tab name, `NULL` name and a 70-byte name → 1 and the status name; an `out` stream that rejects writes (opened read-only) → 1; output captured with ISO C `tmpfile` |
+| `greeting_main` | `argc` 1 and 3 → 2; `world` → 0 and `Hello, world!`; tab name, `NULL` name and a 70-byte name → 1 and the status name; an `out` stream that rejects writes (opened read-only) → 1; output captured in two ISO C `tmpfile` streams that stay open, read back from the `ftell` position of each case |
 
 `fuzz/project/greeting_fuzz.c` checks the output and failure postconditions for
 arbitrary names with the capacities 0, 1, exact − 1, exact and 128: the exact
 greeting bytes, `*written`, `out[0]` on failure, and that no other byte of the
-buffer changes. An independent oracle (the well-formed sequences of Unicode
-Table 3-7 plus the C0, DEL and C1 rules) predicts the status of every input.
+buffer changes. An independent oracle predicts the status of every input: a
+byte-at-a-time automaton for the well-formed sequences of Unicode Table 3-7,
+which also tracks C0 controls, DEL and C1 controls (0xC2 0x80..0x9F). The
+implementation instead parses one whole sequence at a time.
+
+## Test structure and the analyzer budget
+
+The framework runs GCC `-fanalyzer` with fixed limits on every project file.
+These rules keep the example within them without weakening any check:
+
+- Table-driven cases with one loop and one call site, instead of one call per
+  case.
+- `REQUIRE` and `CHECK` are macros, not helper functions, so their failure
+  path is not analyzed again for every use.
+- Byte loops in test code are replaced by `memcmp` and struct copies where
+  possible.
+- `greeting_main` cases each make one call that combines all results, because
+  GCC unrolls a loop that opens, writes and reads streams.
