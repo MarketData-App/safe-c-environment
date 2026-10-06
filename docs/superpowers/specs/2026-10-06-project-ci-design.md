@@ -52,7 +52,7 @@ Each gate uses exactly the configuration the framework uses for its own code.
 |---|---|
 | Format | `format` (repository `.clang-format`) |
 | Compilers | `gcc-O0`, `gcc-O2`, `clang-O0`, `clang-O2`, all with the `cmake/Safety.cmake` warning set as errors; `hardened` (`_FORTIFY_SOURCE=3`, strong stack protector, stack-clash protection) |
-| Analyzers | `tidy` (repository `.clang-tidy`), `csa` (Clang Static Analyzer), `gcc-analyzer` (`-fanalyzer`), `ast` (API policy gate from `safety/foundation-api-policy.json`) |
+| Analyzers | `tidy` (repository `.clang-tidy`), `csa` (Clang Static Analyzer), `gcc-analyzer` (`-fanalyzer`), `ast` (API policy gate from `safety/foundation-api-policy.json` and the compiler-based project source rules, section 3.3) |
 | Sanitizers | `asan`, `ubsan`, `integer`, `msan`, `tsan`, all with no recovery, each running all project tests |
 | Tests | `unit`, `integration` (REQUIRE-style checks active with `NDEBUG`) |
 | Coverage | `coverage`: at least 90% lines and 85% branches of project code (`safety/contract.json`) |
@@ -71,6 +71,45 @@ default, not lower).
 `foundation-sabotage`, `developer-doctor`, `developer-selftest`,
 `developer-sabotage`, `developer-workflow`. In projects, the manifest check
 (section 5) replaces them by detecting drift of the framework files from the qualified set. The manifest is unsigned. The check is tamper-evident for accidental or unreviewed framework edits. It is not tamper-proof: a person who recomputes the manifest passes it. Review and the framework CI on GitHub are the controls.
+
+### 3.3 Project source rules
+
+Project code is auditable C. These rules apply to every file in `src/`,
+`include/`, `tests/project/` and `fuzz/project/`:
+
+- Use no `#pragma` except `#pragma once`. Do not use `_Pragma`, trigraphs or
+  the token-pasting operator (`##`, `%:%:`). Do not use `#line`, `#ident`,
+  `#warning` or other directives outside `#include`, `#define`, `#undef`,
+  `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif` and `#error`.
+- Do not branch on the build identity. Every build must preprocess to the same
+  project code: compiler, optimization level, sanitizer, coverage and hardening
+  must not select code. Do not use a predefined or command-line macro whose value
+  differs between builds (for example `__OPTIMIZE__`, `__clang__`,
+  `__GXX_ABI_VERSION`, `__VERSION__`, `_FORTIFY_SOURCE`, `__DATE__`).
+- Include project files only with quoted includes of headers that `project.json`
+  declares. Never include a file from `review/`, `specs/`, a fuzz corpus or a
+  regression directory, another `.c` file, or an undeclared file.
+- Do not use an attribute that removes sanitizer, coverage or profile
+  instrumentation, stack protection or optimization from a function, in any
+  spelling (`no_sanitize*`, `disable_sanitizer_instrumentation`,
+  `no_instrument_function`, `no_profile_instrument_function`, `optnone`,
+  `optimize`, `no_stack_protector`, `naked`, `no_split_stack`).
+- The `inventory` gate runs a fast text pre-check with a C lexer. The `ast` gate
+  runs the authoritative checks with the compilers: it preprocesses every project
+  translation unit in every gate configuration with the real flags, refuses a
+  `#pragma` that survives preprocessing in project code, refuses a compiler
+  dependency that is not a declared header (or a framework or system header),
+  compares the project code of all configurations, and refuses the attribute
+  nodes in the Clang AST. A finding names the file, the line and the check.
+
+System macros can expand differently per compiler (`NULL`, `INT_MAX`,
+`DBL_MAX`). The identity check therefore compares the project's own tokens after
+conditional inclusion (`-E -fdirectives-only`) and the project's `#define` and
+`#undef` lines. It refuses project uses of predefined or command-line macros
+that differ between configurations (from `-dM -E` of each configuration). The
+configurations are the 11 gate builds (from their compilation databases), the
+fuzz build, `tidy`, `csa` (`__clang_analyzer__` defined), `gcc-analyzer` and the
+AST policy scan.
 
 ## 4. Project mode and layout
 

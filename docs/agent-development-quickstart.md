@@ -55,7 +55,7 @@ line and check. Sanitizer reports go to an evidence file; read them with
 | `tidy` | `clang-tidy` with the repository `.clang-tidy` |
 | `csa` | Clang Static Analyzer (`clang --analyze`) |
 | `gcc-analyzer` | GCC `-fanalyzer` |
-| `ast` | API policy gate with `safety/foundation-api-policy.json` |
+| `ast` | API policy gate with `safety/foundation-api-policy.json`, and the compiler-based project source rules (below) |
 | `asan` | Project tests under AddressSanitizer, no recovery |
 | `ubsan` | Project tests under UndefinedBehaviorSanitizer, no recovery |
 | `integer` | Project tests under the integer sanitizer, no recovery |
@@ -69,6 +69,33 @@ line and check. Sanitizer reports go to an evidence file; read them with
 | `clusterfuzzlite` | Builds each fuzz target with the ClusterFuzzLite build contract and audits sanitizer and coverage instrumentation |
 | `inventory` | Every project source has a spec and tests; external input has a fuzz target |
 | `review-protocol` | `review/ledger.json` is schema-valid and has no OPEN, UNRESOLVED or BLOCKED high-severity finding |
+
+### Project source rules
+
+- Use no `#pragma` except `#pragma once`. Do not use `_Pragma`, trigraphs or
+  the token-pasting operator (`##`, `%:%:`). Do not use `#line`, `#ident`,
+  `#warning` or other directives outside `#include`, `#define`, `#undef`,
+  `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif` and `#error`.
+- Do not branch on the build identity. Every build must preprocess to the same
+  project code: compiler, optimization level, sanitizer, coverage and hardening
+  must not select code. Do not use a predefined or command-line macro whose value
+  differs between builds (for example `__OPTIMIZE__`, `__clang__`,
+  `__GXX_ABI_VERSION`, `__VERSION__`, `_FORTIFY_SOURCE`, `__DATE__`).
+- Include project files only with quoted includes of headers that `project.json`
+  declares. Never include a file from `review/`, `specs/`, a fuzz corpus or a
+  regression directory, another `.c` file, or an undeclared file.
+- Do not use an attribute that removes sanitizer, coverage or profile
+  instrumentation, stack protection or optimization from a function, in any
+  spelling (`no_sanitize*`, `disable_sanitizer_instrumentation`,
+  `no_instrument_function`, `no_profile_instrument_function`, `optnone`,
+  `optimize`, `no_stack_protector`, `naked`, `no_split_stack`).
+- The `inventory` gate runs a fast text pre-check with a C lexer. The `ast` gate
+  runs the authoritative checks with the compilers: it preprocesses every project
+  translation unit in every gate configuration with the real flags, refuses a
+  `#pragma` that survives preprocessing in project code, refuses a compiler
+  dependency that is not a declared header (or a framework or system header),
+  compares the project code of all configurations, and refuses the attribute
+  nodes in the Clang AST. A finding names the file, the line and the check.
 
 The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework
