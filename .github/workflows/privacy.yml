@@ -1,0 +1,22 @@
+name: privacy
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  personal-information:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check tracked files
+        run: python3 .githooks/personal_info_check.py --tree
+      - name: Check every commit, identity and message
+        run: python3 .githooks/personal_info_check.py --history
+      - name: Hook regression suite
+        run: .githooks/tests/regression.sh

@@ -43,11 +43,14 @@ and actual remote enforcement remain separate activation work. No automatic remo
 publishing, paid model calls, corpus provisioning or recurring jobs were performed.
 
 Enable the commit hooks once per clone with `git config core.hooksPath .githooks`.
-They block commits whose author or committer email is not a GitHub noreply address,
-and added lines or messages containing credentials, emails, home paths or the local
-login and host names. Personal values are derived on the committing machine; list
-further private terms, one regular expression per line, in the untracked
-`.git/info/personal-patterns`. Never bypass the hooks with `--no-verify`.
+They block commits, merges and pushes whose author or committer email is not a
+GitHub noreply address, and any added or changed file, file name or message that
+contains credentials, emails, home paths or the local login and host names. The
+pre-push hook also covers cherry-picks and rebases. Personal values are derived on
+the committing machine; list further private terms, one regular expression per
+line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks with
+`--no-verify`. The `privacy` workflow repeats the tree and history checks and the
+hook regression suite (`.githooks/tests/regression.sh`) on every push.
 
 Docker containment commands: `./tools/safety sandbox plan --profile build`,
 `./tools/safety sandbox doctor`, `./tools/safety sandbox selftest`, and
