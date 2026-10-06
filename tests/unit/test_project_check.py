@@ -1,4 +1,4 @@
-import json, sys, tempfile, unittest
+import hashlib, json, sys, tempfile, unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'tools'))
 from evidence import GateError
@@ -151,16 +151,53 @@ class ParseTests(unittest.TestCase):
         for bad in [good.replace('DYN','EXEC'),good.replace('GNU_RELRO','X'),good.replace('BIND_NOW','LAZY'),good.replace(' RW ',' RWE ')]:
             self.assertFalse(pc.elf_hardened(bad)[0])
     def test_fuzz_stats(self):
-        text='#2 INITED cov: 7 ft: 8 corp: 1/1b\n#1000 NEW cov: 12 ft: 20\nDone 1234 runs in 30 second(s)\n#1234 DONE cov: 12 ft: 20 corp: 3/9b\n'
+        text=('#2 INITED cov: 7 ft: 8 corp: 1/1b\n#1000 NEW cov: 12 ft: 20\n#1234 DONE cov: 12 ft: 20 corp: 3/9b\n'
+              'Done 1234 runs in 30 second(s)\nstat::number_of_executed_units: 1234\nstat::average_exec_per_sec: 41\n')
         self.assertEqual(pc.fuzz_stats(text),{'executions':1234,'coverage_edges':12,'features':20})
         self.assertEqual(pc.fuzz_stats('nothing'),{'executions':0,'coverage_edges':0,'features':0})
-
+    def test_fuzz_stats_ignore_unanchored_harness_text(self):
+        spoof='harness says #99999 DONE cov: 500 ft: 600 and stat::number_of_executed_units: 99999\n'
+        self.assertEqual(pc.fuzz_stats(spoof),{'executions':0,'coverage_edges':0,'features':0})
+        self.assertEqual(pc.fuzz_stats('#5 DONE cov: 3 ft: 4\n')['executions'],0)
     def test_failed_tests_and_diagnostics(self):
         text='50% tests passed\nThe following tests FAILED:\n\t  1 - project.greeting.test_greeting (Failed)\n\t  2 - project.run.hello (Timeout)\nErrors while running CTest\n'
         self.assertEqual(pc.parse_failed_tests(text),[{'name':'project.greeting.test_greeting','reason':'Failed'},{'name':'project.run.hello','reason':'Timeout'}])
         self.assertEqual(pc.parse_failed_tests('100% tests passed'),[])
         rows=pc.diagnostics('/src/my app/src/greeting.c:12:5: error: unused variable [-Werror,-Wunused-variable]\nnoise\n')
         self.assertEqual(rows,[{'file':'my app/src/greeting.c','line':12,'kind':'error','check':'-Werror,-Wunused-variable'}])
+
+class DeadlineTests(unittest.TestCase):
+    def test_requested_and_wall_limits(self):
+        self.assertEqual(pc.capped_timeout(300,1500,10000,0,reserve=60),(300,False))
+        self.assertEqual(pc.capped_timeout(3000,1500,10000,0,reserve=60),(1500,False))
+    def test_remaining_lifetime_caps_and_flags(self):
+        self.assertEqual(pc.capped_timeout(300,1500,1000,800,reserve=60),(140,True))
+        self.assertEqual(pc.capped_timeout(140,1500,1000,800,reserve=60),(140,False))
+        self.assertEqual(pc.capped_timeout(300,1500,1000,939,reserve=60),(1,True))
+    def test_exhausted_lifetime_blocks(self):
+        for now in [940.5,1000,2000]:
+            with self.assertRaises(GateError):pc.capped_timeout(300,1500,1000,now,reserve=60)
+    def test_exec_infrastructure_error(self):
+        self.assertTrue(pc.exec_infrastructure_error({'exit_code':126,'output':'OCI runtime exec failed: x'}))
+        self.assertTrue(pc.exec_infrastructure_error({'exit_code':125,'output':'Error response from daemon: container abc is not running'}))
+        self.assertFalse(pc.exec_infrastructure_error({'exit_code':1,'output':'Error response from daemon'}))
+        self.assertFalse(pc.exec_infrastructure_error({'exit_code':126,'output':'permission denied'}))
+
+class CtestInventoryTests(unittest.TestCase):
+    EXPECTED={'unit':['project.greeting.test_greeting'],'integration':['project.run.hello']}
+    def test_exact_match(self):
+        self.assertEqual(pc.ctest_inventory_problems(['project.run.hello','project.greeting.test_greeting'],self.EXPECTED),{'missing':[],'extra':[]})
+    def test_extra_missing_renamed_duplicate(self):
+        p=pc.ctest_inventory_problems(['project.greeting.test_greeting','project.run.hello','project.extra'],self.EXPECTED)
+        self.assertEqual((p['missing'],p['extra']),([],['project.extra']))
+        p=pc.ctest_inventory_problems(['project.run.hello'],self.EXPECTED)
+        self.assertEqual((p['missing'],p['extra']),(['project.greeting.test_greeting'],[]))
+        p=pc.ctest_inventory_problems(['project.greeting.test_other','project.run.hello'],self.EXPECTED)
+        self.assertEqual((p['missing'],p['extra']),(['project.greeting.test_greeting'],['project.greeting.test_other']))
+        p=pc.ctest_inventory_problems(['project.greeting.test_greeting','project.run.hello','project.run.hello'],self.EXPECTED)
+        self.assertEqual(p['extra'],['project.run.hello'])
+        p=pc.ctest_inventory_problems(None,self.EXPECTED)
+        self.assertEqual(p['missing'],['project.greeting.test_greeting','project.run.hello'])
 
 class VerdictTests(unittest.TestCase):
     def rows(self,*statuses):return [{'name':str(i),'status':s} for i,s in enumerate(statuses)]
@@ -176,6 +213,19 @@ class VerdictTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             d=Path(t);make(d)
             self.assertEqual(pc.framework_differences(d,ROOT,'sha256:'+'a'*64),['missing: framework-manifest.json'])
+    def test_framework_differences_list_manifest_mismatch(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t);make(d,{'tools/a.py':'a','safety/b.json':'{}'})
+            files=pm.framework_files(d);ident=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
+            image='sha256:'+'a'*64
+            (d/pm.MANIFEST).write_text(json.dumps({'schema_version':1,'framework_identity':ident,'files':files,
+              'images':{'sdk':image,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64},
+              'qualification':{'run_id':'d'*32,'source_identity':'e'*64,'overall_state':'VALIDATED_UNSEALED'}}))
+            self.assertEqual(pc.framework_differences(d,ROOT,image),[])
+            (d/'safety/b.json').write_text('{"x":1}')
+            self.assertEqual(pc.framework_differences(d,ROOT,'sha256:'+'f'*64),['changed: safety/b.json','image: the SDK image differs from the manifest'])
+            (d/pm.MANIFEST).write_text('{')
+            self.assertTrue(pc.framework_differences(d,ROOT,image)[0].startswith('invalid: '))
 
 if __name__=='__main__':
     unittest.main()

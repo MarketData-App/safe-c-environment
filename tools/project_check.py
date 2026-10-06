@@ -23,6 +23,7 @@ import uuid
 from pathlib import Path
 import policy
 import project_model as pm
+from foundation import analysis_flags
 from evidence import GateError, RUNTIME_ENV, atomic_json, digest, environment_gate, file_hash, passed, read_json
 from schema_check import validate
 
@@ -44,6 +45,10 @@ FUZZ_ENV = {'CC': 'clang', 'CXX': 'clang++',
             'LIB_FUZZING_ENGINE': '-fsanitize=fuzzer'}
 BLOCKING_STATES = {'OPEN', 'UNRESOLVED', 'BLOCKED'}
 MIN_FUZZ_SECONDS = 30
+# Launcher.create's default command sleeps 1800 s; the container ends then.
+CONTAINER_SECONDS = 1800
+CONTAINER_RESERVE = 60
+NO_FUZZ = {'targets': 0, 'reason': 'no module reads external input'}
 RUNTIME_BYTES = 8*1024*1024
 CHUNK = 2*1024*1024
 SANITIZERS = ('AddressSanitizer', 'LeakSanitizer', 'MemorySanitizer', 'ThreadSanitizer',
@@ -155,12 +160,40 @@ def elf_hardened(text):
 
 
 def fuzz_stats(output):
-    executions = re.findall(r'#(\d+)\s+DONE', output)
-    coverage = re.findall(r'cov: (\d+)', output)
-    features = re.findall(r'ft: (\d+)', output)
+    """libFuzzer end-of-run counters: `-print_final_stats=1` stat lines and the final DONE line, both anchored."""
+    executions = re.findall(r'^stat::number_of_executed_units: (\d+)$', output, re.M)
+    done = re.findall(r'^#(\d+)\s+DONE\s+cov: (\d+) ft: (\d+)\b', output, re.M)
     return {'executions': int(executions[-1]) if executions else 0,
-            'coverage_edges': int(coverage[-1]) if coverage else 0,
-            'features': int(features[-1]) if features else 0}
+            'coverage_edges': int(done[-1][1]) if done else 0,
+            'features': int(done[-1][2]) if done else 0}
+
+
+def capped_timeout(requested, wall, deadline, now, reserve=CONTAINER_RESERVE):
+    """Step timeout limited by the profile wall time and the container's remaining lifetime.
+
+    Returns (timeout, capped_by_lifetime). Raises GateError when the lifetime is exhausted."""
+    remaining = deadline - now - reserve
+    if remaining < 1:
+        raise GateError('project container lifetime exhausted before the step could run')
+    timeout = min(requested, wall, remaining)
+    return timeout, timeout == remaining and remaining < min(requested, wall)
+
+
+def exec_infrastructure_error(result):
+    """True when `docker exec` itself failed (daemon/runtime error), not the workload."""
+    return result['exit_code'] in (125, 126, 127) and any(
+        marker in result['output'] for marker in ('Error response from daemon', 'OCI runtime exec failed', 'is not running'))
+
+
+def ctest_inventory_problems(names, expected):
+    """Missing and extra CTest names against project.json; empty lists mean an exact match."""
+    if names is None:
+        return {'missing': sorted(expected['unit']+expected['integration']), 'extra': [], 'reason': 'CTest inventory unavailable'}
+    wanted = set(expected['unit']+expected['integration'])
+    problems = {'missing': sorted(wanted-set(names)), 'extra': sorted(set(names)-wanted)}
+    if len(names) != len(set(names)):
+        problems['extra'] += sorted({n for n in names if names.count(n) > 1})
+    return problems
 
 
 def verdict(rows, runtime_status, differences, development):
@@ -235,18 +268,6 @@ def expected_tests(project):
 def test_binaries(project):
     names = ['project_test_'+m['name']+'_'+posixpath.basename(t).split('.')[0] for m in project['modules'] for t in m['tests']]
     return names + [p['name'] for p in project['programs']]
-
-
-def analysis_flags(profile):
-    # Copy of foundation.analysis_flags (cli.py uses it for the framework analyzers).
-    if profile not in {'gcc-O0', 'clang-O0'}:
-        raise GateError('unapproved analyzer dependency profile')
-    prefix = '/opt/foundation/' + profile
-    return ['-std=c17', '-I/src/fuzz', '-I/src/foundation/include',
-            '-I/src/foundation/tests', '-isystem', prefix + '/include/glib-2.0',
-            '-isystem', prefix + '/lib/glib-2.0/include',
-            '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
-            '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
 
 
 def analyzer_argv(name, rel, index, project_dir):
@@ -359,10 +380,11 @@ _COPY = ('import pathlib,shutil,sys;s=pathlib.Path(sys.argv[1]);d=pathlib.Path(s
 
 
 class ProjectCheck:
-    def __init__(self, root, project_dir, project, run_dir, launcher, record, project_policy):
+    def __init__(self, root, project_dir, project, run_dir, launcher, record, project_policy, *, snapshot, deadline):
         self.root, self.project_dir, self.project = root, project_dir, project
         self.run_dir, self.launcher, self.record = run_dir, launcher, record
         self.project_policy = project_policy
+        self.snapshot, self.deadline = snapshot, deadline
         self.counter = 0
         self.rows = {}
         self.tests = {'unit': [], 'integration': []}
@@ -370,19 +392,35 @@ class ProjectCheck:
         self.wall = launcher.value['profiles']['project']['wall_seconds']
         self.test_timeout = read_json(root/'safety/contract.json')['budgets']['timeout_seconds']
 
-    # One protected `docker exec` in the project container; evidence on disk.
-    def step(self, label, argv, *, timeout, env=None, keep_output=True):
+    def running(self):
         if self.record['lifecycle'] is not None:
-            raise GateError('project container is no longer available')
+            return False
+        state = self.launcher.json(['inspect', self.record['container_id']])[0]['State']
+        return bool(state.get('Running'))
+
+    # One protected `docker exec` in the project container; evidence on disk.
+    # Container or exec failures raise GateError (BLOCKED), never a project FAIL.
+    def step(self, label, argv, *, timeout, env=None, keep_output=True):
+        if not self.running():
+            raise GateError('infrastructure: project container is not running before step '+label)
+        timeout, capped = capped_timeout(timeout, self.wall, self.deadline, time.monotonic())
         self.counter += 1
-        result = self.launcher.execute(self.record, argv, timeout=min(timeout, self.wall), env=env)
+        result = self.launcher.execute(self.record, argv, timeout=timeout, env=env)
         saved = {k: v for k, v in result.items() if k not in ('effective_settings', 'runner_identity')}
-        saved.update(command=list(argv), environment=dict(env or {}), label=label)
+        saved.update(command=list(argv), environment=dict(env or {}), label=label, timeout=timeout,
+                     capped_by_container_lifetime=capped)
         if not keep_output:
             saved['output'] = f'<{len(result["output"])} bytes of transferred file content omitted>'
         path = self.run_dir/'evidence'/(f'{self.counter:04d}-'+re.sub(r'[^A-Za-z0-9_.-]', '_', label)[:80]+'.json')
         atomic_json(path, saved)
         result['evidence_path'] = str(path)
+        if not passed(result):
+            if result['failure'] == 'TIMEOUT' and capped:
+                raise GateError('infrastructure: project container lifetime ended during step '+label)
+            if exec_infrastructure_error(result):
+                raise GateError('infrastructure: docker exec failed during step '+label)
+            if result['failure'] is None and not self.running():
+                raise GateError('infrastructure: project container stopped during step '+label)
         return result
 
     def set(self, name, status, details=None, evidence=()):
@@ -515,11 +553,11 @@ class ProjectCheck:
             names = parse_ctest_names(listing['output']) if passed(listing) else None
         except GateError:
             names = None
+        problems = ctest_inventory_problems(names, expected)
         for label in ('unit', 'integration'):
-            if names is None or sorted(n for n in names if n in expected[label]) != sorted(expected[label]) \
-                    or sorted(names) != sorted(expected['unit']+expected['integration']):
+            if problems['missing'] or problems['extra']:
                 result[label] = {'status': 'FAIL', 'reason': 'CTest inventory differs from project.json',
-                                 'expected': expected[label], 'actual': names}
+                                 'expected': expected[label], 'actual': names, **problems}
                 continue
             r = self.step(f'{gate}-ctest-{label}', ['ctest', '--test-dir', '/work/'+directory, '--no-tests=error',
                                                     '--output-on-failure', '--timeout', str(self.test_timeout),
@@ -593,6 +631,10 @@ class ProjectCheck:
 
     def fuzz(self):
         targets = [(m, f) for m in self.project['modules'] for f in m['fuzz']]
+        if not targets:
+            for name in ('clusterfuzzlite', 'fuzz-replay', 'fuzz-exploration'):
+                self.set(name, 'PASS', dict(NO_FUZZ))
+            return
         built, evidence = {}, []
         for module, fuzz in targets:
             out = '/work/project/fuzz/'+fuzz['name']
@@ -611,7 +653,7 @@ class ProjectCheck:
         failed = [n for n, row in built.items() if row['build'] != 'PASS' or not row.get('instrumentation')]
         self.set('clusterfuzzlite', 'FAIL' if failed else 'PASS',
                  {'targets': list(built.values()), 'environment': FUZZ_ENV, 'failed_targets': failed}, evidence)
-        base = self.root/self.project_dir
+        base = self.snapshot/self.project_dir
         evidence, replayed, failures = [], 0, []
         for module, fuzz in targets:
             binary = f'/work/project/fuzz/{fuzz["name"]}/{fuzz["name"]}_fuzzer'
@@ -634,7 +676,7 @@ class ProjectCheck:
             if not passed(setup):
                 raise GateError('fuzz exploration scratch preparation failed')
             r = self.step('fuzz-exploration-'+fuzz['name'], [work+'/'+fuzz['name']+'_fuzzer', corpus, '-seed=12345', '-max_len=4096',
-                          '-timeout=3', '-rss_limit_mb=1024', f'-max_total_time={seconds}', '-artifact_prefix='+failures_dir+'/'],
+                          '-timeout=3', '-rss_limit_mb=1024', '-print_final_stats=1', f'-max_total_time={seconds}', '-artifact_prefix='+failures_dir+'/'],
                           timeout=seconds+300, env=dict(RUNTIME_ENV))
             evidence.append(r['evidence_path'])
             crashes = self.step('fuzz-failures-'+fuzz['name'], ['python3', '-c', _LIST, failures_dir], timeout=30)
@@ -748,6 +790,10 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
     root = Path(framework_root).resolve()
     run_id = uuid.uuid4().hex
     run_dir = root/'artifacts/project-runs'/run_id
+    latest = root/'artifacts/project-report.json'
+    # A stale report from an earlier run must never stand in for this run.
+    if latest.is_file() or latest.is_symlink():
+        latest.unlink()
     run_dir.mkdir(parents=True)
     report = {'schema_version': 1, 'run_id': run_id, 'project': None, 'project_dir': project_dir,
               'started_at': datetime.now(timezone.utc).isoformat(), 'finished_at': '', 'elapsed_seconds': 0.0,
@@ -785,9 +831,11 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
         if policy.source_identity(snapshot)[0] != report['source_identity']:
             raise GateError('source changed during the immutable project snapshot')
         launcher = Launcher(root, run_dir, lock, purpose='project')
+        deadline = time.monotonic()+CONTAINER_SECONDS
         record = launcher.create('project', {'/src': snapshot})
         atomic_json(run_dir/'container.json', {k: record.get(k) for k in ('container_id', 'name', 'profile', 'plan', 'policy_hash', 'runner', 'reservation', 'effective')})
-        check = ProjectCheck(root, project_dir, project, run_dir, launcher, record, project_policy)
+        check = ProjectCheck(root, project_dir, project, run_dir, launcher, record, project_policy,
+                             snapshot=snapshot, deadline=deadline)
         try:
             check.run()
         finally:
@@ -800,15 +848,16 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
     except Stop as stop:
         report['stopped_after'] = str(stop)
         report['runtime'] = {'status': 'BLOCKED', 'reason': f'not run: gate {stop} failed'}
-    except (GateError, OSError, ValueError, KeyError) as exc:
-        report['blockers'].append(f'{type(exc).__name__}: {str(exc)[:500]}')
+    except Exception as exc:  # every other failure is infrastructure: BLOCKED, never a traceback
+        # Only first-party GateError text is reported; other exception text may quote tool output.
+        report['blockers'].append(f'{type(exc).__name__}: {str(exc)[:500]}' if isinstance(exc, GateError) else type(exc).__name__)
         report['runtime'] = dict(report['runtime'], status='BLOCKED')
     finally:
         if launcher is not None:
             try:
                 launcher.close()
-            except GateError as exc:
-                report['blockers'].append('container cleanup: '+str(exc)[:300])
+            except Exception as exc:
+                report['blockers'].append('container cleanup: '+(str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__))
         if scratch is not None:
             shutil.rmtree(scratch, ignore_errors=True)
     reason = f'not run: gate {report["stopped_after"]} failed' if report['stopped_after'] else 'not run: run blocked'
@@ -821,7 +870,11 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
                                                      report['framework_differences'], development)
     report['finished_at'] = datetime.now(timezone.utc).isoformat()
     report['elapsed_seconds'] = round(time.monotonic()-started, 1)
-    validate(root, 'project-report', report)
+    try:
+        validate(root, 'project-report', report)
+    except Exception as exc:
+        report['blockers'].append('report schema: '+(str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__))
+        report['verdict'], report['exit_code'] = 'BLOCKED', 2
     atomic_json(run_dir/'project-report.json', report)
     atomic_json(root/'artifacts/project-report.json', report)
     for line in report['blockers']:
