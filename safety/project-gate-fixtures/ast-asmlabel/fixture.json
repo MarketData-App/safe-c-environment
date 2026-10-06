@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "ast",
+  "check": "attributes",
+  "defect": "A declaration with a split asm label that renames it to a sanitizer runtime hook. The pre-check cannot see the name; the AST attribute allowlist refuses the AsmLabelAttr node.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded_asmlabel.c",
+      "source": "test_seeded_asmlabel.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded_asmlabel.c"
+    }
+  ]
+}
