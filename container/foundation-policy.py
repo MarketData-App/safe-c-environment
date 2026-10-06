@@ -15,10 +15,26 @@ sys.path.insert(0, '/src/tools')
 from qualification import ast_banned_calls, ast_foundation_uses
 
 
-def main():
-    if len(sys.argv) != 4:
+def parse_arguments(arguments):
+    if len(arguments) < 3:
         raise ValueError('typed_policy_arguments')
-    source, profile, label = sys.argv[1:]
+    source, profile, label = arguments[:3]
+    extra = arguments[3:]
+    includes = []
+    while extra:
+        if len(extra) < 2 or extra[0] != '--include':
+            raise ValueError('typed_policy_arguments')
+        directory_argument = extra[1]
+        if not directory_argument.startswith('/src/') or '..' in Path(directory_argument).parts:
+            raise ValueError('typed_policy_include_under_src_required')
+        # -idirafter keeps project headers from shadowing the fixed GLib headers.
+        includes.extend(['-idirafter', directory_argument])
+        extra = extra[2:]
+    return source, profile, label, includes
+
+
+def main():
+    source, profile, label, includes = parse_arguments(sys.argv[1:])
     if '..' in Path(source).parts or Path(source).is_absolute():
         raise ValueError('relative_source_required')
     if not label.replace('-', '').replace('_', '').isalnum():
@@ -30,6 +46,7 @@ def main():
     directory = Path('/work/foundation-policy') / label
     directory.mkdir(parents=True, exist_ok=True)
     flags = ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/tests', '-I/src/fuzz',
+             *includes,
              '-isystem', str(prefix / 'include/glib-2.0'),
              '-isystem', str(prefix / 'lib/glib-2.0/include'),
              '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',

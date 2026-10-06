@@ -7,6 +7,14 @@ set(SAFETY_CASE "" CACHE STRING "Explicit qualification case; no application wil
 set(SAFETY_VARIANT "both" CACHE STRING "Qualification variants")
 include(cmake/Safety.cmake)
 enable_testing()
+if(DEFINED SAFE_C_PROJECT_DIR OR EXISTS "${PROJECT_SOURCE_DIR}/project.json")
+  if(NOT DEFINED SAFE_C_PROJECT_DIR)
+    set(SAFE_C_PROJECT_DIR "${PROJECT_SOURCE_DIR}")
+  endif()
+  include(cmake/Project.cmake)
+  safety_project("${SAFE_C_PROJECT_DIR}")
+  return()
+endif()
 include(cmake/Foundation.cmake)
 # Application transition requires an externally approved contract. Config flags
 # alone never authorize a bootstrap bypass; the outer inventory gate checks mode.
