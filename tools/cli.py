@@ -176,6 +176,11 @@ def finish(root, report, runner, command):
     return 0 if complete or (command!='ci' and report['local_state']=='PASS') else 1
 
 
+def foundation_projection_ready(foundation):
+    # bootstrap/doctor build only new_report()+doctor; projection needs the checked policy result.
+    return 'cases' in foundation and 'policy' in foundation
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser()
     parser.add_argument('--candidate',type=Path,default=ROOT)
@@ -312,7 +317,7 @@ def main(argv=None):
             if args.command in ['ci','starter','selftest'] or (args.command=='foundation' and args.operation=='selftest'):
                 from starter import verify_starter
                 report['starter']=verify_starter(root,lock,run_dir,instance=args.instance,expected=args.expected_baseline,baseline=args.baseline);report['gates'].append(gate('starter',report['starter']['status']))
-            if 'cases' in report['foundation']:
+            if foundation_projection_ready(report['foundation']):
                 from foundation_report import project,save as foundation_save
                 project(q,report['foundation'],report['starter'])
                 foundation_save(q,report['foundation'])

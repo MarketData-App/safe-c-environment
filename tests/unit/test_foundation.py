@@ -151,5 +151,18 @@ class FoundationClassifierTests(unittest.TestCase):
             sdk_gate(ROOT, changed)
 
 
+class FoundationProjectionReadyTests(unittest.TestCase):
+    def test_doctor_report_is_not_projected(self):
+        from cli import foundation_projection_ready
+        self.assertFalse(foundation_projection_ready({'cases': [], 'profiles': [], 'sabotage': [], 'doctor': {'status': 'PASS'}}))
+        self.assertFalse(foundation_projection_ready({}))
+
+    def test_checked_report_is_projected(self):
+        from cli import foundation_projection_ready
+        self.assertTrue(foundation_projection_ready({'cases': [], 'profiles': [], 'sabotage': [], 'doctor': {'status': 'PASS'},
+                                                     'policy': {'status': 'PASS'}}))
+        self.assertFalse(foundation_projection_ready({'policy': {'status': 'PASS'}}))
+
+
 if __name__ == '__main__':
     unittest.main()
