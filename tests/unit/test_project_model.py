@@ -10,6 +10,12 @@ def tree(base, files):
     for rel,text in files.items():
         p=base/rel; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(text)
 
+def export_list(base):
+    """starter-export.json listing every current non-project file (the framework file set)."""
+    files=[str(p.relative_to(base)) for p in base.rglob('*') if p.is_file() and 'artifacts' not in p.relative_to(base).parts]
+    files=[rel for rel in files if not rel.startswith(pm.PROJECT_PATHS) and rel!='project.json']
+    (base/'starter-export.json').write_text(json.dumps({'schema_version':1,'substitutions':[],'files':sorted(files+['starter-export.json'])}))
+
 PROJECT={'schema_version':1,'name':'demo-app','modules':[{'name':'greeting','spec':'specs/project/greeting.md','sources':['src/greeting.c'],
   'headers':['include/greeting.h'],'tests':['tests/project/test_greeting.c'],'reads_external_input':True,
   'fuzz':[{'name':'greeting','harness':'fuzz/project/greeting_fuzz.c','corpus':'fuzz/project/corpus/greeting','regressions':'fuzz/project/regressions/greeting'}]}],
@@ -51,7 +57,7 @@ class ProjectModelTests(unittest.TestCase):
             with self.assertRaises(GateError): pm.load_project(d)
     def test_manifest_detects_added_removed_changed_framework_file(self):
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t); self.make(d,extra={'tools/a.py':'a','safety/b.json':'{}'})
+            d=Path(t); self.make(d,extra={'tools/a.py':'a','safety/b.json':'{}'}); export_list(d)
             files=pm.framework_files(d); ident=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
             (d/pm.MANIFEST).write_text(json.dumps({'schema_version':1,'framework_identity':ident,'files':files,
               'images':{'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64},
@@ -61,7 +67,7 @@ class ProjectModelTests(unittest.TestCase):
             self.assertEqual(sorted(pm.check_manifest(d)),['added: tools/new.py','changed: safety/b.json','removed: tools/a.py'])
     def test_project_paths_are_not_framework_files(self):
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t); self.make(d); self.assertFalse(any(p.startswith(pm.PROJECT_PATHS) or p=='project.json' for p in pm.framework_files(d)))
+            d=Path(t); self.make(d); export_list(d); self.assertFalse(any(p.startswith(pm.PROJECT_PATHS) or p=='project.json' for p in pm.framework_files(d)))
     def test_project_policy_lists_23_gates(self):
         self.assertEqual(len(pm.project_policy(ROOT)['gates']),23)
 
@@ -113,7 +119,7 @@ class ProjectModelMoreTests(unittest.TestCase):
     def test_write_manifest(self):
         import policy
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t); self.make(d); images={'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64}
+            d=Path(t); self.make(d); export_list(d); images={'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64}
             ident=policy.source_identity(d)[0]
             good={'overall_state':'VALIDATED_UNSEALED','source_identity':ident,'run_id':'d'*32}
             with self.assertRaises(GateError): pm.write_manifest(d,dict(good,overall_state='PASS'),images)
@@ -124,7 +130,7 @@ class ProjectModelMoreTests(unittest.TestCase):
             self.assertEqual(pm.check_manifest(d),[])
     def test_manifest_identity_mismatch(self):
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t); self.make(d,extra={'tools/a.py':'a'}); files=pm.framework_files(d)
+            d=Path(t); self.make(d,extra={'tools/a.py':'a'}); export_list(d); files=pm.framework_files(d)
             (d/pm.MANIFEST).write_text(json.dumps({'schema_version':1,'framework_identity':'0'*64,'files':files,
               'images':{'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64},
               'qualification':{'run_id':'d'*32,'source_identity':'e'*64,'overall_state':'VALIDATED_UNSEALED'}}))
@@ -163,9 +169,10 @@ class ProjectModeInstantiateTests(unittest.TestCase):
                 self.assertEqual((child/rel).read_bytes(),(parent/rel).read_bytes(),rel)
             self.assertEqual((child/'.github/workflows/project-ci.yml').read_bytes(),(parent/'ci/project-ci.yml').read_bytes())
             mine,theirs=pm.framework_files(child),pm.framework_files(parent)
-            self.assertEqual(set(mine),set(theirs))
-            changed={rel for rel in mine if mine[rel]!=theirs[rel]}
-            self.assertEqual(changed,{'starter.json','starter-baseline.lock.json'})
+            # Instance-substituted files are validated by baseline_gate, not by the manifest.
+            self.assertEqual(mine,theirs)
+            self.assertFalse({'starter.json','starter-baseline.lock.json'}&set(mine))
+            self.assertFalse((child/pm.MANIFEST).exists())
             self.assertEqual(set(policy.source_identity(child)[1]),starter.instance_files(parent))
             self.assertTrue(policy.project_mode(child))
             policy.bootstrap_source_rule(child,'bootstrap')
@@ -251,7 +258,7 @@ class ProjectCliTests(unittest.TestCase):
         files={'tools/a.py':'a','toolchain.lock.json':json.dumps({'image_id':'sha256:'+'1'*64}),
                'developer.lock.json':json.dumps({'image_id':'sha256:'+'2'*64}),
                'ci/image-bundle.json':json.dumps({'archive_sha256':'3'*64,'image_ids':bundle_ids if bundle_ids is not None else ['sha256:'+'1'*64,'sha256:'+'2'*64]})}
-        files.update(extra or {}); self.make(d,extra=files)
+        files.update(extra or {}); self.make(d,extra=files); export_list(d)
         report={'overall_state':'VALIDATED_UNSEALED','source_identity':policy.source_identity(d)[0],'run_id':'d'*32}
         tree(d,{'artifacts/bootstrap-report.json':json.dumps(report)})
         return report

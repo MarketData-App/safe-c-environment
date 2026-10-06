@@ -7,10 +7,9 @@ set(SAFETY_CASE "" CACHE STRING "Explicit qualification case; no application wil
 set(SAFETY_VARIANT "both" CACHE STRING "Qualification variants")
 include(cmake/Safety.cmake)
 enable_testing()
-if(DEFINED SAFE_C_PROJECT_DIR OR EXISTS "${PROJECT_SOURCE_DIR}/project.json")
-  if(NOT DEFINED SAFE_C_PROJECT_DIR)
-    set(SAFE_C_PROJECT_DIR "${PROJECT_SOURCE_DIR}")
-  endif()
+# Project mode is selected only by the project check (-DSAFE_C_PROJECT_DIR). A
+# plain configure of a project's framework root builds the framework targets.
+if(DEFINED SAFE_C_PROJECT_DIR)
   include(cmake/Project.cmake)
   safety_project("${SAFE_C_PROJECT_DIR}")
   return()
@@ -18,9 +17,13 @@ endif()
 include(cmake/Foundation.cmake)
 # Application transition requires an externally approved contract. Config flags
 # alone never authorize a bootstrap bypass; the outer inventory gate checks mode.
-file(GLOB_RECURSE app_sources CONFIGURE_DEPENDS "src/*.c" "include/*.c")
-if(app_sources)
-  message(FATAL_ERROR "bootstrap contract forbids application sources; obtain approved production inventory")
+# With a root project.json the project sources belong to the project check and
+# the framework configure ignores them (tools/policy.py checks the inventory).
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/project.json")
+  file(GLOB_RECURSE app_sources CONFIGURE_DEPENDS "src/*.c" "include/*.c")
+  if(app_sources)
+    message(FATAL_ERROR "bootstrap contract forbids application sources; obtain approved production inventory")
+  endif()
 endif()
 safety_add_program(infrastructure_demo tests/integration/demo.c fuzz/parser_good.c)
 add_test(NAME infrastructure.boundaries COMMAND infrastructure_demo)

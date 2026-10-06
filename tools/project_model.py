@@ -107,16 +107,62 @@ def project_files(root, project_dir='.'):
     return result
 
 
-def framework_files(root):
+EXPORT_LIST = 'starter-export.json'
+# Substituted by instantiate; baseline_gate validates them against the origin.
+INSTANCE_FILES = ('starter.json', 'starter-baseline.lock.json')
+FRAMEWORK_DIRS = ('tools', 'safety', 'schemas', 'cmake', 'container', 'ci', 'foundation', 'third_party', '.githooks',
+                  '.github', 'fuzz', 'tests')
+_NOT_FRAMEWORK = ('fuzz/project/', 'tests/project/', _CI_WORKFLOW)
+_SKIPPED_PARTS = {'__pycache__', _SCRATCH, 'artifacts', 'build', '.git', '.cache', '.direnv'}
+
+
+def _exported_framework_list(root):
+    try:
+        files = read_json(root/EXPORT_LIST)['files']
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise GateError(f'framework file list is unreadable: {EXPORT_LIST}') from error
+    if not isinstance(files, list) or len(files) != len(set(map(str, files))):
+        raise GateError(f'framework file list is invalid: {EXPORT_LIST}')
+    for rel in files:
+        _safe_path(rel, 'starter-export.json entry')
+    return [rel for rel in files if rel not in INSTANCE_FILES]
+
+
+def _framework_sets(root):
+    """(listed, unlisted): exported framework files, and other files under framework directories."""
     root = Path(root)
-    result = {}
-    for rel, digest in policy.source_files(root).items():
-        if rel.startswith(PROJECT_PATHS) or rel in (PROJECT_FILE, MANIFEST, _CI_WORKFLOW):
+    listed = {}
+    for rel in _exported_framework_list(root):
+        path = root/rel
+        if path.is_symlink():
+            raise GateError(f'symlink input is forbidden: {rel}')
+        if path.is_file():
+            listed[rel] = policy.file_hash(path)
+    unlisted = {}
+    for top in FRAMEWORK_DIRS:
+        start = root/top
+        if start.is_symlink():
+            raise GateError(f'symlink input is forbidden: {top}')
+        if not start.is_dir():
             continue
-        if rel.split('/')[0] == _SCRATCH:
-            continue
-        result[rel] = digest
-    return result
+        for path in sorted(start.rglob('*')):
+            rel = path.relative_to(root)
+            if any(part in _SKIPPED_PARTS for part in rel.parts):
+                continue
+            name = rel.as_posix()
+            if name.startswith(_NOT_FRAMEWORK) or name in listed:
+                continue
+            if path.is_symlink():
+                raise GateError(f'symlink input is forbidden: {name}')
+            if path.is_file():
+                unlisted[name] = policy.file_hash(path)
+    return listed, unlisted
+
+
+def framework_files(root):
+    """starter-export.json files minus the instance files, plus unlisted files under framework directories."""
+    listed, unlisted = _framework_sets(root)
+    return {**listed, **unlisted}
 
 
 def _identity(files):
@@ -133,7 +179,10 @@ def write_manifest(root, report, images, framework_root=None):
     run_id = report.get('run_id')
     if not isinstance(run_id, str) or len(run_id) != 32 or any(c not in '0123456789abcdef' for c in run_id):
         raise GateError('manifest report needs run_id as 32 lowercase hex')
-    files = framework_files(root)
+    listed, unlisted = _framework_sets(root)
+    if unlisted:
+        raise GateError('framework files are not in starter-export.json: '+', '.join(sorted(unlisted)[:20]))
+    files = listed
     value = {'schema_version': 1, 'framework_identity': _identity(files), 'files': files, 'images': images,
              'qualification': {'run_id': run_id, 'source_identity': identity,
                                'overall_state': report['overall_state']}}

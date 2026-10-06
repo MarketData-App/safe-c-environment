@@ -14,11 +14,16 @@ def exact_ids(rows, ids):
         raise GateError(f'inventory mismatch: expected {ids}, got {actual}')
 
 def source_files(root):
-    excluded = {'.git', '.cache', 'artifacts', 'build', '.direnv', '.codex', '.agentwatch', '__pycache__', '.pytest_cache'}
+    # .superpowers is git-ignored agent scratch. The root framework-manifest.json is a
+    # generated attestation of a qualified identity; check_manifest binds its content.
+    excluded = {'.git', '.cache', 'artifacts', 'build', '.direnv', '.codex', '.agentwatch', '__pycache__', '.pytest_cache',
+                '.superpowers'}
     result = {}
     for path in sorted(root.rglob('*')):
         rel = path.relative_to(root)
         if any(part in excluded for part in rel.parts) or rel.name.startswith('.env'):
+            continue
+        if rel.as_posix() == 'framework-manifest.json':
             continue
         if path.is_symlink():
             raise GateError(f'symlink input is forbidden: {rel}')

@@ -27,6 +27,7 @@ EXAMPLE='examples/hello-world/'
 EXAMPLE_PATHS=('src/','include/','tests/project/','fuzz/project/','specs/project/','review/')
 CI_TEMPLATE='ci/project-ci.yml'
 CI_WORKFLOW='.github/workflows/project-ci.yml'
+MANIFEST='framework-manifest.json'
 
 def project_payload(root):
     """Child-relative project file -> exported example source file."""
@@ -37,12 +38,16 @@ def project_payload(root):
     if 'project.json' not in payload:raise GateError('starter example project is missing: '+EXAMPLE+'project.json')
     if CI_TEMPLATE not in exported:raise GateError('project CI workflow template is missing: '+CI_TEMPLATE)
     payload[CI_WORKFLOW]=CI_TEMPLATE
+    # The qualified framework manifest goes to the child root; it is not a source input.
+    if (root/MANIFEST).is_symlink():raise GateError('symlink input is forbidden: '+MANIFEST)
+    if (root/MANIFEST).is_file():payload[MANIFEST]=MANIFEST
     collisions=sorted(set(payload)&set(exported))
     if collisions:raise GateError('project payload collides with exported framework files: '+', '.join(collisions))
     return payload
 
 def instance_files(root):
-    return set(export_inventory(root))|set(project_payload(root))
+    # Child source identity: policy.source_files excludes the copied framework manifest.
+    return (set(export_inventory(root))|set(project_payload(root)))-{MANIFEST}
 
 def instantiate(root, destination, name, *, baseline=None, expected=None, maintenance=False):
     if not re.fullmatch(r'[a-z][a-z0-9-]{1,62}',name):
@@ -66,6 +71,9 @@ def instantiate(root, destination, name, *, baseline=None, expected=None, mainte
         fresh_container_evidence(root,report,read_json(root/'toolchain.lock.json'))
         if report['local_state']!='PASS' or not report['commands'][-1].endswith('ci'):
             raise GateError('starter candidate has no complete current local qualification; run ci')
+        if (root/MANIFEST).is_file() and not (root/MANIFEST).is_symlink():
+            from project_model import check_manifest
+            if check_manifest(root):raise GateError('framework-manifest.json does not match the framework files; run framework manifest')
     origin=baseline_identity(root)
     files=export_inventory(root)
     payload=project_payload(root)

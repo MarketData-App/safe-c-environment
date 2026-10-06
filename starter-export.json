@@ -398,6 +398,7 @@
     "tests/unit/test_developer.py",
     "tests/unit/test_developer_acquisition.py",
     "tests/unit/test_foundation.py",
+    "tests/unit/test_framework_manifest.py",
     "tests/unit/test_image_transfer.py",
     "tests/unit/test_infrastructure.py",
     "tests/unit/test_project_check.py",
