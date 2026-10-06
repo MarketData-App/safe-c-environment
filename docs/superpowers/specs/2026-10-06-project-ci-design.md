@@ -83,9 +83,17 @@ Project code is auditable C. These rules apply to every file in `src/`,
   `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else`, `#endif` and `#error`.
 - Do not branch on the build identity. Every build must preprocess to the same
   project code: compiler, optimization level, sanitizer, coverage and hardening
-  must not select code. Do not use a predefined or command-line macro whose value
-  differs between builds (for example `__OPTIMIZE__`, `__clang__`,
-  `__GXX_ABI_VERSION`, `__VERSION__`, `_FORTIFY_SOURCE`, `__DATE__`).
+  must not select code. Do not use a macro whose definition differs between
+  builds (for example `__OPTIMIZE__`, `__clang__`, `__GXX_ABI_VERSION`,
+  `__VERSION__`, `_FORTIFY_SOURCE`, `__DATE__`, `__glibc_clang_prereq`,
+  `G_GNUC_CHECK_VERSION`, and `tolower` or `toupper`, which are macros only when
+  optimizing: call `(tolower)(c)`), in code or in a macro body. Do not use
+  `__builtin_constant_p`.
+- Do not declare or use a sanitizer, profile or coverage runtime name (names that
+  start with `__asan_`, `__lsan_`, `__msan_`, `__tsan_`, `__ubsan_`, `__hwasan_`,
+  `__dfsan_`, `__sanitizer_`, `__llvm_profile` or `__gcov`), for example an
+  options hook or a death callback. The test environment sets a nonzero
+  sanitizer exit code in every sanitizer options variable.
 - Include project files only with quoted includes of headers that `project.json`
   declares. Never include a file from `review/`, `specs/`, a fuzz corpus or a
   regression directory, another `.c` file, or an undeclared file.
@@ -99,14 +107,18 @@ Project code is auditable C. These rules apply to every file in `src/`,
   translation unit in every gate configuration with the real flags, refuses a
   `#pragma` that survives preprocessing in project code, refuses a compiler
   dependency that is not a declared header (or a framework or system header),
-  compares the project code of all configurations, and refuses the attribute
-  nodes in the Clang AST. A finding names the file, the line and the check.
+  compares the project code of all configurations, refuses uses of macros with
+  build-dependent definitions, and refuses the attribute nodes, the runtime names
+  and `__builtin_constant_p` in the Clang AST. A finding names the file, the line and the check.
 
 System macros can expand differently per compiler (`NULL`, `INT_MAX`,
 `DBL_MAX`). The identity check therefore compares the project's own tokens after
 conditional inclusion (`-E -fdirectives-only`) and the project's `#define` and
-`#undef` lines. It refuses project uses of predefined or command-line macros
-that differ between configurations (from `-dM -E` of each configuration). The
+`#undef` lines. It refuses project uses (in code and in macro bodies) of macros
+whose definitions differ between configurations: `-dM -E` of each translation
+unit with its headers, object-like macros expanded, numbers compared by value,
+and a macro that names a differing macro differs too. `NULL`, `INT_MAX`,
+`INT_MIN` and `DBL_MAX` are equal by that rule. The
 configurations are the 11 gate builds (from their compilation databases), the
 fuzz build, `tidy`, `csa` (`__clang_analyzer__` defined), `gcc-analyzer` and the
 AST policy scan.
