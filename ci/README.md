@@ -67,6 +67,9 @@ On any capable Linux x86-64 host, load the exact data with:
 ./tools/safety project check # project CI
 ```
 
+`ci/runner-request` is a retired acquisition helper. No workflow uses it. The
+repository keeps it for its unit tests.
+
 A local file or checksum never approves its own baseline. Keep native workloads
 credential-free, offline, read-only and bounded; the host outer evaluator alone
 has Docker authority. See the trust-boundary and containment runbooks for
