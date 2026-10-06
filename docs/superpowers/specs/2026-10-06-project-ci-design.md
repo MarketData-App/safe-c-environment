@@ -25,8 +25,9 @@ Success criteria:
 2. Hello world passes all project gates in about 6–10 minutes on a GitHub-hosted
    runner, including image download.
 3. No project setting can weaken a flag, skip a gate or change a limit.
-4. The container layer runs on any host that passes the capability check
-   (section 6); no machine identity is pinned.
+4. The container layer runs on any Linux x86-64 host that passes the capability
+   check (section 6); no machine identity is pinned. Windows and macOS are out of
+   scope for now.
 5. The full framework qualification (`./tools/safety ci`) stays unchanged in
    strength and runs in this repository when framework files change.
 
@@ -108,29 +109,23 @@ The current policy accepts only one Docker daemon ID, the endpoint
 `unix:///var/run/docker.sock`, the context `default`, and requires AppArmor; some
 checks read host paths such as `/proc`. That pins the framework to one machine.
 
-New rule: any host qualifies when a capability check at the start of each run
-passes. The check requires:
+New rule: any Linux x86-64 host qualifies when a capability check at the start
+of each run passes. The check requires:
 
-- a local Docker endpoint of the active context (Unix socket or Windows named
-  pipe); remote TCP/SSH endpoints and inherited `DOCKER_*` overrides stay
-  rejected;
+- a local Docker Unix socket of the active context (system or rootless Docker);
+  remote TCP/SSH endpoints and inherited `DOCKER_*` overrides stay rejected;
 - cgroup v2 with working memory, CPU and process limits, proven by the existing
-  harmless preflight probes, run inside a probe container instead of reading host
-  paths;
+  harmless preflight probes;
+- a Linux security module applied to every container: AppArmor or SELinux;
 - seccomp, dropped capabilities, no-new-privileges, read-only root filesystem,
   non-root user, offline network, no privileged mode, no daemon socket or home
   directory mount, no inherited credentials;
-- the exact image digests from the manifest, and non-piped core handling, checked
-  in a probe container.
+- the exact image digests from the manifest, and non-piped core handling.
 
-AppArmor or SELinux is applied when the host provides one and recorded in the
-evidence; its absence is recorded but no longer blocks a run, because Docker
-Desktop on macOS and Windows provides neither. All other limits, mounts and
-cleanup obligations stay exactly as strict. The daemon ID and host details are
-recorded in run evidence as a record, never as a gate.
-
-Host-side tooling (Python 3 and the JSON Schema controller) must run on Linux,
-macOS and Windows (WSL2); Linux-only host reads move into probe containers.
+All limits, mounts, confinement and cleanup obligations stay exactly as strict as
+today. The daemon ID and host details are recorded in run evidence as a record,
+never as a gate. Host-side tooling (Python 3 and the JSON Schema controller) runs
+on the Linux host.
 
 ## 7. Project check sequence
 
@@ -182,9 +177,9 @@ and pull request.
 1. Image distribution: GitHub runners need the SDK and runtime images. Publishing
    the image archive needs a license review (Debian packages, GLib under the
    LGPL, notices in `third_party/`). Owner decision required.
-2. Architecture: decided 2026-10-06 — begin with x86-64 (Linux hosts and
-   GitHub runners, Windows WSL2, Intel macOS). Native ARM64 images (Apple
-   Silicon, ARM servers) are later work.
+2. Platform: decided 2026-10-06 — Linux x86-64 only (Linux hosts and
+   GitHub-hosted Ubuntu runners). Windows, macOS and native ARM64 images are out
+   of scope for now.
 3. Protected changes (container policy, contract, AGENTS.md, CMake helpers,
    CLI) go through one adversarial agent approver per docs/approval-protocol.md
    (owner decision 2026-10-06: one reviewer is enough).
@@ -209,5 +204,5 @@ and pull request.
 ## 12. Out of scope
 
 - Approach B (GitHub issue #1).
-- Native ARM64 images (later work, item 10.2).
+- Windows, macOS and native ARM64 (item 10.2).
 - Any reduction of warnings, sanitizers, analyzers, coverage or limits.
