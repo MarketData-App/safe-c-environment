@@ -1,11 +1,14 @@
 """Framework self-test of the 23 project gates.
 
-Each gate has one seeded-defect fixture under safety/project-gate-fixtures/<gate>/.
-The self-test applies a fixture to a scratch copy of the framework tree (the
-example project inside it), runs the ordinary project check in development mode
-and requires that the run fails exactly at the fixture's gate: that gate is the
-only FAIL, it is where the run stopped, and every other gate is PASS (run before
-it) or BLOCKED (not run after it). The unmodified example must pass every gate.
+Each gate has one or more seeded-defect fixtures; the manifest maps every gate
+to its fixture directories under safety/project-gate-fixtures/. The self-test
+applies a fixture to a scratch copy of the framework tree (the example project
+inside it), runs the ordinary project check in development mode and requires
+that the run fails exactly at the fixture's gate: that gate is the only FAIL, it
+is where the run stopped, and every other gate is PASS (run before it) or
+BLOCKED (not run after it). A fixture may also name the sub-check (`check`) the
+gate row must report in details.failed_checks. The unmodified example must pass
+every gate.
 
 Fixture sources are seeded defects: this module never prints them or any tool
 output. The console gets one line per fixture; reports stay on disk.
@@ -59,11 +62,12 @@ def fixture_files(root):
 
 
 def load_manifest(root):
-    """Validate the hash-pinned fixture set; return (manifest, {gate: fixture}).
+    """Validate the hash-pinned fixture set; return (manifest, {gate: [(directory, fixture)]}).
 
-    The manifest lists exactly the 23 project gates in policy order and the
-    sha256 of every fixture file; each gate directory holds one fixture.json
-    whose operations reference only files of that directory."""
+    The manifest lists exactly the 23 project gates in policy order, the fixture
+    directories of each gate and the sha256 of every fixture file. Each fixture
+    directory holds one fixture.json for its gate whose operations reference only
+    files of that directory."""
     root = Path(root)
     path = root/MANIFEST
     if path.is_symlink() or not path.is_file():
@@ -84,32 +88,43 @@ def load_manifest(root):
             raise GateError('project gate fixture file is missing: '+rel)
         if actual[rel] != expected[rel]:
             raise GateError('project gate fixture hash mismatch: '+rel)
+    listed = [d for gate in pc.GATES for d in manifest['fixtures'].get(gate, [])]
+    if len(listed) != len(set(listed)) or 'clean' in listed:
+        raise GateError('a project gate fixture directory is listed twice or named clean')
     gate_dirs = {rel.split('/', 1)[0] for rel in actual}
-    if gate_dirs != set(pc.GATES):
-        raise GateError('project gate fixture directories differ from the gate list: '
-                        + ', '.join(sorted(gate_dirs ^ set(pc.GATES))))
+    if gate_dirs != set(listed):
+        raise GateError('project gate fixture directories differ from the manifest fixture list: '
+                        + ', '.join(sorted(gate_dirs ^ set(listed))))
     fixtures = {}
     for gate in pc.GATES:
-        rel = gate+'/'+FIXTURE_FILE
-        if rel not in actual:
-            raise GateError('project gate fixture is missing: '+rel)
-        fixture = read_json(root/FIXTURES/rel)
-        validate(root, SCHEMA, fixture)
-        if fixture['kind'] != 'fixture' or fixture['gate'] != gate:
-            raise GateError('project gate fixture names another gate: '+rel)
-        used = {rel}
-        for operation in fixture['operations']:
-            _plain(operation['path'], 'path')
-            if 'source' in operation:
-                source = gate+'/'+_plain(operation['source'], 'source')
-                if source not in actual:
-                    raise GateError('project gate fixture source is not a pinned file: '+source)
-                used.add(source)
-        stray = sorted(r for r in actual if r.startswith(gate+'/') and r not in used)
-        if stray:
-            raise GateError('project gate fixture file is not used by its fixture: '+stray[0])
-        fixtures[gate] = fixture
+        fixtures[gate] = []
+        for directory in manifest['fixtures'][gate]:
+            rel = directory+'/'+FIXTURE_FILE
+            if rel not in actual:
+                raise GateError('project gate fixture is missing: '+rel)
+            fixture = read_json(root/FIXTURES/rel)
+            validate(root, SCHEMA, fixture)
+            if fixture['kind'] != 'fixture' or fixture['gate'] != gate:
+                raise GateError('project gate fixture names another gate: '+rel)
+            used = {rel}
+            for operation in fixture['operations']:
+                _plain(operation['path'], 'path')
+                if 'source' in operation:
+                    source = directory+'/'+_plain(operation['source'], 'source')
+                    if source not in actual:
+                        raise GateError('project gate fixture source is not a pinned file: '+source)
+                    used.add(source)
+            stray = sorted(r for r in actual if r.startswith(directory+'/') and r not in used)
+            if stray:
+                raise GateError('project gate fixture file is not used by its fixture: '+stray[0])
+            fixtures[gate].append((directory, fixture))
     return manifest, fixtures
+
+
+def fixture_runs(fixtures, gates=None):
+    """[(gate, directory, fixture)] in policy order, for every gate or only `gates`."""
+    wanted = set(pc.GATES if gates is None else gates)
+    return [(gate, directory, fixture) for gate in pc.GATES if gate in wanted for directory, fixture in fixtures[gate]]
 
 
 # ---------------------------------------------------------------- application
@@ -211,12 +226,13 @@ def evaluate_clean(report):
     return result
 
 
-def evaluate_fixture(gate, report):
+def evaluate_fixture(gate, report, check=None):
     """PASS when `gate` is the first and only FAIL of the run.
 
     Gates decided before it (pc.EXECUTION_ORDER) PASS; gates after it are BLOCKED as not run
-    because it failed. A run blocked by infrastructure is BLOCKED; any other
-    outcome (no failure, another gate failed, two gates failed) is FAIL."""
+    because it failed. With `check`, the gate row must list it in details.failed_checks.
+    A run blocked by infrastructure is BLOCKED; any other outcome (no failure, another
+    gate failed, two gates failed, the named check did not fail) is FAIL."""
     rows = {row['name']: row for row in report.get('gates', [])}
     failed = [name for name in pc.GATES if rows.get(name, {}).get('status') == 'FAIL']
     first = report.get('stopped_after')
@@ -247,17 +263,28 @@ def evaluate_fixture(gate, report):
     elif unexpected:
         result['reason'] = 'gates other than the target are neither PASS nor BLOCKED as not run'
         result['unexpected'] = unexpected
+    elif check is not None and check not in (rows[gate].get('details', {}).get('failed_checks') or []):
+        result['reason'] = 'the target gate failed, but not in check '+check
+        result['failed_checks'] = list(rows[gate].get('details', {}).get('failed_checks') or [])[:10]
     else:
         result['status'] = 'PASS'
+    if check is not None:
+        result['check'] = check
     return result
 
 
-def aggregate(clean, fixtures, *, complete=True):
-    """The `project-gates` gate row. Only a complete run over all 23 fixtures can PASS."""
+def aggregate(clean, fixtures, *, complete=True, expected=None):
+    """The `project-gates` gate row. Only a complete run over every fixture of the 23 gates can PASS.
+
+    `expected` is the [(gate, directory)] list of the manifest; without it one fixture
+    per gate in policy order is expected."""
     statuses = [clean['status']] + [f['status'] for f in fixtures]
     status = 'FAIL' if 'FAIL' in statuses else 'BLOCKED' if any(s != 'PASS' for s in statuses) else 'PASS'
     details = {'clean': clean, 'fixtures': fixtures}
-    if status == 'PASS' and (not complete or [f['gate'] for f in fixtures] != list(pc.GATES)):
+    wanted = [(g, g) for g in pc.GATES] if expected is None else [tuple(e) for e in expected]
+    ran = [(f['gate'], f.get('fixture', f['gate'])) for f in fixtures]
+    covers = ran == wanted and {g for g, _ in ran} == set(pc.GATES)
+    if status == 'PASS' and (not complete or not covers):
         status = 'BLOCKED' if not complete else 'FAIL'
         details['reason'] = 'partial self-test: only selected fixtures ran' if not complete else 'fixture results do not cover the 23 gates'
     return pc.gate_row('project-gates', status, details)
@@ -281,11 +308,12 @@ def _save(root, run, name, report, evidence_from=None):
 
 
 def _one_run(root, base, run, name, fixture, runner):
+    """One project check; `name` is 'clean' or the fixture directory."""
     scratch = Path(tempfile.mkdtemp(prefix='safe-c-project-selftest-'))
     try:
         project = scratch_framework(root, scratch/'framework', base)
         if fixture is not None:
-            apply_fixture(Path(root)/FIXTURES/fixture['gate'], fixture, project)
+            apply_fixture(Path(root)/FIXTURES/name, fixture, project)
         log = Path(root)/SELFTEST_ARTIFACTS/run/name/'console.log'
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open('w') as stream, contextlib.redirect_stdout(stream):
@@ -309,7 +337,7 @@ def project_selftest(framework_root, *, gates=None, runner=None):
         reason = str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__
         return pc.gate_row('project-gates', 'FAIL', {'reason': 'fixture manifest: '+reason, 'clean': {'status': 'BLOCKED'},
                                                       'fixtures': []})
-    selected = list(pc.GATES) if gates is None else [g for g in pc.GATES if g in set(gates)]
+    runs = fixture_runs(fixtures, gates)
     base = manifest['base']
     try:
         report, directory = _one_run(root, base, run, 'clean', None, runner)
@@ -318,20 +346,20 @@ def project_selftest(framework_root, *, gates=None, runner=None):
         clean = {'status': 'BLOCKED', 'verdict': None, 'reason': str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__}
     print(f'project selftest clean example: {clean["status"]} ({clean["verdict"]})', flush=True)
     results = []
-    for gate in selected:
+    for gate, name, fixture in runs:
         if clean['status'] != 'PASS':
-            results.append({'gate': gate, 'status': 'BLOCKED', 'first_fail': None, 'verdict': None,
+            results.append({'gate': gate, 'fixture': name, 'status': 'BLOCKED', 'first_fail': None, 'verdict': None,
                             'reason': 'not run: the clean example did not pass every gate'})
             continue
         try:
-            report, directory = _one_run(root, base, run, gate, fixtures[gate], runner)
-            row = dict(evaluate_fixture(gate, report), report=directory)
+            report, directory = _one_run(root, base, run, name, fixture, runner)
+            row = dict(evaluate_fixture(gate, report, fixture.get('check')), fixture=name, report=directory)
         except (GateError, OSError, ValueError) as exc:
-            row = {'gate': gate, 'status': 'BLOCKED', 'first_fail': None, 'verdict': None,
+            row = {'gate': gate, 'fixture': name, 'status': 'BLOCKED', 'first_fail': None, 'verdict': None,
                    'reason': str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__}
-        print(f'project selftest fixture {gate}: {row["status"]} (first fail: {row["first_fail"]})', flush=True)
+        print(f'project selftest fixture {name} ({gate}): {row["status"]} (first fail: {row["first_fail"]})', flush=True)
         results.append(row)
-    row = aggregate(clean, results, complete=gates is None)
+    row = aggregate(clean, results, complete=gates is None, expected=[(g, n) for g, n, _ in fixture_runs(fixtures)])
     row['details']['run'] = run
     summary = root/SELFTEST_ARTIFACTS/run/'project-gates.json'
     row['evidence_paths'] = [str(summary)]

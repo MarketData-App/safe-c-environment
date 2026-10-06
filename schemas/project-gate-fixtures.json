@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Project gate self-test: the hash-pinned fixture manifest (kind manifest) and one seeded-defect fixture per project gate (kind fixture).",
+  "description": "Project gate self-test: the hash-pinned fixture manifest (kind manifest) and the seeded-defect fixtures (kind fixture). Every project gate has one or more fixtures, each in its own directory.",
   "type": "object",
   "required": ["schema_version", "kind"],
   "properties": {
@@ -25,7 +25,7 @@
     "manifest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "kind", "base", "gates", "files"],
+      "required": ["schema_version", "kind", "base", "gates", "fixtures", "files"],
       "properties": {
         "schema_version": {"const": 1},
         "kind": {"const": "manifest"},
@@ -36,6 +36,19 @@
           "maxItems": 23,
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/gate"}
+        },
+        "fixtures": {
+          "type": "object",
+          "minProperties": 23,
+          "maxProperties": 23,
+          "propertyNames": {"$ref": "#/$defs/gate"},
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,62}$"}
+          }
         },
         "files": {
           "type": "object",
@@ -53,6 +66,7 @@
         "schema_version": {"const": 1},
         "kind": {"const": "fixture"},
         "gate": {"$ref": "#/$defs/gate"},
+        "check": {"type": "string", "pattern": "^[a-z][a-z-]{0,40}$"},
         "defect": {"type": "string", "minLength": 1, "maxLength": 600},
         "operations": {
           "type": "array",

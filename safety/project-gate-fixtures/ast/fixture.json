@@ -2,6 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "ast",
+  "check": "api",
   "defect": "A raw array subscript (raw-indexing), which only the AST policy forbids.",
   "operations": [
     {
