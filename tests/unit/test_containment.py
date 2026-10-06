@@ -222,6 +222,24 @@ class HostCapabilityTests(unittest.TestCase):
         self.assertIn('label=type:container_t',security_options(self.info(SecurityOptions=['name=seccomp','name=selinux'])))
     def test_project_profile_is_in_policy(self):
         value=policy(ROOT); self.assertIn('project',value['profiles']); self.assertEqual(value['profiles']['project']['network'],'none')
+    def test_project_work_fits_its_memory_and_matches_build(self):
+        # /work is tmpfs inside the memory limit; a larger value only raises disk admission.
+        profiles=policy(ROOT)['profiles']
+        self.assertEqual(profiles['project']['work_bytes'],profiles['build']['work_bytes'])
+        self.assertLessEqual(profiles['project']['work_bytes'],profiles['project']['memory_bytes'])
+    def test_p15_text_mutations_change_their_protected_file(self):
+        # A replace() whose target is absent is a no-op: the broken state would be accepted.
+        import re
+        text=(ROOT/'tools/sabotage.py').read_text()
+        rows=re.findall(r"\('([\w/-]+)','([\w./-]+)',lambda s:s\.replace\('([^']+)','([^']+)'\)\)",text)
+        names={row[0] for row in rows}
+        self.assertTrue({'coverage-budget','fuzz-budget','required-CI-job','child-policy-or-floating-pin/child-policy'}<=names,names)
+        for name,rel,old,new in rows:
+            self.assertIn(old,(ROOT/rel).read_text(),name)
+            self.assertNotEqual(old,new,name)
+        required=[row for row in rows if row[0]=='required-CI-job'][0]
+        self.assertEqual(required[1],'.github/workflows/safety.yml')
+        self.assertIn('./tools/safety ci',(ROOT/required[1]).read_text())
     def test_runner_block_pins_no_machine_identity(self):
         self.assertEqual(policy(ROOT)['runner'],{'role':'portable','endpoint_scheme':'unix','architecture':'x86_64','cgroup_version':'2','lsm':['apparmor','selinux']})
     def test_launcher_accepts_project_purpose(self):
