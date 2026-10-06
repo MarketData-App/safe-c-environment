@@ -71,9 +71,13 @@ def instantiate(root, destination, name, *, baseline=None, expected=None, mainte
         fresh_container_evidence(root,report,read_json(root/'toolchain.lock.json'))
         if report['local_state']!='PASS' or not report['commands'][-1].endswith('ci'):
             raise GateError('starter candidate has no complete current local qualification; run ci')
-        if (root/MANIFEST).is_file() and not (root/MANIFEST).is_symlink():
-            from project_model import check_manifest
-            if check_manifest(root):raise GateError('framework-manifest.json does not match the framework files; run framework manifest')
+        # A child without the manifest BLOCKS at its first project check. The maintenance
+        # path (verify_starter inside ci) runs before the manifest can exist.
+        if (root/MANIFEST).is_symlink():raise GateError('symlink input is forbidden: '+MANIFEST)
+        if not (root/MANIFEST).is_file():
+            raise GateError(MANIFEST+' is missing; run ./tools/safety framework manifest after a passing ci')
+        from project_model import check_manifest
+        if check_manifest(root):raise GateError('framework-manifest.json does not match the framework files; run framework manifest')
     origin=baseline_identity(root)
     files=export_inventory(root)
     payload=project_payload(root)
