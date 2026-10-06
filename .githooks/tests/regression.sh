@@ -56,5 +56,30 @@ fresh ok-web-flow;   echo w > w.txt; git add -A
                      if GIT_COMMITTER_EMAIL=noreply@github.com git commit -q -m web >/dev/null 2>&1 && push; then o=ALLOWED; else o=BLOCKED; fi; r ok-web-flow-committer ok $o
 fresh web-flow-author; echo w > w.txt; git add -A
                      if GIT_AUTHOR_EMAIL=noreply@github.com git commit -q -m web >/dev/null 2>&1 && push; then o=ALLOWED; else o=BLOCKED; fi; r web-flow-as-author bad $o
+pushok() { if push; then echo ALLOWED; else echo BLOCKED; fi; }
+fresh evil-merge;    git checkout -q -b side; echo s > s.txt; commit side; git checkout -q -; echo m > m.txt; commit main
+                     git merge -q --no-commit --no-ff side >/dev/null 2>&1; echo "$BAD" > evil.txt; git add evil.txt
+                     git commit -q -n -m merge >/dev/null 2>&1; r evil-merge bad "$(pushok)"
+fresh tag-message;   git tag -a v1 -m "contact $BAD"
+                     if git push -q origin v1 >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r tag-message bad $o
+fresh tagger;        GIT_COMMITTER_EMAIL="$BAD" git tag -a v2 -m ok
+                     if git push -q origin v2 >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r tagger-identity bad $o
+fresh ok-tag;        git tag -a v3 -m release
+                     if git push -q origin v3 >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r ok-annotated-tag ok $o
+fresh ident-name;    echo 'acmesecret' > .git/info/personal-patterns; echo n > n.txt; git add -A
+                     if git -c user.name=AcmeSecret commit -q -m name >/dev/null 2>&1 && push; then o=ALLOWED; else o=BLOCKED; fi; r identity-name bad $o
+fresh utf16-bom;     python3 -c "import sys;open('u.txt','wb').write(sys.argv[1].encode('utf-16'))" "$BAD"; r utf16-bom bad "$(reach)"
+fresh utf16-nobom;   python3 -c "import sys;open('u.txt','wb').write(sys.argv[1].encode('utf-16-le'))" "$BAD"; r utf16-no-bom bad "$(reach)"
+fresh gzip;          echo "$BAD" | gzip > g.gz;                    r gzip bad "$(reach)"
+fresh vendored-local; mkdir third_party; echo "built by $(basename "$HOME")" > third_party/x.txt; r vendored-unpinned-local bad "$(reach)"
+fresh example-suffix; echo "dev${AT}example.com.acme-corp.io" > a.txt; r example-suffix bad "$(reach)"
+fresh other-remote;  git init -q --bare "$BASE/mirror.git"; git remote add mirror "$BASE/mirror.git"; echo "$BAD" > a.txt
+                     git add -A; git commit -q -n -m mirror >/dev/null 2>&1; git push -q --no-verify mirror HEAD:refs/heads/main >/dev/null 2>&1; git fetch -q mirror
+                     if git push -q origin HEAD:refs/heads/new >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r other-remote-skip bad $o
+fresh ok-vendored;   mkdir third_party; echo "upstream author dev${AT}upstream-project.org" > third_party/n.txt
+                     printf '{"files": {"third_party/n.txt": "%s"}}\n' "$(sha256sum third_party/n.txt | cut -c1-64)" > upstream.lock.json
+                     r ok-vendored-pinned ok "$(reach)"
+fresh ok-ssh-url;    echo "remote git${AT}github.com:org/repo.git" > a.txt; r ok-ssh-url ok "$(reach)"
+fresh ok-upper-nr;   git config user.email "1+Bot${AT}Users.Noreply.GitHub.com"; echo u > a.txt; r ok-uppercase-noreply ok "$(reach)"
 rm -rf "$BASE"
 exit $FAIL

@@ -1,4 +1,4 @@
 #!/bin/sh
-# Block pushes of commits with personal information, credentials or non-noreply identities.
+# Block pushes of commits or tags with personal information, credentials or non-noreply identities.
 # This also covers merges, cherry-picks and rebases that skip the commit hooks.
-exec python3 "$(git rev-parse --show-toplevel)/.githooks/personal_info_check.py" --push
+exec python3 "$(git rev-parse --show-toplevel)/.githooks/personal_info_check.py" --push "$1"
