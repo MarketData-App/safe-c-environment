@@ -77,7 +77,14 @@
     "__dfsan_",
     "__sanitizer_",
     "__llvm_profile",
-    "__gcov"
+    "__gcov",
+    "LLVMFuzzerInitialize",
+    "LLVMFuzzerCustomMutator",
+    "LLVMFuzzerCustomCrossOver",
+    "dlsym",
+    "dlvsym",
+    "dlopen",
+    "dlmopen"
   ],
   "forbidden_patterns": [
     "(#|%:|\\?\\?=)\\s*pragma\\b(?!\\s+once\\b)",

@@ -185,6 +185,10 @@ class AstRowTests(unittest.TestCase):
         clean, row, checks = self.row({'status': 'FAIL', 'findings': [{'rule': 'runtime-interface', 'name': '__'+'asan_default_options'},
                                                                       {'rule': 'project-builtin', 'name': '__builtin_constant_p'}]}, 1)
         self.assertEqual((clean, checks), (False, {'runtime-interface', 'builtins'}))
+        clean, row, checks = self.row({'status': 'FAIL', 'findings': [{'rule': 'reserved-declaration', 'name': '__'+'x'},
+                                                                      {'rule': 'fuzzer-entry', 'name': 'LLVMFuzzerInitialize'},
+                                                                      {'rule': 'banned-call', 'name': 'dlsym'}]}, 1)
+        self.assertEqual((clean, checks), (False, {'reserved-identifier', 'fuzzer-entry', 'banned-call'}))
         self.assertEqual(self.row(None, 2)[2], {'ast-scan'})
         self.assertEqual(self.row({'status': 'BLOCKED'}, 2)[2], {'ast-scan'})
 

@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, '/src/tools')
 from qualification import ast_banned_calls, ast_foundation_uses, ast_project_findings
+from project_source import origin_prefixes as project_source_origin_prefixes
 
 
 def parse_arguments(arguments):
@@ -95,7 +96,11 @@ def main():
     for name in ast_banned_calls(tree):
         findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
     if project_rules:
-        for rule, name in ast_project_findings(tree):
+        # Only declarations and references in the project's own files are checked;
+        # system and GLib header declarations (reached through the PCH) are exempt.
+        project_root = next((d.rsplit('/include', 1)[0] for d in includes if d.endswith('/include')), None)
+        prefixes = project_source_origin_prefixes(project_root) if project_root else None
+        for rule, name in ast_project_findings(tree, prefixes):
             findings.append({'rule': rule, 'name': name, 'source': source})
     print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,
                       'profile': profile, 'findings': findings,

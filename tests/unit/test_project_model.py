@@ -328,6 +328,28 @@ class ProjectModelRound4ProbeTests(unittest.TestCase):
 
 
 
+class ProjectModelRound5ProbeTests(unittest.TestCase):
+    """Round-5 probe cases the pre-check decides (approver-final-5/probe5.py)."""
+    make=ProjectModelTests.make
+    inv=ProjectModelMoreTests.inv
+    US='_'+'_'
+    def refused(self, extra):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError) as caught: self.inv(Path(t),extra=extra,mutate=None)
+            return str(caught.exception)
+    def test_fuzzer_initialize_hook_refused(self):
+        self.refused({'tests/project/test_greeting.c':'int LLVMFuzzerInitialize(int *argc, char ***argv);\n'})
+    def test_dl_names_refused(self):
+        for name in ('dlsym','dlopen','dlvsym','dlmopen'):
+            with self.subTest(name=name):
+                self.refused({'src/greeting.c':'void *h;\nvoid f(void);\nvoid f(void){ h='+name+'(h, "x"); }\n'})
+    def test_split_asm_label_passes_the_pre_check(self):
+        # The asm label hides the runtime name from the text; the ast gate refuses it.
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'src/greeting.c':'void probe(void) '+self.US+'asm'+self.US+'("__as" "an_default_options");\nint x;\n'},mutate=None)
+
+
+class ProjectModeInstantiateTests(unittest.TestCase):
     def test_instantiate_creates_project_mode(self):
         import starter, policy
         with tempfile.TemporaryDirectory() as t:

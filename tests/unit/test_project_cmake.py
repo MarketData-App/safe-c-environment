@@ -88,37 +88,60 @@ class ProjectCMakeTests(unittest.TestCase):
         self.assertTrue(parse(['a.c','p','x','--include','/src/p/include','--project-rules'])[4])
         self.assertTrue(parse(['a.c','p','x','--project-rules','--include','/src/p/include'])[4])
         with self.assertRaises(ValueError):parse(['a.c','p','x','--project-rules','--project-rules'])
-    def test_banned_attribute_nodes(self):
+    def test_attribute_allowlist(self):
         sys.path.insert(0,str(ROOT/'tools'))
-        from qualification import ast_banned_attributes,PROJECT_BANNED_ATTRIBUTES
+        from qualification import ast_banned_attributes,PROJECT_ALLOWED_ATTRIBUTES
         tree={'kind':'TranslationUnitDecl','inner':[
             {'kind':'FunctionDecl','name':'f','inner':[{'kind':'NakedAttr'},{'kind':'CompoundStmt','inner':[]}]},
-            {'kind':'FunctionDecl','name':'g','inner':[{'kind':'OptimizeNoneAttr','implicit':True}]},
-            {'kind':'FunctionDecl','name':'h','inner':[{'kind':'UnusedAttr'},{'kind':'NoStackProtectorAttr'}]}]}
-        self.assertEqual(ast_banned_attributes(tree),['NakedAttr','NoStackProtectorAttr','OptimizeNoneAttr'])
-        self.assertEqual(ast_banned_attributes({'kind':'TranslationUnitDecl','inner':[{'kind':'UnusedAttr'}]}),[])
-        for kind in ('NoSanitizeAttr','DisableSanitizerInstrumentationAttr','NoInstrumentFunctionAttr','NoProfileFunctionAttr'):
-            self.assertIn(kind,PROJECT_BANNED_ATTRIBUTES)
-    def test_project_runtime_interface_and_builtin_rules(self):
+            {'kind':'FunctionDecl','name':'g','inner':[{'kind':'AsmLabelAttr','implicit':True}]},
+            {'kind':'FunctionDecl','name':'h','inner':[{'kind':'CleanupAttr'},{'kind':'SectionAttr'}]},
+            {'kind':'VarDecl','name':'v','inner':[{'kind':'AlignedAttr'},{'kind':'UsedAttr'}]}]}
+        self.assertEqual(ast_banned_attributes(tree),['NakedAttr','SectionAttr','UsedAttr'])
+        for kind in ('CleanupAttr','FormatAttr','NonNullAttr','WarnUnusedResultAttr','UnusedAttr','AlignedAttr','NoReturnAttr'):
+            self.assertIn(kind,PROJECT_ALLOWED_ATTRIBUTES)
+        for kind in ('AsmLabelAttr','AliasAttr','WeakRefAttr','IFuncAttr','WeakAttr','ConstructorAttr','DestructorAttr','SectionAttr','UsedAttr','NoSanitizeAttr','OptimizeNoneAttr'):
+            self.assertNotIn(kind,PROJECT_ALLOWED_ATTRIBUTES)
+    def test_project_allowlist_rules(self):
         sys.path.insert(0,str(ROOT/'tools'))
         from qualification import ast_project_findings
         us='_'+'_'
+        def ref(name,decl_file=None):
+            d={'name':name}
+            if decl_file is not None: d['loc']={'file':decl_file}
+            return {'kind':'DeclRefExpr','referencedDecl':d}
         tree={'kind':'TranslationUnitDecl','inner':[
-            {'kind':'FunctionDecl','name':us+'asan_default_options','inner':[]},
-            {'kind':'FunctionDecl','name':us+'sanitizer_set_death_callback','inner':[{'kind':'WeakAttr'}]},
-            {'kind':'FunctionDecl','name':'f','inner':[{'kind':'CompoundStmt','inner':[
-                {'kind':'CallExpr','inner':[{'kind':'ImplicitCastExpr','inner':[
-                    {'kind':'DeclRefExpr','referencedDecl':{'kind':'FunctionDecl','name':'__builtin_constant_p'}}]}]},
-                {'kind':'CallExpr','inner':[{'kind':'DeclRefExpr','referencedDecl':{'name':us+'lsan_disable'}}]},
-                {'kind':'DeclRefExpr','referencedDecl':{'name':us+'llvm_profile_runtime'}}]}]},
-            {'kind':'VarDecl','name':us+'gcov_x'},
-            {'kind':'FunctionDecl','name':'g','inner':[{'kind':'NakedAttr'}]}]}
-        self.assertEqual(ast_project_findings(tree),[
-            ('project-attribute','NakedAttr'),('project-builtin','__builtin_constant_p'),
-            ('runtime-interface',us+'asan_default_options'),('runtime-interface',us+'gcov_x'),
-            ('runtime-interface',us+'llvm_profile_runtime'),('runtime-interface',us+'lsan_disable'),
-            ('runtime-interface',us+'sanitizer_set_death_callback')])
-        self.assertEqual(ast_project_findings({'kind':'TranslationUnitDecl','inner':[{'kind':'FunctionDecl','name':'asan_like'}]}),[])
+            # project declaration of a reserved identifier
+            {'kind':'FunctionDecl','name':us+'myhelper','loc':{'file':'/src/p/src/a.c'}},
+            {'kind':'FunctionDecl','name':'_Private','loc':{'file':'/src/p/src/a.c'}},
+            {'kind':'FunctionDecl','name':us+'asan_default_options','loc':{'file':'/src/p/src/a.c'},'inner':[]},
+            {'kind':'FunctionDecl','name':'LLVMFuzzerInitialize','loc':{'file':'/src/p/fuzz/project/h.c'}},
+            {'kind':'FunctionDecl','name':'LLVMFuzzerTestOneInput','loc':{'file':'/src/p/fuzz/project/h.c'}},
+            # Clang's implicit declaration of a used builtin is not a project declaration.
+            {'kind':'FunctionDecl','name':'__builtin_trap','isImplicit':True,'loc':{'file':'/src/p/fuzz/project/h.c'}},
+            {'kind':'FunctionDecl','name':'__builtin_object_size','loc':{'file':'/src/p/fuzz/project/h.c'}},
+            {'kind':'FunctionDecl','name':'f','loc':{'file':'/src/p/src/a.c'},'inner':[{'kind':'CompoundStmt','inner':[
+                ref('__builtin_object_size'), ref('__builtin_trap'), ref('__builtin_expect'),
+                ref(us+'errno_location','/usr/include/bits/errno.h'),  # system reserved reference: allowed
+                ref(us+'project_secret','/src/p/include/a.h'),         # project reserved reference: refused
+                {'kind':'CallExpr','inner':[ref('dlsym','/usr/include/dlfcn.h')]},
+                {'kind':'NakedAttr'}]}]},
+            # a declaration in a system header is exempt
+            {'kind':'FunctionDecl','name':us+'libc_internal','loc':{'file':'/usr/include/stdio.h'}}]}
+        prefixes=('/src/p/src/','/src/p/include/','/src/p/tests/project/','/src/p/fuzz/project/')
+        self.assertEqual(ast_project_findings(tree,prefixes),[
+            ('banned-call','dlsym'),
+            ('fuzzer-entry','LLVMFuzzerInitialize'),
+            ('project-attribute','NakedAttr'),
+            ('project-builtin','__builtin_object_size'),
+            ('reserved-declaration','_Private'),
+            ('reserved-declaration',us+'myhelper'),
+            ('reserved-declaration',us+'project_secret'),
+            ('runtime-interface',us+'asan_default_options')])
+        # Without prefixes every location is project origin (single-unit scan default),
+        # so the system declaration and the system reference are flagged too.
+        default=ast_project_findings(tree)
+        self.assertIn(('reserved-declaration',us+'libc_internal'),default)
+        self.assertIn(('reserved-declaration',us+'errno_location'),default)
     def test_runtime_sanitizer_options_name_nonzero_exit_codes(self):
         sys.path.insert(0,str(ROOT/'tools'))
         from evidence import RUNTIME_ENV
