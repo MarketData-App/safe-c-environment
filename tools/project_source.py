@@ -22,6 +22,7 @@ only, never source text.
 from __future__ import annotations
 import posixpath
 import re
+import struct
 from typing import NamedTuple
 
 PROJECT_PATHS = ('src/', 'include/', 'tests/project/', 'fuzz/project/', 'specs/project/', 'review/')
@@ -37,6 +38,9 @@ INCLUDE_DIRECTIVES = ('include', 'include_next', 'import')
 ALLOWED_DIRECTIVES = frozenset({'include', 'define', 'undef', 'if', 'ifdef', 'ifndef', 'elif', 'else', 'endif',
                                 'error', 'pragma'})
 _BLANK = ' \t\f\v'
+# Sanitizer, profile and coverage runtime names (tools/qualification.py refuses them in the AST).
+RUNTIME_INTERFACE_PREFIXES = ('__asan_', '__lsan_', '__msan_', '__tsan_', '__ubsan_', '__hwasan_', '__dfsan_',
+                              '__sanitizer_', '__llvm_profile', '__gcov')
 
 
 class Token(NamedTuple):
@@ -391,23 +395,128 @@ def define_stream(directives_found):
 
 
 def parse_macros(text):
-    """{name: definition} from `-dM -E` output."""
+    """{name: (parameters or None, body)} from `-dM -E` output."""
     macros = {}
     for raw in text.splitlines():
         match = re.match(r'^#define\s+([A-Za-z_][A-Za-z0-9_]*)(\([^)]*\))?\s?(.*)$', raw)
         if match:
-            macros[match.group(1)] = (match.group(2) or '') + ' ' + match.group(3).strip()
+            params = None
+            if match.group(2) is not None:
+                params = tuple(p.strip() for p in match.group(2)[1:-1].split(',') if p.strip())
+            macros[match.group(1)] = (params, match.group(3).strip())
     return macros
 
 
 # Macros whose value changes from one run to the next.
 TIME_MACROS = frozenset({'__DATE__', '__TIME__', '__TIMESTAMP__'})
+_INTEGER = re.compile(r'(0x[0-9a-f]+|0b[01]+|0[0-7]*|[1-9][0-9]*)([ul]*)')
+_FLOAT = re.compile(r'((?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+(?=e))(?:e[+-]?[0-9]+)?|0x[0-9a-f]*\.?[0-9a-f]*p[+-]?[0-9]+)([fl]?)')
+_FLOAT_KIND = {'f': 'float', 'l': 'long double', '': 'double'}
+
+
+def canonical_number(text):
+    """A numeric literal as its value and type ('I:value:suffix' or 'F:type:value'); other text unchanged.
+
+    GCC and Clang spell the same predefined constant differently (0x7fffffff and
+    2147483647; 3.40282346638528859811704183484516925e+38F and 3.40282347e+38F)."""
+    low = text.lower()
+    whole = _INTEGER.fullmatch(low)
+    if whole:
+        digits = whole.group(1)
+        base = 16 if digits.startswith('0x') else 2 if digits.startswith('0b') else 8 if digits.startswith('0') and digits != '0' else 10
+        value = int(digits[2:] if base in (16, 2) else digits, base)
+        return 'I:%d:%s' % (value, ''.join(sorted(whole.group(2))))
+    match = _FLOAT.fullmatch(low)
+    if match:
+        try:
+            value = float.fromhex(match.group(1)) if match.group(1).startswith('0x') else float(match.group(1))
+        except ValueError:
+            return text
+        return _float_value(_FLOAT_KIND[match.group(2)], value)
+    return text
+
+
+def _float_value(kind, value):
+    if kind == 'float':
+        value = struct.unpack('f', struct.pack('f', value))[0] if abs(value) < 3.5e38 else value
+    return 'F:%s:%r' % (kind, value)
+
+
+def canonical_tokens(tokens):
+    """Numbers by value; `( ( double ) <number> )` and `( ( float ) <number> )` as a number of that type."""
+    out = [canonical_number(t) for t in tokens]
+    result, i = [], 0
+    while i < len(out):
+        window = out[i:i+6]
+        if (len(window) == 6 and window[:2] == ['(', '('] and window[2] in ('double', 'float') and window[3] == ')'
+                and window[4].startswith(('F:', 'I:')) and window[5] == ')'):
+            number = window[4]
+            value = float(number.split(':')[1]) if number.startswith('I:') else float(number.split(':', 2)[2])
+            result.append(_float_value(window[2], value))
+            i += 6
+        else:
+            result.append(out[i])
+            i += 1
+    return tuple(result)
+
+
+def _body_tokens(definition):
+    params, body = definition
+    tokens = []
+    for tok in lex(body).tokens:
+        text = canonical(tok.text)
+        tokens.append('$%d' % params.index(text) if params and text in params else text)
+    return tokens
+
+
+def _expansion(name, table, memo, active=frozenset()):
+    """The body of `name` with object-like macros of `table` expanded (recursively), canonical."""
+    if name in memo:
+        return memo[name]
+    out = []
+    for text in _body_tokens(table[name]):
+        if text in table and table[text][0] is None and text not in active and text != name:
+            out.extend(_expansion(text, table, memo, active | {name}))
+        else:
+            out.append(text)
+    memo[name] = canonical_tokens(out)
+    return memo[name]
 
 
 def differing_macros(tables):
-    """Names of predefined or command-line macros that are not defined identically in every configuration."""
-    names = set().union(*tables) if tables else set()
-    return {n for n in names if len({t.get(n) for t in tables}) > 1} | TIME_MACROS
+    """Names of macros whose definition differs between configurations (`tables` from parse_macros).
+
+    A macro differs when it is not defined in every configuration, or when its
+    body, with object-like macros expanded and numbers compared by value, differs.
+    INT_MAX, INT_MIN, DBL_MAX and NULL are equal by that rule. A macro whose body
+    names a differing macro differs too (G_GNUC_CHECK_VERSION names __GNUC__).
+    __DATE__, __TIME__ and __TIMESTAMP__ always differ."""
+    if not tables:
+        return set(TIME_MACROS)
+    names = set().union(*tables)
+    raw = {}
+    for name in names:
+        forms = {(t[name][0] is None, tuple(_body_tokens(t[name]))) if name in t else None for t in tables}
+        raw[name] = forms
+    memos = [{} for _ in tables]
+    differing = set()
+    for name, forms in raw.items():
+        if len(forms) == 1:
+            continue
+        if None in forms or len({f[0] for f in forms}) > 1:
+            differing.add(name)
+            continue
+        if len({_expansion(name, t, m) for t, m in zip(tables, memos)}) > 1:
+            differing.add(name)
+    references = {name: {x for form in forms if form for x in form[1]} for name, forms in raw.items()}
+    changed = True
+    while changed:
+        changed = False
+        for name, used in references.items():
+            if name not in differing and used & differing:
+                differing.add(name)
+                changed = True
+    return differing | TIME_MACROS
 
 
 def build_macro_uses(code, directives_found, names):
@@ -482,13 +591,13 @@ _DROP_WITH_VALUE = {'-o', '-MF', '-MT', '-MQ'}
 _DROP_ALONE = {'-c', '-E', '-S', '-M', '-MM', '-MD', '-MMD', '-MP', '-MG', '-dD', '-dM', '-fdirectives-only'}
 
 
-def _strip(argv, drop_include=False):
+def _strip(argv):
     result, skip = [], False
     for arg in argv:
         if skip:
             skip = False
             continue
-        if arg in _DROP_WITH_VALUE or (drop_include and arg == '-include'):
+        if arg in _DROP_WITH_VALUE:
             skip = True
             continue
         if arg in _DROP_ALONE or any(arg.startswith(p) and arg != p for p in _DROP_WITH_VALUE):
@@ -516,14 +625,7 @@ def dependency_pass(depfile):
 DIRECTIVES_PASS = ('-E', '-fdirectives-only')
 
 
-def predefined_argv(argv, source):
-    """The configuration's predefined and command-line macros: `-dM -E` of an empty C input.
-
-    A forced -include is dropped: its macros are header macros, not build identity."""
-    result = _strip(argv, drop_include=True)
-    if source not in result:
-        raise ValueError('compile command does not name its source file')
-    return [arg for arg in result if arg != source] + ['-dM', '-E', '-x', 'c', '/dev/null']
+MACROS_PASS = ('-E', '-dM')
 
 
 def dependency_problems(dependencies, unit, project_dir, headers, framework_headers,

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "inventory",
+  "check": "runtime-interface",
+  "defect": "A test that defines a sanitizer runtime hook (the AddressSanitizer default options with exit status 0); the pre-check refuses sanitizer, profile and coverage runtime names.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded_runtime.c",
+      "source": "test_seeded_runtime.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded_runtime.c"
+    }
+  ]
+}

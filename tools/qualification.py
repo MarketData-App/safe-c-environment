@@ -266,6 +266,44 @@ def ast_banned_attributes(node):
     return sorted(result)
 
 
+# Project code may not reach the sanitizer, profile or coverage runtimes: their
+# hooks (*_default_options, death callbacks, suppressions) can turn a detected
+# defect into a passing run.
+RUNTIME_INTERFACE_PREFIXES = ('__asan_', '__lsan_', '__msan_', '__tsan_', '__ubsan_', '__hwasan_', '__dfsan_',
+                              '__sanitizer_', '__llvm_profile', '__gcov')
+# Builtins whose value depends on the optimization level.
+PROJECT_BANNED_BUILTINS = frozenset({'__builtin_constant_p'})
+_DECL_KINDS = frozenset({'FunctionDecl', 'VarDecl', 'ParmVarDecl', 'FieldDecl', 'TypedefDecl', 'RecordDecl',
+                         'EnumDecl', 'EnumConstantDecl'})
+
+
+def ast_project_findings(node):
+    """Sorted (rule, name) findings of the project rules in a Clang JSON AST.
+
+    project-attribute: PROJECT_BANNED_ATTRIBUTES nodes. runtime-interface: a
+    declaration of, or reference to, a name with a RUNTIME_INTERFACE_PREFIXES prefix.
+    project-builtin: a reference to a PROJECT_BANNED_BUILTINS builtin."""
+    result = set((('project-attribute', kind) for kind in ast_banned_attributes(node)))
+    stack = [node]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, dict):
+            names = []
+            if value.get('kind') in _DECL_KINDS and isinstance(value.get('name'), str):
+                names.append(value['name'])
+            if value.get('kind') == 'DeclRefExpr':
+                names.append(str(value.get('referencedDecl', {}).get('name', '')))
+            for name in names:
+                if name.startswith(RUNTIME_INTERFACE_PREFIXES):
+                    result.add(('runtime-interface', name))
+                if name in PROJECT_BANNED_BUILTINS:
+                    result.add(('project-builtin', name))
+            stack.extend(value.get('inner', []))
+        elif isinstance(value, list):
+            stack.extend(value)
+    return sorted(result)
+
+
 def ast_call_sites(node):
     sites=[]
     def callee(value):

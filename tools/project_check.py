@@ -375,7 +375,8 @@ def inventory_gate(root, project_dir, project, framework_root):
     try:
         pm.project_inventory(root, project_dir, project, framework_root=framework_root)
     except GateError as exc:
-        return gate_row('inventory', 'FAIL', {'reason': str(exc)})
+        check = 'runtime-interface' if str(exc).startswith('forbidden runtime interface name') else 'inventory'
+        return gate_row('inventory', 'FAIL', {'reason': str(exc), 'failed_checks': [check]})
     return gate_row('inventory', 'PASS', {'files': len(pm.project_files(root, project_dir))})
 
 
@@ -454,6 +455,11 @@ _LIST = 'import json,pathlib,sys;print(json.dumps(sorted(str(p) for p in pathlib
 _COPY = ('import pathlib,shutil,sys;s=pathlib.Path(sys.argv[1]);d=pathlib.Path(sys.argv[2]);d.mkdir(parents=True);'
          '[shutil.copyfile(x,d/("seed-%d"%i)) for i,x in enumerate(sorted(p for p in s.rglob("*") if p.is_file()))];'
          'pathlib.Path(sys.argv[3]).mkdir(parents=True)')
+
+
+# AST policy rule -> failed check name of the ast gate; every other rule is the API policy.
+PROJECT_RULE_CHECKS = {'project-attribute': 'attributes', 'runtime-interface': 'runtime-interface',
+                       'project-builtin': 'builtins'}
 
 
 class ProjectCheck:
@@ -728,12 +734,11 @@ class ProjectCheck:
         findings = [f for f in value.get('findings', []) if isinstance(f, dict)] if isinstance(value.get('findings'), list) else []
         row['rules'] = sorted({str(f.get('rule'))[:80] for f in findings})
         row['attributes'] = sorted({str(f.get('name'))[:80] for f in findings if f.get('rule') == 'project-attribute'})
+        row['names'] = sorted({str(f.get('name'))[:80] for f in findings if f.get('rule') in PROJECT_RULE_CHECKS})
         if row['status'] == 'PASS' and passed(result):
             return True
-        if row['attributes']:
-            checks.add('attributes')
-        if any(f.get('rule') != 'project-attribute' for f in findings):
-            checks.add('api')
+        for f in findings:
+            checks.add(PROJECT_RULE_CHECKS.get(f.get('rule'), 'api'))
         if not findings:
             checks.add('ast-scan')
         return False

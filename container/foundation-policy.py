@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, '/src/tools')
-from qualification import ast_banned_attributes, ast_banned_calls, ast_foundation_uses
+from qualification import ast_banned_calls, ast_foundation_uses, ast_project_findings
 
 
 def parse_arguments(arguments):
@@ -95,8 +95,8 @@ def main():
     for name in ast_banned_calls(tree):
         findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
     if project_rules:
-        for name in ast_banned_attributes(tree):
-            findings.append({'rule': 'project-attribute', 'name': name, 'source': source})
+        for rule, name in ast_project_findings(tree):
+            findings.append({'rule': rule, 'name': name, 'source': source})
     print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,
                       'profile': profile, 'findings': findings,
                       'ast_path': str(output), 'pch_path': str(pch)}))
