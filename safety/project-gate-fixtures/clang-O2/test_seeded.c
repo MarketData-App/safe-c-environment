@@ -1,15 +1,15 @@
-#include <stddef.h>
+#include <stdio.h>
 
-static volatile size_t seeded_count = 16U;
+/* The optimizing clang build rewrites the printf call below into a call to puts.
+ * The clang-only redeclaration marks puts with a warning attribute, so only the
+ * optimizing clang build reports that call (an error under -Werror). */
+#if defined(__clang__)
+int puts(const char *text) __attribute__((warning("seeded: puts must not be called")));
+#endif
 
 int main(void) {
-    unsigned int values[32] = {0U};
-    const size_t count = seeded_count;
-#if defined(__clang__)
-#pragma clang loop vectorize(enable)
-#endif
-    for (size_t index = 1U; index < count; ++index) {
-        values[index] = values[index - 1U] * 3U + 1U;
-    }
-    return values[1] == 1U ? 0 : 1;
+    int (*volatile keep)(const char *) = puts;
+    (void)keep;
+    printf("seeded\n");
+    return 0;
 }

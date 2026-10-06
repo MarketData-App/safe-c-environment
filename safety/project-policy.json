@@ -30,23 +30,27 @@
   "forbidden_text": [
     "#pragma GCC diagnostic",
     "#pragma clang diagnostic",
+    "_Pragma",
+    "__has_feature",
+    "__has_extension",
     "no_sanitize",
+    "no_address_safety_analysis",
+    "disable_sanitizer_instrumentation",
+    "no_profile_instrument_function",
+    "no_instrument_function",
+    "no_stack_protector",
+    "optnone",
     "__attribute__((optimize",
-    "NOLINT",
-    "##"
-  ],
-  "forbidden_patterns": [
-    "\\bno_sanitize",
-    "\\bno_address_safety_analysis\\b",
-    "\\bdisable_sanitizer_instrumentation\\b",
     "sanitize-ignorelist",
     "sanitize-blacklist",
     "__SANITIZE_",
-    "__has_(feature|extension)\\s*\\(\\s*\\w*sanitizer",
-    "\\b_Pragma\\b",
-    "#\\s*pragma\\s+(GCC|clang)\\s+(diagnostic|optimize|push_options|attribute)\\b",
-    "__attribute__\\s*\\(\\s*\\(\\s*_*optimize",
     "NOLINT",
-    "##|%:%:"
+    "##",
+    "%:%:"
+  ],
+  "forbidden_patterns": [
+    "(#|%:|\\?\\?=)\\s*pragma\\b(?!\\s+once\\b)",
+    "\\?\\?[=/'()!<>-]",
+    "optimize_*\\s*\\("
   ]
 }

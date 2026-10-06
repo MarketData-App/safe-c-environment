@@ -729,7 +729,7 @@
       ]
     },
     "safety/project-gate-fixtures/clang-O2/test_seeded.c": {
-      "sha256": "5ad299aa403736de3303551217b5d79bcfc596fa32690aea888a789addb7a313",
+      "sha256": "83bb212bde57df28cbe61117c8a3abc1dc71e982479c887e5c6a0b126c343302",
       "role": "qualification-only",
       "targets": [
         "project-gate-clang-O2"

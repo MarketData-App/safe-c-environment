@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "clang-O2",
-  "defect": "A forced-vectorization loop pragma on a loop with a loop-carried dependence; only the optimizing clang build runs the vectorizer and reports the failed transformation (-Wpass-failed). The pragma is clang-only and hidden from gcc.",
+  "defect": "Only the optimizing clang build rewrites a printf call into a call to puts, which a clang-only redeclaration marks with a warning attribute; the backend warning is an error under -Werror. The unoptimized builds keep the printf call, and gcc does not see the attribute.",
   "operations": [
     {
       "op": "add",

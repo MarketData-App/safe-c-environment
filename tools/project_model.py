@@ -59,6 +59,38 @@ def forbidden_pattern(text, patterns):
     return None
 
 
+_INCLUDE = re.compile(r'^[ \t]*(?:#|%:|\?\?=)[ \t]*(include_next|include|import)\b[ \t]*(.*)$', re.M)
+
+
+def include_problem(rel, text, headers, present):
+    """Return why an include directive in `text` (normalized source of `rel`) is forbidden, or None.
+
+    A quoted include must resolve, as the compiler searches (the including file's
+    directory, then include/), to a header declared in project.json. An angle include
+    may not leave its search directory, and a file it would find under include/ must
+    be a declared header. Computed includes, #include_next and #import are forbidden."""
+    for match in _INCLUDE.finditer(text):
+        name, rest = match.group(1), match.group(2)
+        if name != 'include':
+            return '#'+name
+        quoted = re.match(r'"([^"\n]*)"', rest)
+        angled = re.match(r'<([^>\n]*)>', rest)
+        target = (quoted or angled).group(1) if (quoted or angled) else None
+        if target is None:
+            return 'computed include'
+        if not target or target.startswith('/') or '\\' in target or (angled and '..' in target.split('/')):
+            return 'include path leaves its directory: '+target
+        if quoted:
+            candidates = [posixpath.normpath(posixpath.join(posixpath.dirname(rel), target)),
+                          posixpath.normpath('include/'+target)]
+            found = next((c for c in candidates if c in present), None)
+            if found not in headers:
+                return 'quoted include does not name a declared project header: '+target
+        elif posixpath.normpath('include/'+target) in present and posixpath.normpath('include/'+target) not in headers:
+            return 'angle include finds an undeclared file: '+target
+    return None
+
+
 def project_policy(root):
     value = read_json(Path(root)/'safety/project-policy.json')
     validate(Path(root), 'project-policy', value)
@@ -315,12 +347,18 @@ def project_inventory(root, project_dir, project, framework_root=None):
     policy = project_policy(_framework_root(root, framework_root))
     forbidden = policy['forbidden_text']
     patterns = [(item, re.compile(item)) for item in policy['forbidden_patterns']]
-    for rel in sorted(actual):
-        if rel.endswith(('.c', '.h')):
-            text = (base/rel).read_text(errors='replace')
-            for item in forbidden:
-                if item in text:
-                    raise GateError(f'forbidden text in {rel}: {item}')
-            item = forbidden_pattern(text, patterns)
-            if item is not None:
-                raise GateError(f'forbidden pattern in {rel}: {item}')
+    headers = {h for module in project['modules'] for h in module['headers']}
+    present = set(actual)
+    # Every C file and every declared code path (a declared header can be included).
+    for rel in sorted(p for p in actual if p.endswith(('.c', '.h')) or p in listed):
+        text = (base/rel).read_text(errors='replace')
+        variants = (text, _normalized_source(text))
+        for item in forbidden:
+            if any(item in v for v in variants):
+                raise GateError(f'forbidden text in {rel}: {item}')
+        item = forbidden_pattern(text, patterns)
+        if item is not None:
+            raise GateError(f'forbidden pattern in {rel}: {item}')
+        problem = include_problem(rel, variants[1], headers, present)
+        if problem is not None:
+            raise GateError(f'forbidden include in {rel}: {problem}')
