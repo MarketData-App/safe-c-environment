@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "ubsan",
-  "defect": "A signed integer overflow with a runtime value. The asan profile also enables -fsanitize=undefined and runs earlier, so the defect is compiled out of the AddressSanitizer build by __has_feature(address_sanitizer).",
+  "defect": "A signed integer overflow with a runtime value. The ubsan build runs before the asan build (whose profile also enables -fsanitize=undefined), so the defect first fails ubsan; the uninstrumented builds show no visible effect.",
   "operations": [
     {
       "op": "add",

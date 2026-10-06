@@ -2,6 +2,7 @@
 import hashlib
 import json
 import posixpath
+import re
 from pathlib import Path
 import policy
 from evidence import GateError, read_json
@@ -41,6 +42,21 @@ def _declared_paths(project):
 
 def _dir_paths(project):
     return [d for module in project['modules'] for fuzz in module['fuzz'] for d in (fuzz['corpus'], fuzz['regressions'])]
+
+
+def _normalized_source(text):
+    """Return the text after line splicing, with block comments replaced by one space."""
+    spliced = re.sub(r'\\\r?\n', '', text)
+    return re.sub(r'/\*.*?\*/', ' ', spliced, flags=re.S)
+
+
+def forbidden_pattern(text, patterns):
+    """Return the first policy pattern found in the raw or normalized text, or None."""
+    variants = (text, _normalized_source(text))
+    for item, regex in patterns:
+        if any(regex.search(v) for v in variants):
+            return item
+    return None
 
 
 def project_policy(root):
@@ -296,10 +312,15 @@ def project_inventory(root, project_dir, project, framework_root=None):
         raise GateError(f'unlisted project file: {rel}')
     for rel in sorted(listed - set(actual)):
         raise GateError(f'declared project file is missing: {rel}')
-    forbidden = project_policy(_framework_root(root, framework_root))['forbidden_text']
+    policy = project_policy(_framework_root(root, framework_root))
+    forbidden = policy['forbidden_text']
+    patterns = [(item, re.compile(item)) for item in policy['forbidden_patterns']]
     for rel in sorted(actual):
         if rel.endswith(('.c', '.h')):
             text = (base/rel).read_text(errors='replace')
             for item in forbidden:
                 if item in text:
                     raise GateError(f'forbidden text in {rel}: {item}')
+            item = forbidden_pattern(text, patterns)
+            if item is not None:
+                raise GateError(f'forbidden pattern in {rel}: {item}')

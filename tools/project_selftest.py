@@ -214,7 +214,7 @@ def evaluate_clean(report):
 def evaluate_fixture(gate, report):
     """PASS when `gate` is the first and only FAIL of the run.
 
-    Gates that ran before it PASS; gates after it are BLOCKED as not run
+    Gates decided before it (pc.EXECUTION_ORDER) PASS; gates after it are BLOCKED as not run
     because it failed. A run blocked by infrastructure is BLOCKED; any other
     outcome (no failure, another gate failed, two gates failed) is FAIL."""
     rows = {row['name']: row for row in report.get('gates', [])}
@@ -226,11 +226,21 @@ def evaluate_fixture(gate, report):
                       blockers=list(report.get('blockers', []))[:5])
         return result
     not_run = 'not run: gate '+str(gate)+' failed'
+    # Gates decided before the target in execution order must PASS. A test failure
+    # decides `unit` or `integration` right after its test build: the remaining test
+    # builds (and the other test label) then do not run.
+    exempt = set(pc.TEST_BUILDS) | {'unit'} if gate in ('unit', 'integration') else set()
+    earlier = pc.EXECUTION_ORDER[:pc.EXECUTION_ORDER.index(gate)] if gate in pc.EXECUTION_ORDER else ()
+    not_passed_earlier = [name for name in earlier if name not in exempt and rows.get(name, {}).get('status') != 'PASS']
     unexpected = [name for name in pc.GATES if name != gate and not (
         rows.get(name, {}).get('status') == 'PASS' or
         (rows.get(name, {}).get('status') == 'BLOCKED' and rows[name].get('details', {}).get('reason') == not_run))]
     if report.get('verdict') != 'FAIL' or failed != [gate] or first != gate:
         result['reason'] = 'the seeded defect did not fail exactly its target gate'
+    elif not_passed_earlier and all(rows.get(name, {}).get('status') == 'BLOCKED' and
+                                    rows[name].get('details', {}).get('reason') == not_run for name in not_passed_earlier):
+        result['reason'] = 'gates that run before the target did not run'
+        result['not_passed_earlier'] = not_passed_earlier
     elif unexpected and all(rows.get(name, {}).get('status') == 'BLOCKED' for name in unexpected):
         result.update(status='BLOCKED', reason='gates other than the target were blocked by infrastructure',
                       unexpected=unexpected)

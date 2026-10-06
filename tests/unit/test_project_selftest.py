@@ -34,7 +34,7 @@ def report(failed=None, *, verdict=None, blockers=(), stopped=None):
             rows[name] = pc.gate_row(name, 'PASS')
     if failed:
         # Gates that ran before the first failure passed.
-        for name in pc.GATES[:pc.GATES.index(failed[0])]:
+        for name in pc.EXECUTION_ORDER[:pc.EXECUTION_ORDER.index(failed[0])]:
             rows[name] = pc.gate_row(name, 'PASS')
     return {'gates': [rows[n] for n in pc.GATES], 'verdict': verdict or ('FAIL' if failed else 'PASS_UNQUALIFIED_FRAMEWORK'),
             'stopped_after': stopped if stopped is not None else (failed[0] if failed else None), 'blockers': list(blockers)}
@@ -296,6 +296,25 @@ class EvaluationTests(unittest.TestCase):
         value['gates'][pc.GATES.index('tsan')] = pc.gate_row('tsan', 'BLOCKED', {'reason': 'not run: gate tidy failed'})
         value['gates'][pc.GATES.index('tidy')] = pc.gate_row('tidy', 'FAIL')
         self.assertEqual(ps.evaluate_fixture('asan', value)['status'], 'FAIL')
+
+    def test_earlier_gate_not_run_fails(self):
+        # ubsan runs before asan: an asan failure with ubsan not run is not the asan stop.
+        value = report(['asan'])
+        value['gates'][pc.GATES.index('ubsan')] = pc.gate_row('ubsan', 'BLOCKED', {'reason': 'not run: gate asan failed'})
+        result = ps.evaluate_fixture('asan', value)
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertEqual(result['not_passed_earlier'], ['ubsan'])
+
+    def test_unit_failure_may_skip_remaining_test_builds(self):
+        value = report(['unit'])
+        for name in ('gcc-O2', 'clang-O0', 'clang-O2', 'hardened'):
+            value['gates'][pc.GATES.index(name)] = pc.gate_row(name, 'BLOCKED', {'reason': 'not run: gate unit failed'})
+        self.assertEqual(ps.evaluate_fixture('unit', value)['status'], 'PASS')
+        self.assertEqual(ps.evaluate_fixture('integration', report(['integration']))['status'], 'PASS')
+        # After the test builds, unit must have passed before a sanitizer gate fails.
+        value = report(['ubsan'])
+        value['gates'][pc.GATES.index('unit')] = pc.gate_row('unit', 'BLOCKED', {'reason': 'not run: gate ubsan failed'})
+        self.assertEqual(ps.evaluate_fixture('ubsan', value)['status'], 'FAIL')
 
     def test_infrastructure_block_is_blocked(self):
         value = report(verdict='BLOCKED', blockers=['InfrastructureError: docker'])
