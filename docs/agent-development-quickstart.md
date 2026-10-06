@@ -64,13 +64,17 @@ line and check. Sanitizer reports go to an evidence file; read them with
 | `coverage` | `llvm-cov` threshold: at least 90% lines and 85% branches |
 | `fuzz-replay` | Every seed and saved input runs through each fuzz target |
 | `fuzz-exploration` | Each fuzz target runs at least 30 seconds |
-| `clusterfuzzlite` | ClusterFuzzLite configuration check |
+| `clusterfuzzlite` | Builds each fuzz target with the ClusterFuzzLite build contract and audits sanitizer and coverage instrumentation |
 | `inventory` | Every project source has a spec and tests; external input has a fuzz target |
-| `review-protocol` | `review/ledger.json` and review records follow the project `AGENTS.md` |
+| `review-protocol` | `review/ledger.json` is schema-valid and has no OPEN, UNRESOLVED or BLOCKED high-severity finding |
 
 The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework
 repository, then `./tools/safety framework manifest`.
+
+`framework-manifest.json` is unsigned. The manifest check is tamper-evident for
+accidental or unreviewed framework edits. It is not tamper-proof against a person
+who recomputes it. Review and the framework CI on GitHub are the controls.
 
 ### Staying within the analyzer budget
 

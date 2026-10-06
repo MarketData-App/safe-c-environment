@@ -71,9 +71,9 @@ hello $'\t'      # "hello: GREETING_NOT_PRINTABLE" on stderr, exit status 1
 | `coverage` | Project code reaches at least 90% line and 85% branch coverage (`safety/contract.json`). |
 | `fuzz-replay` | Every seed and saved regression input runs without a crash. |
 | `fuzz-exploration` | Each fuzz target runs for a bounded time (30 seconds, never lower) without a crash. |
-| `clusterfuzzlite` | The ClusterFuzzLite configuration is present and matches the declared targets. |
+| `clusterfuzzlite` | Builds each fuzz target with the ClusterFuzzLite build contract and audits sanitizer and coverage instrumentation. |
 | `inventory` | Every project file is declared in `project.json`, every module has a spec and tests, and every module that reads external input has a fuzz target. |
-| `review-protocol` | `review/ledger.json` is valid and cites every review question of every unit. |
+| `review-protocol` | `review/ledger.json` is schema-valid and has no OPEN, UNRESOLVED or BLOCKED high-severity finding. |
 
 ## Why the code looks this way
 

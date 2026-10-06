@@ -17,11 +17,13 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/controller"
           "$RUNNER_TEMP/controller/bin/python" -m pip install --require-hashes --only-binary=:all: -r ci/controller-requirements.txt
           echo "$RUNNER_TEMP/controller/bin" >> "$GITHUB_PATH"
+      - name: Use a plain core pattern on the ephemeral runner
+        run: sudo sysctl -w kernel.core_pattern=core
       - name: Load the qualified images
         run: |
           url=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['url'])")
           sha=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['archive_sha256'])")
-          curl --fail --location --retry 3 --proto '=https' --max-filesize 3221225472 -o "$RUNNER_TEMP/images.tar.gz" "$url"
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' --max-filesize 3221225472 -o "$RUNNER_TEMP/images.tar.gz" "$url"
           ci/images load --archive "$RUNNER_TEMP/images.tar.gz" --sha256 "$sha"
       - name: Project gates
         run: ./tools/safety project check
