@@ -250,7 +250,7 @@ class VerdictTests(unittest.TestCase):
             self.assertEqual(pc.framework_differences(d,ROOT,'sha256:'+'a'*64),['missing: framework-manifest.json'])
     def test_framework_differences_list_manifest_mismatch(self):
         with tempfile.TemporaryDirectory() as t:
-            d=Path(t);make(d,{'tools/a.py':'a','safety/b.json':'{}'})
+            d=Path(t);make(d,{'tools/a.py':'a','safety/b.json':'{}','starter-export.json':json.dumps({'files':['tools/a.py','safety/b.json']})})
             files=pm.framework_files(d);ident=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
             image='sha256:'+'a'*64
             (d/pm.MANIFEST).write_text(json.dumps({'schema_version':1,'framework_identity':ident,'files':files,

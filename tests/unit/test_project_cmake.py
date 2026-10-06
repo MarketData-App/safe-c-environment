@@ -25,6 +25,32 @@ class ProjectCMakeTests(unittest.TestCase):
         self.assertIn('message(FATAL_ERROR "bootstrap contract forbids application sources; obtain approved production inventory")',text)
         self.assertLess(text.index('safety_project('),text.index('bootstrap contract forbids'))
         self.assertLess(text.index('return()'),text.index('bootstrap contract forbids'))
+    def root_code(self):
+        return re.sub(r'(?m)#.*$','',(ROOT/'CMakeLists.txt').read_text())
+    def test_project_mode_only_with_explicit_project_dir(self):
+        # project.json alone never switches a configure to project mode: a child's own
+        # framework ci configures /src and must keep the qualification targets.
+        text=self.root_code()
+        branches=re.findall(r'(?m)^\s*if\((.*)\)\s*$',text[:text.index('safety_project(')])
+        self.assertEqual(branches,['DEFINED SAFE_C_PROJECT_DIR'])
+        project=text[text.index('if(DEFINED SAFE_C_PROJECT_DIR)'):text.index('return()')]
+        self.assertNotIn('project.json',project)
+        self.assertNotIn('set(SAFE_C_PROJECT_DIR',text)
+        self.assertEqual(text.count('return()'),1)
+        for line in ('include(cmake/Foundation.cmake)','include(cmake/Developer.cmake)','include(safety/targets.cmake)',
+                     'safety_add_program(infrastructure_demo'):
+            self.assertLess(text.index('return()'),text.index(line),line)
+    def test_bootstrap_error_applies_only_without_project_json(self):
+        text=self.root_code()
+        guard='if(NOT EXISTS "${PROJECT_SOURCE_DIR}/project.json")'
+        self.assertEqual(text.count(guard),1)
+        start=text.index(guard);end=text.index('endif()',text.index('message(FATAL_ERROR "bootstrap'))
+        end=text.index('endif()',end+len('endif()'))
+        block=text[start:end]
+        for line in ('file(GLOB_RECURSE app_sources','if(app_sources)','message(FATAL_ERROR "bootstrap contract forbids'):
+            self.assertIn(line,block,line)
+        self.assertEqual(text.count('GLOB_RECURSE app_sources'),1)
+        self.assertLess(text.index('return()'),start)
     def code(self):
         return re.sub(r'(?m)#.*$','',(ROOT/'cmake/Project.cmake').read_text())
     def test_json_values_are_validated_and_quoted(self):
