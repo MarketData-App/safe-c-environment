@@ -10,6 +10,35 @@ import tarfile
 from evidence import GateError, atomic_json, bounded, file_hash, read_json
 from policy import export_inventory, baseline_identity, baseline_gate, source_identity, validate_fresh_report
 
+# The fresh child ci also runs the project-gates self-test (about 7 minutes).
+CHILD_CI_SECONDS = 3000
+CHILD_CLEANUP_SECONDS = 120
+
+
+def child_scope(child_root):
+    """The launcher worktree label of containers that a run with --candidate child_root creates."""
+    import hashlib
+    return hashlib.sha256(str(Path(child_root).resolve()).encode()).hexdigest()
+
+
+def child_timeout_cleanup(root,run_dir,lock,child_root,result,what,launcher_factory=None):
+    """After a child command TIMEOUT, wait (bounded) for or remove the child's labelled
+    containers, so the next admission is not refused, then raise a GateError naming the
+    TIMEOUT. Any other result returns None."""
+    if result.get('failure')!='TIMEOUT':
+        return None
+    if launcher_factory is None:
+        from container_policy import Launcher
+        launcher_factory=lambda: Launcher(root,run_dir,lock)
+    launcher=launcher_factory()
+    try:
+        cleanup=launcher.reap_scope(child_scope(child_root),seconds=CHILD_CLEANUP_SECONDS)
+    finally:
+        launcher.close()
+    atomic_json(Path(run_dir)/'starter-child-timeout-cleanup.json',{'command':what,**cleanup})
+    left=' (child containers remain: '+str(len(cleanup['remaining']))+')' if cleanup['remaining'] else ''
+    raise GateError(what+' TIMEOUT; removed '+str(len(cleanup['removed']))+' child container(s)'+left)
+
 def package_candidate(root, identity):
     version=read_json(root/'starter.json')['version']
     release=root/'artifacts/releases'/('safe-c-'+version+'-'+identity[:16]+'.tar.gz')
@@ -129,6 +158,7 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     developer_args=[str(root/'tools/safety'),'--candidate',str(first),'dev','selftest','--format','json']
     developer_result=bounded(developer_args,timeout=1200,limit=4*1024*1024)
     atomic_json(run_dir/'starter-child-developer-command.opaque.json',developer_result)
+    child_timeout_cleanup(root,run_dir,lock,first,developer_result,'fresh child developer selftest')
     try:
         developer_feedback=json.loads(developer_result['output'])
         developer_path=first/'artifacts/developer/runs'/developer_feedback['run_id']/'qualification.json'
@@ -142,8 +172,9 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     if not developer_ok:raise GateError('fresh child local developer prequalification did not complete')
     args=[str(root/'tools/safety'),'--candidate',str(first),'--baseline',str(root),'--expected-baseline',identity,
           '--instance','--developer-evidence',str(developer_path),'--developer-evidence-sha256',developer_digest,'ci']
-    result=bounded(args,timeout=1200,limit=4*1024*1024)
+    result=bounded(args,timeout=CHILD_CI_SECONDS,limit=4*1024*1024)
     atomic_json(run_dir/'starter-child-command.json',result)
+    child_timeout_cleanup(root,run_dir,lock,first,result,'fresh child ci')
     child_report=read_json(first/'artifacts/bootstrap-report.json') if (first/'artifacts/bootstrap-report.json').exists() else None
     full_ok=result['exit_code']==0 and result['failure'] is None and child_report and child_report['local_state']=='PASS'
     no_grandchildren=not list((first/'artifacts/instances').glob('*/*/starter-baseline.lock.json'))

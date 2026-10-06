@@ -168,6 +168,29 @@ class Launcher:
     def docker(self,args,**kw):
         if self.prefix is None:self.connect()
         return bounded(self.prefix+list(args),env=self.env,**kw)
+    def reap_scope(self,scope,*,seconds=120,poll=5,quiet_polls=2,clock=None,sleep=None):
+        """Dispose every containment container labelled with worktree `scope` after its
+        controller was killed (a child TIMEOUT). Nothing else will dispose them, so they
+        are killed and removed at once (running or stopped), never restarted; the scope
+        is then polled for up to `seconds` and anything that reappears is removed again
+        until it stays empty for `quiet_polls` polls.
+        Returns {'waited_seconds','removed','remaining'}."""
+        import time as _time
+        clock=clock or _time.monotonic;sleep=sleep or _time.sleep
+        if not re.fullmatch(r'[0-9a-f]{64}',scope or ''):raise GateError('container scope must be a worktree digest')
+        def ids():
+            r=self.docker(['ps','-aq','--filter','label='+LABEL+'=1','--filter','label=org.safe-c.worktree='+scope],timeout=15)
+            if not passed(r):raise GateError('child container inventory unavailable')
+            return r['output'].split()
+        started=clock();removed=[];quiet=0;current=ids()
+        while True:
+            for cid in current:
+                self.docker(['kill',cid],timeout=15)
+                if passed(self.docker(['rm','--force',cid],timeout=15)) and cid not in removed:removed.append(cid)
+            quiet=quiet+1 if not current else 0
+            if quiet>=quiet_polls or clock()-started>=seconds:break
+            sleep(poll);current=ids()
+        return {'waited_seconds':round(clock()-started,1),'removed':removed,'remaining':ids()}
     def json(self,args):
         r=self.docker(args)
         if not passed(r):raise GateError('Docker API command failed: '+str(args[:2]))
