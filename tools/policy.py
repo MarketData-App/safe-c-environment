@@ -30,6 +30,21 @@ def source_identity(root):
     inventory = source_files(root)
     return digest(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode()), inventory
 
+def project_mode(root):
+    # A root project.json selects project mode; its files are checked by project_model.project_inventory.
+    return (Path(root)/'project.json').is_file()
+
+def bootstrap_source_rule(root, mode):
+    if mode == 'bootstrap' and not project_mode(root) and any(p.suffix in {'.c', '.h'} for folder in ['src','include'] for p in (Path(root)/folder).rglob('*')):
+        raise GateError('bootstrap mode selected despite application sources')
+
+def first_party_sources(root):
+    root = Path(root)
+    from project_model import PROJECT_PATHS
+    skip = PROJECT_PATHS if project_mode(root) else ()
+    return {rel for rel in (str(p.relative_to(root)) for p in root.rglob('*.c') if not any(x in p.relative_to(root).parts for x in ['third_party','.git','.cache','artifacts','build']))
+            if not (skip and rel.startswith(skip))}
+
 def inventory_gate(root, expected_contract=None):
     contract = read_json(root/'safety/contract.json')
     fixtures = read_json(root/'safety/fixtures.json')
@@ -48,8 +63,7 @@ def inventory_gate(root, expected_contract=None):
     exact_ids(fixtures['cases'], C_IDS)
     if expected_contract is not None and contract != expected_contract:
         raise GateError('protected contract changed')
-    if contract['mode'] == 'bootstrap' and any(p.suffix in {'.c', '.h'} for folder in ['src','include'] for p in (root/folder).rglob('*')):
-        raise GateError('bootstrap mode selected despite application sources')
+    bootstrap_source_rule(root, contract['mode'])
     if contract['mode'] != 'bootstrap':
         raise GateError('production contract transition is not approved in this candidate')
     known = set()
@@ -66,7 +80,7 @@ def inventory_gate(root, expected_contract=None):
             if not (root/record['trigger_input']).is_file():
                 raise GateError('missing regression input')
     declared = read_json(root/'safety/source-inventory.json')['files']
-    actual = {str(p.relative_to(root)) for p in root.rglob('*.c') if not any(x in p.relative_to(root).parts for x in ['third_party','.git','.cache','artifacts','build'])}
+    actual = first_party_sources(root)
     if actual != set(declared):
         raise GateError('first-party source/target inventory mismatch: ' + str(sorted(actual ^ set(declared))))
     for p in actual:

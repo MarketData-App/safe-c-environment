@@ -200,6 +200,8 @@ def main(argv=None):
     sb=subs.add_parser('sandbox');sb.add_argument('operation',choices=['doctor','plan','selftest']);sb.add_argument('--profile',default='build')
     rt=subs.add_parser('runtime');rt.add_argument('operation',choices=['smoke'])
     fd=subs.add_parser('foundation');fd.add_argument('operation',choices=['doctor','check','selftest'])
+    pj=subs.add_parser('project');pj.add_argument('operation',choices=['check']);pj.add_argument('--project',default='.');pj.add_argument('--development',action='store_true')
+    fw=subs.add_parser('framework');fw.add_argument('operation',choices=['manifest'])
     dev=subs.add_parser('dev')
     from developer import configure_parser
     configure_parser(dev)
@@ -212,6 +214,9 @@ def main(argv=None):
         if args.command=='dev':
             from developer import execute
             return execute(root,args)
+        if args.command in ('project','framework'):
+            from project_model import execute as project_execute
+            return project_execute(root,args)
         if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
         if args.developer_evidence or args.developer_evidence_sha256:
             if (not args.instance or args.command!='ci' or not args.developer_evidence or

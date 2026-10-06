@@ -73,6 +73,17 @@ def load_project(root, project_dir='.', framework_root=None):
     return value
 
 
+def undeclared_application_sources(root):
+    """src/include C files that no root project.json declares (all of them without project.json)."""
+    root = Path(root)
+    found = sorted(str(p.relative_to(root)) for folder in ('src', 'include') for p in (root/folder).rglob('*')
+                   if p.suffix in {'.c', '.h'})
+    if not found or not (root/PROJECT_FILE).is_file():
+        return found
+    declared = set(_declared_paths(load_project(root)))
+    return [rel for rel in found if rel not in declared]
+
+
 def project_files(root, project_dir='.'):
     base = Path(root)/project_dir
     if base.is_symlink():
@@ -125,6 +136,25 @@ def write_manifest(root, report, images, framework_root=None):
     validate(_framework_root(root, framework_root), 'framework-manifest', value)
     (root/MANIFEST).write_text(json.dumps(value, sort_keys=True, indent=2)+'\n')
     return value
+
+
+def framework_manifest(root):
+    """`safety framework manifest`: bind the current qualified report and pinned images."""
+    root = Path(root)
+    images = {'sdk': read_json(root/'toolchain.lock.json')['image_id'],
+              'developer': read_json(root/'developer.lock.json')['image_id'],
+              'archive_sha256': read_json(root/'ci/image-bundle.json')['archive_sha256']}
+    return write_manifest(root, read_json(root/'artifacts/bootstrap-report.json'), images)
+
+
+def execute(root, args):
+    if args.command == 'project':
+        import project_check
+        return project_check.main(['--project', args.project] + (['--development'] if args.development else []))
+    value = framework_manifest(root)
+    print(json.dumps({'status': 'WRITTEN', 'path': str(Path(root)/MANIFEST), 'framework_identity': value['framework_identity'],
+                      'files': len(value['files']), 'images': value['images']}, indent=2))
+    return 0
 
 
 def check_manifest(root, framework_root=None):
