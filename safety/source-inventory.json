@@ -657,6 +657,34 @@
         "developer_demo"
       ],
       "sha256": "dc1ff0c16ab24c9ee310be305d8bc73bde5184607222068d1a3d9734493d4444"
+    },
+    "examples/hello-world/src/greeting.c": {
+      "sha256": "5d0bba728d4279941b4ba0d98dc35772d4a451863de224919981506cdc21f188",
+      "role": "example",
+      "targets": [
+        "hello"
+      ]
+    },
+    "examples/hello-world/src/main.c": {
+      "sha256": "1d0748936a7731a9977ac821845767e15ecd6584c173d26fd8d294c58c1a2018",
+      "role": "example",
+      "targets": [
+        "hello"
+      ]
+    },
+    "examples/hello-world/tests/project/test_greeting.c": {
+      "sha256": "59954a7f1b580e504a38d9ef2b090406f731295cf744693496ff7a91070744b1",
+      "role": "example",
+      "targets": [
+        "project.greeting.test_greeting"
+      ]
+    },
+    "examples/hello-world/fuzz/project/greeting_fuzz.c": {
+      "sha256": "cbcf1e059b953e876a6c5e49c069f451f5faca5a251d08de0ad4a6225539a9a0",
+      "role": "example",
+      "targets": [
+        "fuzz-greeting"
+      ]
     }
   },
   "format_files": [
@@ -752,6 +780,11 @@
     "safety/qualification/foundation/F14.c",
     "safety/qualification/developer/template.c",
     "safety/qualification/developer/control.c",
-    "safety/qualification/developer/developer-demo.h"
+    "safety/qualification/developer/developer-demo.h",
+    "examples/hello-world/include/greeting.h",
+    "examples/hello-world/src/greeting.c",
+    "examples/hello-world/src/main.c",
+    "examples/hello-world/tests/project/test_greeting.c",
+    "examples/hello-world/fuzz/project/greeting_fuzz.c"
   ]
 }

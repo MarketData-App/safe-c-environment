@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "source_identity": "unbound: ./tools/safety project check binds the whole-source identity",
+  "units": {
+    "greeting": [
+      "Is name_len bounded before any name byte is read?",
+      "Does UTF-8 decoding stay within name_len and reject truncated, overlong, surrogate and above-U+10FFFF sequences?",
+      "Does the printable check reject C0 controls, DEL and C1 controls?",
+      "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
+      "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?"
+    ]
+  },
+  "findings": [
+    {
+      "id": "GREETING-0001",
+      "origin": "reviewer:example-walkthrough",
+      "source_identity": "unbound: ./tools/safety project check binds the whole-source identity",
+      "location": "src/greeting.c:101",
+      "property": "out-of-bounds read of name when name_len exceeds the readable name buffer (for example SIZE_MAX)",
+      "severity": "high if real: read past a borrowed caller buffer",
+      "rationale": "A caller can pass a name_len larger than the readable name bytes; the UTF-8 scan would then read past the buffer.",
+      "reproducer": "tests/project/test_greeting.c: expect(max, SIZE_MAX, 128U, GREETING_NAME_TOO_LONG, \"\") and expect(max, GREETING_NAME_MAX + 1U, ...)",
+      "state": "REJECTED",
+      "attempts": 0,
+      "history": [
+        {
+          "reason": "Not a defect: validate() rejects name_len > GREETING_NAME_MAX at src/greeting.c:101 before check_name() reads any byte; the SIZE_MAX and 65-byte boundary tests cover it and the fuzz target checks it for every input length.",
+          "duplicate_of": null
+        }
+      ],
+      "verification": null
+    }
+  ],
+  "review": [
+    {
+      "unit": "greeting",
+      "question": "Is name_len bounded before any name byte is read?",
+      "locations": [
+        101,
+        104
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Does UTF-8 decoding stay within name_len and reject truncated, overlong, surrogate and above-U+10FFFF sequences?",
+      "locations": [
+        48,
+        52,
+        58,
+        61,
+        85
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Does the printable check reject C0 controls, DEL and C1 controls?",
+      "locations": [
+        71,
+        74
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
+      "locations": [
+        109,
+        131,
+        137,
+        138
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?",
+      "locations": [
+        12,
+        117,
+        118,
+        123
+      ]
+    }
+  ]
+}
