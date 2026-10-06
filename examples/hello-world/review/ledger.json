@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_identity": "279bcb8418d2ced5fcb18e60ea754df82d9959a60cfef87e813b791fb19d67ad",
+  "source_identity": "e493dfb724934ad6eb7c833518803f56cc9ffcaa1fc63d23b9d5e9200e818e25",
   "units": {
     "greeting": [
       "Is name_len bounded before any name byte is read?",
@@ -19,12 +19,12 @@
     {
       "id": "GREETING-0001",
       "origin": "reviewer:example-walkthrough",
-      "source_identity": "279bcb8418d2ced5fcb18e60ea754df82d9959a60cfef87e813b791fb19d67ad",
+      "source_identity": "e493dfb724934ad6eb7c833518803f56cc9ffcaa1fc63d23b9d5e9200e818e25",
       "location": "src/greeting.c:23",
       "property": "out-of-bounds read of name when name_len exceeds the readable name buffer (for example SIZE_MAX)",
       "severity": "high if real: read past a borrowed caller buffer",
       "rationale": "Illustrative example entry for the hello-world example, not a record of a real external review. A caller can pass a name_len larger than the readable name bytes; the UTF-8 scan would then read past the buffer. Each review unit names a source file, src/<unit>.c, and its locations are line numbers in that file. source_identity is the sha256 of json.dumps({path: sha256}, sort_keys=True) over the example files under src/, include/, tests/project/, fuzz/project/, specs/project/ and review/ (paths relative to examples/hello-world, review/ledger.json excluded).",
-      "reproducer": "tests/project/test_greeting.c: expect(max, SIZE_MAX, 128U, GREETING_NAME_TOO_LONG, \"\") and expect(max, GREETING_NAME_MAX + 1U, ...)",
+      "reproducer": "tests/project/test_greeting.c format_cases rows {.name = max_name, .len = 65U, .cap = 128U, .want = GREETING_NAME_TOO_LONG} and {.name = max_name, .len = SIZE_MAX, .cap = 128U, .want = GREETING_NAME_TOO_LONG}",
       "state": "REJECTED",
       "attempts": 0,
       "history": [

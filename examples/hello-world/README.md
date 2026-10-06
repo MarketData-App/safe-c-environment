@@ -78,8 +78,9 @@ hello $'\t'      # "hello: GREETING_NOT_PRINTABLE" on stderr, exit status 1
 ## Why the code looks this way
 
 - The tests, the fuzz target and the implementation use pointer arithmetic
-  instead of `a[i]`, and fill loops instead of `memset` or `memcpy`, because
-  the `ast` gate rejects raw indexing and raw memory functions in project code.
+  instead of `a[i]`, because the `ast` gate rejects raw indexing in project
+  code. The AST policy also rejects `memset` and `memcpy` in non-boundary
+  files; `memcmp` and `strncmp` are permitted.
 - `greeting_format` checks `name_len` before it reads any name byte, so a
   caller that passes `SIZE_MAX` gets `GREETING_NAME_TOO_LONG` and no read past
   the buffer.

@@ -1,6 +1,7 @@
 """Project model: project.json, project inventory and the framework manifest."""
 import hashlib
 import json
+import posixpath
 from pathlib import Path
 import policy
 from evidence import GateError, read_json
@@ -86,8 +87,11 @@ def undeclared_application_sources(root):
 
 def project_files(root, project_dir='.'):
     base = Path(root)/project_dir
-    if base.is_symlink():
-        raise GateError(f'symlink input is forbidden: {project_dir}')
+    walked = Path(root)
+    for part in Path(project_dir).parts:
+        walked = walked/part
+        if walked.is_symlink():
+            raise GateError(f'symlink input is forbidden: {project_dir}')
     result = {}
     for top in PROJECT_PATHS:
         start = base/top
@@ -170,7 +174,10 @@ def _project_dir(root, value):
     # --project is relative to the --candidate root, never to the current directory.
     path = Path(value)
     if not path.is_absolute():
-        return value
+        normal = posixpath.normpath(value)
+        if normal == '..' or normal.startswith('../') or normal.startswith('/'):
+            raise GateError('--project must be inside the framework root')
+        return normal
     try:
         return path.resolve().relative_to(Path(root).resolve()).as_posix()
     except ValueError as error:
@@ -180,7 +187,12 @@ def _project_dir(root, value):
 def execute(root, args):
     if args.command == 'project':
         import project_check
-        return project_check.run_project_check(Path(root), _project_dir(root, args.project), development=args.development)['exit_code']
+        try:
+            project_dir = _project_dir(root, args.project)
+        except GateError as error:
+            print('BLOCKED: ' + str(error))
+            return 2
+        return project_check.run_project_check(Path(root), project_dir, development=args.development)['exit_code']
     value = framework_manifest(root)
     print(json.dumps({'status': 'WRITTEN', 'path': str(Path(root)/MANIFEST), 'framework_identity': value['framework_identity'],
                       'files': len(value['files']), 'images': value['images']}, indent=2))

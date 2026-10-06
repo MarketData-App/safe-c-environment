@@ -72,6 +72,15 @@ The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework
 repository, then `./tools/safety framework manifest`.
 
+### Staying within the analyzer budget
+
+The GCC `-fanalyzer` and Clang analyzer gates run with fixed budgets and
+`-Werror=analyzer-too-complex`. A function or file that exceeds a budget fails
+the gate; the budget never grows. Keep functions small. Split long loops into
+per-item helpers. Drive tests from one table with one loop. Keep the path count
+of each file low. See `examples/hello-world` and the spec section "Test
+structure and the analyzer budget".
+
 ## Prepare and discover
 
 ```sh

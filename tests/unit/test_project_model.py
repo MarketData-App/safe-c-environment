@@ -75,6 +75,12 @@ class ProjectModelMoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
             d=Path(t); self.make(d); import shutil; shutil.rmtree(d/'src'); (d/'src').symlink_to(o)
             with self.assertRaises(GateError): pm.project_files(d,'.')
+    def test_symlinked_intermediate_dir_rejected(self):
+        with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
+            d=Path(t); real=Path(o)/'real'; real.mkdir(); self.make(real)
+            (d/'examples').mkdir(); (d/'examples/link').symlink_to(real); (d/'examples/link/proj').mkdir()
+            self.make(d/'examples/link/proj')
+            with self.assertRaises(GateError): pm.project_files(d,'examples/link/proj')
     def test_project_files_normal(self):
         with tempfile.TemporaryDirectory() as t:
             d=Path(t); self.make(d); f=pm.project_files(d,'.')
@@ -232,9 +238,12 @@ class ProjectCliTests(unittest.TestCase):
                 self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project','examples/hello-world','--development']),3)
                 self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',str(d/'examples/hello-world')]),3)
                 with redirect_stdout(io.StringIO()):
-                    self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',elsewhere]),1)
+                    self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',elsewhere]),2)
+                    for bad in ('../x','a/../../x','/etc'):
+                        self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project',bad]),2)
+                self.assertEqual(self.run_cli(['--candidate',str(d),'project','check','--project','examples/../examples/hello-world']),3)
             finally: os.chdir(cwd)
-        self.assertEqual(calls,[(d,'.',False),(d,'examples/hello-world',True),(d,'examples/hello-world',False)])
+        self.assertEqual(calls,[(d,'.',False),(d,'examples/hello-world',True),(d,'examples/hello-world',False),(d,'examples/hello-world',False)])
     def test_project_requires_known_operation(self):
         with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()): self.run_cli(['project','build'])
     def manifest_tree(self, d, bundle_ids=None, extra=None):
@@ -286,6 +295,14 @@ class ProjectModeFixRoundTests(unittest.TestCase):
             tree(d,{'tests/project/x.c':'int x;'})
             self.assertNotIn('tests/project/x.c',policy.first_party_sources(d))
             with self.assertRaises(GateError): policy.project_source_gate(d)
+    def test_inventory_gate_runs_project_source_gate(self):
+        import policy
+        from unittest import mock
+        root=Path(__file__).resolve().parents[2]
+        with mock.patch.object(policy,'project_mode',lambda r:True), mock.patch.object(pm,'load_project',lambda r:{}), \
+             mock.patch.object(pm,'project_inventory',side_effect=GateError('undeclared tests/project/x.c')) as inv:
+            with self.assertRaisesRegex(GateError,'undeclared tests/project/x.c'): policy.inventory_gate(root)
+        self.assertEqual(inv.call_count,1)
     def test_undeclared_project_fuzz_source_blocks_inventory(self):
         import policy
         with tempfile.TemporaryDirectory() as t:
