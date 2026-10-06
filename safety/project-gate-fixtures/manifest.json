@@ -58,7 +58,8 @@
     "ast": [
       "ast",
       "ast-attribute",
-      "ast-identity"
+      "ast-identity",
+      "ast-build-macro"
     ],
     "asan": [
       "asan"
@@ -94,7 +95,8 @@
       "clusterfuzzlite"
     ],
     "inventory": [
-      "inventory"
+      "inventory",
+      "inventory-runtime-interface"
     ],
     "review-protocol": [
       "review-protocol"
@@ -107,6 +109,8 @@
     "ast/test_seeded.c": "8ab293a0ffba6a4e1e8a97041a90fef9bf788a662eed3a6b8b2230d01018f3fc",
     "ast-attribute/fixture.json": "daf2262d8bc8f31f21dff66dbe3e494c6da7f23d116eac8ba09b54755b44fbe0",
     "ast-attribute/test_seeded_attribute.c": "7b9106f0dcc4e594df9d3a4a3958c0c50ef65b3de378e0e82c9a2f2fd6370083",
+    "ast-build-macro/fixture.json": "7719c54fc8914e70085b9e8cdbf4ada3ebdf366bfefbe1f99f6e4a48eef006ca",
+    "ast-build-macro/test_seeded_build_macro.c": "668d4cee8deba0fedf1efbad9875f199f95e5480d42e900d268750bade86ad21",
     "ast-identity/fixture.json": "1f43430253ba5229888824fa920ef8bdd360d07d507825e83af328c01e96abfa",
     "ast-identity/test_seeded_identity.c": "dd7c57f7f0e32c7eecad865ea2b40174de67f6e76a30000778e0839e3f91b5d6",
     "clang-O0/fixture.json": "5d1ea9333e8867f43ce0591f66ca919530f8dff3a7f3d647dc0a3fbc5aa0f109",
@@ -139,8 +143,10 @@
     "integer/fixture.json": "b34d321c7a48983a3866819fbb58b3bf8196a077ae854a8711cb0bb347452759",
     "integer/test_seeded.c": "817ff6f6469f303daeb1db8df89d02f308d91a2f87f129c839ea6664c217defc",
     "integration/fixture.json": "123a918038a0acc44bf3395ad36fd887785048d34511fc76ca39faa7b0cdce9c",
-    "inventory/fixture.json": "6ad7fd8717e219b56163e171cce2bc20d9334025a2bd97e9cdcaeb5a871a9060",
+    "inventory/fixture.json": "d485c1ed8421a4100c2bae4ac3bfb35218b51b56a5146471512f39dc1e163c2d",
     "inventory/seeded_unlisted.c": "9998c368c0b7835c1fb10ca3c3055e16b5e6f44f323ff1d1f7e57fdb57e18b26",
+    "inventory-runtime-interface/fixture.json": "181b83e0dc0426eb23d9117cda0260965a2cebf112f090dc1f664ac9ecd9fd7b",
+    "inventory-runtime-interface/test_seeded_runtime.c": "009d63836ec914f563d4ef7f857d39f9de852b90c0c265120b3f29c5336fa1a6",
     "msan/fixture.json": "01419e8f3f3fca57577e1aa110a907da183e83419c90fedeb3df69f4bb904836",
     "msan/test_seeded.c": "e67f7a9ad0bd9d79c5e2f3d431e2c45c7c5debcc54671879e250df9f43357f51",
     "review-protocol/fixture.json": "887b7dd56b92ec694fa305dfacd1730360caf839fecb552367d1ce0ef570084e",

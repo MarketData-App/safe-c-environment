@@ -2,6 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "inventory",
+  "check": "inventory",
   "defect": "A C source under src/ that project.json does not list.",
   "operations": [
     {

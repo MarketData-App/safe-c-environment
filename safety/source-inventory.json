@@ -735,6 +735,20 @@
         "project-gate-ast"
       ]
     },
+    "safety/project-gate-fixtures/inventory-runtime-interface/test_seeded_runtime.c": {
+      "sha256": "009d63836ec914f563d4ef7f857d39f9de852b90c0c265120b3f29c5336fa1a6",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-inventory"
+      ]
+    },
+    "safety/project-gate-fixtures/ast-build-macro/test_seeded_build_macro.c": {
+      "sha256": "668d4cee8deba0fedf1efbad9875f199f95e5480d42e900d268750bade86ad21",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-ast"
+      ]
+    },
     "safety/project-gate-fixtures/clang-O0/test_seeded.c": {
       "sha256": "b4aea7d93920d7a6a4ca02b489b132eb8d8926a741d0d04a525baa0848f71f2e",
       "role": "qualification-only",

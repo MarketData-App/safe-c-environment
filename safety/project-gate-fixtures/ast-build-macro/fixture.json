@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "ast",
+  "check": "build-macros",
+  "defect": "An ordinary if on a C library macro whose definition differs between GCC and Clang; conditional inclusion is identical, only the build-macros check refuses it.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded_build_macro.c",
+      "source": "test_seeded_build_macro.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded_build_macro.c"
+    }
+  ]
+}
