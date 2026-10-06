@@ -23,6 +23,27 @@ def package_candidate(root, identity):
     atomic_json(release.with_suffix('.manifest.json'),result)
     return result
 
+EXAMPLE='examples/hello-world/'
+EXAMPLE_PATHS=('src/','include/','tests/project/','fuzz/project/','specs/project/','review/')
+CI_TEMPLATE='ci/project-ci.yml'
+CI_WORKFLOW='.github/workflows/project-ci.yml'
+
+def project_payload(root):
+    """Child-relative project file -> exported example source file."""
+    payload={};exported=export_inventory(root)
+    for rel in exported:
+        tail=rel[len(EXAMPLE):] if rel.startswith(EXAMPLE) else None
+        if tail is not None and (tail=='project.json' or tail.startswith(EXAMPLE_PATHS)):payload[tail]=rel
+    if 'project.json' not in payload:raise GateError('starter example project is missing: '+EXAMPLE+'project.json')
+    if CI_TEMPLATE not in exported:raise GateError('project CI workflow template is missing: '+CI_TEMPLATE)
+    payload[CI_WORKFLOW]=CI_TEMPLATE
+    collisions=sorted(set(payload)&set(exported))
+    if collisions:raise GateError('project payload collides with exported framework files: '+', '.join(collisions))
+    return payload
+
+def instance_files(root):
+    return set(export_inventory(root))|set(project_payload(root))
+
 def instantiate(root, destination, name, *, baseline=None, expected=None, maintenance=False):
     if not re.fullmatch(r'[a-z][a-z0-9-]{1,62}',name):
         raise GateError('project name must be 2–63 lowercase letters/digits/hyphens, starting with a letter')
@@ -47,11 +68,15 @@ def instantiate(root, destination, name, *, baseline=None, expected=None, mainte
             raise GateError('starter candidate has no complete current local qualification; run ci')
     origin=baseline_identity(root)
     files=export_inventory(root)
+    payload=project_payload(root)
     destination.parent.mkdir(parents=True,exist_ok=True)
     stage=Path(tempfile.mkdtemp(prefix='.starter-stage-',dir=destination.parent))
     try:
         for rel in files:
             p=stage/rel;p.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(root/rel,p)
+        for rel,source in payload.items():
+            p=stage/rel;p.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(root/source,p)
+        project=read_json(stage/'project.json');project['name']=name;atomic_json(stage/'project.json',project)
         for directory in ['src','include','tests/unit','tests/integration','specs','artifacts']:(stage/directory).mkdir(parents=True,exist_ok=True)
         starter=read_json(stage/'starter.json');starter['project_name']=name;starter['namespace']=name.replace('-','_');atomic_json(stage/'starter.json',starter)
         atomic_json(stage/'starter-baseline.lock.json',{'schema_version':1,'kind':'project-instance','origin_digest':origin,'independent_approval':False,'substitutions':{'project_name':name,'namespace':name.replace('-','_')}})
@@ -75,7 +100,7 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     instance_root.mkdir(parents=True,exist_ok=True)
     first=instance_root/'first project with space';second=instance_root/'second-project'
     rows=[instantiate(root,first,'first-project',maintenance=True),instantiate(root,second,'second-project',maintenance=True)]
-    expected_files=set(export_inventory(root))
+    expected_files=instance_files(root)
     for child in [first,second]:
         actual=set(source_identity(child)[1])
         if actual!=expected_files:raise GateError('exported child inventory mismatch')

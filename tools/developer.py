@@ -108,8 +108,8 @@ def inputs(root):
             raise GateError('developer retained notice changed')
     from foundation import input_gate
     input_gate(root)
-    if any(p.suffix in {'.c', '.h'} for folder in ['src', 'include']
-           for p in (root / folder).rglob('*')):
+    from project_model import undeclared_application_sources
+    if undeclared_application_sources(root):
         raise GateError('application development is not authorized by developer tooling')
     return policy, lock, toolchain
 

@@ -73,6 +73,17 @@ def load_project(root, project_dir='.', framework_root=None):
     return value
 
 
+def undeclared_application_sources(root):
+    """src/include C files that no root project.json declares (all of them without project.json)."""
+    root = Path(root)
+    found = sorted(str(p.relative_to(root)) for folder in ('src', 'include') for p in (root/folder).rglob('*')
+                   if p.suffix in {'.c', '.h'})
+    if not found or not (root/PROJECT_FILE).is_file():
+        return found
+    declared = set(_declared_paths(load_project(root)))
+    return [rel for rel in found if rel not in declared]
+
+
 def project_files(root, project_dir='.'):
     base = Path(root)/project_dir
     if base.is_symlink():
@@ -125,6 +136,55 @@ def write_manifest(root, report, images, framework_root=None):
     validate(_framework_root(root, framework_root), 'framework-manifest', value)
     (root/MANIFEST).write_text(json.dumps(value, sort_keys=True, indent=2)+'\n')
     return value
+
+
+def _fresh_report(root, report):
+    """The same freshness checks as `safety report` and instantiate."""
+    fw = _framework_root(root, None)
+    validate(fw, 'report', report)
+    policy.validate_fresh_report(report, policy.source_identity(root)[0], read_json(root/'toolchain.lock.json')['image_id'],
+                                 policy.file_hash(root/'safety/contract.json'))
+    from containment import fresh_container_evidence
+    fresh_container_evidence(root, report, read_json(root/'toolchain.lock.json'))
+
+
+def framework_manifest(root):
+    """`safety framework manifest`: bind the current qualified report and pinned images."""
+    root = Path(root)
+    try:
+        bundle = read_json(root/'ci/image-bundle.json')
+        images = {'sdk': read_json(root/'toolchain.lock.json')['image_id'],
+                  'developer': read_json(root/'developer.lock.json')['image_id'],
+                  'archive_sha256': bundle['archive_sha256']}
+        bundled = bundle['image_ids']
+        if not isinstance(bundled, list) or any(images[k] not in bundled for k in ('sdk', 'developer')):
+            raise GateError('framework manifest: sdk/developer image is not in ci/image-bundle.json image_ids')
+        report = read_json(root/'artifacts/bootstrap-report.json')
+        _fresh_report(root, report)
+    except (KeyError, TypeError) as error:
+        raise GateError(f'framework manifest input is incomplete: {error}') from error
+    return write_manifest(root, report, images)
+
+
+def _project_dir(root, value):
+    # --project is relative to the --candidate root, never to the current directory.
+    path = Path(value)
+    if not path.is_absolute():
+        return value
+    try:
+        return path.resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError as error:
+        raise GateError('--project must be inside the framework root') from error
+
+
+def execute(root, args):
+    if args.command == 'project':
+        import project_check
+        return project_check.run_project_check(Path(root), _project_dir(root, args.project), development=args.development)['exit_code']
+    value = framework_manifest(root)
+    print(json.dumps({'status': 'WRITTEN', 'path': str(Path(root)/MANIFEST), 'framework_identity': value['framework_identity'],
+                      'files': len(value['files']), 'images': value['images']}, indent=2))
+    return 0
 
 
 def check_manifest(root, framework_root=None):

@@ -176,6 +176,11 @@ def finish(root, report, runner, command):
     return 0 if complete or (command!='ci' and report['local_state']=='PASS') else 1
 
 
+def foundation_projection_ready(foundation):
+    # bootstrap/doctor build only new_report()+doctor; projection needs the checked policy result.
+    return 'cases' in foundation and 'policy' in foundation
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser()
     parser.add_argument('--candidate',type=Path,default=ROOT)
@@ -195,6 +200,8 @@ def main(argv=None):
     sb=subs.add_parser('sandbox');sb.add_argument('operation',choices=['doctor','plan','selftest']);sb.add_argument('--profile',default='build')
     rt=subs.add_parser('runtime');rt.add_argument('operation',choices=['smoke'])
     fd=subs.add_parser('foundation');fd.add_argument('operation',choices=['doctor','check','selftest'])
+    pj=subs.add_parser('project');pj.add_argument('operation',choices=['check']);pj.add_argument('--project',default='.');pj.add_argument('--development',action='store_true')
+    fw=subs.add_parser('framework');fw.add_argument('operation',choices=['manifest'])
     dev=subs.add_parser('dev')
     from developer import configure_parser
     configure_parser(dev)
@@ -207,6 +214,9 @@ def main(argv=None):
         if args.command=='dev':
             from developer import execute
             return execute(root,args)
+        if args.command in ('project','framework'):
+            from project_model import execute as project_execute
+            return project_execute(root,args)
         if args.instance and (not args.baseline or not args.expected_baseline):raise GateError('instance selection requires an external baseline and identity')
         if args.developer_evidence or args.developer_evidence_sha256:
             if (not args.instance or args.command!='ci' or not args.developer_evidence or
@@ -312,7 +322,7 @@ def main(argv=None):
             if args.command in ['ci','starter','selftest'] or (args.command=='foundation' and args.operation=='selftest'):
                 from starter import verify_starter
                 report['starter']=verify_starter(root,lock,run_dir,instance=args.instance,expected=args.expected_baseline,baseline=args.baseline);report['gates'].append(gate('starter',report['starter']['status']))
-            if 'cases' in report['foundation']:
+            if foundation_projection_ready(report['foundation']):
                 from foundation_report import project,save as foundation_save
                 project(q,report['foundation'],report['starter'])
                 foundation_save(q,report['foundation'])
