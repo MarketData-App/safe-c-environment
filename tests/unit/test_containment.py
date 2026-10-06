@@ -79,9 +79,6 @@ class ContainerEvidenceTests(unittest.TestCase):
             else:bad[name]='stale'
             with self.assertRaises(GateError):container_binding_gate(bad,expected)
 
-if __name__=='__main__':unittest.main()
-
-
 class ProbeHomeExposureTests(unittest.TestCase):
     """Positive and negative controls for the D04 home exposure predicate."""
     def setUp(self):
@@ -111,3 +108,5 @@ class ProbeHomeExposureTests(unittest.TestCase):
             self.assertFalse(self.probe.home_exposed('',home/'missing'))
             (home/'someone').mkdir()
             self.assertTrue(self.probe.home_exposed('',home))
+
+if __name__=='__main__':unittest.main()
