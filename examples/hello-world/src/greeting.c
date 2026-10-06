@@ -1,13 +1,12 @@
 #include "greeting.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 /* Contract: specs/project/greeting.md. No allocation, no global mutable state. */
 
 static const char greeting_prefix[] = "Hello, ";
 static const size_t greeting_prefix_length = sizeof greeting_prefix - 1U;
-/* The prefix plus the closing '!' byte. */
-static const size_t greeting_fixed_length = sizeof greeting_prefix;
 
 static void clear_output(char *out, size_t capacity, size_t *written) {
     if (out != NULL && capacity > 0U) {
@@ -105,8 +104,8 @@ static enum greeting_status validate(const char *name, size_t name_len, size_t c
     if (status != GREETING_OK) {
         return status;
     }
-    /* name_len <= GREETING_NAME_MAX, so this sum cannot wrap. */
-    if (capacity < greeting_fixed_length + name_len + 1U) {
+    /* Prefix, name, '!' and NUL. name_len <= GREETING_NAME_MAX, so the sum cannot wrap. */
+    if (capacity < greeting_prefix_length + name_len + 2U) {
         return GREETING_BUFFER_TOO_SMALL;
     }
     return GREETING_OK;
@@ -135,6 +134,66 @@ enum greeting_status greeting_format(const char *name, size_t name_len, char *ou
     *cursor = '!';
     ++cursor;
     *cursor = '\0';
-    *written = greeting_fixed_length + name_len;
+    /* Prefix, name and '!'; the NUL is not counted. */
+    *written = greeting_prefix_length + name_len + 1U;
     return GREETING_OK;
+}
+
+const char *greeting_status_name(enum greeting_status status) {
+    switch (status) {
+    case GREETING_OK:
+        return "GREETING_OK";
+    case GREETING_NULL_ARGUMENT:
+        return "GREETING_NULL_ARGUMENT";
+    case GREETING_EMPTY_NAME:
+        return "GREETING_EMPTY_NAME";
+    case GREETING_NAME_TOO_LONG:
+        return "GREETING_NAME_TOO_LONG";
+    case GREETING_INVALID_UTF8:
+        return "GREETING_INVALID_UTF8";
+    case GREETING_NOT_PRINTABLE:
+        return "GREETING_NOT_PRINTABLE";
+    case GREETING_BUFFER_TOO_SMALL:
+        return "GREETING_BUFFER_TOO_SMALL";
+    }
+    return "GREETING_UNKNOWN";
+}
+
+/* Counts at most limit bytes of a NUL-terminated text. A NULL text counts as 0
+ * bytes; greeting_format then reports GREETING_NULL_ARGUMENT. */
+static size_t bounded_length(const char *text, size_t limit) {
+    size_t length = 0U;
+    if (text == NULL) {
+        return 0U;
+    }
+    while (length < limit && *(text + length) != '\0') {
+        ++length;
+    }
+    return length;
+}
+
+/* Writes line and a newline, then flushes. Returns 0 on success and 1 when any
+ * step fails. All three steps always run, so the result has no branch. */
+static int write_line(FILE *stream, const char *line) {
+    const int text_failed = fputs(line, stream) == EOF;
+    const int newline_failed = fputc('\n', stream) == EOF;
+    const int flush_failed = fflush(stream) == EOF;
+    return text_failed | newline_failed | flush_failed;
+}
+
+int greeting_main(int argc, char **argv, FILE *out, FILE *err) {
+    if (argc != 2) {
+        (void)fputs("usage: hello NAME\n", err);
+        return 2;
+    }
+    const char *name = *(argv + 1);
+    const size_t name_len = bounded_length(name, (size_t)GREETING_NAME_MAX + 1U);
+    char line[GREETING_NAME_MAX + 9];
+    size_t written = 0U;
+    enum greeting_status status = greeting_format(name, name_len, line, sizeof line, &written);
+    if (status != GREETING_OK) {
+        (void)fprintf(err, "hello: %s\n", greeting_status_name(status));
+        return 1;
+    }
+    return write_line(out, line);
 }

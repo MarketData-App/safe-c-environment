@@ -659,28 +659,28 @@
       "sha256": "dc1ff0c16ab24c9ee310be305d8bc73bde5184607222068d1a3d9734493d4444"
     },
     "examples/hello-world/src/greeting.c": {
-      "sha256": "5d0bba728d4279941b4ba0d98dc35772d4a451863de224919981506cdc21f188",
+      "sha256": "3288b568a1ff3bf8b7fc11b7cde9de2cabb5bdb9bfa715daaeea957e411ac435",
       "role": "example",
       "targets": [
         "hello"
       ]
     },
     "examples/hello-world/src/main.c": {
-      "sha256": "1d0748936a7731a9977ac821845767e15ecd6584c173d26fd8d294c58c1a2018",
+      "sha256": "bd8eb13e635273b0de27a5658312b4dabcd35df95237592db671de767015da65",
       "role": "example",
       "targets": [
         "hello"
       ]
     },
     "examples/hello-world/tests/project/test_greeting.c": {
-      "sha256": "59954a7f1b580e504a38d9ef2b090406f731295cf744693496ff7a91070744b1",
+      "sha256": "067ef0943fd2314ff3b5fed3661889bb72c8f077e7ecd53f7bffc41735fae704",
       "role": "example",
       "targets": [
         "project.greeting.test_greeting"
       ]
     },
     "examples/hello-world/fuzz/project/greeting_fuzz.c": {
-      "sha256": "cbcf1e059b953e876a6c5e49c069f451f5faca5a251d08de0ad4a6225539a9a0",
+      "sha256": "812ab4887cf06bc1a5aa98e060e53eec3eb4799baee30c77d7334d3416c682d1",
       "role": "example",
       "targets": [
         "fuzz-greeting"

@@ -1,3 +1,6 @@
+/* fmemopen is POSIX.1-2008; the build uses strict C17 without extensions. */
+#define _POSIX_C_SOURCE 200809L
+
 #include "greeting.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -105,6 +108,78 @@ static void capacity_boundaries(const char *max) {
     expect("\t", 1U, 0U, GREETING_NOT_PRINTABLE, "");
 }
 
+static void expect_name(enum greeting_status status, const char *want) {
+    REQUIRE(strcmp(greeting_status_name(status), want) == 0);
+}
+
+static void status_names(void) {
+    expect_name(GREETING_OK, "GREETING_OK");
+    expect_name(GREETING_NULL_ARGUMENT, "GREETING_NULL_ARGUMENT");
+    expect_name(GREETING_EMPTY_NAME, "GREETING_EMPTY_NAME");
+    expect_name(GREETING_NAME_TOO_LONG, "GREETING_NAME_TOO_LONG");
+    expect_name(GREETING_INVALID_UTF8, "GREETING_INVALID_UTF8");
+    expect_name(GREETING_NOT_PRINTABLE, "GREETING_NOT_PRINTABLE");
+    expect_name(GREETING_BUFFER_TOO_SMALL, "GREETING_BUFFER_TOO_SMALL");
+    expect_name((enum greeting_status)7, "GREETING_UNKNOWN");
+}
+
+/* The buffers start zeroed, so the captured text is always NUL-terminated and
+ * every byte is initialized for MemorySanitizer. */
+static FILE *open_capture(char *buffer, size_t size) {
+    FILE *stream = fmemopen(buffer, size, "w");
+    if (stream == NULL) {
+        (void)fputs("fmemopen failed\n", stderr);
+        exit(1);
+    }
+    return stream;
+}
+
+/* Runs greeting_main with captured streams and checks the exit status and the
+ * complete text written to each stream. */
+static void expect_main(int argc, char **argv, int want, const char *want_out,
+                        const char *want_err) {
+    char out_text[128] = {0};
+    char err_text[128] = {0};
+    FILE *out = open_capture(out_text, sizeof out_text - 1U);
+    FILE *err = open_capture(err_text, sizeof err_text - 1U);
+    const int got = greeting_main(argc, argv, out, err);
+    REQUIRE(fclose(out) == 0);
+    REQUIRE(fclose(err) == 0);
+    REQUIRE(got == want);
+    REQUIRE(strcmp(out_text, want_out) == 0);
+    REQUIRE(strcmp(err_text, want_err) == 0);
+}
+
+static void program_paths(void) {
+    char program[] = "hello";
+    char world[] = "world";
+    char control[] = "a\tb";
+    char long_name[GREETING_NAME_MAX + 7];
+    fill(long_name, sizeof long_name - 1U, 'a');
+    *(long_name + sizeof long_name - 1U) = '\0';
+    char *only_program[] = {program, NULL};
+    char *one_name[] = {program, world, NULL};
+    char *two_names[] = {program, world, world, NULL};
+    char *control_name[] = {program, control, NULL};
+    char *null_name[] = {program, NULL, NULL};
+    char *too_long[] = {program, long_name, NULL};
+    expect_main(1, only_program, 2, "", "usage: hello NAME\n");
+    expect_main(3, two_names, 2, "", "usage: hello NAME\n");
+    expect_main(2, one_name, 0, "Hello, world!\n", "");
+    expect_main(2, control_name, 1, "", "hello: GREETING_NOT_PRINTABLE\n");
+    expect_main(2, null_name, 1, "", "hello: GREETING_NULL_ARGUMENT\n");
+    expect_main(2, too_long, 1, "", "hello: GREETING_NAME_TOO_LONG\n");
+    /* A stream opened for reading rejects every write: exit status 1. */
+    FILE *read_only = fopen("/dev/null", "r");
+    if (read_only == NULL) {
+        (void)fputs("fopen /dev/null failed\n", stderr);
+        exit(1);
+    }
+    const int got = greeting_main(2, one_name, read_only, stderr);
+    REQUIRE(fclose(read_only) == 0);
+    REQUIRE(got == 1);
+}
+
 int main(void) {
     char max[GREETING_NAME_MAX + 1];
     fill(max, sizeof max, 'a');
@@ -126,5 +201,7 @@ int main(void) {
     utf8_boundaries();
     printable_boundaries();
     capacity_boundaries(max);
+    status_names();
+    program_paths();
     return 0;
 }

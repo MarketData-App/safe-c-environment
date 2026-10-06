@@ -52,8 +52,8 @@ The function checks the conditions in this order and returns the first failure:
 
 - `name`, `out` and `written` are borrowed for the duration of the call only.
   The function keeps no pointer after it returns.
-- The function allocates no memory, uses no global mutable state and does no
-  I/O.
+- `greeting_format` allocates no memory, uses no global mutable state and does
+  no I/O.
 
 ## Output
 
@@ -84,16 +84,49 @@ external synchronization.
   `out + capacity`.
 - All size arithmetic happens after `name_len <= 64`, so it cannot wrap.
 
-## Program `hello`
+## `greeting_status_name`
 
-- Exactly one argument is required. Otherwise `hello` writes a usage line on
-  stderr and exits with status 2.
-- `hello` reads at most `GREETING_NAME_MAX + 1` bytes of the argument, so a
-  longer argument gives `GREETING_NAME_TOO_LONG`.
-- On success `hello` writes the greeting and a newline on stdout and exits
-  with status 0. A failed write to stdout gives exit status 1.
-- On a status error `hello` writes `hello: <STATUS_NAME>` on stderr and exits
-  with status 1.
+```c
+const char *greeting_status_name(enum greeting_status status);
+```
+
+Returns a pointer to a static, immutable string that is the enumerator name
+(for example `"GREETING_NOT_PRINTABLE"`). Any value outside the enumeration
+returns `"GREETING_UNKNOWN"`. The caller must not free or modify the string.
+The function has no side effects and is reentrant.
+
+## `greeting_main` and the program `hello`
+
+```c
+int greeting_main(int argc, char **argv, FILE *out, FILE *err);
+```
+
+`src/main.c` only calls `greeting_main(argc, argv, stdout, stderr)`, so all
+program behaviour is in the module and the unit tests reach every path.
+
+Inputs:
+
+- `argc` is the argument count. `argv` must hold at least `argc` readable
+  pointers; it is read only when `argc == 2`.
+- `argv[1]` is nullable. A `NULL` name gives `GREETING_NULL_ARGUMENT`.
+- `argv[1]`, when not `NULL`, is NUL-terminated. `greeting_main` reads at
+  most `GREETING_NAME_MAX + 1` bytes of it, so a longer argument gives
+  `GREETING_NAME_TOO_LONG` without a scan of the whole argument.
+- `out` and `err` are valid streams open for writing, borrowed for the call.
+
+Behaviour:
+
+| Condition | Writes | Returns |
+|---|---|---|
+| `argc != 2` | `usage: hello NAME` and a newline on `err` | 2 |
+| `greeting_format` fails | `hello: <STATUS_NAME>` and a newline on `err` | 1 |
+| success, and the write, newline and flush on `out` all succeed | the greeting and a newline on `out` | 0 |
+| success, but a write, newline or flush on `out` fails | as much as the stream accepts | 1 |
+
+`greeting_main` always attempts the write, the newline and the flush, then
+reports one combined result. Write errors on `err` are ignored, because no
+other channel is left to report them. `greeting_main` allocates no memory.
+Calls are reentrant when they use different streams.
 
 ## Derived tests
 
@@ -109,6 +142,11 @@ representable maximum.
 | Printable | U+001F, U+0020, U+007E, U+007F, NUL inside the name, tab, U+0080, U+0085, U+009F, U+00A0 |
 | Order | control byte then invalid UTF-8 → `GREETING_INVALID_UTF8`; each earlier failure with `capacity` 0 |
 | Capacity | 0, 1, exact − 1 (13 for `world`, 72 for 64 bytes), exact (14, 73), large (128) |
+| Status names | every enumerator; the value 7 → `GREETING_UNKNOWN` |
+| `greeting_main` | `argc` 1 and 3 → 2; `world` → 0 and `Hello, world!`; tab name, `NULL` name and a 70-byte name → 1 and the status name; a read-only `out` stream → 1 |
 
 `fuzz/project/greeting_fuzz.c` checks the output and failure postconditions for
-arbitrary names with the capacities 0, 1, exact − 1, exact and 128.
+arbitrary names with the capacities 0, 1, exact − 1, exact and 128: the exact
+greeting bytes, `*written`, `out[0]` on failure, and that no other byte of the
+buffer changes. An independent oracle (the well-formed sequences of Unicode
+Table 3-7 plus the C0, DEL and C1 rules) predicts the status of every input.

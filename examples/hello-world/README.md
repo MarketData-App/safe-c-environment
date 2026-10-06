@@ -7,7 +7,8 @@ This example shows the full safe-C chain on a small program:
 - the implementation: `src/greeting.c` and the program `src/main.c`;
 - boundary and error tests: `tests/project/test_greeting.c`;
 - a libFuzzer target with a seed corpus: `fuzz/project/greeting_fuzz.c`;
-- a review ledger: `review/ledger.json`;
+- a review ledger: `review/ledger.json`. Its finding GREETING-0001 is an
+  illustrative example entry, not a record of a real external review;
 - the project declaration: `project.json` (targets only, no flags).
 
 `./tools/safety instantiate` copies these files into a new project as the
@@ -26,9 +27,9 @@ root. The command runs every gate in one SDK container, then starts `hello world
 once in the runtime image and requires exit status 0.
 
 Expected output: one line per gate with `PASS`, then the verdict. The report is
-`artifacts/project-report.json`. On a GitHub-hosted Linux x86-64 runner, a full
-run of this example takes about 6 to 10 minutes, including 30 seconds of fuzz
-exploration. A failure stops the run with a non-zero exit status and names the
+`artifacts/project-report.json`. The target time for a full run of this example
+on a GitHub-hosted Linux x86-64 runner is 6 to 10 minutes, including 30 seconds
+of fuzz exploration. This is a design target; it is not measured yet. A failure stops the run with a non-zero exit status and names the
 gate and the evidence file.
 
 Run the program directly after a build:
@@ -76,3 +77,5 @@ hello $'\t'      # "hello: GREETING_NOT_PRINTABLE" on stderr, exit status 1
   caller that passes `SIZE_MAX` gets `GREETING_NAME_TOO_LONG` and no read past
   the buffer.
 - `hello` reads at most 65 bytes of its argument for the same reason.
+- `src/main.c` only calls `greeting_main`. The program logic is in the module,
+  so the unit tests reach every branch and the coverage gate measures it.
