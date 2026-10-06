@@ -1,21 +1,13 @@
-name: safety
+name: example
 on:
-  workflow_dispatch:
+  push:
   pull_request:
-    paths-ignore:
-      - 'src/**'
-      - 'include/**'
-      - 'tests/project/**'
-      - 'fuzz/project/**'
-      - 'specs/project/**'
-      - 'review/**'
-      - 'examples/**/README.md'
 permissions:
   contents: read
 jobs:
-  qualification:
+  project:
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
         with:
@@ -31,17 +23,12 @@ jobs:
           sha=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['archive_sha256'])")
           curl --fail --location --retry 3 --proto '=https' --max-filesize 3221225472 -o "$RUNNER_TEMP/images.tar.gz" "$url"
           ci/images load --archive "$RUNNER_TEMP/images.tar.gz" --sha256 "$sha"
-      - name: Sandbox doctor
-        run: ./tools/safety sandbox doctor
-      - name: Full framework qualification
-        run: ./tools/safety ci
-      - name: Upload the bounded report
+      - name: Project gates
+        run: ./tools/safety project check --project examples/hello-world
+      - name: Upload the project report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: bounded-safety-evidence
-          path: |
-            artifacts/bootstrap-report.json
-            artifacts/bootstrap-report.md
+          name: project-report
+          path: artifacts/project-report.json
           retention-days: 14
-          if-no-files-found: error
