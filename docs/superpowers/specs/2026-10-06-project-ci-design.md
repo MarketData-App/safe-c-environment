@@ -1,6 +1,6 @@
 # Project CI, framework manifest and portable containment — design
 
-Status: DRAFT for owner review. Date: 2026-10-06. Approach A of the owner's A/B
+Status: APPROVED by the owner on 2026-10-06. Date: 2026-10-06. Approach A of the owner's A/B
 decision; approach B (framework as a versioned package) is GitHub issue #1.
 
 ## 1. Purpose
@@ -174,9 +174,10 @@ and pull request.
 
 ## 10. Prerequisites and open decisions
 
-1. Image distribution: GitHub runners need the SDK and runtime images. Publishing
-   the image archive needs a license review (Debian packages, GLib under the
-   LGPL, notices in `third_party/`). Owner decision required.
+1. Image distribution: GitHub runners need the SDK and runtime images. Decided
+   2026-10-06: this is an open source project that complies with the licenses of
+   its components (notices in `third_party/`); publishing the image archive as a
+   GitHub release asset is approved.
 2. Platform: decided 2026-10-06 — Linux x86-64 only (Linux hosts and
    GitHub-hosted Ubuntu runners). Windows, macOS and native ARM64 images are out
    of scope for now.
