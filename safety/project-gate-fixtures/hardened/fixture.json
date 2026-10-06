@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "hardened",
+  "defect": "An ignored fread result. glibc marks fread warn_unused_result only when _FORTIFY_SOURCE is active, which only the hardened profile sets; the call is clang-only so a gcc that enables fortification by default does not see it.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

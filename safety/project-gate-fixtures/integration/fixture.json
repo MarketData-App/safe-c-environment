@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "integration",
+  "defect": "The run step starts hello without its NAME argument, so the program exits with the usage status 2.",
+  "operations": [
+    {
+      "op": "json_set",
+      "path": "project.json",
+      "pointer": "/run/args",
+      "value": []
+    }
+  ]
+}

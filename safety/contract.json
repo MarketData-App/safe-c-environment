@@ -422,7 +422,8 @@
     "developer-doctor",
     "developer-selftest",
     "developer-sabotage",
-    "developer-workflow"
+    "developer-workflow",
+    "project-gates"
   ],
   "containment": {
     "cases": [

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "ubsan",
+  "defect": "A signed integer overflow with a runtime value. The asan profile also enables -fsanitize=undefined and runs earlier, so the defect is compiled out of the AddressSanitizer build by __has_feature(address_sanitizer).",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}

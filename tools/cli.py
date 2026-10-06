@@ -366,6 +366,10 @@ def main(argv=None):
                         'evidence_paths':r['evidence_paths'],'reason':r['reason'] or ''} for r in additions if r['parent']==parent['id']]
                     parent['control']='PASS' if all(s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
                     parent['status']='PASS' if all(s['status']==s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
+            if args.command=='ci':
+                # Every project gate must reject its seeded defect; serial, one project container at a time.
+                from project_selftest import project_selftest
+                report['gates'].append(project_selftest(root))
             upstream=upstream_gate(root);report['reuse']['upstream_integrity']=upstream
             report['gates'].append(gate('upstream',details=upstream))
             return finish(root,report,runner,args.command)

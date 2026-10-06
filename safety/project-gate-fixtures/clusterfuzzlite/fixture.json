@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "clusterfuzzlite",
+  "defect": "A new fuzz target whose entry point has the wrong name, so the ClusterFuzzLite build contract link fails.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "fuzz/project/seeded_fuzz.c",
+      "source": "seeded_fuzz.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/fuzz",
+      "value": {
+        "name": "seeded",
+        "harness": "fuzz/project/seeded_fuzz.c",
+        "corpus": "fuzz/project/corpus/greeting",
+        "regressions": "fuzz/project/regressions/greeting"
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "inventory",
+  "defect": "A C source under src/ that project.json does not list.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "src/seeded_unlisted.c",
+      "source": "seeded_unlisted.c"
+    }
+  ]
+}

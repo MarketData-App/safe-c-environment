@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "kind": "fixture",
+  "gate": "asan",
+  "defect": "A stack out-of-bounds read through pointer arithmetic with a runtime offset (not an array subscript, so the ubsan bounds check in the same build does not see it); it has no visible effect in the uninstrumented builds.",
+  "operations": [
+    {
+      "op": "add",
+      "path": "tests/project/test_seeded.c",
+      "source": "test_seeded.c"
+    },
+    {
+      "op": "json_append",
+      "path": "project.json",
+      "pointer": "/modules/0/tests",
+      "value": "tests/project/test_seeded.c"
+    }
+  ]
+}
