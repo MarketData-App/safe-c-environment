@@ -694,7 +694,7 @@
       ]
     },
     "examples/hello-world/src/greeting_text.c": {
-      "sha256": "219685087429e21095efea213718662b9671eebed9e52f745f4eb88b4d366070",
+      "sha256": "402769d8a7c1149141781f948e660ae6dd836880effce652c088ec9a5ced20b7",
       "role": "example",
       "targets": [
         "hello"

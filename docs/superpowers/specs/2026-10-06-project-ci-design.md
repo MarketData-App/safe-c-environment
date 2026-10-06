@@ -93,7 +93,8 @@ reads `project.json` and creates every gate variant; projects never edit flags.
 `framework-manifest.json` (tracked) records:
 
 - the sha256 of every framework file, sorted by path;
-- the SDK, developer and runtime image IDs and the image archive digest;
+- the SDK and developer image IDs and the image archive digest (the runtime
+  image is built per project from the program, so it has no fixed ID);
 - the framework qualification run ID and its source identity;
 - the manifest schema version.
 
@@ -166,8 +167,8 @@ and pull request.
 
 - Project template workflow (`ci/project-ci.yml`, copied into new projects by
   `instantiate` as `.github/workflows/project-ci.yml`): checkout at a pinned SHA
-  without credentials; obtain the image archive, verify its digest against the
-  manifest and load it; run `./tools/safety project check`; upload the report as
+  without credentials; obtain the image archive, verify its digest against
+  `ci/image-bundle.json` (a framework file covered by the manifest) and load it; run `./tools/safety project check`; upload the report as
   a bounded artifact. Read-only permissions.
 - `.github/workflows/safety.yml` (framework qualification) runs on framework
   changes, on manual start and on pull requests that touch framework files.

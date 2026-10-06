@@ -96,7 +96,8 @@ static int utf8_valid(const unsigned char *bytes, size_t length) {
 /* In well-formed UTF-8, C0 controls (U+0000..U+001F) and DEL (U+007F) are the
  * single bytes 0x00..0x1F and 0x7F, and C1 controls (U+0080..U+009F) are 0xC2
  * followed by 0x80..0x9F. A continuation byte is never 0xC2, so each byte can
- * be checked on its own. */
+ * be checked on its own. The remaining > 1U guard is a defensive memory-safety
+ * check that is always true after validation; keep it. */
 static int control_at(const unsigned char *bytes, size_t remaining) {
     const unsigned char lead = *bytes;
     if (lead < 0x20U || lead == 0x7FU) {
