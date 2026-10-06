@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "hardened",
-  "defect": "An ignored fread result. glibc marks fread warn_unused_result only when _FORTIFY_SOURCE is active, which only the hardened profile sets; the call is clang-only so a gcc that enables fortification by default does not see it.",
+  "defect": "An ignored fread result. glibc marks fread warn_unused_result only when _FORTIFY_SOURCE is active, which only the hardened profile sets (the pinned Debian gcc does not enable fortification by default); every build compiles the same code.",
   "operations": [
     {
       "op": "add",

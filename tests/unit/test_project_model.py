@@ -157,6 +157,21 @@ class ProjectModelMoreTests(unittest.TestCase):
         for name,text in cases.items():
             with self.subTest(name=name), tempfile.TemporaryDirectory() as t:
                 with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':text,'review/ledger.json':'{}'},mutate=None)
+    def test_build_identity_branches_blocked(self):
+        # Every build must compile the same code. Names are split so this file does not hold them.
+        us='_'+'_'
+        names=[us+'OPTIMIZE'+us,us+'OPTIMIZE_SIZE'+us,us+'NO_INLINE'+us,us+'clang'+us,us+'clang_major'+us,
+               us+'GNUC'+us,us+'GNUC_MINOR'+us,us+'llvm'+us,us+'INTEL_COMPILER','_MSC'+'_VER',us+'COVERAGE'+us,
+               us+'SANITIZE_THREAD'+us,'_FORTIFY'+'_SOURCE',us+'USE_FORTIFY_LEVEL',us+'SSP_STRONG'+us,
+               us+'PIE'+us,us+'pie'+us,us+'PIC'+us]
+        for name in names:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'#if defined('+name+')\nint y;\n#endif'},mutate=None)
+        for probe in ('builtin(__builtin_expect)','attribute(unused)','c_attribute(nodiscard)','include(<stdio.h>)','include_next(<stdio.h>)'):
+            with self.subTest(probe=probe), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'include/greeting.h':'#if '+us+'has_'+probe+'\n#endif'},mutate=None)
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'#ifdef '+us+'clang'+us+'\n#endif'},mutate=None)
     def test_angle_include_of_undeclared_include_file_blocked(self):
         with tempfile.TemporaryDirectory() as t:
             d=Path(t)

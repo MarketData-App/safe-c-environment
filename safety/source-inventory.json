@@ -729,7 +729,7 @@
       ]
     },
     "safety/project-gate-fixtures/clang-O2/test_seeded.c": {
-      "sha256": "83bb212bde57df28cbe61117c8a3abc1dc71e982479c887e5c6a0b126c343302",
+      "sha256": "4ea175faf021046ab7bbcfca713f9e825ca932c6081ad4cb45302a6ca8de12f3",
       "role": "qualification-only",
       "targets": [
         "project-gate-clang-O2"
@@ -806,7 +806,7 @@
       ]
     },
     "safety/project-gate-fixtures/hardened/test_seeded.c": {
-      "sha256": "4bfb7caae40c845cf27a3a9473cdbbde3d03ddf1bcf6f9e74f24c71e96efa4a4",
+      "sha256": "f0994c8117403591dd479750bc92cc15ba0daf599c63e10a221074825d6ad6b6",
       "role": "qualification-only",
       "targets": [
         "project-gate-hardened"

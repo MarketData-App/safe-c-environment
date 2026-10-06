@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "fixture",
   "gate": "clang-O2",
-  "defect": "Only the optimizing clang build rewrites a printf call into a call to puts, which a clang-only redeclaration marks with a warning attribute; the backend warning is an error under -Werror. The unoptimized builds keep the printf call, and gcc does not see the attribute.",
+  "defect": "Only optimizing clang rewrites a memcmp compared with zero into a call to bcmp, which the test redeclares with a warning attribute; the backend warning is an error under -Werror. gcc never emits bcmp calls and the unoptimized builds keep memcmp; every build compiles the same code.",
   "operations": [
     {
       "op": "add",

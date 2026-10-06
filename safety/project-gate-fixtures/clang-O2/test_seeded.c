@@ -1,15 +1,23 @@
-#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
 
-/* The optimizing clang build rewrites the printf call below into a call to puts.
- * The clang-only redeclaration marks puts with a warning attribute, so only the
- * optimizing clang build reports that call (an error under -Werror). */
-#if defined(__clang__)
-int puts(const char *text) __attribute__((warning("seeded: puts must not be called")));
-#endif
+/* Only optimizing clang rewrites a memcmp whose result is compared with zero into
+ * a call to bcmp. This redeclaration marks bcmp with a warning attribute, so only
+ * the optimizing clang build reports that call (an error under -Werror). gcc never
+ * emits bcmp calls, and the unoptimized builds keep the memcmp call. */
+int bcmp(const void *first, const void *second, size_t count) __attribute__((warning("seeded")));
+
+static volatile char seeded_source = 's';
+static volatile size_t seeded_length = 8;
 
 int main(void) {
-    int (*volatile keep)(const char *) = puts;
+    int (*volatile keep)(const void *, const void *, size_t) = bcmp;
+    char left[8];
+    char right[8];
+    for (size_t index = 0; index < sizeof left; ++index) {
+        left[index] = seeded_source;
+        right[index] = seeded_source;
+    }
     (void)keep;
-    printf("seeded\n");
-    return 0;
+    return memcmp(left, right, seeded_length) == 0 ? 0 : 1;
 }
