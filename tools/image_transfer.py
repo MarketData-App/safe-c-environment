@@ -194,10 +194,9 @@ def controller(root,out):
     if any(os.environ.get(name) for name in DOCKER_SETTINGS):
         raise GateError('inherited Docker setting rejected')
     launcher=Launcher(root,out,read_json(root/'toolchain.lock.json'))
-    from evidence import bounded
-    context=bounded(['/usr/bin/docker','context','show'],timeout=15,limit=65536)
-    if not passed(context) or context['output'].strip()!=launcher.value['runner']['context']:
-        shutil.rmtree(launcher.config);raise GateError('unapproved Docker context')
+    try:launcher.qualify_host()
+    except Exception:
+        shutil.rmtree(launcher.config);raise
     return launcher
 
 

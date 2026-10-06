@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
+  "units": {
+    "greeting": [
+      "Is name_len bounded before any name byte is read?",
+      "Does UTF-8 decoding reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within name_len?",
+      "Does the printable check reject C0 controls, DEL and C1 controls?",
+      "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
+      "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?",
+      "Does greeting_main bound the argument scan, handle a NULL name and report usage, status and write errors?"
+    ]
+  },
+  "findings": [
+    {
+      "id": "GREETING-0001",
+      "origin": "reviewer:example-walkthrough",
+      "source_identity": "1de52666ce9cf19acce7279fd4bec70459bd6b4bc7f00b8d186d6b984efe36c9",
+      "location": "src/greeting.c:100",
+      "property": "out-of-bounds read of name when name_len exceeds the readable name buffer (for example SIZE_MAX)",
+      "severity": "high if real: read past a borrowed caller buffer",
+      "rationale": "Illustrative example entry for the hello-world example, not a record of a real external review. A caller can pass a name_len larger than the readable name bytes; the UTF-8 scan would then read past the buffer. source_identity is the sha256 of json.dumps({path: sha256}, sort_keys=True) over the example files under src/, include/, tests/project/, fuzz/project/, specs/project/ and review/ (paths relative to examples/hello-world, review/ledger.json excluded).",
+      "reproducer": "tests/project/test_greeting.c: expect(max, SIZE_MAX, 128U, GREETING_NAME_TOO_LONG, \"\") and expect(max, GREETING_NAME_MAX + 1U, ...)",
+      "state": "REJECTED",
+      "attempts": 0,
+      "history": [
+        {
+          "reason": "Not a defect: validate() rejects name_len > GREETING_NAME_MAX at src/greeting.c:100 before check_name() reads any byte; the SIZE_MAX and 65-byte boundary tests cover it and the fuzz target checks it for every input length.",
+          "duplicate_of": null
+        }
+      ],
+      "verification": null
+    }
+  ],
+  "review": [
+    {
+      "unit": "greeting",
+      "question": "Is name_len bounded before any name byte is read?",
+      "locations": [
+        100,
+        103
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Does UTF-8 decoding reject invalid lead bytes, truncated, bad-continuation, overlong, surrogate and above-U+10FFFF sequences while staying within name_len?",
+      "locations": [
+        32,
+        36,
+        40,
+        45,
+        47,
+        51,
+        53,
+        57,
+        60,
+        84
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Does the printable check reject C0 controls, DEL and C1 controls?",
+      "locations": [
+        70,
+        73
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Is every write to out bounded by capacity, and can the size arithmetic wrap?",
+      "locations": [
+        108,
+        126,
+        127,
+        130,
+        136,
+        138
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Do all failure paths leave out[0] NUL when capacity > 0 and *written 0?",
+      "locations": [
+        11,
+        116,
+        117,
+        122
+      ]
+    },
+    {
+      "unit": "greeting",
+      "question": "Does greeting_main bound the argument scan, handle a NULL name and report usage, status and write errors?",
+      "locations": [
+        166,
+        169,
+        181,
+        185,
+        190,
+        193,
+        194,
+        195,
+        196,
+        198
+      ]
+    }
+  ]
+}

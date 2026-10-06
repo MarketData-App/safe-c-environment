@@ -2,13 +2,14 @@
   "schema_version": 1,
   "policy_version": "1.0",
   "runner": {
-    "role": "development-qualification",
-    "endpoint": "unix:///var/run/docker.sock",
-    "context": "default",
-    "daemon_id": "99890cc3-d463-43fa-95e0-309335b25a4e",
+    "role": "portable",
+    "endpoint_scheme": "unix",
     "architecture": "x86_64",
     "cgroup_version": "2",
-    "require_apparmor": true
+    "lsm": [
+      "apparmor",
+      "selinux"
+    ]
   },
   "aggregate": {
     "max_active": 4,
@@ -102,6 +103,20 @@
       "shm_bytes": 16777216,
       "work_inodes": 65536,
       "wall_seconds": 120,
+      "network": "none",
+      "executable_work": true
+    },
+    "project": {
+      "memory_bytes": 3221225472,
+      "swap_bytes": 0,
+      "cpus": 2,
+      "pids": 256,
+      "work_bytes": 4294967296,
+      "tmp_bytes": 268435456,
+      "run_bytes": 1048576,
+      "shm_bytes": 67108864,
+      "work_inodes": 262144,
+      "wall_seconds": 1500,
       "network": "none",
       "executable_work": true
     },
