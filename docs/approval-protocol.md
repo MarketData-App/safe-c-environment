@@ -11,8 +11,9 @@ flawed, AGENTS.md hygiene rules, read-only repository access and one assigned
 output area. The implementer never writes, edits or summarizes away a verdict;
 record it verbatim with approver model, brief digest, source identity and
 findings. An unresolved high-severity finding, missing evidence or an approver
-that edited source is a rejection. Protected policy, fixture, toolchain and
-runner changes need two separately launched approvers that both approve. Repair
+that edited source is a rejection. One approver is enough for every change,
+including protected policy, fixture, toolchain and runner changes (owner decision
+2026-10-06: "one reviewer is ok"; this replaces an earlier two-approver rule). Repair
 findings through the ledger and launch new approvers for the repaired source;
 an approval binds only the exact source identity it reviewed. Agent approval is
 model judgement, not proof; trusted tools still decide deterministic results.
