@@ -130,6 +130,59 @@ class ProjectModelMoreTests(unittest.TestCase):
         for text in ('#define CAT(a, b) a #\\\n# b','#define CAT(a, b) a %'+':%: b'):
             with self.subTest(text=text), tempfile.TemporaryDirectory() as t:
                 with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':text},mutate=None)
+    def test_round2_bypass_variants_blocked(self):
+        # Fragments keep the forbidden spellings out of this file's own text.
+        us='_'+'_'
+        cases={'digraph pragma':'%'+':pragma GCC diagnostic ignored "-Wconversion"',
+               'digraph pragma spaced':'%'+': pragma clang diagnostic push',
+               'system_header':'#pragma GCC system'+'_header',
+               'clang system_header':'#pragma clang system'+'_header',
+               'other pragma':'#pragma pack(1)',
+               'trigraph pragma':'?'+'?=pragma GCC diagnostic push',
+               'underscored attribute':'#if defined('+us+'clang'+us+')\n'+us+'attribute'+us+'(('+us+'disable_sanitizer'+'_instrumentation'+us+')) int f(void);\n#endif',
+               'underscored no_sanitize':us+'attribute'+us+'(('+us+'no_sanitize'+'_address'+us+')) int f(void);',
+               'underscored address safety':us+'attribute'+us+'(('+us+'no_address_safety'+'_analysis'+us+')) int f(void);',
+               'optnone':us+'attribute'+us+'((opt'+'none)) int f(void);',
+               'underscored optimize':us+'attribute'+us+'(('+us+'optimize'+us+' ("O0"))) int f(void);',
+               'wrapped has_feature':'#define HAS(x) '+us+'has'+'_feature(x)\n#if HAS(address_sanitizer)\n#endif',
+               'has_extension':'#if '+us+'has'+'_extension(c_static_assert)\n#endif',
+               'quoted include of review file':'#include "../review/'+'ledger.json"',
+               'quoted include of spec':'#include "../specs/project/greeting.md"',
+               'quoted include of corpus':'#include "../fuzz/project/corpus/greeting/seed"',
+               'quoted include of undeclared':'#include "missing.h"',
+               'digraph quoted include':'%'+':include "../review/'+'ledger.json"',
+               'computed include':'#define F "greeting.h"\n#include F',
+               'angle include leaves directory':'#include <../review/'+'ledger.json>',
+               'include_next':'#include'+'_next <stdio.h>'}
+        for name,text in cases.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':text,'review/ledger.json':'{}'},mutate=None)
+    def test_build_identity_branches_blocked(self):
+        # Every build must compile the same code. Names are split so this file does not hold them.
+        us='_'+'_'
+        names=[us+'OPTIMIZE'+us,us+'OPTIMIZE_SIZE'+us,us+'NO_INLINE'+us,us+'clang'+us,us+'clang_major'+us,
+               us+'GNUC'+us,us+'GNUC_MINOR'+us,us+'llvm'+us,us+'INTEL_COMPILER','_MSC'+'_VER',us+'COVERAGE'+us,
+               us+'SANITIZE_THREAD'+us,'_FORTIFY'+'_SOURCE',us+'USE_FORTIFY_LEVEL',us+'SSP_STRONG'+us,
+               us+'PIE'+us,us+'pie'+us,us+'PIC'+us]
+        for name in names:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'#if defined('+name+')\nint y;\n#endif'},mutate=None)
+        for probe in ('builtin(__builtin_expect)','attribute(unused)','c_attribute(nodiscard)','include(<stdio.h>)','include_next(<stdio.h>)'):
+            with self.subTest(probe=probe), tempfile.TemporaryDirectory() as t:
+                with self.assertRaises(GateError): self.inv(Path(t),extra={'include/greeting.h':'#if '+us+'has_'+probe+'\n#endif'},mutate=None)
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'#ifdef '+us+'clang'+us+'\n#endif'},mutate=None)
+    def test_angle_include_of_undeclared_include_file_blocked(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t)
+            m=dict(PROJECT['modules'][0],fuzz=[dict(PROJECT['modules'][0]['fuzz'][0],corpus='include/corpus')])
+            files={'src/greeting.c':'#include <corpus/seed>','include/corpus/seed':'a'}
+            with self.assertRaises(GateError): self.inv(d,project=dict(PROJECT,modules=[m]),extra=files)
+    def test_allowed_pragma_once_and_includes(self):
+        with tempfile.TemporaryDirectory() as t:
+            self.inv(Path(t),extra={'include/greeting.h':'#pragma once\nint x;',
+                                    'src/greeting.c':'#include "greeting.h"\n#include "../include/greeting.h"\n'
+                                                     '%'+':include "greeting.h"\n#include <greeting.h>\n#include <stdio.h>\nint x;'},mutate=None)
     def test_ordinary_code_is_not_forbidden(self):
         with tempfile.TemporaryDirectory() as t:
             self.inv(Path(t),extra={'src/greeting.c':'#pragma once\n/* sanitize the input */ int has_feature_x(void);'},mutate=None)

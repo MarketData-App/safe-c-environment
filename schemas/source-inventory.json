@@ -113,6 +113,7 @@
         "safety/project-gate-fixtures/asan/test_seeded.c",
         "safety/project-gate-fixtures/ast/test_seeded.c",
         "safety/project-gate-fixtures/clang-O0/test_seeded.c",
+        "safety/project-gate-fixtures/clang-O2/seeded_pick.c",
         "safety/project-gate-fixtures/clang-O2/test_seeded.c",
         "safety/project-gate-fixtures/clusterfuzzlite/seeded_fuzz.c",
         "safety/project-gate-fixtures/coverage/seeded_uncovered.c",
@@ -2404,6 +2405,29 @@
             "targets": {
               "const": [
                 "project-gate-clang-O0"
+              ]
+            }
+          }
+        },
+        "safety/project-gate-fixtures/clang-O2/seeded_pick.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "qualification-only"
+            },
+            "targets": {
+              "const": [
+                "project-gate-clang-O2"
               ]
             }
           }

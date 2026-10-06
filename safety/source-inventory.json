@@ -728,8 +728,15 @@
         "project-gate-clang-O0"
       ]
     },
+    "safety/project-gate-fixtures/clang-O2/seeded_pick.c": {
+      "sha256": "96707bfa701753cdf2c670b3979e0b0360c8a78f2d7a69dfca6f325b75034a0a",
+      "role": "qualification-only",
+      "targets": [
+        "project-gate-clang-O2"
+      ]
+    },
     "safety/project-gate-fixtures/clang-O2/test_seeded.c": {
-      "sha256": "5ad299aa403736de3303551217b5d79bcfc596fa32690aea888a789addb7a313",
+      "sha256": "f966502d90b43d87ba4fbab4695b706c02bf50c2a8dff0d09ca85c3593859984",
       "role": "qualification-only",
       "targets": [
         "project-gate-clang-O2"
@@ -806,7 +813,7 @@
       ]
     },
     "safety/project-gate-fixtures/hardened/test_seeded.c": {
-      "sha256": "4bfb7caae40c845cf27a3a9473cdbbde3d03ddf1bcf6f9e74f24c71e96efa4a4",
+      "sha256": "f0994c8117403591dd479750bc92cc15ba0daf599c63e10a221074825d6ad6b6",
       "role": "qualification-only",
       "targets": [
         "project-gate-hardened"
