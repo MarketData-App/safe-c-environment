@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "status": "LOCAL_ONLY",
-  "publication_authorized": false,
-  "license_review": "PENDING",
+  "status": "PUBLISHED",
+  "publication_authorized": true,
+  "license_review": "OWNER_CONFIRMED_COMPLIANT_2026-10-06",
   "archive_sha256": "ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624",
   "archive_bytes": 496826156,
   "image_ids": [
@@ -13,6 +13,6 @@
     "sha256:656026b2fcb4e4b83f376f8abcbe79fb0f8c253ce4e56ee9cdf2a325d42c29e3",
     "sha256:d5856c404be7c6928b663a1c0dd296f957f3e977416d339b9104a503d94b1fc1"
   ],
-  "url": null,
+  "url": "https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v2/images.tar.gz",
   "qualification_inherited": false
 }

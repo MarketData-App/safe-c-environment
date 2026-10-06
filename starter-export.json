@@ -28,6 +28,7 @@
     "README.md",
     "ci/README.md",
     "ci/clusterfuzzlite-workflow.yml.example",
+    "ci/controller-requirements.txt",
     "ci/image-bundle.json",
     "ci/images",
     "ci/run",
