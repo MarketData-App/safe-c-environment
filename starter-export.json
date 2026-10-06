@@ -67,6 +67,7 @@
     "docs/agent-development-quickstart.md",
     "docs/agent-workflow.md",
     "docs/application-foundation.md",
+    "docs/approval-protocol.md",
     "docs/deferred-integrations.md",
     "docs/developer-workflow.md",
     "docs/docker-containment.md",
