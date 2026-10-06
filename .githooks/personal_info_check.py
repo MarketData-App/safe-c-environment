@@ -7,14 +7,18 @@ and read from untracked private pattern files, one regular expression per line:
   <git common dir>/info/personal-patterns
   ~/.config/safe-c-environment/personal-patterns
 The complete content and name of every added or changed file is checked, not
-only the changed lines; merge commits are compared with every parent. UTF-16
-and gzip content is decoded, and other binary content is reduced to printable
-runs. Commit author/committer and tag tagger emails must be GitHub noreply
-addresses (GitHub's web-flow committer is also accepted), and their names and
-messages are checked like content. Content of a file under third_party/ is
-exempt only while its bytes match a sha256 pinned in a lock file of the same
-revision (the reviewed upstream artifact); its name is still checked, and any
-changed or unpinned vendored file gets every rule. Findings print the path, line and category,
+only the changed lines; merge commits are compared with every parent and
+submodule entries are skipped. Archives are expanded member by member (zip, tar,
+gzip, xz and bzip2, nested to a finite depth within one decompression budget);
+an undecodable member or an exceeded member cap is a finding. Text is read as
+UTF-8, UTF-16 or UTF-32 with or without a byte-order mark; other binary content
+is read as printable runs and searched byte-wise for local values. Commit
+author/committer and tag tagger emails must be GitHub noreply addresses (GitHub's
+web-flow committer is also accepted), and their names and messages are checked
+like content. Content of a file under third_party/ or container/foundation-inputs/,
+or of an upstream archive (.whl, .zip, .tar.*), is exempt only when a lock file of
+the same revision binds that path to that sha256; names are always checked and
+first-party files get every rule. Findings print the path, line and category,
 with the matched value masked.
 
 Modes: --staged (pre-commit, pre-merge-commit), --message FILE (commit-msg),
@@ -26,13 +30,16 @@ from pathlib import Path
 import argparse
 import getpass
 import hashlib
+import bz2
 import io
 import json
+import lzma
 import os
 import re
 import socket
 import subprocess
 import sys
+import tarfile
 import zipfile
 import zlib
 
@@ -54,6 +61,10 @@ NOREPLY = re.compile(r'(?:[0-9]+\+)?[A-Za-z0-9-]+@users\.noreply\.github\.com', 
 WEB_FLOW = 'noreply@github.com'
 ZERO = re.compile(r'^0+$')
 PRINTABLE = re.compile(rb'[\x20-\x7e]{8,}')
+SHORT_RUNS = re.compile(rb'[\x20-\x7e]{3,}')
+MAX_DEPTH = 4
+MEMBER_CAP = 4096
+GITLINK = '160000'
 DIGEST = re.compile(r'(?:sha256:)?[0-9a-f]{64}')
 DECOMPRESSED_LIMIT = 64 * 1024 * 1024
 
@@ -65,47 +76,107 @@ def git(*args, binary=False, check=True):
     return result.stdout if binary else result.stdout.decode('utf-8', errors='replace')
 
 
-def inflate(data):
+class Expansion:
+    """Finite budget and findings shared by one archive expansion."""
+    def __init__(self):
+        self.used, self.problems = 0, []
+
+    def take(self, size):
+        self.used += size
+        if self.used > DECOMPRESSED_LIMIT:
+            raise ValueError('decompressed content exceeds the finite limit')
+
+    def room(self):
+        return DECOMPRESSED_LIMIT - self.used + 1
+
+
+def inflate(data, state):
     """Bounded gzip inflation that keeps partial output of truncated, multi-member
     or trailing-data streams."""
     out, rest = bytearray(), data
-    while rest[:2] == b'\x1f\x8b' and len(out) <= DECOMPRESSED_LIMIT:
+    while rest[:2] == b'\x1f\x8b':
         engine = zlib.decompressobj(16 + zlib.MAX_WBITS)
         try:
-            out += engine.decompress(rest, DECOMPRESSED_LIMIT + 1 - len(out))
+            chunk = engine.decompress(rest, state.room())
         except zlib.error:
             break
+        state.take(len(chunk))
+        out += chunk
         if not engine.eof:
             break
         rest = engine.unused_data
-    if len(out) > DECOMPRESSED_LIMIT:
-        raise ValueError('decompressed content exceeds the finite limit')
     return bytes(out)
 
 
-def unzip(data):
-    """Bounded concatenation of zip member names and contents."""
-    out = bytearray()
+def unpack(data, state, engine):
     try:
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            for info in archive.infolist()[:4096]:
-                out += info.filename.encode() + b'\n'
-                with archive.open(info) as member:
-                    out += member.read(DECOMPRESSED_LIMIT + 1 - len(out)) + b'\n'
-                if len(out) > DECOMPRESSED_LIMIT:
-                    raise ValueError('decompressed content exceeds the finite limit')
-    except (zipfile.BadZipFile, OSError, EOFError, zlib.error, NotImplementedError, RuntimeError):
-        pass
-    return bytes(out)
+        out = engine.decompress(data, max_length=state.room())
+    except (OSError, EOFError, lzma.LZMAError, ValueError):
+        return b''
+    state.take(len(out))
+    return out
 
 
-def decode(data, depth=0):
-    """Readable text of a blob: nested gzip and zip (finite), UTF-16/UTF-32 with or
-    without a byte-order mark, and printable runs of other binary content."""
-    if depth < 4:
-        inner = inflate(data) if data[:2] == b'\x1f\x8b' else unzip(data) if data[:4] == b'PK\x03\x04' else b''
-        if inner:
-            return decode(inner, depth + 1) + '\n' + decode(data, 4)
+def expand(data, state, depth=0):
+    """(member names, leaf contents) of a blob, expanding archives member by member."""
+    if depth >= MAX_DEPTH:
+        return [], [data]
+    inner = None
+    if data[:2] == b'\x1f\x8b':
+        inner = inflate(data, state)
+    elif data[:6] == b'\xfd7zXZ\x00':
+        inner = unpack(data, state, lzma.LZMADecompressor())
+    elif data[:3] == b'BZh':
+        inner = unpack(data, state, bz2.BZ2Decompressor())
+    if inner:
+        return expand(inner, state, depth + 1)
+    names, leaves = [], []
+    if data[:4] == b'PK\x03\x04':
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                members = archive.infolist()
+                if len(members) > MEMBER_CAP:
+                    state.problems.append('archive-member-cap')
+                for info in members[:MEMBER_CAP]:
+                    names.append(info.filename)
+                    try:
+                        with archive.open(info) as member:
+                            content = member.read(state.room())
+                    except (NotImplementedError, RuntimeError, zipfile.BadZipFile, OSError, EOFError, zlib.error):
+                        state.problems.append('undecodable-archive-member')
+                        continue
+                    state.take(len(content))
+                    more_names, more = expand(content, state, depth + 1)
+                    names += more_names
+                    leaves += more
+            return names, leaves
+        except zipfile.BadZipFile:
+            pass
+    if len(data) > 262 and data[257:262] == b'ustar':
+        try:
+            with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
+                count = 0
+                for member in archive:
+                    count += 1
+                    if count > MEMBER_CAP:
+                        state.problems.append('archive-member-cap')
+                        break
+                    names.append(member.name)
+                    if member.isfile():
+                        content = archive.extractfile(member).read(state.room())
+                        state.take(len(content))
+                        more_names, more = expand(content, state, depth + 1)
+                        names += more_names
+                        leaves += more
+            return names, leaves
+        except tarfile.TarError:
+            names, leaves = [], []
+    return [], [data]
+
+
+def decode(data):
+    """Readable text of one leaf: UTF-8, UTF-16/UTF-32 with or without a byte-order
+    mark, and printable runs of other binary content."""
     parts = [data.decode('utf-8', errors='replace')]
     for bom, codec in ((b'\xff\xfe\x00\x00', 'utf-32'), (b'\x00\x00\xfe\xff', 'utf-32'),
                        (b'\xff\xfe', 'utf-16'), (b'\xfe\xff', 'utf-16')):
@@ -114,9 +185,11 @@ def decode(data, depth=0):
             break
     if b'\0' in data:
         # Binary content: printable runs, also from 2- and 4-byte strides so UTF-16
-        # and UTF-32 text without a byte-order mark is still read.
+        # and UTF-32 text without a byte-order mark is still read, and short runs of
+        # the bytes themselves so short values between NUL bytes are read.
         strides = [data] + [data[k::2] for k in range(2)] + [data[k::4] for k in range(4)]
         parts = [run.decode('ascii') for part in strides for run in PRINTABLE.findall(part)]
+        parts += [run.decode('ascii') for run in SHORT_RUNS.findall(data)]
     return '\n'.join(parts)
 
 
@@ -222,12 +295,19 @@ class Scanner:
         upstream = path.startswith(VENDORED) or path.endswith(UPSTREAM_ARCHIVES)
         if upstream and (path, hashlib.sha256(data).hexdigest()) in self.pinned(rev):
             return
-        self.text(label, decode(data))
-        if b'\0' in data:
-            for rx in self.raw:
-                match = rx.search(data)
-                if match:
-                    self.findings.append(f'{label}: binary local-identity ({mask(match.group(0).decode("latin-1"))})')
+        state = Expansion()
+        names, leaves = expand(data, state)
+        for member in names:
+            self.name(f'{label}!{member}', member)
+        for problem in sorted(set(state.problems)):
+            self.findings.append(f'{label}: {problem}')
+        for leaf in leaves:
+            self.text(label, decode(leaf))
+            if b'\0' in leaf:
+                for rx in self.raw:
+                    match = rx.search(leaf)
+                    if match:
+                        self.findings.append(f'{label}: binary local-identity ({mask(match.group(0).decode("latin-1"))})')
 
     def blob(self, label, path, rev):
         spec = f':{path}' if rev == ':' else f'{rev}:{path}'
@@ -248,9 +328,9 @@ class Scanner:
         self.text(label + ':message', fields[4])
         parents = git('rev-list', '--parents', '-n', '1', sha).split()[1:]
         base = ['--root'] if not parents else ['-m'] if len(parents) > 1 else []
-        listing = git('diff-tree', '-r', '-z', '--no-commit-id', '--name-only', '--diff-filter=ACMRT',
+        listing = git('diff-tree', '-r', '-z', '--no-commit-id', '--raw', '--diff-filter=ACMRT',
                       '--no-renames', *base, sha)
-        for path in sorted(set(filter(None, listing.split('\0')))):
+        for path in sorted(changed(listing)):
             self.blob(f'{label}:{path}', path, sha)
 
     def tag(self, obj):
@@ -275,8 +355,10 @@ class Scanner:
         if target == 'blob':
             self.content('tagged-blob ' + obj[:12], '', git('cat-file', 'blob', obj, binary=True), None)
         elif target == 'tree':
-            for path in filter(None, git('ls-tree', '-r', '-z', '--name-only', obj).split('\0')):
-                self.blob(f'tagged-tree {obj[:12]}:{path}', path, obj)
+            for row in filter(None, git('ls-tree', '-r', '-z', obj).split('\0')):
+                meta, _, path = row.partition('\t')
+                if meta.split()[1] == 'blob':
+                    self.blob(f'tagged-tree {obj[:12]}:{path}', path, obj)
         return obj
 
 
@@ -285,9 +367,22 @@ def staged(scanner):
         match = re.search(r'^(.*) <([^>]*)>', git('var', role))
         scanner.identity('index', role.split('_')[1].lower(), match.group(2) if match else '',
                          match.group(1) if match else '')
-    listing = git('diff', '--cached', '-z', '--name-only', '--diff-filter=ACMRT', '--no-renames')
-    for path in filter(None, listing.split('\0')):
+    listing = git('diff', '--cached', '-z', '--raw', '--diff-filter=ACMRT', '--no-renames')
+    for path in sorted(changed(listing)):
         scanner.blob(path, path, ':')
+
+
+def changed(listing):
+    """Paths of a -z --raw listing, without submodule (gitlink) entries."""
+    fields, paths, index = listing.split('\0'), set(), 0
+    while index + 1 < len(fields):
+        meta, path = fields[index], fields[index + 1]
+        if not meta.startswith(':'):
+            raise ValueError('unexpected raw listing record')
+        if meta.split()[1] != GITLINK:
+            paths.add(path)
+        index += 2
+    return paths
 
 
 def kind(obj):
@@ -332,8 +427,10 @@ def main():
             for sha in git('rev-list', 'HEAD', '--tags').split():
                 scanner.commit(sha)
         elif args.tree:
-            for path in filter(None, git('ls-files', '-z').split('\0')):
-                scanner.content(path, path, Path(path).read_bytes(), None)
+            for row in filter(None, git('ls-files', '-s', '-z').split('\0')):
+                meta, _, path = row.partition('\t')
+                if meta.split()[0] != GITLINK:
+                    scanner.content(path, path, Path(path).read_bytes(), None)
         else:
             staged(scanner)
     except (OSError, RuntimeError, ValueError) as error:

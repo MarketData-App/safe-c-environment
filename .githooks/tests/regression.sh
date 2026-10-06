@@ -105,5 +105,37 @@ fresh firstparty-pin; mkdir tools; echo "owner $BAD" > tools/x.py
 fresh ok-wheel;      mkdir container; python3 -c "import sys,zipfile;z=zipfile.ZipFile('container/up-1.0-py3-none-any.whl','w',zipfile.ZIP_DEFLATED);z.writestr('METADATA','Author-email: '+sys.argv[1]);z.close()" "maintainer${AT}upstream-project.org"
                      printf '{"inputs": [{"path": "container/up-1.0-py3-none-any.whl", "sha256": "%s"}]}\n' "$(sha256sum container/up-1.0-py3-none-any.whl | cut -c1-64)" > upstream.lock.json
                      r ok-pinned-upstream-wheel ok "$(reach)"
+mkzip() { python3 - "$@" <<'PY'
+import io,sys,zipfile,gzip,tarfile,struct
+kind,out,value=sys.argv[1],sys.argv[2],sys.argv[3].encode()
+def z(entries,method=zipfile.ZIP_DEFLATED):
+    b=io.BytesIO(); f=zipfile.ZipFile(b,'w',method)
+    for n,d in entries: f.writestr(n,d)
+    f.close(); return b.getvalue()
+if kind=='zip-in-zip': data=z([('outer/inner.zip',z([('m.txt',value)]))])
+elif kind=='gzip-in-zip': data=z([('m.txt.gz',gzip.compress(value))])
+elif kind=='gz-in-targz':
+    b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w:gz'); inner=gzip.compress(value)
+    i=tarfile.TarInfo('inner.gz'); i.size=len(inner); t.addfile(i,io.BytesIO(inner)); t.close(); data=b.getvalue()
+elif kind=='tar':
+    b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w'); i=tarfile.TarInfo('m.txt'); i.size=len(value); t.addfile(i,io.BytesIO(value)); t.close(); data=b.getvalue()
+elif kind=='bad-method':
+    data=bytearray(z([('a.bin',b'x'*64),('m.txt',value)],zipfile.ZIP_STORED))
+    data[8:10]=struct.pack('<H',9); c=data.find(b'PK\x01\x02'); data[c+10:c+12]=struct.pack('<H',9); data=bytes(data)
+elif kind=='member-cap': data=z([(f'f{i}.txt',b'x') for i in range(4097)]+[('last.txt',value)],zipfile.ZIP_STORED)
+open(out,'wb').write(data)
+PY
+}
+fresh zip-in-zip;    mkzip zip-in-zip a.zip "$BAD";     r zip-in-zip bad "$(reach)"
+fresh gzip-in-zip;   mkzip gzip-in-zip a.zip "$BAD";    r gzip-in-zip bad "$(reach)"
+fresh gz-in-targz;   mkzip gz-in-targz a.tar.gz "$BAD"; r gz-in-tar-gz bad "$(reach)"
+fresh plain-tar;     mkzip tar a.tar "$BAD";            r plain-tar bad "$(reach)"
+fresh xz;            echo "$BAD" | xz > a.xz;            r xz bad "$(reach)"
+fresh bzip2;         echo "$BAD" | bzip2 > a.bz2;        r bzip2 bad "$(reach)"
+fresh bad-method;    mkzip bad-method a.zip "$BAD";     r undecodable-zip-member bad "$(reach)"
+fresh member-cap;    mkzip member-cap a.zip "$BAD";     r zip-member-cap bad "$(reach)"
+fresh short-email;   printf 'x\000a%sbc.io\000y' "$AT" > s.bin; r short-email-in-binary bad "$(reach)"
+fresh ok-gitlink;    git update-index --add --cacheinfo "160000,$(git rev-parse HEAD),sub"
+                     if git commit -q -m sub >/dev/null 2>&1 && push && python3 .githooks/personal_info_check.py --history >/dev/null 2>&1; then o=ALLOWED; else o=BLOCKED; fi; r ok-submodule-entry ok $o
 rm -rf "$BASE"
 exit $FAIL
