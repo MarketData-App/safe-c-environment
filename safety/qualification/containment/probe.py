@@ -12,6 +12,12 @@ import time
 CEILINGS={'memory_bytes':192*1024*1024,'child_attempts':64,'child_seconds':6,'busy_seconds':3,'write_bytes':24*1024*1024,'inode_attempts':96,'log_bytes':4*1024*1024,'deadline_seconds':8}
 
 def emit(value):print(json.dumps(value),flush=True)
+def home_exposed(mountinfo,home=Path('/home')):
+    """True when any mount point is /home or below it, or when /home is a non-empty directory."""
+    for line in mountinfo.splitlines():
+        fields=line.split()
+        if len(fields)>4 and (fields[4]=='/home' or fields[4].startswith('/home/')):return True
+    return home.is_dir() and any(home.iterdir())
 def main(mode,control=False):
     if mode=='identity':
         emit({'compute':sum(range(10)),'uid':os.getuid(),'gid':os.getgid(),'ceilings':CEILINGS})
@@ -32,7 +38,7 @@ def main(mode,control=False):
         for p in Path('/proc/self/fd').iterdir():
             try:fds[p.name]=os.readlink(p)
             except OSError:pass
-        emit({'unexpected_environment_names':sorted(entries),'synthetic_secret_inherited':'SAFETY_SYNTHETIC_SECRET' in os.environ,'allowed':os.environ.get('SAFETY_PUBLIC_MARKER'),'management_socket_present':any(Path(p).exists() for p in ['/var/run/docker.sock','/run/containerd/containerd.sock','/alternate/management.sock']),'home_mount_present':any(l.split()[4]=='/home' or l.split()[4].startswith('/home/') for l in Path('/proc/self/mountinfo').read_text().splitlines()) or (Path('/home').is_dir() and any(Path('/home').iterdir())),'fds':fds,'home_default':os.environ.get('HOME')})
+        emit({'unexpected_environment_names':sorted(entries),'synthetic_secret_inherited':'SAFETY_SYNTHETIC_SECRET' in os.environ,'allowed':os.environ.get('SAFETY_PUBLIC_MARKER'),'management_socket_present':any(Path(p).exists() for p in ['/var/run/docker.sock','/run/containerd/containerd.sock','/alternate/management.sock']),'home_mount_present':home_exposed(Path('/proc/self/mountinfo').read_text()),'fds':fds,'home_default':os.environ.get('HOME')})
     elif mode=='network':
         with socket.socket() as server:
             server.bind(('127.0.0.1',0));server.listen();port=server.getsockname()[1]

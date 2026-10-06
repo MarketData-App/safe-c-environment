@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "helper": "safety/qualification/containment/probe.py",
-  "helper_sha256": "dbfd14a6e7b54fcaf86980e7aaa8baff83f08a0b2bdb29b08c06eb5cf80989af",
+  "helper_sha256": "d7bdd7d5ab07ea87b2814edd007edfb365cd01912c9a278914009164fff3fd53",
   "finite_ceilings": {
     "memory_bytes": 201326592,
     "child_attempts": 64,

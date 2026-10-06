@@ -80,3 +80,34 @@ class ContainerEvidenceTests(unittest.TestCase):
             with self.assertRaises(GateError):container_binding_gate(bad,expected)
 
 if __name__=='__main__':unittest.main()
+
+
+class ProbeHomeExposureTests(unittest.TestCase):
+    """Positive and negative controls for the D04 home exposure predicate."""
+    def setUp(self):
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('containment_probe',ROOT/'safety/qualification/containment/probe.py')
+        self.probe=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.probe)
+    def line(self,target):return f'36 25 0:32 / {target} rw,nosuid - tmpfs tmpfs rw'
+    def test_mount_points_at_or_below_home_are_exposed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            empty=Path(d)
+            for target in ['/home','/home/user','/home/user/nested']:
+                self.assertTrue(self.probe.home_exposed(self.line(target),empty),target)
+    def test_unrelated_mount_points_are_not_exposed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            empty=Path(d)
+            for target in ['/','/homework','/src','/work/home','/home\\040x']:
+                self.assertFalse(self.probe.home_exposed(self.line(target),empty),target)
+            self.assertFalse(self.probe.home_exposed('',empty))
+            self.assertFalse(self.probe.home_exposed('short line',empty))
+    def test_home_directory_contents_are_exposed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            self.assertFalse(self.probe.home_exposed('',home))
+            self.assertFalse(self.probe.home_exposed('',home/'missing'))
+            (home/'someone').mkdir()
+            self.assertTrue(self.probe.home_exposed('',home))
