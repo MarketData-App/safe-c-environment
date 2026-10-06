@@ -51,7 +51,8 @@ def project_policy(root):
 def load_project(root, project_dir='.', framework_root=None):
     root = Path(root)
     fw = _framework_root(root, framework_root)
-    _safe_path(project_dir if project_dir != '.' else 'x', 'project_dir')
+    if project_dir != '.':
+        _safe_path(project_dir, 'project_dir')
     base = root/project_dir
     path = base/PROJECT_FILE
     if path.is_symlink() or not path.is_file():
@@ -74,9 +75,13 @@ def load_project(root, project_dir='.', framework_root=None):
 
 def project_files(root, project_dir='.'):
     base = Path(root)/project_dir
+    if base.is_symlink():
+        raise GateError(f'symlink input is forbidden: {project_dir}')
     result = {}
     for top in PROJECT_PATHS:
         start = base/top
+        if start.is_symlink():
+            raise GateError(f'symlink input is forbidden: {top}')
         if not start.exists():
             continue
         for path in sorted(start.rglob('*')):
@@ -103,26 +108,29 @@ def _identity(files):
     return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
 
 
-def write_manifest(root, report, images):
+def write_manifest(root, report, images, framework_root=None):
     root = Path(root)
     if report.get('overall_state') != 'VALIDATED_UNSEALED':
         raise GateError('manifest requires overall_state VALIDATED_UNSEALED')
     identity = policy.source_identity(root)[0]
     if report.get('source_identity') != identity:
         raise GateError('manifest report does not match the current source identity')
+    run_id = report.get('run_id')
+    if not isinstance(run_id, str) or len(run_id) != 32 or any(c not in '0123456789abcdef' for c in run_id):
+        raise GateError('manifest report needs run_id as 32 lowercase hex')
     files = framework_files(root)
     value = {'schema_version': 1, 'framework_identity': _identity(files), 'files': files, 'images': images,
-             'qualification': {'run_id': report['run_id'], 'source_identity': identity,
+             'qualification': {'run_id': run_id, 'source_identity': identity,
                                'overall_state': report['overall_state']}}
-    validate(_framework_root(root, None), 'framework-manifest', value)
+    validate(_framework_root(root, framework_root), 'framework-manifest', value)
     (root/MANIFEST).write_text(json.dumps(value, sort_keys=True, indent=2)+'\n')
     return value
 
 
-def check_manifest(root):
+def check_manifest(root, framework_root=None):
     root = Path(root)
     value = read_json(root/MANIFEST)
-    validate(_framework_root(root, None), 'framework-manifest', value)
+    validate(_framework_root(root, framework_root), 'framework-manifest', value)
     stored, current = value['files'], framework_files(root)
     lines = []
     for rel in sorted(set(stored) | set(current)):
@@ -137,7 +145,7 @@ def check_manifest(root):
     return lines
 
 
-def project_inventory(root, project_dir, project):
+def project_inventory(root, project_dir, project, framework_root=None):
     root = Path(root)
     base = root/project_dir
     if not project['modules']:
@@ -167,7 +175,7 @@ def project_inventory(root, project_dir, project):
         raise GateError(f'unlisted project file: {rel}')
     for rel in sorted(listed - set(actual)):
         raise GateError(f'declared project file is missing: {rel}')
-    forbidden = project_policy(_framework_root(root, None))['forbidden_text']
+    forbidden = project_policy(_framework_root(root, framework_root))['forbidden_text']
     for rel in sorted(actual):
         if rel.endswith(('.c', '.h')):
             text = (base/rel).read_text(errors='replace')

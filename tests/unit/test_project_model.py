@@ -64,4 +64,63 @@ class ProjectModelTests(unittest.TestCase):
     def test_project_policy_lists_23_gates(self):
         self.assertEqual(len(pm.project_policy(ROOT)['gates']),23)
 
+class ProjectModelMoreTests(unittest.TestCase):
+    make=ProjectModelTests.make
+    def inv(self, d, project=PROJECT, extra=None, mutate=None):
+        self.make(d, project, extra)
+        if mutate: mutate(d)
+        pm.project_inventory(d, '.', pm.load_project(d))
+    def test_symlinked_top_dir_rejected(self):
+        with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
+            d=Path(t); self.make(d); import shutil; shutil.rmtree(d/'src'); (d/'src').symlink_to(o)
+            with self.assertRaises(GateError): pm.project_files(d,'.')
+    def test_project_files_normal(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d); f=pm.project_files(d,'.')
+            self.assertIn('src/greeting.c',f); self.assertNotIn('project.json',f)
+    def test_forbidden_text(self):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),extra={'src/greeting.c':'int x; // NOLINT'},mutate=None)
+    def test_missing_spec(self):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),mutate=lambda d:(d/'specs/project/greeting.md').unlink())
+    def test_empty_corpus(self):
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),mutate=lambda d:(d/'fuzz/project/corpus/greeting/seed').unlink())
+    def test_missing_regressions(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as t:
+            with self.assertRaises(GateError): self.inv(Path(t),mutate=lambda d:shutil.rmtree(d/'fuzz/project/regressions'))
+    def test_duplicate_module(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d,dict(PROJECT,modules=[PROJECT['modules'][0]]*2))
+            with self.assertRaises(GateError): pm.load_project(d)
+    def test_unknown_program_module(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d,dict(PROJECT,programs=[dict(PROJECT['programs'][0],modules=['nope'])]))
+            with self.assertRaises(GateError): pm.load_project(d)
+    def test_undeclared_run_program(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d,dict(PROJECT,run=dict(PROJECT['run'],program='nope')))
+            with self.assertRaises(GateError): pm.load_project(d)
+    def test_write_manifest(self):
+        import policy
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d); images={'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64}
+            ident=policy.source_identity(d)[0]
+            good={'overall_state':'VALIDATED_UNSEALED','source_identity':ident,'run_id':'d'*32}
+            with self.assertRaises(GateError): pm.write_manifest(d,dict(good,overall_state='PASS'),images)
+            with self.assertRaises(GateError): pm.write_manifest(d,dict(good,source_identity='0'*64),images)
+            with self.assertRaises(GateError): pm.write_manifest(d,{k:v for k,v in good.items() if k!='run_id'},images)
+            with self.assertRaises(GateError): pm.write_manifest(d,dict(good,run_id='D'*32),images)
+            m=pm.write_manifest(d,good,images); self.assertEqual(m['qualification']['run_id'],'d'*32)
+            self.assertEqual(pm.check_manifest(d),[])
+    def test_manifest_identity_mismatch(self):
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t); self.make(d,extra={'tools/a.py':'a'}); files=pm.framework_files(d)
+            (d/pm.MANIFEST).write_text(json.dumps({'schema_version':1,'framework_identity':'0'*64,'files':files,
+              'images':{'sdk':'sha256:'+'a'*64,'developer':'sha256:'+'b'*64,'archive_sha256':'c'*64},
+              'qualification':{'run_id':'d'*32,'source_identity':'e'*64,'overall_state':'VALIDATED_UNSEALED'}}))
+            self.assertEqual(pm.check_manifest(d),['identity: framework_identity mismatch'])
+
 if __name__=='__main__':unittest.main()
