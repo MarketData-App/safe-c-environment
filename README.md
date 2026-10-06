@@ -10,7 +10,9 @@ Two tiers apply. Framework qualification (`./tools/safety ci`) runs in this
 repository when framework files change. It covers all 42 required gates (including project-gates), two exports and
 a fresh child. Project CI (`./tools/safety project check`) runs in every project
 on every push and pull request. It applies the 23 code gates to the project code
-and verifies `framework-manifest.json`. The target time for the hello-world
+and verifies `framework-manifest.json`. The manifest is unsigned. The check is
+tamper-evident for accidental or unreviewed framework edits, not tamper-proof;
+review and the framework CI on GitHub are the controls. The target time for the hello-world
 example on a GitHub-hosted runner is 6 to 10 minutes. Nobody has measured this
 time yet.
 
