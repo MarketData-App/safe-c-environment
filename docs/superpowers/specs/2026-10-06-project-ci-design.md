@@ -35,7 +35,7 @@ Success criteria:
 
 | Tier | Command | Where | When | Scope |
 |---|---|---|---|---|
-| Framework qualification | `./tools/safety ci` | this repository | framework files change | all 41 required gates, exports and fresh child |
+| Framework qualification | `./tools/safety ci` | this repository | framework files change | all 42 required gates (including project-gates), exports and fresh child |
 | Project CI | `./tools/safety project check` | every project, and this repository for the example | every push and pull request | the 23 code gates on project code |
 
 Framework files are all tracked files except the project paths (section 4) and
@@ -70,7 +70,7 @@ default, not lower).
 `runtime-demo`, `foundation-doctor`, `foundation-check`, `foundation-selftest`,
 `foundation-sabotage`, `developer-doctor`, `developer-selftest`,
 `developer-sabotage`, `developer-workflow`. In projects, the manifest check
-(section 5) replaces them by proving that the project runs the qualified layer.
+(section 5) replaces them by detecting drift of the framework files from the qualified set. The manifest is unsigned. The check is tamper-evident for accidental or unreviewed framework edits. It is not tamper-proof: a person who recomputes the manifest passes it. Review and the framework CI on GitHub are the controls.
 
 ## 4. Project mode and layout
 
@@ -103,6 +103,15 @@ framework qualification report passed all gates for exactly the same framework
 file set. In a project, the first step of `project check` recomputes every
 digest. Any added, removed or changed framework file stops the run, lists the
 files and states that `./tools/safety ci` is required.
+
+Detection scope: changed or removed exported files are detected anywhere. Added
+files are detected under the framework directories: tools/, safety/, schemas/,
+cmake/, container/, ci/, foundation/, third_party/, .githooks/, .github/, fuzz/
+(except fuzz/project/) and tests/ (except tests/project/).
+
+`qualification.source_identity` in the manifest is a local evidence binding of
+the qualifying checkout. Projects verify `framework_identity` over the exported
+framework files.
 
 ## 6. Portable containment (replaces the machine pin)
 

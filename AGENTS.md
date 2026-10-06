@@ -23,7 +23,10 @@ failed gate. Use `--project DIR` for another project directory. Use
 1 FAIL, 2 BLOCKED. The framework runs the full `./tools/safety ci` when
 framework files change. After a passing run, `./tools/safety framework
 manifest` records the qualified framework. The project check rejects any
-framework file that differs from that manifest.
+framework file that differs from that manifest. The manifest is unsigned: the check
+is tamper-evident for accidental or unreviewed framework edits, not tamper-proof
+against someone who recomputes it. Review and the framework CI on GitHub are the
+controls.
 
 The container layer accepts any Linux x86-64 host that passes the capability
 check at the start of each run: local Docker Unix socket (rootless allowed),
