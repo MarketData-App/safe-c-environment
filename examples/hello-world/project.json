@@ -5,9 +5,19 @@
     {
       "name": "greeting",
       "spec": "specs/project/greeting.md",
-      "sources": ["src/greeting.c"],
-      "headers": ["include/greeting.h"],
-      "tests": ["tests/project/test_greeting.c"],
+      "sources": [
+        "src/greeting.c",
+        "src/greeting_main.c",
+        "src/greeting_text.c"
+      ],
+      "headers": [
+        "include/greeting.h",
+        "include/greeting_text.h"
+      ],
+      "tests": [
+        "tests/project/test_greeting.c",
+        "tests/project/test_greeting_main.c"
+      ],
       "reads_external_input": true,
       "fuzz": [
         {
@@ -23,12 +33,16 @@
     {
       "name": "hello",
       "main": "src/main.c",
-      "modules": ["greeting"]
+      "modules": [
+        "greeting"
+      ]
     }
   ],
   "run": {
     "program": "hello",
-    "args": ["world"],
+    "args": [
+      "world"
+    ],
     "expect_exit": 0
   }
 }
