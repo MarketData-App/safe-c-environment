@@ -10,7 +10,10 @@ Two modes exist. In this repository, src/ and include/ stay empty. A project
 that `./tools/safety instantiate` creates is in project mode, which the tracked
 file project.json declares. A project may hold code in src/, include/,
 tests/project/, fuzz/project/, specs/project/ and review/. Project mode adds no
-flags and no gate settings. Never edit a framework file inside a project.
+flags and no gate settings. The build selects project targets only when
+`./tools/safety project check` sets SAFE_C_PROJECT_DIR; a plain configure always
+builds the framework, and project.json only lifts the bootstrap src/ rule and
+activates the project inventory. Never edit a framework file inside a project.
 
 Projects run `./tools/safety project check`. It applies all 23 code gates and
 the framework manifest check to the project code. The run stops at the first
