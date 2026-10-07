@@ -68,7 +68,8 @@ line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks wit
 hook regression suite (`.githooks/tests/regression.sh`) on every push, with the
 generic rules plus the runner's own login and host name as local values: a GitHub
 runner has no owner login, owner host name or private patterns. A first-party
-(unpinned) zip, tar, gzip, xz or bzip2 file is blocked. To add a reviewed upstream
+(unpinned) zip, tar, gzip, xz or bzip2 file is blocked. A tar counts when its first
+header is a ustar header or a pre-POSIX (v7) header whose checksum validates. To add a reviewed upstream
 archive, put it under `third_party/` or `container/foundation-inputs/`, or give it
 an upstream archive suffix (`.whl`, `.zip`, `.tar.gz`, `.tgz`, `.tar.xz`,
 `.tar.bz2`, `.tar.zst`), and bind its path to its sha256 in a lock file. The
@@ -76,17 +77,19 @@ hooks skip the content of a pinned archive. They still expand every other archiv
 member by member (zip, tar including concatenated tars, gzip, xz, bzip2, every
 stream) to a finite depth within a 64 MiB decompression budget per file, and
 check the container bytes and metadata too. A corrupt or truncated stream, a zip
-local-header signature at an offset that the central directory does not list,
-and an exceeded member cap, depth limit or budget are findings. Findings mask every matched value, also inside a
+local-header signature at an offset that the central directory does not list, a
+listed zip member whose local header disagrees with its central record (method,
+flag bits 0 and 3, CRC-32 and sizes), and an exceeded member cap, depth limit or
+budget are findings. Findings mask every matched value, also inside a
 printed path or label, label archive metadata by index and print only printable
 characters. Known limits: a commit or
 tag that adds a vendored or upstream-archive file together with a lock entry for
 it exempts that file's content, locally and in CI; altered local
 remote-tracking refs can shorten a push range; a stored zip member whose own
 bytes hold a local-header signature (for example a stored nested zip) is also
-reported as an unlisted local entry (fail closed); a tar without the `ustar` magic
-is not blocked as an archive and is expanded only when its size is a multiple
-of 512 bytes; other binary and
+reported as an unlisted local entry (fail closed); a tar whose first header does
+not validate is not blocked as an archive and is expanded only when its size is a
+multiple of 512 bytes; other binary and
 compressed formats (for example zstd or 7z), and a gzip, xz or bzip2 stream that
 does not start at offset 0, are read as text or printable runs.
 

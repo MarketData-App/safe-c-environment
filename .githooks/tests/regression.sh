@@ -28,8 +28,11 @@ r() { o=$3; grep -q 'check failed' "$BASE/err" 2>/dev/null && o=ERROR; : > "$BAS
       case "$2:$o" in bad:BLOCKED|ok:ALLOWED) ;; *) FAIL=1 ;; esac; }
 # rc NAME bad OUTCOME CATEGORY...: a BLOCKED outcome counts only when stderr names every
 # expected finding category, so a broader rule (for example unpinned-archive) cannot mask it.
+# A category written as !NAME must be absent (no false positive behind the broader rule).
 rc() { o=$3
-       if [ "$o" = BLOCKED ]; then for c in "${@:4}"; do grep -q -F -- ": $c" "$BASE/err" || o="NO:$c"; done; fi
+       if [ "$o" = BLOCKED ]; then for c in "${@:4}"; do
+         case $c in '!'*) ! grep -q -F -- ": ${c#!}" "$BASE/err" || o="HAS:${c#!}" ;;
+                    *) grep -q -F -- ": $c" "$BASE/err" || o="NO:$c" ;; esac; done; fi
        r "$1" "$2" "$o"; }
 
 fresh ok-clean;      echo hello > a.txt;                         r ok-clean ok "$(reach)"
@@ -228,7 +231,7 @@ elif kind=='zip-gap':
     cd=bv.find(b'PK\x01\x02'); insert=b'\x00'+hidden; eocd=bytearray(bv[-22:])
     eocd[16:20]=(int.from_bytes(eocd[16:20],'little')+len(insert)).to_bytes(4,'little')
     data=bv[:cd]+insert+bv[cd:-22]+bytes(eocd)
-elif kind in ('zip-size-lie','ok-zip-in-v7tar'):
+elif kind in ('zip-size-lie','ok-zip-in-v7tar','zip-header-mismatch','v7tar-clean'):
     def v7tar(members):
         # A tar without the ustar magic, and a trailing text member that moves the zip
         # end record out of the tail window, so the outer blob is not an unpinned archive.
@@ -239,7 +242,19 @@ elif kind in ('zip-size-lie','ok-zip-in-v7tar'):
         return out+bytes(10240-len(out)%10240)
     def zipof(name,content,method):
         z=io.BytesIO(); f=zipfile.ZipFile(z,'w',method); f.writestr(name,content); f.close(); return z.getvalue()
-    if kind=='ok-zip-in-v7tar':
+    if kind=='v7tar-clean':
+        inner=b'clean text\n'*50
+    elif kind=='zip-header-mismatch':
+        # Central record: STORED with the CRC and size of the raw deflate bytes; local
+        # header: DEFLATED with the CRC and size of the text. zipfile trusts the central
+        # record, a streaming reader trusts the local header.
+        import zlib
+        hv=zipof('h.txt',value+b'\n',zipfile.ZIP_DEFLATED); cd=hv.find(b'PK\x01\x02')
+        n=int.from_bytes(hv[26:28],'little')+int.from_bytes(hv[28:30],'little'); raw=hv[30+n:cd]
+        central=bytearray(hv[cd:-22]); central[10:12]=(0).to_bytes(2,'little')
+        central[16:20]=zlib.crc32(raw).to_bytes(4,'little'); central[24:28]=len(raw).to_bytes(4,'little')
+        inner=hv[:cd]+bytes(central)+hv[-22:]
+    elif kind=='ok-zip-in-v7tar':
         z=io.BytesIO(); f=zipfile.ZipFile(z,'w'); f.writestr('a.txt',b'clean text\n'*50); f.writestr('b.txt',b'more clean text\n'); f.close(); inner=z.getvalue()
     else:
         av=zipof('a.txt',b'clean text\n'*50,zipfile.ZIP_DEFLATED); hv=zipof('h.txt',value,zipfile.ZIP_DEFLATED)
@@ -262,8 +277,12 @@ fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         rc corr
 fresh tar-concat;    mkbad tar-concat a.tar "$BAD";                      rc concatenated-tar bad "$(reach)" email-address
 fresh zip-unlisted;  mkbad zip-unlisted a.zip "$BAD";                    rc zip-unlisted-local-entry bad "$(reach)" zip-unlisted-local-entry
 fresh zip-gap;       mkbad zip-gap a.zip "$BAD";                         rc zip-unlisted-after-gap bad "$(reach)" zip-unlisted-local-entry
-fresh zip-size-lie;  mkbad zip-size-lie a.bin "$BAD";                     rc zip-unlisted-size-lie bad "$(reach)" zip-unlisted-local-entry
-fresh ok-zip-v7tar;  mkbad ok-zip-in-v7tar a.bin x;                      r ok-zip-in-v7-tar ok "$(reach)"
+fresh zip-size-lie;  mkbad zip-size-lie a.bin "$BAD";                     rc zip-unlisted-size-lie bad "$(reach)" unpinned-archive zip-unlisted-local-entry
+fresh ok-zip-v7tar;  mkbad ok-zip-in-v7tar a.bin x;                      rc normal-zip-in-v7-tar bad "$(reach)" unpinned-archive '!zip-unlisted-local-entry' '!zip-header-mismatch'
+fresh zip-hdr-mm;    mkbad zip-header-mismatch a.bin "$BAD";              rc zip-header-mismatch bad "$(reach)" unpinned-archive zip-header-mismatch
+fresh v7tar-clean;   mkbad v7tar-clean a.bin x;                           rc unpinned-v7-tar bad "$(reach)" unpinned-archive
+fresh ok-random-512; python3 -c "import random,sys; sys.stdout.buffer.write(random.Random(7).randbytes(4096))" > a.bin; r ok-random-binary-512 ok "$(reach)"
+fresh ok-text-512;   python3 -c "import sys; sys.stdout.write(''.join('plain text line %015d\n' % i for i in range(32)))" > a.txt; r ok-text-1024-bytes ok "$(reach)"
 fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               rc depth-limit-prefixed-zip bad "$(reach)" archive-depth-limit
 fresh ok-bzh-text;   printf 'BZh is how this note starts\n' > a.txt;     r ok-bzh-text ok "$(reach)"
 fresh masked-name;   echo x > "notes-$LOGIN-todo.txt"; git add -A

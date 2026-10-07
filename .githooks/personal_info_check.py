@@ -23,8 +23,10 @@ web-flow committer is also accepted), and their names and messages are checked
 like content. Content of a file under third_party/ or container/foundation-inputs/,
 or of an upstream archive (.whl, .zip, .tar.*), is exempt only when a lock file of
 the same revision binds that path to that sha256; names are always checked and
-first-party files get every rule. A first-party (unpinned) zip, tar, gzip, xz or
-bzip2 file is itself a finding. Findings print the path, line and category;
+first-party files get every rule. A first-party (unpinned) zip, tar (ustar, or a
+pre-POSIX tar whose first header checksum validates), gzip, xz or bzip2 file is
+itself a finding. A listed zip member whose local header disagrees with its
+central record (method, flag bits 0 and 3, CRC-32 and sizes) is a finding. Findings print the path, line and category;
 every matched value, also one inside a printed path or label, is masked, archive
 metadata is labelled by index and output is reduced to printable characters.
 
@@ -179,9 +181,58 @@ def streams(data, state, magic, factory, meta=None):
     return bytes(out), names
 
 
+OCTAL_FIELD = re.compile(rb'[ \0]*[0-7]+[ \0]*')
+
+
+def tar_header(data):
+    """True for a ustar header or a pre-POSIX (v7) tar header at offset 0: the checksum
+    field validates under the unsigned or the signed sum convention, the name starts
+    with a printable byte, and the mode and size fields hold octal digits (or a
+    base-256 size)."""
+    if data[257:262] == b'ustar':
+        return True
+    if len(data) < 512:
+        return False
+    block = data[:512]
+    name = block[:100].split(b'\0', 1)[0]
+    if not name or any(byte < 0x20 or byte > 0x7e for byte in name):
+        return False
+    if not OCTAL_FIELD.fullmatch(block[100:108]) or not OCTAL_FIELD.fullmatch(block[148:156]):
+        return False
+    if not (OCTAL_FIELD.fullmatch(block[124:136]) or block[124] & 0x80):
+        return False
+    stored = int(block[148:156].strip(b' \0'), 8)
+    blank = block[:148] + b' ' * 8 + block[156:]
+    return stored in (sum(blank), sum(byte - 256 if byte > 127 else byte for byte in blank))
+
+
 def archive_like(data):
     return (data[:2] == GZIP or data[:6] == XZ or is_bzip2(data) or data[:4] == b'PK\x03\x04'
-            or b'PK\x05\x06' in data[-65558:] or data[257:262] == b'ustar')
+            or b'PK\x05\x06' in data[-65558:] or tar_header(data))
+
+
+def zip_header_mismatch(data, info):
+    """True when the local header of a listed zip member disagrees with its central
+    record: method, flag bits 0 and 3, and (bit 3 clear) CRC-32 and both sizes."""
+    at = info.header_offset
+    local = data[at:at + 30]
+    if len(local) < 30 or local[:4] != b'PK\x03\x04':
+        return True
+    flags, method = int.from_bytes(local[6:8], 'little'), int.from_bytes(local[8:10], 'little')
+    if method != info.compress_type or (flags ^ info.flag_bits) & 0x9:
+        return True
+    if flags & 8:
+        return False
+    crc, csize, usize = (int.from_bytes(local[i:i + 4], 'little') for i in (14, 18, 22))
+    if 0xFFFFFFFF in (csize, usize):
+        name = int.from_bytes(local[26:28], 'little')
+        extra = data[at + 30 + name:at + 30 + name + int.from_bytes(local[28:30], 'little')]
+        while len(extra) >= 4 and int.from_bytes(extra[:2], 'little') != 1:
+            extra = extra[4 + int.from_bytes(extra[2:4], 'little'):]
+        if len(extra) < 20:
+            return True
+        usize, csize = int.from_bytes(extra[4:12], 'little'), int.from_bytes(extra[12:20], 'little')
+    return (crc, csize, usize) != (info.CRC, info.compress_size, info.file_size)
 
 
 def zip_unlisted(data, offsets):
@@ -225,6 +276,8 @@ def expand(data, state, depth=0):
                     state.problems.append('archive-member-cap')
                 if zip_unlisted(data, {info.header_offset for info in members}):
                     state.problems.append('zip-unlisted-local-entry')
+                if any(zip_header_mismatch(data, info) for info in members):
+                    state.problems.append('zip-header-mismatch')
                 for info in members[:MEMBER_CAP]:
                     names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]
                     try:
@@ -244,7 +297,7 @@ def expand(data, state, depth=0):
                 state.problems.append('undecodable-archive')
                 return names, leaves, containers + [data]
             names, leaves, containers = [], [], []
-    if len(data) >= 512 and (data[257:262] == b'ustar' or len(data) % 512 == 0):
+    if len(data) >= 512 and (tar_header(data) or len(data) % 512 == 0):
         count = 0
         try:
             with tarfile.open(fileobj=io.BytesIO(data), mode='r:', ignore_zeros=True) as archive:
@@ -266,7 +319,7 @@ def expand(data, state, depth=0):
                         leaves += more
                         containers += more_containers
         except tarfile.TarError:
-            if data[257:262] == b'ustar':
+            if tar_header(data):
                 state.problems.append('undecodable-archive')
         if count:
             return names, leaves, containers + [data]
