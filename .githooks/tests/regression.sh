@@ -228,6 +228,27 @@ elif kind=='zip-gap':
     cd=bv.find(b'PK\x01\x02'); insert=b'\x00'+hidden; eocd=bytearray(bv[-22:])
     eocd[16:20]=(int.from_bytes(eocd[16:20],'little')+len(insert)).to_bytes(4,'little')
     data=bv[:cd]+insert+bv[cd:-22]+bytes(eocd)
+elif kind in ('zip-size-lie','ok-zip-in-v7tar'):
+    def v7tar(members):
+        # A tar without the ustar magic, and a trailing text member that moves the zip
+        # end record out of the tail window, so the outer blob is not an unpinned archive.
+        out=b''
+        for name,content in members:
+            b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w',format=tarfile.USTAR_FORMAT); i=tarfile.TarInfo(name); i.size=len(content); t.addfile(i,io.BytesIO(content)); t.close()
+            h=bytearray(b.getvalue()[:512+(len(content)+511)//512*512]); h[257:265]=bytes(8); h[148:156]=b' '*8; h[148:156]=b'%06o\0 '%sum(h[:512]); out+=bytes(h)
+        return out+bytes(10240-len(out)%10240)
+    def zipof(name,content,method):
+        z=io.BytesIO(); f=zipfile.ZipFile(z,'w',method); f.writestr(name,content); f.close(); return z.getvalue()
+    if kind=='ok-zip-in-v7tar':
+        z=io.BytesIO(); f=zipfile.ZipFile(z,'w'); f.writestr('a.txt',b'clean text\n'*50); f.writestr('b.txt',b'more clean text\n'); f.close(); inner=z.getvalue()
+    else:
+        av=zipof('a.txt',b'clean text\n'*50,zipfile.ZIP_DEFLATED); hv=zipof('h.txt',value,zipfile.ZIP_DEFLATED)
+        hidden=hv[:hv.find(b'PK\x01\x02')]; cd=av.find(b'PK\x01\x02'); grow=len(hidden)
+        local=bytearray(av[:cd]); local[18:22]=(int.from_bytes(local[18:22],'little')+grow).to_bytes(4,'little')
+        central=bytearray(av[cd:-22]); central[20:24]=(int.from_bytes(central[20:24],'little')+grow).to_bytes(4,'little')
+        eocd=bytearray(av[-22:]); eocd[16:20]=(int.from_bytes(eocd[16:20],'little')+grow).to_bytes(4,'little')
+        inner=bytes(local)+hidden+bytes(central)+bytes(eocd)
+    data=v7tar([('inner.zip',inner),('notes.txt',b'plain filler text line\n'*4000)])
 elif kind=='depth-prefixed-zip':
     b=io.BytesIO(); z=zipfile.ZipFile(b,'w'); z.writestr('m.txt',value); z.close(); data=b'\x00'*64+b.getvalue()
     for _ in range(4): data=gzip.compress(data)
@@ -241,6 +262,8 @@ fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         rc corr
 fresh tar-concat;    mkbad tar-concat a.tar "$BAD";                      rc concatenated-tar bad "$(reach)" email-address
 fresh zip-unlisted;  mkbad zip-unlisted a.zip "$BAD";                    rc zip-unlisted-local-entry bad "$(reach)" zip-unlisted-local-entry
 fresh zip-gap;       mkbad zip-gap a.zip "$BAD";                         rc zip-unlisted-after-gap bad "$(reach)" zip-unlisted-local-entry
+fresh zip-size-lie;  mkbad zip-size-lie a.bin "$BAD";                     rc zip-unlisted-size-lie bad "$(reach)" zip-unlisted-local-entry
+fresh ok-zip-v7tar;  mkbad ok-zip-in-v7tar a.bin x;                      r ok-zip-in-v7-tar ok "$(reach)"
 fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               rc depth-limit-prefixed-zip bad "$(reach)" archive-depth-limit
 fresh ok-bzh-text;   printf 'BZh is how this note starts\n' > a.txt;     r ok-bzh-text ok "$(reach)"
 fresh masked-name;   echo x > "notes-$LOGIN-todo.txt"; git add -A

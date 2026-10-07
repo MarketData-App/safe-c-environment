@@ -12,8 +12,9 @@ submodule entries are skipped. Archives are expanded member by member (zip, tar,
 gzip, xz and bzip2 with every stream, nested to a finite depth within one
 decompression budget), and the container bytes and metadata (tar owner, group,
 link target and pax records, zip comments, gzip header names) are checked too;
-a corrupt or truncated stream, an undecodable member, a zip local entry that the
-central directory omits, and an exceeded member cap, depth limit or budget are
+a corrupt or truncated stream, an undecodable member, a zip local-header
+signature at an offset that the central directory does not list (also inside a
+stored member's own bytes), and an exceeded member cap, depth limit or budget are
 findings. Text is read as
 UTF-8, UTF-16 or UTF-32 with or without a byte-order mark; other binary content
 is read as printable runs and searched byte-wise for local values. Commit
@@ -183,19 +184,15 @@ def archive_like(data):
             or b'PK\x05\x06' in data[-65558:] or data[257:262] == b'ustar')
 
 
-def zip_unlisted(data, sizes):
-    """True when a zip local header is not named by the central directory. sizes maps
-    each listed header offset to its compressed size. The walk skips the data of
-    each listed entry, then searches for the next local-header signature, so a gap
-    or a data descriptor does not end it (bounded to MEMBER_CAP + 1 headers)."""
-    cursor, seen = data.find(b'PK\x03\x04'), 0
-    while 0 <= cursor and seen <= MEMBER_CAP:
-        if cursor not in sizes:
+def zip_unlisted(data, offsets):
+    """True when any local-header signature in the zip bytes is at an offset that the
+    central directory does not list. Nothing is skipped by a recorded size, so a
+    stored member whose own bytes hold the signature is also reported (fail closed)."""
+    cursor = data.find(b'PK\x03\x04')
+    while cursor >= 0:
+        if cursor not in offsets:
             return True
-        name = int.from_bytes(data[cursor + 26:cursor + 28], 'little')
-        extra = int.from_bytes(data[cursor + 28:cursor + 30], 'little')
-        cursor = data.find(b'PK\x03\x04', cursor + 30 + name + extra + sizes[cursor])
-        seen += 1
+        cursor = data.find(b'PK\x03\x04', cursor + 1)
     return False
 
 
@@ -226,7 +223,7 @@ def expand(data, state, depth=0):
                 members = archive.infolist()
                 if len(members) > MEMBER_CAP:
                     state.problems.append('archive-member-cap')
-                if zip_unlisted(data, {info.header_offset: info.compress_size for info in members}):
+                if zip_unlisted(data, {info.header_offset for info in members}):
                     state.problems.append('zip-unlisted-local-entry')
                 for info in members[:MEMBER_CAP]:
                     names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]

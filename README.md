@@ -76,13 +76,15 @@ hooks skip the content of a pinned archive. They still expand every other archiv
 member by member (zip, tar including concatenated tars, gzip, xz, bzip2, every
 stream) to a finite depth within a 64 MiB decompression budget per file, and
 check the container bytes and metadata too. A corrupt or truncated stream, a zip
-local entry that the central directory omits, and an exceeded member cap, depth
-limit or budget are findings. Findings mask every matched value, also inside a
+local-header signature at an offset that the central directory does not list,
+and an exceeded member cap, depth limit or budget are findings. Findings mask every matched value, also inside a
 printed path or label, label archive metadata by index and print only printable
 characters. Known limits: a commit or
 tag that adds a vendored or upstream-archive file together with a lock entry for
 it exempts that file's content, locally and in CI; altered local
-remote-tracking refs can shorten a push range; a tar without the `ustar` magic
+remote-tracking refs can shorten a push range; a stored zip member whose own
+bytes hold a local-header signature (for example a stored nested zip) is also
+reported as an unlisted local entry (fail closed); a tar without the `ustar` magic
 is not blocked as an archive and is expanded only when its size is a multiple
 of 512 bytes; other binary and
 compressed formats (for example zstd or 7z), and a gzip, xz or bzip2 stream that
