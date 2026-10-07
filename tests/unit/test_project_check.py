@@ -276,32 +276,65 @@ class VerdictTests(unittest.TestCase):
             self.assertTrue(pc.framework_differences(d,ROOT,image)[0].startswith('invalid: '))
 
 class SanitizerBannerTests(unittest.TestCase):
+    BANNERS = tuple(json.loads((Path(__file__).resolve().parents[2]/'safety/project-policy.json').read_text())['sanitizer_banners'])
+
     def test_banner_detection(self):
-        self.assertIsNone(pc.sanitizer_banner('all tests passed\nexit 0\n'))
-        self.assertEqual(pc.sanitizer_banner('x\n==1==ERROR: AddressSanitizer: heap-use-after-free\n'), 'ERROR: AddressSanitizer')
-        self.assertEqual(pc.sanitizer_banner('a.c:3:5: runtime error: signed integer overflow\n'), 'runtime error:')
-        for text, banner in (('WARNING: MemorySanitizer: use-of-uninitialized-value', 'WARNING: MemorySanitizer'),
+        self.assertIsNone(pc.sanitizer_banner('all tests passed\nexit 0\n', self.BANNERS))
+        for text, banner in (('==1==ERROR: AddressSanitizer: heap-use-after-free', 'ERROR: AddressSanitizer'),
+                             ('a.c:3:5: runtime error: signed integer overflow', 'runtime error:'),
+                             ('WARNING: MemorySanitizer: use-of-uninitialized-value', 'WARNING: MemorySanitizer'),
                              ('WARNING: ThreadSanitizer: data race', 'WARNING: ThreadSanitizer'),
                              ('==2==ERROR: LeakSanitizer: detected memory leaks', 'ERROR: LeakSanitizer'),
-                             ('==ERROR: libFuzzer: deadly signal', 'ERROR: libFuzzer'),
+                             ('==3== ERROR: libFuzzer: deadly signal', 'ERROR: libFuzzer'),
                              ('SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior', 'SUMMARY: ')):
-            self.assertEqual(pc.sanitizer_banner(text), banner)
+            self.assertEqual(pc.sanitizer_banner(text, self.BANNERS), banner)
 
-    def test_banner_fails_a_test_run_with_exit_zero(self):
-        # A test that forks, ignores the failing child and exits 0 still leaves the banner.
+    def check(self, outputs, codes=None):
         c=object.__new__(pc.ProjectCheck)
-        c.project,c.project_dir=PROJECT,'app'
-        c.test_timeout=10
-        outputs={'asan-ctest-inventory':json.dumps({'tests':[{'name':n} for n in pc.expected_tests(PROJECT)['unit']+pc.expected_tests(PROJECT)['integration']]}),
-                 'asan-ctest-unit':'1/1 Test #1: project.greeting.test_greeting ... Passed\n==7==ERROR: AddressSanitizer: heap-buffer-overflow\n',
-                 'asan-ctest-integration':'all passed\n'}
+        c.project,c.project_dir,c.test_timeout,c.banners=PROJECT,'app',10,self.BANNERS
+        names=pc.expected_tests(PROJECT)['unit']+pc.expected_tests(PROJECT)['integration']
+        outputs=dict(outputs, **{'asan-ctest-inventory':json.dumps({'tests':[{'name':n} for n in names]})})
         def step(label,argv,**kw):
-            return {'exit_code':0,'failure':None,'output':outputs.get(label,''),'evidence_path':'e/'+label}
+            if label.endswith('-log'):
+                self.assertEqual(argv,['cat','/work/asan-dir'+pc.CTEST_LOG])
+            code=(codes or {}).get(label,0)
+            return {'exit_code':code,'failure':None if code==0 else 'EXIT','output':outputs.get(label,''),'evidence_path':'e/'+label}
         c.step=step
-        result=c.run_tests('asan','asan-dir','asan',[])
-        self.assertEqual(result['unit']['status'],'FAIL')
+        return c.run_tests('asan','asan-dir','asan',[])
+
+    def test_banner_in_the_ctest_log_fails_a_passing_test(self):
+        # --output-on-failure prints only the status line of a test that exits 0; the
+        # banner is in CTest's full test log.
+        passing='Test project /work/asan-dir\n    Start 1: project.greeting.test_greeting\n1/1 Test #1: project.greeting.test_greeting ...   Passed    0.01 sec\n\n100% tests passed, 0 tests failed out of 1\n'
+        log='1/1 Testing: project.greeting.test_greeting\nOutput:\n----------------------------------------------------------\n==7==ERROR: AddressSanitizer: heap-buffer-overflow\n<end of output>\nTest time =   0.01 sec\nTest Passed.\n'
+        result=self.check({'asan-ctest-unit':passing,'asan-ctest-unit-log':log,'asan-ctest-integration':passing,
+                           'asan-ctest-integration-log':'Test Passed.\n'})
+        self.assertEqual((result['unit']['status'],result['integration']['status']),('FAIL','PASS'))
         self.assertIn('AddressSanitizer',result['unit']['detectors'])
-        self.assertEqual(result['integration']['status'],'PASS')
+        self.assertIn('exit status 0',result['unit']['reason'])
+
+    def test_fail_regular_expression_failure_fails(self):
+        # The FAIL_REGULAR_EXPRESSION property turns an exit-0 test with a banner into a CTest failure.
+        failed=('1/1 Test #1: project.greeting.test_greeting ...***Failed  Error regular expression found in output. '
+                'Regex=[runtime error:]  0.01 sec\n\n0% tests passed, 1 tests failed out of 1\n\nThe following tests FAILED:\n'
+                '\t  1 - project.greeting.test_greeting (Failed)\n')
+        result=self.check({'asan-ctest-unit':failed,'asan-ctest-unit-log':'x\n','asan-ctest-integration-log':'ok\n'},
+                          codes={'asan-ctest-unit':8})
+        self.assertEqual(result['unit']['status'],'FAIL')
+        self.assertEqual(result['unit']['failed_tests'],[{'name':'project.greeting.test_greeting','reason':'Failed'}])
+
+    def test_missing_log_fails_closed(self):
+        result=self.check({'asan-ctest-unit':'ok\n','asan-ctest-integration':'ok\n','asan-ctest-integration-log':'ok\n'},
+                          codes={'asan-ctest-unit-log':1})
+        self.assertEqual((result['unit']['status'],result['unit']['reason']),('FAIL','CTest test log unavailable'))
+
+    def test_single_banner_list(self):
+        root=Path(__file__).resolve().parents[2]
+        self.assertNotIn('ERROR: AddressSanitizer',(root/'tools/project_check.py').read_text())
+        cmake=(root/'cmake/Project.cmake').read_text()
+        self.assertIn('_project_json_list(sanitizer_banners "${policy_json}" sanitizer_banners)',cmake)
+        self.assertEqual(cmake.count('FAIL_REGULAR_EXPRESSION "${sanitizer_banners}"'),2)
+        self.assertEqual(cmake.count('set_tests_properties('),2)
 
 
 if __name__=='__main__':

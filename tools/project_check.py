@@ -67,6 +67,8 @@ class InfrastructureError(GateError):
     """The container, Docker or its lifetime failed; the gate is BLOCKED, never a project FAIL."""
 
 
+# CTest writes the complete output of every test of one run here (build-relative).
+CTEST_LOG = '/Testing/Temporary/LastTest.log'
 VERDICT_EXIT = {'PASS': 0, 'FAIL': 1, 'BLOCKED': 2, 'PASS_UNQUALIFIED_FRAMEWORK': 3}
 
 
@@ -150,17 +152,14 @@ def detectors(output):
     return sorted({name for name in SANITIZERS if name in output})
 
 
-# A sanitizer or libFuzzer report banner. A gate FAILs when its captured output holds
-# one even if the exit status is 0: a test or harness can fork, ignore a failing child
-# or reset the exit code, but it cannot remove the runtime's report from the output.
-SANITIZER_BANNERS = ('ERROR: AddressSanitizer', 'ERROR: LeakSanitizer', 'WARNING: MemorySanitizer',
-                     'WARNING: ThreadSanitizer', 'ERROR: ThreadSanitizer', 'ERROR: HWAddressSanitizer',
-                     'runtime error:', 'ERROR: libFuzzer', 'SUMMARY: ', 'DEADLYSIGNAL', 'AddressSanitizer: nested bug')
-
-
-def sanitizer_banner(output):
-    """The first sanitizer or libFuzzer banner in `output`, or None."""
-    return next((b for b in SANITIZER_BANNERS if b in output), None)
+# A sanitizer or libFuzzer report banner (safety/project-policy.json sanitizer_banners,
+# the single list that cmake/Project.cmake also turns into each project test's
+# FAIL_REGULAR_EXPRESSION). A run FAILs when its output holds one, whatever the exit
+# status: a test or harness can fork, ignore a failing child or reset the exit code,
+# but the runtime's report stays in the output.
+def sanitizer_banner(output, banners):
+    """The first of `banners` in `output`, or None."""
+    return next((b for b in banners if b in output), None)
 
 
 _DIAGNOSTIC = re.compile(r'^(?P<file>[^:\n]+):(?P<line>\d+):(?:\d+:)? (?P<kind>error|warning): (?P<text>.*?)(?: \[(?P<check>[^\]\s]+)\])?$', re.M)
@@ -473,7 +472,8 @@ _COPY = ('import pathlib,shutil,sys;s=pathlib.Path(sys.argv[1]);d=pathlib.Path(s
 # AST policy rule -> failed check name of the ast gate; every other rule is the API policy.
 PROJECT_RULE_CHECKS = {'project-attribute': 'attributes', 'runtime-interface': 'runtime-interface',
                        'project-builtin': 'builtins', 'reserved-declaration': 'reserved-identifier',
-                       'fuzzer-entry': 'fuzzer-entry', 'banned-call': 'banned-call'}
+                       'fuzzer-entry': 'fuzzer-entry', 'fuzzer-main': 'fuzzer-entry', 'banned-call': 'banned-call',
+                       'allocator-definition': 'allocator'}
 
 
 class ProjectCheck:
@@ -481,6 +481,7 @@ class ProjectCheck:
         self.root, self.project_dir, self.project = root, project_dir, project
         self.run_dir, self.launcher, self.record = run_dir, launcher, record
         self.project_policy = project_policy
+        self.banners = tuple(project_policy['sanitizer_banners'])
         self.snapshot, self.deadline = snapshot, deadline
         self.counter = 0
         self.rows = {}
@@ -670,14 +671,21 @@ class ProjectCheck:
                                                     '--output-on-failure', '--timeout', str(self.test_timeout),
                                                     '-L', '^'+label+'$'], timeout=900, env=env)
             evidence.append(r['evidence_path'])
-            banner = sanitizer_banner(r['output'])
-            ok = passed(r) and banner is None
+            # --output-on-failure prints nothing for a test that exits 0; CTest's full
+            # test log holds every test's output, so the banner check reads it too.
+            log = self.step(f'{gate}-ctest-{label}-log', ['cat', '/work/'+directory+CTEST_LOG], timeout=60)
+            evidence.append(log['evidence_path'])
+            text = r['output'] + '\n' + (log['output'] if passed(log) else '')
+            banner = sanitizer_banner(text, self.banners)
+            ok = passed(r) and passed(log) and banner is None
             row = {'status': 'PASS' if ok else 'FAIL', 'tests': expected[label]}
             if not ok:
-                row.update(failed_tests=parse_failed_tests(r['output']), detectors=detectors(r['output']),
+                row.update(failed_tests=parse_failed_tests(r['output']), detectors=detectors(text),
                            failure=r['failure'])
                 if banner is not None:
-                    row['reason'] = 'sanitizer report in the output with exit status '+str(r['exit_code'])
+                    row['reason'] = 'sanitizer report in the test output with exit status '+str(r['exit_code'])
+                elif not passed(log):
+                    row['reason'] = 'CTest test log unavailable'
             result[label] = row
         return result
 
@@ -808,7 +816,7 @@ class ProjectCheck:
                     r = self.step('fuzz-replay-'+fuzz['name'], [binary, '/src/'+rel, '-runs=1'], timeout=120, env=dict(RUNTIME_ENV))
                     evidence.append(r['evidence_path'])
                     replayed += 1
-                    banner = sanitizer_banner(r['output'])
+                    banner = sanitizer_banner(r['output'], self.banners)
                     if not passed(r) or banner is not None:
                         failures.append({'target': fuzz['name'], 'input': rel, 'detectors': detectors(r['output']),
                                          'failure': r['failure'], 'banner': banner})
@@ -830,7 +838,7 @@ class ProjectCheck:
             evidence.append(crashes['evidence_path'])
             crashed = json.loads(crashes['output']) if passed(crashes) else ['failure inventory unavailable']
             stats = fuzz_stats(r['output'])
-            banner = sanitizer_banner(r['output'])
+            banner = sanitizer_banner(r['output'], self.banners)
             ok = (passed(r) and banner is None and not crashed and stats['executions'] > 0
                   and stats['coverage_edges'] > 1 and r['seconds'] >= seconds)
             rows.append({'target': fuzz['name'], 'status': 'PASS' if ok else 'FAIL', **stats, 'seed': 12345, 'budget_seconds': seconds,

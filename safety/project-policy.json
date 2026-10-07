@@ -86,6 +86,19 @@
     "dlopen",
     "dlmopen"
   ],
+  "sanitizer_banners": [
+    "ERROR: AddressSanitizer",
+    "ERROR: LeakSanitizer",
+    "WARNING: MemorySanitizer",
+    "WARNING: ThreadSanitizer",
+    "ERROR: ThreadSanitizer",
+    "ERROR: HWAddressSanitizer",
+    "runtime error:",
+    "ERROR: libFuzzer",
+    "SUMMARY: ",
+    "DEADLYSIGNAL",
+    "AddressSanitizer: nested bug"
+  ],
   "forbidden_patterns": [
     "(#|%:|\\?\\?=)\\s*pragma\\b(?!\\s+once\\b)",
     "\\?\\?[=/'()!<>-]",
