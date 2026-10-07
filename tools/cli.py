@@ -259,8 +259,10 @@ def main(argv=None):
                 development=developer_doctor(root,run_dir)
                 report['gates'].append(gate('developer-doctor',development['status'],development,development['evidence_paths']))
             if args.command in ['check-fast','check-full','ci']:
+                runner.refresh()
                 report['gates']+=production_checks(q,args.command!='check-fast')
             if args.command in ['bootstrap','doctor','check-fast','check-full','selftest','ci','foundation']:
+                runner.refresh()
                 from foundation import doctor as foundation_doctor, new_report as foundation_new_report
                 from foundation_report import check as foundation_check, experiments as foundation_experiments
                 if args.command in ['bootstrap','doctor'] or (args.command=='foundation' and args.operation=='doctor'):
@@ -276,16 +278,19 @@ def main(argv=None):
                 if args.command in ['selftest','ci'] or (args.command=='foundation' and args.operation=='selftest'):
                     foundation_experiments(q,report['foundation'])
             if args.command in ['selftest','ci']:
+                runner.refresh()
                 lit=q.lit()
                 completed={row['id']:row for row in lit.pop('case_rows')}
                 report['cases']=[completed.get(row['id'],row) for row in report['cases']]
                 report['reuse']['lit']=lit
                 report['gates'].append(gate('qualification','PASS' if all(x['status']=='PASS' for x in report['cases']) else 'FAIL'))
                 report['gates'].append(gate('lit',lit['status'],{},lit['evidence_paths']))
+                runner.refresh()
                 from sabotage import run_sabotage
                 report['sabotage']=run_sabotage(root,q,report)
                 report['gates'].append(gate('selftest','PASS' if all(x['status']=='PASS' for x in report['sabotage']) else 'FAIL'))
             if args.command in ['ci','fuzz']:
+                runner.refresh()
                 from fuzzing import run_fuzz
                 report['fuzz']=run_fuzz(q,args.profile if args.command=='fuzz' else 'merge')
                 report['reuse']['clusterfuzzlite']=report['fuzz']['clusterfuzzlite']
@@ -294,9 +299,11 @@ def main(argv=None):
                 report['gates'].append(gate('fuzz-exploration',report['fuzz']['exploration']['status']))
                 report['gates'].append(gate('clusterfuzzlite',report['fuzz']['clusterfuzzlite']['local_adapter_execution']))
             if args.command in ['ci','benchmark']:
+                runner.refresh()
                 from benchmark import run_benchmark
                 report['benchmark']=run_benchmark(q);report['gates'].append(gate('benchmark',report['benchmark']['execution_status']))
             if args.command in ['selftest','ci']:
+                runner.refresh()
                 from containment import new_report,Suite
                 report['containment']=new_report(q)
                 Suite(q,report['containment']).run()
@@ -306,6 +313,8 @@ def main(argv=None):
                 if args.developer_evidence:
                     report['developer']=developer_load(root,args.developer_evidence.absolute(),args.developer_evidence_sha256)
                 else:
+                    # The developer suite uses its own runners; the parent session would sit idle.
+                    runner.refresh(idle=True)
                     policy,development_lock,_=developer_inputs(root)
                     directory=root/'artifacts/developer/runs'/uuid.uuid4().hex;directory.mkdir(parents=True)
                     report['developer']=developer_suite(root,policy,development_lock,directory)
@@ -313,6 +322,7 @@ def main(argv=None):
                 from runtime import runtime_smoke
                 value=runtime_smoke(q);report['gates'].append(gate('runtime-demo',value['status'],value))
             if 'cases' in report['foundation'] and 'functional' in report['foundation']:
+                runner.refresh()
                 from runtime import runtime_smoke
                 from foundation_report import project
                 from foundation_pipeline import run as foundation_pipeline
@@ -320,6 +330,10 @@ def main(argv=None):
                 project(q,report['foundation'])
                 report['foundation']['sabotage']=foundation_pipeline(q,report['foundation'])
             if args.command in ['ci','starter','selftest'] or (args.command=='foundation' and args.operation=='selftest'):
+                # The fresh child ci can outlast the session holder (HOLDER_SECONDS); an
+                # expired holder may be restarted by a host watchdog with an empty /work.
+                # Dispose the idle session now; later steps create a fresh one and rebuild.
+                runner.refresh(idle=True)
                 from starter import verify_starter
                 report['starter']=verify_starter(root,lock,run_dir,instance=args.instance,expected=args.expected_baseline,baseline=args.baseline);report['gates'].append(gate('starter',report['starter']['status']))
             if foundation_projection_ready(report['foundation']):
@@ -334,6 +348,7 @@ def main(argv=None):
                         for parent in report['sabotage']:
                             parent['subcases'] += [{k:v for k,v in row.items() if k!='parent'} for row in added if row['parent']==parent['id']]
             if args.command in ['check-fast','check-full','ci','selftest']:
+                runner.refresh()
                 tests=runner.run(['python3','-m','unittest','discover','-s','/src/tests/unit','-v'],label='python-unit-tests')
                 ok=passed(tests) and __import__('re').search(r'Ran [1-9][0-9]* tests',tests['output']) is not None
                 report['gates'].append(gate('unit','PASS' if ok else 'FAIL',evidence=[tests['evidence_path']]))
@@ -343,6 +358,7 @@ def main(argv=None):
                     report['review_protocol']=run_protocol(q)
                     report['gates'].append(gate('review-protocol',report['review_protocol']['status'],evidence=report['review_protocol']['evidence_paths']))
             if args.command in ['selftest','ci']:
+                runner.refresh()
                 from containment import routing,container_sabotage,save
                 routing(q,report['containment'],report,instance=args.instance)
                 added=container_sabotage(q,report['containment']);report['containment']['sabotage']=added

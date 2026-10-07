@@ -99,6 +99,10 @@ def environment_gate(environment=None):
     if bad:
         raise GateError('prohibited inherited options: ' + ', '.join(bad))
 
+# A session older than HOLDER_SECONDS-SESSION_MARGIN_SECONDS is renewed at the next
+# gate boundary, so no single step runs into the holder's end.
+SESSION_MARGIN_SECONDS = 600
+
 class Runner:
     def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification", source_root=None, fixture_root=None):
         if build_profile not in {"build", "dependency-build"}:raise GateError("unapproved build adapter profile")
@@ -109,6 +113,7 @@ class Runner:
         scratch.mkdir(parents=True, exist_ok=True)
         run_dir.mkdir(parents=True, exist_ok=True)
         self.counter=0;self.records=[];self.alive=False;self.session=None
+        self.session_started=None
         self.collected_bytes=0;self.collected_files=0
         self.collection_sizes={}
         from container_policy import Launcher
@@ -139,7 +144,7 @@ class Runner:
                 raise GateError('developer fixture changed during immutable snapshot creation')
             mounts['/fixture']=self.fixture_snapshot
         self.session=self.launcher.create(self.build_profile,mounts)
-        self.name=self.session['container_id'];self.alive=True
+        self.name=self.session['container_id'];self.alive=True;self.session_started=self.clock()
         from containment import expected_binding
         from policy import source_identity
         self.input_binding=expected_binding(self.root,self.launcher.runner_identity,
@@ -158,6 +163,27 @@ class Runner:
     def close(self):
         self.launcher.close();self.alive=False
 
+    @staticmethod
+    def clock():
+        return time.monotonic()
+
+    def release(self):
+        """Dispose the idle session container through the launcher. The next run
+        creates a fresh session; Qualifier builds from the old one are redone."""
+        if self.session is not None and self.session.get('lifecycle') is None:
+            self.launcher.dispose(self.session)
+        self.alive=False;self.session=None;self.session_started=None
+
+    def refresh(self, *, idle=False):
+        """Gate boundary. `idle=True` before a step that leaves the session unused for
+        a long time (developer suite, starter child ci); otherwise renew a session that
+        is close to the holder lifetime. Returns True when the session was released."""
+        from container_policy import HOLDER_SECONDS
+        if not self.alive:return False
+        if idle or self.session_started is None or self.clock()-self.session_started>=HOLDER_SECONDS-SESSION_MARGIN_SECONDS:
+            self.release();return True
+        return False
+
     def collect(self,session,relative,destination):
         import base64
         p=Path(relative)
@@ -173,6 +199,7 @@ for part in pathlib.Path(sys.argv[1]).parts:
 m=p.stat()
 if not stat.S_ISREG(m.st_mode) or m.st_size>int(sys.argv[2]):raise SystemExit(32)
 print(base64.b64encode(p.read_bytes()).decode())"""
+        self.launcher.verify_session(session)
         result=self.launcher.docker(['exec',session['container_id'],'python3','-c',script,relative,str(c['artifact_bytes'])],timeout=30,limit=c['artifact_bytes']*2)
         if not passed(result):raise GateError('artifact collection refused or unavailable: '+relative)
         data=base64.b64decode(result['output'].strip(),validate=True)
