@@ -79,10 +79,15 @@ stream) to a finite depth within a 64 MiB decompression budget per file, and
 check the container bytes and metadata too. A corrupt or truncated stream, a zip
 local-header signature at an offset that the central directory does not list, a
 listed zip member whose local header disagrees with its central record (method,
-flag bits 0 and 3, CRC-32 and sizes), and an exceeded member cap, depth limit or
-budget are findings. Findings mask every matched value, also inside a
+flag bits 0 and 3, CRC-32 and sizes) or whose deflate stream or data descriptor
+does not end where the central record says, and an exceeded member cap, depth
+limit or budget are findings. Findings mask every matched value, also inside a
 printed path or label, label archive metadata by index and print only printable
-characters. Known limits: a commit or
+characters. Threat model: the hooks and the `privacy` workflow guard against
+accidental commits of personal data. They are not a defence against a deliberate
+committer, who can bypass client hooks. An archive crafted on purpose so that
+standard tools parse it differently from Python's zipfile and tarfile is a
+documented residual. Known limits: a commit or
 tag that adds a vendored or upstream-archive file together with a lock entry for
 it exempts that file's content, locally and in CI; altered local
 remote-tracking refs can shorten a push range; a stored zip member whose own

@@ -264,6 +264,39 @@ elif kind in ('zip-size-lie','ok-zip-in-v7tar','zip-header-mismatch','v7tar-clea
         eocd=bytearray(av[-22:]); eocd[16:20]=(int.from_bytes(eocd[16:20],'little')+grow).to_bytes(4,'little')
         inner=bytes(local)+hidden+bytes(central)+bytes(eocd)
     data=v7tar([('inner.zip',inner),('notes.txt',b'plain filler text line\n'*4000)])
+elif kind in ('zip-extent','ok-zips-deflated'):
+    import struct,zlib
+    def tarof(members):
+        b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w',format=tarfile.USTAR_FORMAT)
+        for name,content in members:
+            i=tarfile.TarInfo(name); i.size=len(content); t.addfile(i,io.BytesIO(content))
+        t.close(); return b.getvalue()
+    if kind=='zip-extent':
+        # Flag bit 3: the central record gives the CRC and sizes of a sync-flushed clean
+        # prefix; the same deflate stream continues with the value, and the data
+        # descriptor gives the full values. zipfile reads only the prefix.
+        clean=b'clean text\n'*50; c=zlib.compressobj(9,zlib.DEFLATED,-15)
+        head=c.compress(clean)+c.flush(zlib.Z_SYNC_FLUSH); full=head+c.compress(value+b'\n')+c.flush()
+        plain=clean+value+b'\n'; name=b'h.txt'
+        local=struct.pack('<IHHHHHIIIHH',0x04034b50,20,8,8,0,0x21,0,0,0,len(name),0)+name
+        desc=struct.pack('<IIII',0x08074b50,zlib.crc32(plain),len(full),len(plain))
+        body=local+full+desc
+        central=struct.pack('<IHHHHHHIIIHHHHHII',0x02014b50,20,20,8,8,0,0x21,zlib.crc32(clean),len(head),len(clean),len(name),0,0,0,0,0,0)+name
+        inner=body+central+struct.pack('<IHHHHIIH',0x06054b50,0,0,1,1,len(central),len(body),0)
+        zips=[('inner.zip',inner)]
+    else:
+        # Ordinary zips: seekable deflated, and streaming (flag bit 3 with data descriptors).
+        a=io.BytesIO(); f=zipfile.ZipFile(a,'w',zipfile.ZIP_DEFLATED); f.writestr('a.txt',b'clean text\n'*500); f.writestr('e.txt',b''); f.close()
+        class Pipe(io.RawIOBase):
+            def __init__(self): self.b=bytearray()
+            def writable(self): return True
+            def write(self,d): self.b+=d; return len(d)
+        q=Pipe(); f=zipfile.ZipFile(q,'w',zipfile.ZIP_DEFLATED)
+        with f.open('s.txt','w') as m: m.write(b'streamed clean text\n'*300)
+        f.close(); zips=[('a.zip',a.getvalue()),('s.zip',bytes(q.b))]
+    # Carrier: a plain-text first block (the tar header does not validate) and a
+    # trailing text member that moves the zip end record out of the tail window.
+    data=b'plain text first block\n'.ljust(512,b' ')+tarof(zips+[('notes.txt',b'plain filler text line\n'*4000)])
 elif kind=='depth-prefixed-zip':
     b=io.BytesIO(); z=zipfile.ZipFile(b,'w'); z.writestr('m.txt',value); z.close(); data=b'\x00'*64+b.getvalue()
     for _ in range(4): data=gzip.compress(data)
@@ -283,6 +316,8 @@ fresh zip-hdr-mm;    mkbad zip-header-mismatch a.bin "$BAD";              rc zip
 fresh v7tar-clean;   mkbad v7tar-clean a.bin x;                           rc unpinned-v7-tar bad "$(reach)" unpinned-archive
 fresh ok-random-512; python3 -c "import random,sys; sys.stdout.buffer.write(random.Random(7).randbytes(4096))" > a.bin; r ok-random-binary-512 ok "$(reach)"
 fresh ok-text-512;   python3 -c "import sys; sys.stdout.write(''.join('plain text line %015d\n' % i for i in range(32)))" > a.txt; r ok-text-1024-bytes ok "$(reach)"
+fresh zip-extent;    mkbad zip-extent a.bin "$BAD";                       rc zip-stream-past-extent bad "$(reach)" zip-header-mismatch
+fresh ok-zips-defl;  mkbad ok-zips-deflated a.bin x;                     r ok-deflated-and-streamed-zips ok "$(reach)"
 fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               rc depth-limit-prefixed-zip bad "$(reach)" archive-depth-limit
 fresh ok-bzh-text;   printf 'BZh is how this note starts\n' > a.txt;     r ok-bzh-text ok "$(reach)"
 fresh masked-name;   echo x > "notes-$LOGIN-todo.txt"; git add -A

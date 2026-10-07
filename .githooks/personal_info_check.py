@@ -26,7 +26,17 @@ the same revision binds that path to that sha256; names are always checked and
 first-party files get every rule. A first-party (unpinned) zip, tar (ustar, or a
 pre-POSIX tar whose first header checksum validates), gzip, xz or bzip2 file is
 itself a finding. A listed zip member whose local header disagrees with its
-central record (method, flag bits 0 and 3, CRC-32 and sizes) is a finding. Findings print the path, line and category;
+central record (method, flag bits 0 and 3, CRC-32 and sizes), or whose deflate
+stream or data descriptor does not end where the central record says, is a
+finding.
+
+Threat model: these hooks and the privacy workflow guard against accidental
+commits of personal data. They are not a defence against a deliberate committer
+(client hooks can be bypassed). An archive crafted on purpose so that standard
+tools parse it differently from Python's zipfile and tarfile is a documented
+residual.
+
+Findings print the path, line and category;
 every matched value, also one inside a printed path or label, is masked, archive
 metadata is labelled by index and output is reduced to printable characters.
 
@@ -247,6 +257,45 @@ def zip_unlisted(data, offsets):
     return False
 
 
+def zip_extent_mismatch(data, info, state):
+    """True when a listed member's data does not end where its central record says:
+    a deflated stream must end exactly at compress_size bytes after the real data
+    start, and a member with flag bit 3 must be followed by a data descriptor (with
+    or without signature, 4- or 8-byte sizes) that repeats the central CRC and sizes.
+    Inflated output is discarded but counted against a finite bound."""
+    at = info.header_offset
+    local = data[at:at + 30]
+    if len(local) < 30:
+        return True
+    start = at + 30 + int.from_bytes(local[26:28], 'little') + int.from_bytes(local[28:30], 'little')
+    end = start + info.compress_size
+    if end > len(data):
+        return True
+    if info.compress_type == zipfile.ZIP_DEFLATED:
+        engine, pending, total = zlib.decompressobj(-zlib.MAX_WBITS), data[start:end], 0
+        try:
+            while pending and not engine.eof:
+                total += len(engine.decompress(pending, CHUNK * 16))
+                pending = engine.unconsumed_tail
+                if total > DECOMPRESSED_LIMIT:
+                    raise BudgetExceeded('zip member stream exceeds the finite limit')
+        except zlib.error:
+            return True
+        if not engine.eof or engine.unused_data or pending:
+            return True
+    if info.flag_bits & 8:
+        tail = data[end:end + 28]
+        if tail[:4] == b'PK\x07\x08':
+            tail = tail[4:]
+        expected = info.CRC.to_bytes(4, 'little')
+        short = expected + info.compress_size.to_bytes(4, 'little') + info.file_size.to_bytes(4, 'little') \
+            if max(info.compress_size, info.file_size) < 1 << 32 else None
+        wide = expected + info.compress_size.to_bytes(8, 'little') + info.file_size.to_bytes(8, 'little')
+        if not ((short and tail[:12] == short) or tail[:20] == wide):
+            return True
+    return False
+
+
 def expand(data, state, depth=0):
     """(member names and metadata, leaf contents, container bytes) of a blob,
     expanding archives member by member."""
@@ -276,7 +325,8 @@ def expand(data, state, depth=0):
                     state.problems.append('archive-member-cap')
                 if zip_unlisted(data, {info.header_offset for info in members}):
                     state.problems.append('zip-unlisted-local-entry')
-                if any(zip_header_mismatch(data, info) for info in members):
+                if any(zip_header_mismatch(data, info) or zip_extent_mismatch(data, info, state)
+                       for info in members[:MEMBER_CAP]):
                     state.problems.append('zip-header-mismatch')
                 for info in members[:MEMBER_CAP]:
                     names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]
