@@ -291,7 +291,13 @@ PROJECT_ALLOWED_ATTRIBUTES = frozenset({
     'ReturnsTwiceAttr'})
 
 # Run-time symbol lookup lets project code bypass the AST name rules.
-PROJECT_BANNED_CALLS = frozenset({'dlsym', 'dlvsym', 'dlopen', 'dlmopen'})
+PROJECT_BANNED_CALLS = frozenset({'dlsym', 'dlvsym', 'dlopen', 'dlmopen',
+                                  # Process exits that skip the sanitizer and leak reports.
+                                  '_exit', '_Exit', 'quick_exit'})
+# A project definition of an allocator replaces the sanitizer's interceptors.
+PROJECT_RESERVED_DEFINITIONS = frozenset({'malloc', 'calloc', 'realloc', 'free', 'aligned_alloc',
+                                          'posix_memalign', 'memalign', 'valloc', 'pvalloc',
+                                          'reallocarray'})
 
 # Project code may not reach the sanitizer, profile or coverage runtimes: their hooks
 # (*_default_options, death callbacks, suppressions) can turn a detected defect into a
@@ -307,18 +313,6 @@ _DECL_KINDS = frozenset({'FunctionDecl', 'VarDecl', 'ParmVarDecl', 'FieldDecl', 
 
 def _is_reserved(name):
     return bool(name) and (name.startswith('__') or (len(name) >= 2 and name[0] == '_' and name[1].isupper()))
-
-
-def _loc_file(location):
-    """The source file of a Clang loc, following macro expansion and spelling."""
-    while isinstance(location, dict):
-        for key in ('expansionLoc', 'spellingLoc'):
-            if key in location:
-                location = location[key]
-                break
-        else:
-            return location.get('file')
-    return None
 
 
 def ast_banned_attributes(node):
@@ -354,12 +348,15 @@ def ast_project_findings(node, origin_prefixes=None):
       RUNTIME_INTERFACE_PREFIXES prefix;
     - fuzzer-entry: a project `LLVMFuzzer*` name other than LLVMFuzzerTestOneInput;
     - project-builtin: a call of a __builtin_ not in PROJECT_ALLOWED_BUILTINS;
-    - banned-call: a call of a PROJECT_BANNED_CALLS function (dlsym, dlopen, ...);
+    - banned-call: a call of a PROJECT_BANNED_CALLS function (dlsym, dlopen, _exit, ...);
+    - allocator-definition: a project definition of malloc, free or another allocator;
+    - fuzzer-main: a definition of main in a fuzz harness (under fuzz/project/);
     - project-attribute: an attribute kind on a project declaration not in
       PROJECT_ALLOWED_ATTRIBUTES.
     """
     result = set()
     prefixes = tuple(origin_prefixes) if origin_prefixes is not None else None
+    fuzz_prefixes = tuple(p for p in (prefixes or ()) if p.endswith('fuzz/project/'))
 
     def origin(file):
         return prefixes is None or (isinstance(file, str) and file.startswith(prefixes))
@@ -378,6 +375,19 @@ def ast_project_findings(node, origin_prefixes=None):
     # references with their own file and are read independently.
     state = {'file': None}
 
+    def visit(location):
+        """Advance the running file over one printed location (Clang print order:
+        spellingLoc, then expansionLoc, for a macro location); return the file of
+        its expansion part."""
+        if not isinstance(location, dict):
+            return None
+        if 'spellingLoc' in location or 'expansionLoc' in location:
+            visit(location.get('spellingLoc'))
+            return visit(location.get('expansionLoc'))
+        if 'file' in location:
+            state['file'] = location['file']
+        return state['file'] if location else None
+
     def walk(value):
         if isinstance(value, list):
             for child in value:
@@ -385,12 +395,13 @@ def ast_project_findings(node, origin_prefixes=None):
             return
         if not isinstance(value, dict):
             return
-        for candidate in (value.get('loc'), value.get('range', {}).get('begin'), value.get('range', {}).get('end')):
-            found = _loc_file(candidate)
-            if found is not None:
-                state['file'] = found
-                break
-        current = state['file']
+        # Every printed location updates the running file in print order: loc, then
+        # range.begin, then range.end. The node belongs to the expansion file of its
+        # loc (or of range.begin when it has no loc).
+        own = visit(value.get('loc')) if value.get('loc') else None
+        begin = visit(value.get('range', {}).get('begin'))
+        visit(value.get('range', {}).get('end'))
+        current = own if value.get('loc') else begin if value.get('range', {}).get('begin') else state['file']
         kind = value.get('kind', '')
         here = origin(current)
         # Clang creates an implicit FunctionDecl for a builtin at its first use; such a
@@ -403,23 +414,26 @@ def ast_project_findings(node, origin_prefixes=None):
                     and not name.startswith(RUNTIME_INTERFACE_PREFIXES)
                     and not (name.startswith('LLVMFuzzer') and name != FUZZER_ENTRY)):
                 result.add(('reserved-declaration', name))
+        defines = kind == 'FunctionDecl' and any(c.get('kind') == 'CompoundStmt' for c in value.get('inner', [])
+                                                 if isinstance(c, dict))
+        if here and defines and value.get('name') in PROJECT_RESERVED_DEFINITIONS:
+            result.add(('allocator-definition', value['name']))
+        if (here and defines and value.get('name') == 'main' and isinstance(current, str)
+                and fuzz_prefixes and current.startswith(fuzz_prefixes)):
+            # A harness may not replace the libFuzzer driver.
+            result.add(('fuzzer-main', 'main'))
         if (here and kind.endswith('Attr') and not value.get('implicit')
                 and kind not in PROJECT_ALLOWED_ATTRIBUTES):
             result.add(('project-attribute', kind))
         if kind == 'DeclRefExpr':
             declaration = value.get('referencedDecl', {}) or {}
             name = declaration.get('name', '')
-            ref_file = _loc_file(declaration.get('loc'))
-            # A reference site is project origin by its own location (current).
+            # A reference site is project origin by its own location. A reserved name
+            # the project declared is refused at its declaration.
             if here:
                 classify_name(name)
                 if name.startswith('__builtin_') and name not in PROJECT_ALLOWED_BUILTINS:
                     result.add(('project-builtin', name))
-                elif (_is_reserved(name) and name not in PROJECT_ALLOWED_RESERVED_DECLS
-                        and not name.startswith(RUNTIME_INTERFACE_PREFIXES)
-                        and not name.startswith('__builtin_') and origin(ref_file)):
-                    # A reserved name that resolves to a project file, not a system header.
-                    result.add(('reserved-declaration', name))
                 if name in PROJECT_BANNED_CALLS:
                     result.add(('banned-call', name))
         for child in value.get('inner', []):

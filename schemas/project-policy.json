@@ -1,9 +1,10 @@
 {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
- "required":["schema_version","gates","fuzz_seconds","coverage_source","forbidden_text","forbidden_patterns"],
+ "required":["schema_version","gates","fuzz_seconds","coverage_source","forbidden_text","forbidden_patterns","sanitizer_banners"],
  "properties":{
   "schema_version":{"const":1},
   "gates":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^[A-Za-z][A-Za-z0-9-]*$"}},
   "fuzz_seconds":{"type":"integer","minimum":30},
   "coverage_source":{"const":"safety/contract.json"},
   "forbidden_text":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}},
-  "forbidden_patterns":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","minLength":1}}}}
+  "forbidden_patterns":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","minLength":1}},
+  "sanitizer_banners":{"description":"Sanitizer and libFuzzer report banners: a project test or fuzz run whose output holds one FAILs whatever its exit status (CTest FAIL_REGULAR_EXPRESSION in cmake/Project.cmake and the banner check in tools/project_check.py). Literal text only: no regular-expression metacharacters or list separators.","type":"array","minItems":8,"uniqueItems":true,"items":{"type":"string","pattern":"^[A-Za-z][A-Za-z :-]*$"}}}}

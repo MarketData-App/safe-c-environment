@@ -122,7 +122,6 @@ class ProjectCMakeTests(unittest.TestCase):
             {'kind':'FunctionDecl','name':'f','loc':{'file':'/src/p/src/a.c'},'inner':[{'kind':'CompoundStmt','inner':[
                 ref('__builtin_object_size'), ref('__builtin_trap'), ref('__builtin_expect'),
                 ref(us+'errno_location','/usr/include/bits/errno.h'),  # system reserved reference: allowed
-                ref(us+'project_secret','/src/p/include/a.h'),         # project reserved reference: refused
                 {'kind':'CallExpr','inner':[ref('dlsym','/usr/include/dlfcn.h')]},
                 {'kind':'NakedAttr'}]}]},
             # a declaration in a system header is exempt
@@ -135,13 +134,55 @@ class ProjectCMakeTests(unittest.TestCase):
             ('project-builtin','__builtin_object_size'),
             ('reserved-declaration','_Private'),
             ('reserved-declaration',us+'myhelper'),
-            ('reserved-declaration',us+'project_secret'),
             ('runtime-interface',us+'asan_default_options')])
         # Without prefixes every location is project origin (single-unit scan default),
-        # so the system declaration and the system reference are flagged too.
-        default=ast_project_findings(tree)
-        self.assertIn(('reserved-declaration',us+'libc_internal'),default)
-        self.assertIn(('reserved-declaration',us+'errno_location'),default)
+        # so the system declaration is flagged too.
+        self.assertIn(('reserved-declaration',us+'libc_internal'),ast_project_findings(tree))
+    def test_exits_allocators_and_harness_main(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        from qualification import ast_project_findings
+        body={'kind':'CompoundStmt','inner':[]}
+        def call(name):
+            return {'kind':'CallExpr','inner':[{'kind':'DeclRefExpr','referencedDecl':{'name':name}}]}
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':'malloc','loc':{'file':'/src/p/src/a.c'},'inner':[body]},
+            {'kind':'FunctionDecl','name':'free','loc':{'file':'/src/p/src/a.c'}},  # a declaration only
+            {'kind':'FunctionDecl','name':'f','loc':{'file':'/src/p/src/a.c'},'inner':[{'kind':'CompoundStmt','inner':[
+                call('_exit'),call('_Exit'),call('quick_exit'),call('exit')]}]},
+            {'kind':'FunctionDecl','name':'main','loc':{'file':'/src/p/src/main.c'},'inner':[body]},
+            {'kind':'FunctionDecl','name':'main','loc':{'file':'/src/p/fuzz/project/h.c'},'inner':[body]},
+            {'kind':'FunctionDecl','name':'calloc','loc':{'file':'/usr/include/stdlib.h'},'inner':[body]}]}
+        prefixes=('/src/p/src/','/src/p/include/','/src/p/tests/project/','/src/p/fuzz/project/')
+        self.assertEqual(ast_project_findings(tree,prefixes),[
+            ('allocator-definition','malloc'),('banned-call','_Exit'),('banned-call','_exit'),
+            ('banned-call','quick_exit'),('fuzzer-main','main')])
+    def test_location_tracking_follows_clang_print_order(self):
+        sys.path.insert(0,str(ROOT/'tools'))
+        from qualification import ast_project_findings
+        us='_'+'_'
+        prefixes=('/src/p/src/',)
+        # range.end printed last moves the running file to the system header; the next
+        # node without a file therefore belongs to the system header.
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':'ok','loc':{'file':'/src/p/src/a.c','line':1},
+             'range':{'begin':{'line':1},'end':{'file':'/usr/include/x.h','line':9}}},
+            {'kind':'FunctionDecl','name':us+'sys_after_end','loc':{'line':10}}]}
+        self.assertEqual(ast_project_findings(tree,prefixes),[])
+        # A macro location: spellingLoc in a system header, expansionLoc in the project.
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':us+'from_macro',
+             'loc':{'spellingLoc':{'file':'/usr/include/m.h','line':3},'expansionLoc':{'file':'/src/p/src/a.c','line':7}}},
+            # The expansion part printed last leaves the running file in the project file.
+            {'kind':'FunctionDecl','name':us+'next_in_project','loc':{'line':8}}]}
+        self.assertEqual(ast_project_findings(tree,prefixes),
+                         [('reserved-declaration',us+'from_macro'),('reserved-declaration',us+'next_in_project')])
+        # A spellingLoc in the project and an expansionLoc without a file keeps the
+        # spelling file as the running file (it was printed last with a file).
+        tree={'kind':'TranslationUnitDecl','inner':[
+            {'kind':'FunctionDecl','name':'x','loc':{'file':'/usr/include/y.h','line':1}},
+            {'kind':'FunctionDecl','name':us+'spelled_here',
+             'loc':{'spellingLoc':{'file':'/src/p/src/a.c','line':2},'expansionLoc':{'line':5}}}]}
+        self.assertEqual(ast_project_findings(tree,prefixes),[('reserved-declaration',us+'spelled_here')])
     def test_runtime_sanitizer_options_name_nonzero_exit_codes(self):
         sys.path.insert(0,str(ROOT/'tools'))
         from evidence import RUNTIME_ENV
