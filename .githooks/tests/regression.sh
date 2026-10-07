@@ -197,9 +197,43 @@ fresh commit-header; t=$(git rev-parse HEAD^{tree}); p=$(git rev-parse HEAD)
                      c=$(printf 'tree %s\nparent %s\nauthor bot <%s> 1 +0000\ncommitter bot <%s> 1 +0000\nx-contact %s\n\nclean\n' "$t" "$p" "$NR" "$NR" "$BAD" | git hash-object -t commit -w --literally --stdin)
                      git update-ref refs/heads/extra "$c"
                      if python3 .githooks/personal_info_check.py --history >/dev/null 2>>"$BASE/err" && git push -q origin extra >/dev/null 2>>"$BASE/err"; then o=ALLOWED; else o=BLOCKED; fi; r extra-commit-header bad $o
-fresh ok-zip;        mkarc ok-zip a.zip x;                                r ok-clean-zip ok "$(reach)"
-fresh ok-tar;        mkarc ok-tar a.tar x;                                r ok-clean-tar ok "$(reach)"
-fresh ok-targz;      mkarc ok-targz a.tar.gz x;                           r ok-clean-tar-gz ok "$(reach)"
-fresh ok-big;        mkarc ok-big-targz big.tar.gz x;                     r ok-large-clean-tar-gz ok "$(reach)"
+fresh ok-zip;        mkarc ok-zip a.zip x;                                r unpinned-clean-zip bad "$(reach)"
+fresh ok-tar;        mkarc ok-tar a.tar x;                                r unpinned-clean-tar bad "$(reach)"
+fresh ok-targz;      mkarc ok-targz a.tar.gz x;                           r unpinned-clean-tar-gz bad "$(reach)"
+fresh ok-big;        mkarc ok-big-targz big.tar.gz x;                     r unpinned-large-tar-gz bad "$(reach)"
+mkbad() { python3 - "$@" <<'PY'
+import io,sys,zipfile,gzip,tarfile,lzma,bz2
+kind,out,value=sys.argv[1],sys.argv[2],sys.argv[3].encode()
+body=b'filler line\n'*2000+value+b'\n'+b'filler line\n'*2000
+def flip(data,pos): b=bytearray(data); b[pos]^=1; return bytes(b)
+if kind=='gzip-crc': d=gzip.compress(body); data=flip(d,len(d)-6)
+elif kind=='xz-mid': d=lzma.compress(body); data=flip(d,len(d)//2)
+elif kind=='bz2-crc':
+    d=bz2.compress(body); data=flip(d,len(d)-3)
+elif kind=='tar-concat':
+    def tar(name,content):
+        b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w',format=tarfile.USTAR_FORMAT); i=tarfile.TarInfo(name); i.size=len(content); t.addfile(i,io.BytesIO(content)); t.close(); return b.getvalue()
+    data=tar('a.txt',b'clean\n')+tar('b.txt',value)
+elif kind=='zip-unlisted':
+    a=io.BytesIO(); z=zipfile.ZipFile(a,'w',zipfile.ZIP_DEFLATED); z.writestr('hidden.txt',value); z.close(); av=a.getvalue(); local=av[:av.find(b'PK\x01\x02')]
+    b=io.BytesIO(); z=zipfile.ZipFile(b,'w',zipfile.ZIP_DEFLATED); z.writestr('clean.txt',b'clean'); z.close(); data=local+b.getvalue()
+elif kind=='depth-prefixed-zip':
+    b=io.BytesIO(); z=zipfile.ZipFile(b,'w'); z.writestr('m.txt',value); z.close(); data=b'\x00'*64+b.getvalue()
+    for _ in range(4): data=gzip.compress(data)
+open(out,'wb').write(data)
+PY
+}
+fresh sparse-tar;    truncate -s 100M ../sparse.bin && tar --sparse --format=gnu --owner=root --group=root -cf a.tar -C .. sparse.bin && rm -f ../sparse.bin; r sparse-tar-budget bad "$(reach)"
+fresh gzip-crc;      mkbad gzip-crc a.gz "$BAD";                         r corrupt-gzip-crc bad "$(reach)"
+fresh xz-mid;        mkbad xz-mid a.xz "$BAD";                           r corrupt-xz-stream bad "$(reach)"
+fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         r corrupt-bzip2-crc bad "$(reach)"
+fresh tar-concat;    mkbad tar-concat a.tar "$BAD";                      r concatenated-tar bad "$(reach)"
+fresh zip-unlisted;  mkbad zip-unlisted a.zip "$BAD";                    r zip-unlisted-local-entry bad "$(reach)"
+fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               r depth-limit-prefixed-zip bad "$(reach)"
+fresh masked-output; mkarc tar-uname a.tar "$LOGIN"; git add -A
+                     if git commit -q -m masked >/dev/null 2>"$BASE/out"; then o=ALLOWED; elif grep -q -F "$LOGIN" "$BASE/out"; then o=LEAKED; else o=BLOCKED; fi; r masked-metadata-output bad $o
+fresh ok-pinned-tar;  mkdir -p container/foundation-inputs; mkarc ok-tar container/foundation-inputs/up.tar x
+                     printf '{"inputs": [{"path": "container/foundation-inputs/up.tar", "sha256": "%s"}]}\n' "$(sha256sum container/foundation-inputs/up.tar | cut -c1-64)" > foundation.lock.json
+                     r ok-pinned-upstream-tar ok "$(reach)"
 rm -rf "$BASE"
 exit $FAIL

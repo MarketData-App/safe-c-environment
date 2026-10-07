@@ -12,7 +12,9 @@ submodule entries are skipped. Archives are expanded member by member (zip, tar,
 gzip, xz and bzip2 with every stream, nested to a finite depth within one
 decompression budget), and the container bytes and metadata (tar owner, group,
 link target and pax records, zip comments, gzip header names) are checked too;
-an undecodable member, an exceeded member cap or depth limit is a finding. Text is read as
+a corrupt or truncated stream, an undecodable member, a zip local entry that the
+central directory omits, and an exceeded member cap, depth limit or budget are
+findings. Text is read as
 UTF-8, UTF-16 or UTF-32 with or without a byte-order mark; other binary content
 is read as printable runs and searched byte-wise for local values. Commit
 author/committer and tag tagger emails must be GitHub noreply addresses (GitHub's
@@ -20,8 +22,10 @@ web-flow committer is also accepted), and their names and messages are checked
 like content. Content of a file under third_party/ or container/foundation-inputs/,
 or of an upstream archive (.whl, .zip, .tar.*), is exempt only when a lock file of
 the same revision binds that path to that sha256; names are always checked and
-first-party files get every rule. Findings print the path, line and category,
-with the matched value masked.
+first-party files get every rule. A first-party (unpinned) zip, tar, gzip, xz or
+bzip2 file is itself a finding. Findings print the path, line and category,
+with the matched value masked; archive metadata is labelled by index and output
+is reduced to printable characters.
 
 Modes: --staged (pre-commit, pre-merge-commit), --message FILE (commit-msg),
 --push [REMOTE] (pre-push; covers merges, cherry-picks, rebases and tags),
@@ -65,6 +69,8 @@ ZERO = re.compile(r'^0+$')
 PRINTABLE = re.compile(rb'[\x20-\x7e]{8,}')
 SHORT_RUNS = re.compile(rb'[\x20-\x7e]{3,}')
 MAX_DEPTH = 4
+CHUNK = 4 * 1024
+GZIP, XZ, BZIP2 = b'\x1f\x8b', b'\xfd7zXZ\x00', b'BZh'
 MEMBER_CAP = 4096
 GITLINK = '160000'
 DIGEST = re.compile(r'(?:sha256:)?[0-9a-f]{64}')
@@ -78,6 +84,10 @@ def git(*args, binary=False, check=True):
     return result.stdout if binary else result.stdout.decode('utf-8', errors='replace')
 
 
+class BudgetExceeded(ValueError):
+    """The finite decompression budget of one blob was exceeded."""
+
+
 class Expansion:
     """Finite budget and findings shared by one archive expansion."""
     def __init__(self):
@@ -86,79 +96,122 @@ class Expansion:
     def take(self, size):
         self.used += size
         if self.used > DECOMPRESSED_LIMIT:
-            raise ValueError('decompressed content exceeds the finite limit')
+            raise BudgetExceeded('decompressed content exceeds the finite limit')
 
     def room(self):
         return DECOMPRESSED_LIMIT - self.used + 1
 
 
-def inflate(data, state):
-    """Bounded gzip inflation of every member, keeping partial output of truncated or
-    trailing-data streams; header file names and comments are returned as metadata."""
-    out, rest, meta = bytearray(), data, []
-    while rest[:2] == b'\x1f\x8b':
-        flags = rest[3] if len(rest) > 3 else 0
-        cursor = 10
-        if flags & 4 and len(rest) > 12:
-            cursor += 2 + int.from_bytes(rest[10:12], 'little')
-        for bit in (8, 16):
-            if flags & bit:
-                stop = rest.find(b'\0', cursor)
-                if stop < 0:
+def drain(engine, data, state):
+    """Stream data through one decompressor in finite chunks within the budget.
+    Returns (output, remaining input after the stream, complete); output decoded
+    before an error is kept, and an error or truncation gives complete=False."""
+    out = bytearray()
+    for start in range(0, len(data), CHUNK):
+        pending = data[start:start + CHUNK]
+        try:
+            while True:
+                if hasattr(engine, 'unconsumed_tail'):
+                    piece = engine.decompress(pending, state.room())
+                    pending = engine.unconsumed_tail
+                    more = bool(pending)
+                else:
+                    piece = engine.decompress(pending, max_length=state.room())
+                    pending = b''
+                    more = not engine.eof and not engine.needs_input
+                state.take(len(piece))
+                out += piece
+                if engine.eof:
+                    return bytes(out), engine.unused_data + data[start + CHUNK:], True
+                if not more:
                     break
-                meta.append(rest[cursor:stop].decode('latin-1'))
-                cursor = stop + 1
-        engine = zlib.decompressobj(16 + zlib.MAX_WBITS)
-        try:
-            chunk = engine.decompress(rest, state.room())
-        except zlib.error:
-            break
-        state.take(len(chunk))
-        out += chunk
-        if not engine.eof:
-            break
-        rest = engine.unused_data
-    return bytes(out), meta
+        except (zlib.error, OSError, EOFError, lzma.LZMAError):
+            return bytes(out), b'', False
+    return bytes(out), b'', False
 
 
-def unpack(data, state, factory):
-    """Bounded decompression of every concatenated xz or bzip2 stream."""
-    out, rest = bytearray(), data
-    while rest:
-        engine = factory()
-        try:
-            chunk = engine.decompress(rest, max_length=state.room())
-        except (OSError, EOFError, lzma.LZMAError, ValueError):
-            break
-        state.take(len(chunk))
-        out += chunk
-        if not engine.eof:
-            break
-        rest = engine.unused_data.lstrip(b'\0')
-    return bytes(out)
+def gzip_header(data):
+    """(file name and comment fields, offset of the deflate data) of one gzip header."""
+    flags, cursor, meta = (data[3] if len(data) > 3 else 0), 10, []
+    if flags & 4 and len(data) > 12:
+        cursor += 2 + int.from_bytes(data[10:12], 'little')
+    for bit in (8, 16):
+        if flags & bit:
+            stop = data.find(b'\0', cursor)
+            if stop < 0:
+                break
+            meta.append(data[cursor:stop].decode('latin-1'))
+            cursor = stop + 1
+    if flags & 2:
+        cursor += 2
+    return meta, cursor
 
 
-def compressed(data):
-    return data[:2] == b'\x1f\x8b' or data[:6] == b'\xfd7zXZ\x00' or data[:3] == b'BZh'
+def gzip_meta(data):
+    return gzip_header(data)[0]
+
+
+def streams(data, state, magic, factory, meta=None):
+    """Decode every concatenated stream that starts with magic."""
+    out, rest, names = bytearray(), data, []
+    while rest[:len(magic)] == magic:
+        if meta:
+            names += meta(rest)
+        piece, after, complete = drain(factory(), rest, state)
+        if not complete and magic == GZIP:
+            # A damaged trailer (CRC or length) still leaves readable deflate data.
+            salvage, _, _ = drain(zlib.decompressobj(-zlib.MAX_WBITS), rest[gzip_header(rest)[1]:], state)
+            piece = max(piece, salvage, key=len)
+        out += piece
+        rest = after
+        if not complete:
+            state.problems.append('undecodable-archive')
+            break
+        rest = rest.lstrip(b'\0')
+    return bytes(out), names
+
+
+def archive_like(data):
+    return (data[:2] == GZIP or data[:6] == XZ or data[:3] == BZIP2 or data[:4] == b'PK\x03\x04'
+            or b'PK\x05\x06' in data[-65558:] or data[257:262] == b'ustar')
+
+
+def zip_unlisted(data, offsets):
+    """True when a zip local header is not named by the central directory (bounded walk)."""
+    cursor, seen = data.find(b'PK\x03\x04'), 0
+    while 0 <= cursor and seen < MEMBER_CAP and cursor + 30 <= len(data) and data[cursor:cursor + 4] == b'PK\x03\x04':
+        if cursor not in offsets:
+            return True
+        flags = int.from_bytes(data[cursor + 6:cursor + 8], 'little')
+        size = int.from_bytes(data[cursor + 18:cursor + 22], 'little')
+        name = int.from_bytes(data[cursor + 26:cursor + 28], 'little')
+        extra = int.from_bytes(data[cursor + 28:cursor + 30], 'little')
+        if flags & 8:
+            return False
+        cursor += 30 + name + extra + size
+        seen += 1
+    return False
 
 
 def expand(data, state, depth=0):
     """(member names and metadata, leaf contents, container bytes) of a blob,
     expanding archives member by member."""
     if depth >= MAX_DEPTH:
-        if compressed(data) or data[:4] == b'PK\x03\x04' or data[257:262] == b'ustar':
+        if archive_like(data):
             state.problems.append('archive-depth-limit')
         return [], [data], []
     names, inner = [], None
-    if data[:2] == b'\x1f\x8b':
-        inner, names = inflate(data, state)
-    elif data[:6] == b'\xfd7zXZ\x00':
-        inner = unpack(data, state, lzma.LZMADecompressor)
-    elif data[:3] == b'BZh':
-        inner = unpack(data, state, bz2.BZ2Decompressor)
+    if data[:2] == GZIP:
+        inner, names = streams(data, state, GZIP, lambda: zlib.decompressobj(16 + zlib.MAX_WBITS), gzip_meta)
+    elif data[:6] == XZ:
+        inner, names = streams(data, state, XZ, lzma.LZMADecompressor)
+    elif data[:3] == BZIP2:
+        inner, names = streams(data, state, BZIP2, bz2.BZ2Decompressor)
     if inner:
         more_names, leaves, containers = expand(inner, state, depth + 1)
         return names + more_names, leaves, containers + [data]
+    if names or data[:2] == GZIP or data[:6] == XZ or data[:3] == BZIP2:
+        return names, [], [data]
     leaves, containers = [], []
     if data[:4] == b'PK\x03\x04' or b'PK\x05\x06' in data[-65558:]:
         try:
@@ -167,6 +220,8 @@ def expand(data, state, depth=0):
                 members = archive.infolist()
                 if len(members) > MEMBER_CAP:
                     state.problems.append('archive-member-cap')
+                if zip_unlisted(data, {info.header_offset for info in members}):
+                    state.problems.append('zip-unlisted-local-entry')
                 for info in members[:MEMBER_CAP]:
                     names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]
                     try:
@@ -189,7 +244,7 @@ def expand(data, state, depth=0):
     if len(data) >= 512 and (data[257:262] == b'ustar' or len(data) % 512 == 0):
         count = 0
         try:
-            with tarfile.open(fileobj=io.BytesIO(data), mode='r:') as archive:
+            with tarfile.open(fileobj=io.BytesIO(data), mode='r:', ignore_zeros=True) as archive:
                 for member in archive:
                     count += 1
                     if count > MEMBER_CAP:
@@ -198,7 +253,10 @@ def expand(data, state, depth=0):
                     names += [member.name, member.uname, member.gname, member.linkname]
                     names += [f'{key}={value}' for key, value in member.pax_headers.items()]
                     if member.isfile():
-                        # Tar members are slices of a buffer already counted in the budget.
+                        # Regular members are slices of a buffer already counted in the
+                        # budget; sparse members expand holes, so their size is counted first.
+                        if member.issparse():
+                            state.take(member.size)
                         content = archive.extractfile(member).read()
                         more_names, more, more_containers = expand(content, state, depth + 1)
                         names += more_names
@@ -336,10 +394,18 @@ class Scanner:
         upstream = path.startswith(VENDORED) or path.endswith(UPSTREAM_ARCHIVES)
         if upstream and (path, hashlib.sha256(data).hexdigest()) in self.pinned(rev):
             return
+        if archive_like(data):
+            # First-party archives are not allowed: pin reviewed upstream archives in a lock.
+            self.findings.append(f'{label}: unpinned-archive')
         state = Expansion()
-        names, leaves, containers = expand(data, state)
-        for member in filter(None, names):
-            self.name(f'{label}!{member}', member)
+        try:
+            names, leaves, containers = expand(data, state)
+        except BudgetExceeded:
+            self.findings.append(f'{label}: archive-budget-exceeded')
+            return
+        for index, member in enumerate(names):
+            if member:
+                self.name(f'{label}!member{index}', member)
         for problem in sorted(set(state.problems)):
             self.findings.append(f'{label}: {problem}')
         for leaf in leaves:
@@ -486,7 +552,7 @@ def main():
         print(f'personal-info-check: BLOCKED, check failed ({type(error).__name__})', file=sys.stderr)
         return 2
     for row in scanner.findings[:200]:
-        print(f'personal-info-check: {row}', file=sys.stderr)
+        print('personal-info-check: ' + re.sub(r'[^\x20-\x7e]', '?', row), file=sys.stderr)
     if scanner.findings:
         print(f'personal-info-check: BLOCKED, {len(scanner.findings)} finding(s). Remove the values; '
               'do not bypass with --no-verify.', file=sys.stderr)

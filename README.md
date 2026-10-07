@@ -67,12 +67,25 @@ line, in the untracked `.git/info/personal-patterns`. Never bypass the hooks wit
 `--no-verify`. The `privacy` workflow runs the tree and history checks and the
 hook regression suite (`.githooks/tests/regression.sh`) on every push, with the
 generic rules plus the runner's own login and host name as local values: a GitHub
-runner has no owner login, owner host name or private patterns. Archives are
-expanded member by member (zip, tar, gzip, xz, bzip2, every stream) to a finite
-depth, and their container bytes and metadata are checked too. Known limits: a commit or tag that adds a
-vendored or upstream-archive file together with a lock entry for it exempts that
-file's content, locally and in CI; altered local remote-tracking refs can shorten
-a push range; other formats are read as text or printable runs.
+runner has no owner login, owner host name or private patterns. A first-party
+(unpinned) zip, tar, gzip, xz or bzip2 file is blocked. To add a reviewed upstream
+archive, put it under `third_party/` or `container/foundation-inputs/`, or give it
+an upstream archive suffix (`.whl`, `.zip`, `.tar.gz`, `.tgz`, `.tar.xz`,
+`.tar.bz2`, `.tar.zst`), and bind its path to its sha256 in a lock file. The
+hooks skip the content of a pinned archive. They still expand every other archive
+member by member (zip, tar including concatenated tars, gzip, xz, bzip2, every
+stream) to a finite depth within a 64 MiB decompression budget per file, and
+check the container bytes and metadata too. A corrupt or truncated stream, a zip
+local entry that the central directory omits, and an exceeded member cap, depth
+limit or budget are findings. Findings mask matched values, label archive
+metadata by index and print only printable characters. Known limits: a commit or
+tag that adds a vendored or upstream-archive file together with a lock entry for
+it exempts that file's content, locally and in CI; altered local
+remote-tracking refs can shorten a push range; the unlisted zip entry check stops
+at the first entry that uses a data descriptor; a tar without the `ustar` magic
+is not blocked as an archive and is expanded only when its size is a multiple
+of 512 bytes; other binary and
+compressed formats (for example zstd or 7z) are read as text or printable runs.
 
 Reviews and approvals follow [the approval protocol](docs/approval-protocol.md):
 fresh-context adversarial agent approvers are the independent authority. The
