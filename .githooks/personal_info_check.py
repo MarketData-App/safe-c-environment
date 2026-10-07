@@ -23,9 +23,9 @@ like content. Content of a file under third_party/ or container/foundation-input
 or of an upstream archive (.whl, .zip, .tar.*), is exempt only when a lock file of
 the same revision binds that path to that sha256; names are always checked and
 first-party files get every rule. A first-party (unpinned) zip, tar, gzip, xz or
-bzip2 file is itself a finding. Findings print the path, line and category,
-with the matched value masked; archive metadata is labelled by index and output
-is reduced to printable characters.
+bzip2 file is itself a finding. Findings print the path, line and category;
+every matched value, also one inside a printed path or label, is masked, archive
+metadata is labelled by index and output is reduced to printable characters.
 
 Modes: --staged (pre-commit, pre-merge-commit), --message FILE (commit-msg),
 --push [REMOTE] (pre-push; covers merges, cherry-picks, rebases and tags),
@@ -104,8 +104,9 @@ class Expansion:
 
 def drain(engine, data, state):
     """Stream data through one decompressor in finite chunks within the budget.
-    Returns (output, remaining input after the stream, complete); output decoded
-    before an error is kept, and an error or truncation gives complete=False."""
+    Returns (output, remaining input after the stream, complete); the output of
+    the input chunks before the failing chunk is kept (a stream shorter than one
+    chunk keeps nothing), and an error or truncation gives complete=False."""
     out = bytearray()
     for start in range(0, len(data), CHUNK):
         pending = data[start:start + CHUNK]
@@ -151,10 +152,16 @@ def gzip_meta(data):
     return gzip_header(data)[0]
 
 
+def is_bzip2(data):
+    """A real bzip2 stream header: BZh, a block size digit, then a block or end-of-stream magic."""
+    return (len(data) >= 10 and data[:3] == BZIP2 and data[3] in b'123456789'
+            and data[4:10] in (b'1AY&SY', b'\x17rE8P\x90'))
+
+
 def streams(data, state, magic, factory, meta=None):
     """Decode every concatenated stream that starts with magic."""
     out, rest, names = bytearray(), data, []
-    while rest[:len(magic)] == magic:
+    while (is_bzip2(rest) if magic == BZIP2 else rest[:len(magic)] == magic):
         if meta:
             names += meta(rest)
         piece, after, complete = drain(factory(), rest, state)
@@ -172,23 +179,22 @@ def streams(data, state, magic, factory, meta=None):
 
 
 def archive_like(data):
-    return (data[:2] == GZIP or data[:6] == XZ or data[:3] == BZIP2 or data[:4] == b'PK\x03\x04'
+    return (data[:2] == GZIP or data[:6] == XZ or is_bzip2(data) or data[:4] == b'PK\x03\x04'
             or b'PK\x05\x06' in data[-65558:] or data[257:262] == b'ustar')
 
 
-def zip_unlisted(data, offsets):
-    """True when a zip local header is not named by the central directory (bounded walk)."""
+def zip_unlisted(data, sizes):
+    """True when a zip local header is not named by the central directory. sizes maps
+    each listed header offset to its compressed size. The walk skips the data of
+    each listed entry, then searches for the next local-header signature, so a gap
+    or a data descriptor does not end it (bounded to MEMBER_CAP + 1 headers)."""
     cursor, seen = data.find(b'PK\x03\x04'), 0
-    while 0 <= cursor and seen < MEMBER_CAP and cursor + 30 <= len(data) and data[cursor:cursor + 4] == b'PK\x03\x04':
-        if cursor not in offsets:
+    while 0 <= cursor and seen <= MEMBER_CAP:
+        if cursor not in sizes:
             return True
-        flags = int.from_bytes(data[cursor + 6:cursor + 8], 'little')
-        size = int.from_bytes(data[cursor + 18:cursor + 22], 'little')
         name = int.from_bytes(data[cursor + 26:cursor + 28], 'little')
         extra = int.from_bytes(data[cursor + 28:cursor + 30], 'little')
-        if flags & 8:
-            return False
-        cursor += 30 + name + extra + size
+        cursor = data.find(b'PK\x03\x04', cursor + 30 + name + extra + sizes[cursor])
         seen += 1
     return False
 
@@ -205,12 +211,12 @@ def expand(data, state, depth=0):
         inner, names = streams(data, state, GZIP, lambda: zlib.decompressobj(16 + zlib.MAX_WBITS), gzip_meta)
     elif data[:6] == XZ:
         inner, names = streams(data, state, XZ, lzma.LZMADecompressor)
-    elif data[:3] == BZIP2:
+    elif is_bzip2(data):
         inner, names = streams(data, state, BZIP2, bz2.BZ2Decompressor)
     if inner:
         more_names, leaves, containers = expand(inner, state, depth + 1)
         return names + more_names, leaves, containers + [data]
-    if names or data[:2] == GZIP or data[:6] == XZ or data[:3] == BZIP2:
+    if names or data[:2] == GZIP or data[:6] == XZ or is_bzip2(data):
         return names, [], [data]
     leaves, containers = [], []
     if data[:4] == b'PK\x03\x04' or b'PK\x05\x06' in data[-65558:]:
@@ -220,7 +226,7 @@ def expand(data, state, depth=0):
                 members = archive.infolist()
                 if len(members) > MEMBER_CAP:
                     state.problems.append('archive-member-cap')
-                if zip_unlisted(data, {info.header_offset for info in members}):
+                if zip_unlisted(data, {info.header_offset: info.compress_size for info in members}):
                     state.problems.append('zip-unlisted-local-entry')
                 for info in members[:MEMBER_CAP]:
                     names += [info.filename, info.comment.decode('latin-1'), info.extra.decode('latin-1')]
@@ -382,6 +388,12 @@ class Scanner:
                 match = rx.search(line)
                 if match:
                     self.findings.append(f'{label}:{number}: {name} ({mask(match.group(0))})')
+
+    def redact(self, row):
+        """Mask every non-empty match of every rule in a printed row, labels included."""
+        for _, rx in self.rules:
+            row = rx.sub(lambda match: mask(match.group(0)) if match.group(0) else '', row)
+        return row
 
     def name(self, label, path):
         for name, rx in self.rules:
@@ -552,7 +564,7 @@ def main():
         print(f'personal-info-check: BLOCKED, check failed ({type(error).__name__})', file=sys.stderr)
         return 2
     for row in scanner.findings[:200]:
-        print('personal-info-check: ' + re.sub(r'[^\x20-\x7e]', '?', row), file=sys.stderr)
+        print('personal-info-check: ' + re.sub(r'[^\x20-\x7e]', '?', scanner.redact(row)), file=sys.stderr)
     if scanner.findings:
         print(f'personal-info-check: BLOCKED, {len(scanner.findings)} finding(s). Remove the values; '
               'do not bypass with --no-verify.', file=sys.stderr)

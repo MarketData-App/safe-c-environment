@@ -26,6 +26,11 @@ FAIL=0
 r() { o=$3; grep -q 'check failed' "$BASE/err" 2>/dev/null && o=ERROR; : > "$BASE/err"
       printf '%-26s %-4s %s\n' "$1" "$2" "$o"
       case "$2:$o" in bad:BLOCKED|ok:ALLOWED) ;; *) FAIL=1 ;; esac; }
+# rc NAME bad OUTCOME CATEGORY...: a BLOCKED outcome counts only when stderr names every
+# expected finding category, so a broader rule (for example unpinned-archive) cannot mask it.
+rc() { o=$3
+       if [ "$o" = BLOCKED ]; then for c in "${@:4}"; do grep -q -F -- ": $c" "$BASE/err" || o="NO:$c"; done; fi
+       r "$1" "$2" "$o"; }
 
 fresh ok-clean;      echo hello > a.txt;                         r ok-clean ok "$(reach)"
 fresh plusplus;      printf '++ start\n%s\n' "$BAD" > a.txt;      r plusplus bad "$(reach)"
@@ -213,23 +218,33 @@ elif kind=='bz2-crc':
 elif kind=='tar-concat':
     def tar(name,content):
         b=io.BytesIO(); t=tarfile.open(fileobj=b,mode='w',format=tarfile.USTAR_FORMAT); i=tarfile.TarInfo(name); i.size=len(content); t.addfile(i,io.BytesIO(content)); t.close(); return b.getvalue()
-    data=tar('a.txt',b'clean\n')+tar('b.txt',value)
+    data=tar('a.txt',b'clean\n')+tar('b.gz',gzip.compress(value+b'\n'))
 elif kind=='zip-unlisted':
     a=io.BytesIO(); z=zipfile.ZipFile(a,'w',zipfile.ZIP_DEFLATED); z.writestr('hidden.txt',value); z.close(); av=a.getvalue(); local=av[:av.find(b'PK\x01\x02')]
     b=io.BytesIO(); z=zipfile.ZipFile(b,'w',zipfile.ZIP_DEFLATED); z.writestr('clean.txt',b'clean'); z.close(); data=local+b.getvalue()
+elif kind=='zip-gap':
+    a=io.BytesIO(); z=zipfile.ZipFile(a,'w',zipfile.ZIP_DEFLATED); z.writestr('hidden.txt',value); z.close(); av=a.getvalue(); hidden=av[:av.find(b'PK\x01\x02')]
+    b=io.BytesIO(); z=zipfile.ZipFile(b,'w',zipfile.ZIP_DEFLATED); z.writestr('clean.txt',b'clean'); z.close(); bv=b.getvalue()
+    cd=bv.find(b'PK\x01\x02'); insert=b'\x00'+hidden; eocd=bytearray(bv[-22:])
+    eocd[16:20]=(int.from_bytes(eocd[16:20],'little')+len(insert)).to_bytes(4,'little')
+    data=bv[:cd]+insert+bv[cd:-22]+bytes(eocd)
 elif kind=='depth-prefixed-zip':
     b=io.BytesIO(); z=zipfile.ZipFile(b,'w'); z.writestr('m.txt',value); z.close(); data=b'\x00'*64+b.getvalue()
     for _ in range(4): data=gzip.compress(data)
 open(out,'wb').write(data)
 PY
 }
-fresh sparse-tar;    truncate -s 100M ../sparse.bin && tar --sparse --format=gnu --owner=root --group=root -cf a.tar -C .. sparse.bin && rm -f ../sparse.bin; r sparse-tar-budget bad "$(reach)"
-fresh gzip-crc;      mkbad gzip-crc a.gz "$BAD";                         r corrupt-gzip-crc bad "$(reach)"
-fresh xz-mid;        mkbad xz-mid a.xz "$BAD";                           r corrupt-xz-stream bad "$(reach)"
-fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         r corrupt-bzip2-crc bad "$(reach)"
-fresh tar-concat;    mkbad tar-concat a.tar "$BAD";                      r concatenated-tar bad "$(reach)"
-fresh zip-unlisted;  mkbad zip-unlisted a.zip "$BAD";                    r zip-unlisted-local-entry bad "$(reach)"
-fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               r depth-limit-prefixed-zip bad "$(reach)"
+fresh sparse-tar;    truncate -s 100M ../sparse.bin && tar --sparse --format=gnu --owner=root --group=root -cf a.tar -C .. sparse.bin && rm -f ../sparse.bin; rc sparse-tar-budget bad "$(reach)" archive-budget-exceeded
+fresh gzip-crc;      mkbad gzip-crc a.gz "$BAD";                         rc corrupt-gzip-crc bad "$(reach)" undecodable-archive email-address
+fresh xz-mid;        mkbad xz-mid a.xz "$BAD";                           rc corrupt-xz-stream bad "$(reach)" undecodable-archive
+fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         rc corrupt-bzip2-crc bad "$(reach)" undecodable-archive
+fresh tar-concat;    mkbad tar-concat a.tar "$BAD";                      rc concatenated-tar bad "$(reach)" email-address
+fresh zip-unlisted;  mkbad zip-unlisted a.zip "$BAD";                    rc zip-unlisted-local-entry bad "$(reach)" zip-unlisted-local-entry
+fresh zip-gap;       mkbad zip-gap a.zip "$BAD";                         rc zip-unlisted-after-gap bad "$(reach)" zip-unlisted-local-entry
+fresh depth-prefix;  mkbad depth-prefixed-zip a.gz "$BAD";               rc depth-limit-prefixed-zip bad "$(reach)" archive-depth-limit
+fresh ok-bzh-text;   printf 'BZh is how this note starts\n' > a.txt;     r ok-bzh-text ok "$(reach)"
+fresh masked-name;   echo x > "notes-$LOGIN-todo.txt"; git add -A
+                     if git commit -q -m masked >/dev/null 2>"$BASE/out"; then o=ALLOWED; elif grep -q -F "$LOGIN" "$BASE/out"; then o=LEAKED; elif grep -q -F 'file-name local-identity' "$BASE/out"; then o=BLOCKED; else o=NO:file-name; fi; r masked-file-name-output bad $o
 fresh masked-output; mkarc tar-uname a.tar "$LOGIN"; git add -A
                      if git commit -q -m masked >/dev/null 2>"$BASE/out"; then o=ALLOWED; elif grep -q -F "$LOGIN" "$BASE/out"; then o=LEAKED; else o=BLOCKED; fi; r masked-metadata-output bad $o
 fresh ok-pinned-tar;  mkdir -p container/foundation-inputs; mkarc ok-tar container/foundation-inputs/up.tar x
