@@ -89,11 +89,19 @@ line and check. Sanitizer reports go to an evidence file; read them with
   start with `__asan_`, `__lsan_`, `__msan_`, `__tsan_`, `__ubsan_`, `__hwasan_`,
   `__dfsan_`, `__sanitizer_`, `__llvm_profile` or `__gcov`), for example an
   options hook or a death callback. Do not find symbols at run time
-  (`dlsym`, `dlvsym`, `dlopen`, `dlmopen`). The test environment sets a nonzero
-  sanitizer exit code in every sanitizer options variable, and a sanitizer gate
-  also fails when its output holds a sanitizer report, whatever the exit status.
-- A fuzz harness declares and defines only `LLVMFuzzerTestOneInput`; it does not
-  use `LLVMFuzzerInitialize` or another libFuzzer hook. Set up lazily inside
+  (`dlsym`, `dlvsym`, `dlopen`, `dlmopen`). Do not call `_exit`, `_Exit` or
+  `quick_exit`, and do not define `malloc`, `calloc`, `realloc`, `free`,
+  `aligned_alloc`, `posix_memalign`, `memalign`, `valloc`, `pvalloc` or
+  `reallocarray`.
+- The test environment sets a nonzero sanitizer exit code in every sanitizer
+  options variable. Every project test also carries the CTest property
+  FAIL_REGULAR_EXPRESSION with the sanitizer and libFuzzer report banners of
+  `safety/project-policy.json` (`sanitizer_banners`). A test whose output holds
+  a banner fails even when it exits 0. The project check also reads CTest's full
+  test log and every fuzz run's output for the same banners.
+- A fuzz harness declares and defines only `LLVMFuzzerTestOneInput`. It does not
+  use `LLVMFuzzerInitialize` or another libFuzzer hook, and it does not define
+  `main` (libFuzzer supplies the driver). Set up lazily inside
   `LLVMFuzzerTestOneInput` (a `static` first-call guard), not in an init hook.
 - Include project files only with quoted includes of headers that `project.json`
   declares. Never include a file from `review/`, `specs/`, a fuzz corpus or a
@@ -121,11 +129,17 @@ line and check. Sanitizer reports go to an evidence file; read them with
   run-time lookup) to the Clang AST. A finding names the file, the line and the
   check.
 
-A project can still subvert a gate at run time: a test may fork and ignore a
-failing child, re-execute itself with other sanitizer options, or find a symbol
-at run time. The name and macro rules cannot close this class. The sanitizer
-report banner check (a gate fails when its output holds a sanitizer or libFuzzer
-report whatever the exit status) and adversarial review are the controls.
+Known limit: a project can still subvert a gate at run time. The name and macro
+rules cannot close this class. Examples:
+- a test forks and ignores a failing child;
+- a test re-executes itself with other sanitizer options or another environment;
+- a test finds a symbol at run time;
+- a test closes or redirects its standard error, so a report never reaches the
+  captured output;
+- a test catches the fatal signal of a report, or jumps out of a failing path;
+- a test writes to its own memory or files to change what runs.
+The controls are the report banner checks (CTest FAIL_REGULAR_EXPRESSION, the
+CTest test log and the fuzz output) and adversarial review of every change.
 
 The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework
