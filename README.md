@@ -18,7 +18,7 @@ time yet.
 
 Prerequisites: Linux x86-64, Docker, Python 3 with JSON Schema 4.19.2. Any host
 passes when the capability check at the start of each run passes: local Docker
-Unix socket (rootless allowed), cgroup v2 limits, seccomp, AppArmor or SELinux
+Unix socket (rootless allowed), Docker containerd image store, cgroup v2 limits, seccomp, AppArmor or SELinux
 enforcing, no inherited DOCKER_* settings and non-piped core handling. A failed
 check BLOCKS the run. Windows, macOS and ARM64 are out of scope.
 

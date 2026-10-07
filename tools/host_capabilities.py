@@ -3,10 +3,16 @@ from evidence import GateError
 
 INHERITED=('DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH','DOCKER_API_VERSION','DOCKER_CONFIG')
 CONTROLLERS=('MemoryLimit','SwapLimit','PidsLimit','CpuCfsQuota','CpuCfsPeriod')
+CONTAINERD_SNAPSHOTTER='io.containerd.snapshotter.v1'
 
 def active_lsm(info):
     joined=' '.join(info.get('SecurityOptions') or [])
     return 'apparmor' if 'apparmor' in joined else 'selinux' if 'selinux' in joined else None
+
+def containerd_image_store(info):
+    """Locked image IDs are manifest digests, which only the containerd image store names."""
+    rows=info.get('DriverStatus') or []
+    return any(isinstance(r,(list,tuple)) and len(r)==2 and r[0]=='driver-type' and r[1]==CONTAINERD_SNAPSHOTTER for r in rows)
 
 def context_endpoint(context):
     return ((context.get('Endpoints') or {}).get('docker') or {}).get('Host','')
@@ -27,6 +33,7 @@ def host_problems(info, context, environ, core_pattern, selinux_enforcing=None):
     if str(info.get('CgroupVersion'))!='2':problems.append('cgroup-v2: cgroup v2 required')
     missing=[k for k in CONTROLLERS if not info.get(k)]
     if missing:problems.append('resource-controllers: '+','.join(missing))
+    if not containerd_image_store(info):problems.append('containerd-image-store: Docker must use the containerd image store (features.containerd-snapshotter)')
     if not any('seccomp' in s for s in info.get('SecurityOptions') or []):problems.append('seccomp: seccomp required')
     lsm=active_lsm(info)
     if lsm is None:problems.append('linux-security-module: AppArmor or SELinux required')

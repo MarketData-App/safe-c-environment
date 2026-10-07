@@ -30,7 +30,7 @@ controls.
 
 The container layer accepts any Linux x86-64 host that passes the capability
 check at the start of each run: local Docker Unix socket (rootless allowed),
-cgroup v2 limits, seccomp, AppArmor or SELinux enforcing, no inherited DOCKER_*
+Docker containerd image store, cgroup v2 limits, seccomp, AppArmor or SELinux enforcing, no inherited DOCKER_*
 settings and non-piped core handling. A failed check BLOCKS the run. No host
 fallback exists.
 

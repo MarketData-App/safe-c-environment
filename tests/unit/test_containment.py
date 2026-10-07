@@ -113,7 +113,8 @@ class HostCapabilityTests(unittest.TestCase):
     def info(self, **kw):
         base={'ID':'any-daemon','Architecture':'x86_64','CgroupVersion':'2','MemoryLimit':True,'SwapLimit':True,
               'PidsLimit':True,'CpuCfsQuota':True,'CpuCfsPeriod':True,
-              'SecurityOptions':['name=seccomp,profile=builtin','name=apparmor','name=cgroupns']}
+              'SecurityOptions':['name=seccomp,profile=builtin','name=apparmor','name=cgroupns'],
+              'Driver':'overlayfs','DriverStatus':[['driver-type','io.containerd.snapshotter.v1']]}
         base.update(kw); return base
     def ctx(self, endpoint='unix:///var/run/docker.sock'): return {'Name':'default','Endpoints':{'docker':{'Host':endpoint}}}
     def test_any_daemon_id_qualifies(self):
@@ -133,6 +134,18 @@ class HostCapabilityTests(unittest.TestCase):
             with self.subTest(enforcing=enforcing):
                 self.assertIn('linux-security-module: SELinux not enforcing',host_problems(i,self.ctx(),{},'core',enforcing))
         self.assertEqual(host_problems(self.info(),self.ctx(),{},'core',False),[])
+    def test_containerd_image_store_qualifies(self):
+        from host_capabilities import host_problems
+        self.assertEqual(host_problems(self.info(),self.ctx(),{},'core'),[])
+    def test_containerd_image_store_is_required(self):
+        from host_capabilities import host_problems
+        message='containerd-image-store: Docker must use the containerd image store (features.containerd-snapshotter)'
+        cases={'missing':self.info(DriverStatus=None),'empty':self.info(DriverStatus=[]),
+               'classic-overlay2':self.info(Driver='overlay2',DriverStatus=[['Backing Filesystem','extfs'],['Supports d_type','true'],['Using metacopy','false'],['Native Overlay Diff','true'],['userxattr','false']]),
+               'other-snapshotter':self.info(DriverStatus=[['driver-type','io.containerd.snapshotter.v2']]),
+               'malformed':self.info(DriverStatus=['driver-type','io.containerd.snapshotter.v1'])}
+        for name,info in cases.items():
+            with self.subTest(name=name):self.assertEqual(host_problems(info,self.ctx(),{},'core'),[message])
     def test_security_options_fail_closed_without_lsm(self):
         from host_capabilities import security_options
         with self.assertRaises(GateError):security_options(self.info(SecurityOptions=['name=seccomp,profile=builtin']))
@@ -211,6 +224,7 @@ class HostCapabilityTests(unittest.TestCase):
                (self.info(CgroupVersion='1'),self.ctx(),{},'core','cgroup-v2'),
                (self.info(Architecture='aarch64'),self.ctx(),{},'core','architecture'),
                (self.info(PidsLimit=False),self.ctx(),{},'core','resource-controllers'),
+               (self.info(Driver='overlay2',DriverStatus=[['Backing Filesystem','extfs']]),self.ctx(),{},'core','containerd-image-store'),
                (self.info(),self.ctx(),{},'|/usr/lib/systemd/systemd-coredump','core-handling')]
         for info,ctx,env,core,expected in cases:
             with self.subTest(expected=expected):

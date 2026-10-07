@@ -18,7 +18,12 @@ Three workflows share the same setup steps:
    `$RUNNER_TEMP/controller`, runs `pip install --require-hashes
    --only-binary=:all: -r ci/controller-requirements.txt` and adds the venv
    `bin` directory to `PATH`.
-3. Load the qualified images. The step reads `url` and `archive_sha256` from
+3. Enable the Docker containerd image store. The step merges
+   `{"features":{"containerd-snapshotter":true}}` into `/etc/docker/daemon.json`,
+   restarts Docker and fails unless `docker info` reports the driver type
+   `io.containerd.snapshotter.v1`. The locked image IDs are manifest digests,
+   which only this store names. A self-hosted host must enable the store itself.
+4. Load the qualified images. The step reads `url` and `archive_sha256` from
    `ci/image-bundle.json`, downloads the archive with `curl` (HTTPS only, also across redirects; retries,
    size limit 3 GiB), and runs `ci/images load --archive FILE --sha256 HASH`.
    The load verifies the digest.
@@ -56,7 +61,8 @@ The workflows differ in the steps after setup:
 ## Containers and images
 
 Any Linux x86-64 host runs the checks when the capability check passes: local
-Docker Unix socket (rootless allowed), cgroup v2 limits, seccomp, AppArmor or
+Docker Unix socket (rootless allowed), Docker containerd image store, cgroup v2
+limits, seccomp, AppArmor or
 SELinux enforcing, no inherited DOCKER_* settings and non-piped core handling. A
 failed check BLOCKS the run. The earlier
 [migration proposal](../specs/github-runner-migration.md) is superseded by
@@ -70,7 +76,7 @@ Rebuilding `container/Dockerfile` is acquisition with mutable-source
 limitations, not a substitute for those locked bytes.
 
 Host Python 3 and qualified JSON Schema 4.19.2, compatible Docker image-ID and
-storage semantics, cgroup v2, seccomp, AppArmor or SELinux, acceptable core
+storage semantics (the Docker containerd image store), cgroup v2, seccomp, AppArmor or SELinux, acceptable core
 handling and actual policy headroom are required. A missing prerequisite blocks.
 Normal checks never install packages or acquire or upgrade SDKs.
 

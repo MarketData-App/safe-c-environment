@@ -12,6 +12,7 @@ Use the retained development image and approved SDK. Missing images, retained
 inputs, tracing permission, symbols, or a required tool are blockers. Report the
 structured reason; do not install packages, change Docker settings, or execute a
 native build, analyzer, language server, test, or debugger on the host.
+The host capability check also requires the Docker containerd image store.
 
 ## Project workflow
 

@@ -210,6 +210,8 @@ of each run passes. The check requires:
 
 - a local Docker Unix socket of the active context (system or rootless Docker);
   remote TCP/SSH endpoints and inherited `DOCKER_*` overrides stay rejected;
+- the Docker containerd image store, because the locked image IDs are manifest
+  digests;
 - cgroup v2 with working memory, CPU and process limits, proven by the existing
   harmless preflight probes;
 - a Linux security module applied to every container: AppArmor or SELinux;

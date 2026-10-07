@@ -28,6 +28,28 @@ jobs:
           echo "$RUNNER_TEMP/controller/bin" >> "$GITHUB_PATH"
       - name: Use a plain core pattern on the ephemeral runner
         run: sudo sysctl -w kernel.core_pattern=core
+      - name: Enable the Docker containerd image store
+        run: |
+          sudo python3 - <<'EOF'
+          import json, os
+          path = '/etc/docker/daemon.json'
+          config = {}
+          if os.path.exists(path):
+              with open(path) as f:
+                  text = f.read().strip()
+              config = json.loads(text) if text else {}
+          config.setdefault('features', {})['containerd-snapshotter'] = True
+          os.makedirs('/etc/docker', exist_ok=True)
+          with open(path, 'w') as f:
+              json.dump(config, f, indent=2)
+              f.write('\n')
+          EOF
+          sudo systemctl restart docker
+          status=$(docker info -f '{{json .DriverStatus}}')
+          case "$status" in
+            *io.containerd.snapshotter.v1*) echo "containerd image store: active" ;;
+            *) echo "containerd image store: not active" >&2; exit 1 ;;
+          esac
       - name: Load the qualified images
         run: |
           url=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['url'])")
@@ -47,4 +69,4 @@ jobs:
             artifacts/bootstrap-report.json
             artifacts/bootstrap-report.md
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: ${{ job.status == 'success' && 'error' || 'warn' }}
