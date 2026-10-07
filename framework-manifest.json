@@ -8,11 +8,11 @@
     ".dockerignore": "04a88380bf007069ea7b68a2e0eaf44c5ee93cccc7705bc0891c05fb0a172c5b",
     ".editorconfig": "620abfdd4af59f847b62f469c8c158439a3776fc52268fb03e438b01c2343178",
     ".githooks/commit-msg": "217cdcdf102c10c3218e964f2fa5f00637161b103a9d2992adeabfa4f36cf2f4",
-    ".githooks/personal_info_check.py": "a45b213b6769c9d3dbd19b963b2698e0103fe7ee00cc2d8c6dc0dce68770c95e",
+    ".githooks/personal_info_check.py": "0004e9924a751969aa9dca705b213fc045c66b4e405796862e14a5c8bf4ca74a",
     ".githooks/pre-commit": "5b79e4e0ebaf2c426fcc23fe15a0ccd31d5c6586e127cbb56bf517875caa549e",
     ".githooks/pre-merge-commit": "5b79e4e0ebaf2c426fcc23fe15a0ccd31d5c6586e127cbb56bf517875caa549e",
     ".githooks/pre-push": "f8df123f218d4efddde32c5366757aa3b07b617d501f461a696b47247cbb44e3",
-    ".githooks/tests/regression.sh": "2443f288d8c7090e171a1897daec7c015fd994f8bcd1ee2879dcc85eb2e2686a",
+    ".githooks/tests/regression.sh": "a130420d3368988c2a8889a7c1d69988e4f8c8da8c4d7e612ef5543360871b04",
     ".github/workflows/example.yml": "fae6ac9f840c1ce5ec9a5871600f88519b383d38383e0e8220e75494b149b736",
     ".github/workflows/privacy.yml": "f9538343709c829e25e7919c7e5d88161b53a9139722adeb8affa2cb10a3114e",
     ".github/workflows/safety.yml": "f49cce847c2b97f04de97b8dc7dbb8b42b3e0374b137303a3d5b34753b36eed7",
@@ -21,7 +21,7 @@
     "CMakeLists.txt": "8c3de36e71aa1791b7c778d4023604271583f908b31eff96f59af9f64217eb50",
     "CMakePresets.json": "741c4a7cc071486238ecacb6292f38a704840f67170b43af834a91891b908727",
     "Makefile": "a20445623880a8a4dad26e00e167f24adff54bed8cbc9ef812151e7b0879636a",
-    "README.md": "23a20b905b2a7a99cefbf05ea7e59fe851627c7cf3a637a3e55478c54450ec92",
+    "README.md": "c96489ef02d3476e27a699c5764b3642ae867c204720a3843fa8cfdb97aab577",
     "ci/README.md": "1a35e5d07e40349b543707fde6167874e52ac0fcab82a17d4b057c764d119ea0",
     "ci/clusterfuzzlite-workflow.yml.example": "b8ffd1066e26156a38e5da84b2ba876a68201eaacd81980385408dce8e205257",
     "ci/controller-requirements.txt": "1b3f1bb7e369b46de87b394ed9896a6cfa05f267ccbecd66305a2aef94e71487",
@@ -642,7 +642,7 @@
     "tools/starter.py": "530fffc53a8f2eaae8de70ded1c4304c994fba5cdc48d1311720c9a4eef73e7e",
     "upstream.lock.json": "71f4660328324bbac3497d9572b8c0d54e15e1a03b53ff3dc7deff917dc5fb72"
   },
-  "framework_identity": "7b9101c10c1799e7987f66b0844453523f3dcc82cb2f58c708b678adce2245e3",
+  "framework_identity": "e743c75d58936e1892c09239a88cf36e30b7339d9517d22d6f4b7764fde40a65",
   "images": {
     "archive_sha256": "ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624",
     "developer": "sha256:9b90ce96e4e0b2dc7f11a16d8c5fcd79e59672fccd9134163cea428e4fe9c1a6",
@@ -650,8 +650,8 @@
   },
   "qualification": {
     "overall_state": "VALIDATED_UNSEALED",
-    "run_id": "f661fcae7c21428b82669629ee6320cb",
-    "source_identity": "2029b0a40f5313fcbe49f155fd7f8d67575764461da977754a36066a5cd9db82"
+    "run_id": "2103bdc993eb4bf5a48fec3606574204",
+    "source_identity": "b60de7fb0bd5fb62314f82b0a8855f28c58e6e9336b3bf34016caa20ab9a8393"
   },
   "schema_version": 1
 }
