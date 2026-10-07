@@ -14,6 +14,11 @@ from host_capabilities import active_lsm, context_endpoint, endpoint_problems, h
 
 MIB=1024*1024
 LABEL='org.safe-c.containment'
+# Lifetime of a session holder (Launcher.create default command). A host watchdog
+# outside this repository may `docker start` an expired holder again with an empty
+# /work; verify_session refuses such a container before any reuse.
+HOLDER_SECONDS=1800
+SESSION_RESTARTED='session container stopped or was restarted outside the launcher'
 D_IDS=[f'D{i:02}' for i in range(1,15)]
 
 def policy(root):
@@ -326,6 +331,7 @@ class Launcher:
         if timeout<=0 or timeout>p['wall_seconds']:raise GateError('job deadline exceeds protected profile')
         env=env or {}
         if any(k not in c['environment_names'] or not isinstance(v,str) or '\x00' in v for k,v in env.items()):raise GateError('unapproved workload environment')
+        self.verify_session(record)
         argv=['exec','--workdir=/work']
         for k,v in env.items():argv+=['--env',k+'='+v]
         argv+=[record['container_id'],*args]
@@ -334,6 +340,26 @@ class Launcher:
         result.update(container_id=record['container_id'],profile=record['profile'],container_policy_hash=record['policy_hash'],effective_settings=record['effective'],runner_identity=self.runner_identity)
         if result['failure']:self.dispose(record)
         return result
+    def verify_session(self,record):
+        """Refuse an existing container unless it still runs the process the launcher
+        started: Running, not paused/restarting, State.StartedAt equal to the value
+        recorded by effective() at creation, and RestartCount 0. A refused container is
+        disposed (best effort; close() retries) and never reused."""
+        expected=((record.get('effective') or {}).get('inspect') or {}).get('state') or {}
+        r=self.docker(['inspect',record['container_id']],timeout=15)
+        ok=False
+        if passed(r) and expected.get('StartedAt'):
+            try:rows=json.loads(r['output'])
+            except ValueError:rows=None
+            if isinstance(rows,list) and len(rows)==1 and isinstance(rows[0],dict):
+                state=rows[0].get('State') or {}
+                ok=(state.get('Running') is True and state.get('Paused') is False and state.get('Restarting') is False and
+                    state.get('StartedAt')==expected['StartedAt'] and rows[0].get('RestartCount')==0)
+        if not ok:
+            try:self.dispose(record)
+            except (GateError,ValueError,KeyError,IndexError,TypeError,OSError):pass
+            raise GateError(SESSION_RESTARTED)
+        return True
     def dispose(self,record):
         if record['lifecycle'] is not None:return record['lifecycle']
         obj=self.json(['inspect',record['container_id']])[0]

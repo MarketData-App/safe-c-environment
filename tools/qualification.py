@@ -22,6 +22,7 @@ class Qualifier:
         self.root, self.runner = root, runner
         self.fixtures = {x['id']:x for x in read_json(root/'safety/fixtures.json')['cases']}
         self.builds = {}
+        self.build_sessions = {}
 
     def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=(), foundation_mutant='NONE'):
         cc = compiler or ('gcc' if profile=='gcc-analyzer' else 'clang')
@@ -36,13 +37,17 @@ class Qualifier:
         if foundation_mutant != 'NONE':
             if foundation_mutant not in read_json(self.root/'safety/foundation-mutants.json')['mutants']:raise GateError('uninventoried foundation mutation')
             key += '-mutant-' + foundation_mutant
-        if key in self.builds:return self.builds[key]
+        # Build trees live in the session container's /work; a build from a disposed
+        # session is gone and is redone in the current one.
+        if key in self.builds and self.build_sessions.get('build/'+key) is not None and self.build_sessions['build/'+key]==self.session_id():
+            return self.builds[key]
         relative='build/'+key
         config=self.runner.run(['cmake','-S','/src','-B','/work/'+relative,'-G','Ninja',
             '-DCMAKE_C_COMPILER='+cc,'-DSAFETY_PROFILE='+profile,'-DSAFETY_CASE='+case,
             '-DSAFETY_VARIANT='+variant,'-DCMAKE_C_FLAGS=-O'+str(opt),
             '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_MUTANT='+foundation_mutant, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards)],timeout=60,label=key+'-configure')
         result={'directory':relative,'configure':config,'build':None,'audit':None,'commands':[],'links':None}
+        self.build_sessions[relative]=self.session_id()
         if passed(config):
             compile_result=self.runner.run(['cmake','--build','/work/'+relative,'--parallel','2','--verbose'],timeout=90,label=key+'-build')
             result['build']=compile_result
@@ -81,12 +86,19 @@ class Qualifier:
         self.builds[key]=result
         return result
 
+    def session_id(self):
+        session=self.runner.session
+        return session['container_id'] if self.runner.alive and session else None
+
     @staticmethod
     def built(build):
         return passed(build['configure']) and build['build'] is not None and passed(build['build']) and build['audit'] and build['audit']['status']=='PASS'
 
     def executable(self, build, target, args=(), *, label=None, env=None):
         binary=build['directory']+'/'+target
+        owner=self.build_sessions.get(build['directory'])
+        if owner is not None and owner!=self.session_id():
+            raise GateError('build belongs to a disposed session container; rebuild it')
         path=self.runner.fetch(binary)
         before=file_hash(path)
         result=self.runner.run(['/work/'+binary,*args],timeout=10,env=env,label=label or target)
@@ -97,6 +109,7 @@ class Qualifier:
         return result
 
     def qualify_case(self, cid):
+        self.runner.refresh()
         f=self.fixtures[cid]; det=f['required_detector']
         row={'id':cid,'status':'FAIL','classification':'NOT_RUN','detector':det,'bad':'BLOCKED','control':'BLOCKED','baseline':'BLOCKED','matching_diagnostic':None,'evidence_paths':[],'repetitions':0}
         baseline=self.build('ordinary',case=cid)

@@ -419,6 +419,7 @@
     "tests/unit/test_project_selftest.py",
     "tests/unit/test_project_source.py",
     "tests/unit/test_project_source_policy.py",
+    "tests/unit/test_session_container.py",
     "tests/unit/test_starter_child.py",
     "third_party/NOTICE.md",
     "third_party/adapters/clusterfuzzlite-actions/build_fuzzers/action.yml",
