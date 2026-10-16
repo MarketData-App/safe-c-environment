@@ -25,7 +25,11 @@ glibc; the container still uses the host kernel. Deliberately malicious native c
 may require a disposable VM. Diagnostic text is not cryptographically authenticated;
 P06 qualifies a defined decoy under frozen-fixture integrity, not arbitrary forgery.
 
-Activation steps: resolve first-party publication licensing; provision the exact
+The framework's own files are under MIT (LICENSE); third-party components keep their
+own licenses, with the written source offer in SOURCE-OFFER.md; the owner
+confirmed this on 2026-10-15.
+
+Activation steps: provision the exact
 retained image on an isolated qualified runner; approve the exact candidate payload
 only after final technical qualification; restrict baseline writes to an independent
 authority; require the aggregate

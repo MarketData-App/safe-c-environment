@@ -91,7 +91,8 @@
               "provenance-data",
               "binary-package",
               "development-payload",
-              "payload-manifest"
+              "payload-manifest",
+              "python-wheel-part"
             ]
           },
           "bytes": {
@@ -110,13 +111,25 @@
       "type": "string"
     },
     "notices": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "owner"
+        ],
+        "properties": {
+          "owner": {
+            "type": "string",
+            "pattern": "^MarketData-App(?: |$)"
+          }
+        }
+      }
     },
     "ordinary_image_migrated": {
       "const": false
     },
     "owner": {
-      "type": "string"
+      "const": "MarketData-App"
     },
     "packages": {
       "type": "array"
@@ -204,6 +217,13 @@
     },
     "upstream_signers": {
       "type": "array"
+    },
+    "bench_python": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9]+(\\.[0-9]+)+$"
+      }
     }
   }
 }

@@ -8,14 +8,28 @@ import argparse
 import hashlib
 import json
 import lzma
+import os
 import re
 import shutil
+import subprocess
 import tarfile
 import tempfile
+import threading
+import time
 
 from evidence import Runner, GateError, atomic_json, file_hash, read_json, passed, bounded
 
 ROOT = Path(__file__).resolve().parents[1]
+DEBIAN_MAX_BYTES = 268435456
+DEBIAN_MAX_FILES = 4096
+# Separate bench-wheel bounds (controller ruling on PLAN-T5-BOUND-01), as in container/developer-package.py.
+WHEEL_ROOT = 'opt/bench-python/'
+WHEEL_MAX_BYTES = 201326592
+WHEEL_MAX_FILES = 1536
+
+
+def payload_of(name, record):
+    return 'wheels' if name.startswith(WHEEL_ROOT) else 'debian'
 
 
 def verify_metadata(inputs, output):
@@ -69,13 +83,175 @@ def verify_metadata(inputs, output):
             'evidence_path': str(output / 'signature-verification.json')}
 
 
+def chain_ids(diff_ids):
+    """OCI ChainIDs: a containerd snapshot is shared exactly when its ChainID is equal."""
+    chains, previous = [], None
+    for diff in diff_ids:
+        previous = diff if previous is None else 'sha256:' + hashlib.sha256((previous + ' ' + diff).encode()).hexdigest()
+        chains.append(previous)
+    return chains
+
+
+def layer_measure(identity, inspect, history_sizes, blob_sizes, platform):
+    """Exact containerd-store image measurement (PLAN-T5-IMAGES-01 ruling).
+
+    On the containerd image store, `docker image inspect` Size is the snapshot usage of each
+    unpacked layer (non-empty `docker history --human=false` rows, oldest first, one per
+    RootFS layer) plus the content blobs of the platform manifest closure (manifest, config
+    and compressed layers). `docker image save` lists every stored blob of the image,
+    including the index and attestation blobs that Size omits; all of them occupy the
+    store, so all of them are counted. Snapshots are keyed by ChainID and blobs by digest,
+    so shared layers count once. The measurement is refused unless the snapshots plus the
+    platform closure add up to the reported Size exactly."""
+    layers = inspect['RootFS']['Layers']
+    sizes = [int(v) for v in history_sizes if int(v) > 0]
+    if len(sizes) != len(layers) or any(int(v) < 0 for v in history_sizes):
+        raise GateError('owned image layer history does not match its layers: ' + identity[:19])
+    if any(not re.fullmatch(r'sha256:[0-9a-f]{64}', d) for d in blob_sizes) or not set(platform) <= set(blob_sizes):
+        raise GateError('owned image blob inventory invalid: ' + identity[:19])
+    chains = dict(zip(chain_ids(layers), sizes))
+    if sum(chains.values()) + sum(blob_sizes[d] for d in set(platform)) != inspect['Size']:
+        raise GateError('owned image measurement is not exact: ' + identity[:19])
+    return {'id': identity, 'chains': chains, 'blobs': dict(blob_sizes), 'size': inspect['Size']}
+
+
+def platform_closure(documents):
+    """Digests of the linux/amd64 image manifest, its config and its layers."""
+    def load(digest):
+        if digest not in documents:
+            raise GateError('owned image manifest unavailable')
+        return json.loads(documents[digest])
+    try:
+        roots = load('index.json')['manifests']
+        if len(roots) != 1:
+            raise GateError('owned image index ambiguous')
+        digest, document = roots[0]['digest'], load(roots[0]['digest'])
+        if 'manifests' in document:
+            images = [m for m in document['manifests']
+                      if not (m.get('annotations') or {}).get('vnd.docker.reference.type') and
+                      (m.get('platform') or {}).get('os') == 'linux' and
+                      (m.get('platform') or {}).get('architecture') == 'amd64']
+            if len(images) != 1:
+                raise GateError('owned image platform manifest ambiguous')
+            digest, document = images[0]['digest'], load(images[0]['digest'])
+        return {digest, document['config']['digest'], *(layer['digest'] for layer in document['layers'])}
+    except (ValueError, KeyError, TypeError, AttributeError):
+        raise GateError('owned image manifest malformed')
+
+
+def unique_bytes(measures):
+    """Owned-image bytes with every snapshot (ChainID) and content blob (digest) counted once."""
+    chains, blobs = {}, {}
+    for row in measures:
+        for key, size in row['chains'].items():
+            if chains.setdefault(key, size) != size:
+                raise GateError('one snapshot reports two sizes')
+        for key, size in row['blobs'].items():
+            if blobs.setdefault(key, size) != size:
+                raise GateError('one content blob reports two sizes')
+    return sum(chains.values()) + sum(blobs.values())
+
+
+def admit(measures, extra_bytes, bound):
+    """The unchanged owned_image_bytes bound applied to layer-deduplicated bytes."""
+    total = unique_bytes(measures) + extra_bytes
+    if total > bound:
+        raise GateError('developer image acquisition exceeds owned-image admission bound')
+    return total
+
+
+def save_content(launcher, identity, timeout=600, max_members=4096, document_limit=65536,
+                 popen=subprocess.Popen):
+    """Stream `docker image save`; read tar headers, and the bodies of small JSON documents only.
+
+    A watchdog kills the process group after `timeout` seconds of wall time, so a stalled
+    stream ends (EOF) and the listing fails closed; the process is always reaped."""
+    if launcher.prefix is None:
+        launcher.connect()
+    process = popen(launcher.prefix + ['image', 'save', identity], stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL, env=launcher.env, start_new_session=True)
+    expired = threading.Event()
+
+    def kill():
+        try:
+            os.killpg(process.pid, 9)
+        except OSError:
+            pass
+
+    def expire():
+        expired.set()
+        kill()
+
+    watchdog = threading.Timer(timeout, expire)
+    watchdog.daemon = True
+    watchdog.start()
+    blobs, documents, members = {}, {}, 0
+    try:
+        try:
+            with tarfile.open(fileobj=process.stdout, mode='r|') as source:
+                for member in source:
+                    members += 1
+                    if members > max_members:
+                        raise GateError('owned image content listing bound')
+                    if not member.isfile():
+                        continue
+                    key = None
+                    if re.fullmatch(r'blobs/sha256/[0-9a-f]{64}', member.name):
+                        key = 'sha256:' + member.name.rsplit('/', 1)[1]
+                        blobs[key] = member.size
+                    elif member.name == 'index.json':
+                        key = 'index.json'
+                    if key and member.size <= document_limit:
+                        documents[key] = source.extractfile(member).read(document_limit + 1)
+        except (tarfile.TarError, OSError, ValueError, EOFError):
+            if expired.is_set():
+                raise GateError('owned image content listing timed out')
+            raise GateError('owned image content listing malformed')
+        if expired.is_set():
+            raise GateError('owned image content listing timed out')
+        try:
+            code = process.wait(timeout=max(1, timeout))
+        except subprocess.TimeoutExpired:
+            raise GateError('owned image content listing timed out')
+        if expired.is_set():
+            raise GateError('owned image content listing timed out')
+        if code:
+            raise GateError('owned image content listing failed')
+    finally:
+        watchdog.cancel()
+        if process.poll() is None:
+            kill()
+        try:
+            process.wait(timeout=10)
+        finally:
+            process.stdout.close()
+    return blobs, platform_closure(documents)
+
+
+def measure_owned(launcher, identity):
+    try:
+        inspect = launcher.json(['image', 'inspect', identity])[0]
+    except (ValueError, IndexError, KeyError):
+        raise GateError('owned image inspect malformed')
+    history = launcher.docker(['history', '--human=false', '--no-trunc', '--format', '{{.Size}}', identity])
+    if not passed(history):
+        raise GateError('owned image history unavailable')
+    rows = history['output'].split()
+    if not rows or any(not re.fullmatch(r'[0-9]+', row) for row in rows):
+        raise GateError('owned image history malformed')
+    blobs, platform = save_content(launcher, identity)
+    return layer_measure(identity, inspect, list(reversed(rows)), blobs, platform)
+
+
 def unpack(directory, destination):
     manifest = read_json(directory / 'manifest.json')
     if (manifest.get('status') != 'CANDIDATE_DATA_EXTRACTED' or
             manifest.get('package_scripts_executed') is not False or
-            len(manifest['files']) > 4096):
+            sum(1 for n, r in manifest['files'].items() if payload_of(n, r) == 'debian') > DEBIAN_MAX_FILES or
+            sum(1 for n, r in manifest['files'].items() if payload_of(n, r) == 'wheels') > WHEEL_MAX_FILES or
+            'host_members' in manifest):
         raise GateError('developer extraction manifest incomplete')
-    files, seen, total = manifest['files'], set(), 0
+    files, seen, total, wheel_total = manifest['files'], set(), 0, 0
     for row in manifest['archives']:
         if not re.fullmatch(r'development-layer-[0-9]+\.tar\.gz', row['name']):
             raise GateError('unsafe developer archive name')
@@ -92,13 +268,18 @@ def unpack(directory, destination):
                         member.name in seen or member.mode & 0o6000 or
                         not (member.name in {'usr/bin/gdb', 'usr/bin/clangd-19'} or
                              member.name.startswith(('usr/lib/', 'usr/share/gdb/',
-                                                     'usr/share/doc/', 'usr/share/source-highlight/')))):
+                                                     'usr/share/doc/', 'usr/share/source-highlight/',
+                                                     'opt/bench-python/')))):
                     raise GateError('unsafe developer payload member')
                 record = files[member.name]
                 if member.size != record['bytes'] or member.size > 33554432:
                     raise GateError('developer payload file bound mismatch')
-                total += member.size
-                if total > 268435456:
+                kind = payload_of(member.name, record)
+                if kind == 'wheels':
+                    wheel_total += member.size
+                else:
+                    total += member.size
+                if total > DEBIAN_MAX_BYTES or wheel_total > WHEEL_MAX_BYTES:
                     raise GateError('developer payload total bound exceeded')
                 data = source.extractfile(member).read(member.size + 1)
                 if len(data) != member.size or hashlib.sha256(data).hexdigest() != record['sha256']:
@@ -142,6 +323,18 @@ def main():
         archive = inputs / PurePosixPath(package['Filename']).name
         if file_hash(archive) != package['SHA256'] or archive.stat().st_size != int(package['Size']):
             raise GateError('retained package archive changed')
+    wheel_selection = (read_json(inputs / 'wheel-selection.json')
+                       if (inputs / 'wheel-selection.json').is_file() else {'wheels': []})
+    for wheel in wheel_selection['wheels']:
+        whole = hashlib.sha256()
+        for part in wheel['parts']:
+            piece = inputs / PurePosixPath(part['path']).name
+            if (piece.stat().st_size != part['bytes'] or part['bytes'] > 33554432 or
+                    file_hash(piece) != part['sha256']):
+                raise GateError('retained bench wheel part changed: ' + wheel['name'])
+            whole.update(piece.read_bytes())
+        if whole.hexdigest() != wheel['sha256']:
+            raise GateError('retained bench wheel digest changed: ' + wheel['name'])
     context = Path(tempfile.mkdtemp(prefix='safe-c-dev-data-image-'))
     scratch = Path(tempfile.mkdtemp(prefix='safe-c-dev-image-observation-'))
     current = read_json(ROOT / 'toolchain.lock.json')
@@ -158,8 +351,7 @@ def main():
             raise GateError('owned image inventory unavailable')
         ids = {json.loads(line)['ID'] for line in listed['output'].splitlines()
                if json.loads(line)['Repository'].startswith('safe-c-')}
-        sizes = {identity: launcher.json(['image', 'inspect', identity])[0]['Size'] for identity in ids}
-        base_size = launcher.json(['image', 'inspect', current['image_id']])[0]['Size']
+        measures = [measure_owned(launcher, identity) for identity in sorted(ids)]
         existing = launcher.docker(['image', 'inspect', tag])
         reused = passed(existing)
         if reused:
@@ -168,11 +360,14 @@ def main():
             if image['RootFS']['Layers'][:len(base['RootFS']['Layers'])] != base['RootFS']['Layers']:
                 raise GateError('existing development image does not inherit exact base layers')
         extra = 0 if reused else 1
-        if (len(ids) + extra > launcher.value['aggregate']['max_owned_images'] or
-                sum(sizes.values()) + extra * (base_size +
-                sum(row['bytes'] for row in manifest['files'].values())) >
-                launcher.value['aggregate']['owned_image_bytes']):
+        if current['image_id'] not in ids:
+            measures.append(measure_owned(launcher, current['image_id']))
+        # A new image adds one snapshot and one compressed blob of the payload; each is bounded
+        # by the payload bytes plus one 4 KiB block per file (snapshot block rounding).
+        payload = sum(row['bytes'] + 4096 for row in manifest['files'].values())
+        if len(ids) + extra > launcher.value['aggregate']['max_owned_images']:
             raise GateError('developer image acquisition exceeds owned-image admission bound')
+        admitted = admit(measures, extra * 2 * payload, launcher.value['aggregate']['owned_image_bytes'])
         base_tag = 'safe-c-developer-base:' + current['image_id'].split(':')[1][:24]
         tagged = launcher.docker(['tag', current['image_id'], base_tag])
         if not passed(tagged) or launcher.json(['image', 'inspect', base_tag])[0]['Id'] != current['image_id']:
@@ -185,6 +380,8 @@ def main():
         if not passed(built):
             raise GateError('developer data-only image assembly failed')
         image = launcher.json(['image', 'inspect', tag])[0]
+        owned_after = admit([m for m in measures if m['id'] != image['Id']] + [measure_owned(launcher, image['Id'])],
+                            0, launcher.value['aggregate']['owned_image_bytes'])
         if (image['Size'] > launcher.value['aggregate']['owned_image_bytes'] or
                 any(image['Config'].get(key) for key in ['Entrypoint', 'Volumes', 'Healthcheck'])):
             raise GateError('developer image metadata or storage bound mismatch')
@@ -198,11 +395,15 @@ def main():
                      'payload_manifest_sha256': file_hash(extraction / 'manifest.json'),
                      'payload': manifest, 'acquisition': selection,
                      'upstream_signature': signature,
-                     'owner': 'MarketDataApp', 'license_review': 'PENDING',
+                     'owner': 'MarketData-App', 'license_review': 'PENDING',
                      'independent_approval': 'PENDING',
                      'sanitizer_boundary': 'developer processes only; first-party compiler/GLib profiles unchanged',
-                     'ordinary_image_migrated': False}
+                     'ordinary_image_migrated': False,
+                     'bench_python': {w['name']: w['version'] for w in wheel_selection['wheels']}}
         candidate['reused_image'] = reused
+        candidate['owned_image_bytes'] = {'method': 'containerd snapshots by ChainID + content blobs by digest, each counted once',
+                                          'admitted_projection': admitted, 'measured_after_build': owned_after,
+                                          'bound': launcher.value['aggregate']['owned_image_bytes']}
         atomic_json(output / 'candidate-developer.lock.json', candidate)
         print(json.dumps({'status': candidate['status'], 'image_id': image['Id'],
                           'base_image_id': current['image_id'], 'payload_files': len(manifest['files']),

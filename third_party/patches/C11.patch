@@ -1,6 +1,12 @@
 --- third_party/originals/llvm/llvm-project/compiler-rt/test/msan/heap-origin.cpp
 +++ safety/qualification/C11/bad.c
-@@ -1,31 +1,16 @@
+@@ -1,31 +1,22 @@
++/* Modified file. Origin: LLVM compiler-rt/test/msan/heap-origin.cpp
++ * at llvm-project revision cd708029e0b2869e80abe31ddb175f7c35361f90.
++ * License: Apache-2.0 WITH LLVM-exception; see
++ * third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT.
++ * Changed by MarketData-App (C17 qualification fixture); the full change is
++ * third_party/patches/C11.patch. */
 -// RUN: %clangxx_msan -O0 %s -o %t && not %run %t >%t.out 2>&1
 -// RUN: FileCheck %s < %t.out
 -// RUN: %clangxx_msan -O1 %s -o %t && not %run %t >%t.out 2>&1

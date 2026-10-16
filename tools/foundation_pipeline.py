@@ -52,6 +52,13 @@ def run(q, value):
             totals = cov['totals'][category]
             if totals['count'] <= 0 or 100 * totals['covered'] / totals['count'] < minimum:
                 raise GateError('foundation coverage insufficient')
+        parallel = cov.get('parallel') or {}
+        if parallel.get('status') != 'PASS' or parallel.get('denominator') != ['foundation/parallel/sc-parallel.c', 'foundation/parallel/sc-parallel.h']:
+            raise GateError('foundation parallel coverage missing or insufficient')
+        for category, minimum in [('lines', 90), ('branches', 85)]:
+            totals = (parallel.get('totals') or {}).get(category) or {}
+            if totals.get('count', 0) <= 0 or 100 * totals.get('covered', 0) / totals['count'] < minimum:
+                raise GateError('foundation parallel coverage insufficient')
 
     def record(parent, name, variant, control, rejection, paths, reason):
         control_ok = rejected = False

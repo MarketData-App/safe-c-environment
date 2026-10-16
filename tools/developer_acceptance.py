@@ -5,6 +5,7 @@ import hashlib
 import json
 
 from evidence import GateError,read_json,file_hash,atomic_json,bounded,passed
+from evidence import loads_capped
 from policy import source_identity,baseline_identity,validate_fresh_report
 from developer_report import qualification
 
@@ -92,6 +93,7 @@ def readiness(root,context,fields,selected,identity):
         if value.get('context_namespace')==context and value.get('source_identity')==identity:
             results.append((path.stat().st_mtime,value))
     results=sorted(results,key=lambda item:item[0],reverse=True)[:8]
+    from bench_readiness import performance_axes, performance_details;axes['performance']=performance_axes(root,identity,axes);axes['performance_details']=performance_details(root,identity)
     return dict(axes,worktree=fields['worktree'],configuration=fields,index_freshness=freshness,
         debugger_recipes=read_json(root/'safety/developer-policy.json')['debugger']['recipes'],
         last_results=[{'run_id':v['run_id'],'operation':v['operation'],'status':v['status']} for _,v in results],
@@ -118,7 +120,7 @@ def doctor(root,out):
                     'dev','doctor','--format','json'],timeout=120,limit=4194304)
     path=out/'developer-doctor.opaque.json';atomic_json(path,record)
     try:
-        value=json.loads(record['output'])
+        value=loads_capped(record['output'])
         from developer_report import feedback
         from schema_check import validate
         validate(root,'developer-feedback',value);feedback(value)

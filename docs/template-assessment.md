@@ -19,7 +19,9 @@ target-scoped checks and configuration original to this repository. Declined the
 generated application, install rules, package managers and developer-mode bypass:
 this starter has no application and always runs its protected safety gates. No
 generated `main.c` or package-manager dependency was imported. Generator GPL terms
-and template Unlicense terms remain distinct; first-party licensing awaits the owner.
+and template Unlicense terms remain distinct. The framework's own files are under MIT
+(LICENSE); third-party components keep their own licenses, with the written
+source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15.
 
 Reproduce the rendering in scratch using the retained `template.py` with
 `print(compile_template(template_text, context)())` and the context above (the

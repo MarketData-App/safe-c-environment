@@ -1,0 +1,13 @@
+{"schema_version":1,"case_id":"plan-fixture","operation":"three synthetic computation steps on every record of one request",
+ "sizes":{"records_per_call":13230},"frequency":"unknown (owner)","target":{"kind":"none","value":null,"unit":null},
+ "footprint":{"cpu_ns_per_unit":{"value":null,"reason":"not yet measured"},"wall_ns_per_unit":{"value":null,"reason":"not yet measured"},
+  "ready_state_bytes":{"value":null,"reason":"not yet measured"},"group_peak_bytes":{"value":null,"reason":"not yet measured"}},
+ "breakdown":{"computation":{"share":null,"uncertainty":"pure computation in-process; Phase 1 profile measures it"},
+  "allocation":{"share":null,"uncertainty":"not separated"},"serialization":{"share":null,"uncertainty":"JSON decoding is common setup, measured separately"},
+  "database":{"share":0,"uncertainty":"no database in the case"},"io_wait":{"share":0,"uncertainty":"no network or disk in the timed call"},
+  "lock_contention":{"share":null,"uncertainty":"pool rows only"},"queueing":{"share":null,"uncertainty":"pool rows only"}},
+ "python_options":[{"name":"vectorization (py-optimized)","state":"measured","run_id":null},{"name":"thread pool (py-threads)","state":"measured","run_id":null},
+  {"name":"process pool (py-processes)","state":"measured","run_id":null},{"name":"a closed form for step 1","state":"proposed","run_id":null},
+  {"name":"seed step 2 with the step 1 result","state":"proposed","run_id":null},{"name":"fewer iterations in step 3","state":"proposed","run_id":null},
+  {"name":"reuse results across requests when the inputs are unchanged","state":"proposed","run_id":null}],
+ "approval":{"state":"PENDING","reference":"owner request and controller rulings 2026-10-07; spec approver confirms the record"}}

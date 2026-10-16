@@ -2,6 +2,7 @@
 import json
 import re
 from evidence import passed, GateError, read_json, file_hash, atomic_json
+from evidence import loads_capped
 
 def adapter_build(q, variant):
     directory='adapter/'+variant
@@ -41,13 +42,13 @@ def run_fuzz(q, profile):
         records.append(r['evidence_path'])
         executions=re.findall(r'#(\d+)\s+DONE',r['output']);coverage=re.findall(r'cov: (\d+)',r['output']);features=re.findall(r'ft: (\d+)',r['output'])
         failures=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps([str(p) for p in pathlib.Path("/work/fuzz-failures").iterdir()]))'],label='fuzz-failure-inventory')
-        crashed=json.loads(failures['output']) if passed(failures) else ['missing evidence']
+        crashed=loads_capped(failures['output']) if passed(failures) else ['missing evidence']
         complete=passed(r) and not crashed and executions and coverage and int(coverage[-1])>1 and (int(executions[-1])>=amount if profile=='smoke' else r['seconds']>=amount)
         saved=[]
         listing=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps([str(p.relative_to("/work")) for folder in ["exploration-corpus","fuzz-failures"] for p in pathlib.Path("/work",folder).iterdir() if p.is_file() and not p.is_symlink() and p.stat().st_size<=256]))'],label='fuzz-retained-inputs')
         if not passed(listing):complete=False
         else:
-            for relative in json.loads(listing['output']):
+            for relative in loads_capped(listing['output']):
                 if not re.fullmatch(r'(exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe corpus artifact name')
                 path=q.runner.fetch(relative,q.runner.run_dir/'fuzz-inputs'/relative)
                 saved.append({'path':str(path),'sha256':file_hash(path),'bytes':path.stat().st_size})

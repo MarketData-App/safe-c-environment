@@ -1,0 +1,3 @@
+{"schema_version":1,"cases":["demo-digest"],
+ "approval":{"state":"PENDING","reference":null},
+ "before_run_required":{"demo-digest":["demo-agreement"]}}

@@ -2,11 +2,13 @@
 from __future__ import annotations
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import selectors
 import shutil
 import signal
+import stat
 import subprocess
 import time
 import uuid
@@ -20,15 +22,164 @@ def digest(data: bytes) -> str:
 def file_hash(path: Path) -> str:
     return digest(path.read_bytes())
 
-def read_json(path: Path):
-    def unique(pairs):
-        result = {}
-        for key, value in pairs:
-            if key in result:
-                raise GateError(f"duplicate JSON key: {key}")
-            result[key] = value
-        return result
-    return json.loads(path.read_text(), object_pairs_hook=unique)
+# FR3-17 (ruling FR3-R7) and FR3-19 (ruling FR3-R9): one fail-closed boundary for every host parse of JSON that a project
+# or a container can write. load_project_json reads project-controlled files (the protocol file, its approval record, its
+# aggregate schema and oracle files, the local aggregate, bench.json, project case manifests and opportunity records,
+# panel pre-flight and reference records, project.json, review/ledger.json and the owner confirmation). read_json,
+# read_jsonl and loads_capped are capped readers built on the same code for every other JSON file, JSON-lines file and
+# container output. Malformed data gives ProjectDataError (a GateError and a ValueError, exit 2), never another Python
+# exception. Order: a size cap on the bytes, strict UTF-8, a nesting-depth cap checked on the raw text by an iterative
+# scan before any parse (so json.loads can never reach RecursionError), then the parse, then the caller's validation
+# inside the same boundary.
+PROJECT_JSON_MAX_BYTES = 4194304          # 4 MiB: bench.json, case manifests, opportunity, pre-flight, project.json, owner confirmation
+PROJECT_JSON_LARGE_BYTES = 16777216       # 16 MiB: protocol data files, panel references, review ledgers
+PROJECT_JSON_MAX_DEPTH = 64               # nesting levels of arrays and objects; the deepest valid project file holds about 20
+CAPPED_JSON_MAX_BYTES = 67108864          # 64 MiB: read_json, JSON-lines files and container output (twice the 32 MiB artifact cap)
+CAPPED_JSON_MAX_DEPTH = 64                # the deepest tracked or recorded JSON document holds 14 levels
+AST_JSON_MAX_DEPTH = 400                  # a clang JSON AST nests two levels per AST node
+
+class ProjectDataError(GateError, ValueError):
+    """A refusal of project-controlled or container-written JSON. `problem` is the stable name
+    project-data-invalid:<kind>:<reason>; `original` is the type name of the exception that caused it (or None). The text
+    holds no data of the document. It is also a ValueError, so a caller that handled a malformed document keeps doing so."""
+    def __init__(self, kind, reason, label, original=None):
+        self.problem = f'project-data-invalid:{kind}:{reason}'
+        self.original = original
+        super().__init__(f'{self.problem} ({label}{"; " + original if original else ""})')
+
+class _Refused(Exception):
+    def __init__(self, reason):
+        super().__init__(reason)
+        self.reason = reason
+
+def _unique_pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise _Refused('duplicate-key')
+        result[key] = value
+    return result
+
+def _no_constant(name):
+    raise _Refused('non-finite-literal')
+
+def _finite_float(text):
+    """FR3-20: a number literal that parses to inf or -inf (for example 1e400) is a non-finite literal too."""
+    value = float(text)
+    if value in (math.inf, -math.inf):
+        raise _Refused('non-finite-literal')
+    return value
+
+# One token: a complete string (possessive, so no backtracking), a bracket, or a quote that starts an unterminated string.
+import re as _re
+_JSON_TOKEN = _re.compile(r'"[^"\\]*+(?:\\.[^"\\]*+)*+"|[\[\]{}]|"', _re.S)
+
+def json_too_deep(text, max_depth):
+    """True when the arrays and objects of `text` nest deeper than `max_depth` levels. An iterative scan of the raw text
+    in linear time: brackets inside strings (with backslash escapes) do not count, and the scan stops at an unterminated
+    string (the parse fails there). It never recurses and never parses."""
+    if text.count('[') + text.count('{') <= max_depth:
+        return False              # FR3-R10: fewer openers than the cap can never nest past it
+    depth = 0
+    for match in _JSON_TOKEN.finditer(text):
+        start = match.start()
+        c = text[start]
+        if c == '"':
+            if match.end() - start == 1:
+                break
+        elif c == '[' or c == '{':
+            depth += 1
+            if depth > max_depth:
+                return True
+        else:
+            depth -= 1
+    return False
+
+def _parse(data, kind, label, max_bytes, max_depth, unique_keys, finite):
+    """The capped parse of bytes or text (a text is measured in characters, never more than its UTF-8 bytes)."""
+    original = None
+    try:
+        if len(data) > max_bytes:
+            raise _Refused('too-large')
+        if isinstance(data, str):
+            text = data
+        else:
+            try:
+                text = bytes(data).decode('utf-8')
+            except UnicodeDecodeError:
+                original = 'UnicodeDecodeError'
+                raise _Refused('not-utf-8') from None
+        if json_too_deep(text, max_depth):
+            raise _Refused('too-deep')
+        try:
+            hook = _unique_pairs if unique_keys is True else unique_keys if callable(unique_keys) else None
+            return (json.loads(text, object_pairs_hook=hook, parse_constant=_no_constant, parse_float=_finite_float) if finite
+                    else json.loads(text, object_pairs_hook=hook))
+        except _Refused:
+            raise
+        except (ValueError, RecursionError, MemoryError) as exc:
+            original = type(exc).__name__
+            raise _Refused('not-json') from None
+    except _Refused as refusal:
+        raise ProjectDataError(kind, refusal.reason, label, original) from None
+
+def read_capped(path, max_bytes, kind='json-file', label='JSON file'):
+    """At most max_bytes bytes of a file; ProjectDataError too-large past it. An OSError passes unchanged."""
+    with open(path, 'rb') as handle:
+        data = handle.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise ProjectDataError(kind, 'too-large', label)
+    return data
+
+def load_project_json(source, kind, max_bytes, max_depth=PROJECT_JSON_MAX_DEPTH, check=None, label=None,
+                      unique_keys=True, finite=True, oserror=False):
+    """The parsed value of project-controlled JSON. `source` is a path (read here, at most max_bytes + 1 bytes) or the
+    bytes that the caller has already read under its own rules. `check(value)` runs inside the boundary: its GateError
+    passes unchanged; any other exception becomes ProjectDataError with reason `exception` and the exception type name only.
+    Refusals (each a ProjectDataError): too-large, unreadable, not-utf-8, too-deep, not-json, duplicate-key,
+    non-finite-literal (NaN, Infinity, -Infinity and a number that parses to inf or -inf, FR3-20; only when `finite`). With `oserror`, an OSError of the read passes
+    unchanged instead of `unreadable`."""
+    label = label or kind
+    if isinstance(source, (bytes, bytearray, str)):
+        data = source
+    else:
+        try:
+            data = read_capped(source, max_bytes, kind, label)
+        except OSError as exc:
+            if oserror:
+                raise
+            raise ProjectDataError(kind, 'unreadable', label, type(exc).__name__) from None
+    value = _parse(data, kind, label, max_bytes, max_depth, unique_keys, finite)
+    if check is not None:
+        try:
+            check(value)
+        except GateError:
+            raise
+        except Exception as exc:
+            raise ProjectDataError(kind, 'exception', label, type(exc).__name__) from None
+    return value
+
+def read_json(path: Path, max_bytes=CAPPED_JSON_MAX_BYTES, max_depth=CAPPED_JSON_MAX_DEPTH):
+    """A JSON file through the boundary (FR3-19): at most 64 MiB and 64 levels, strict UTF-8, no duplicate key. NaN and
+    Infinity stay allowed (atomic_json may write them). A missing or unreadable file raises its OSError as before."""
+    return load_project_json(path, 'json-file', max_bytes, max_depth, label='JSON file', finite=False, oserror=True)
+
+def loads_capped(data, kind='json-text', max_bytes=CAPPED_JSON_MAX_BYTES, max_depth=CAPPED_JSON_MAX_DEPTH, label=None,
+                 object_pairs_hook=None):
+    """json.loads of container output or of bytes read from a container-written file, through the boundary (FR3-19):
+    the size and depth caps and strict UTF-8. Duplicate keys and NaN keep the json.loads behavior (or the caller's
+    object_pairs_hook decides; its own exception passes unchanged)."""
+    return _parse(data, kind, label or kind, max_bytes, max_depth, object_pairs_hook or False, False)
+
+def read_jsonl(path, kind='jsonl-file', max_bytes=CAPPED_JSON_MAX_BYTES, max_depth=CAPPED_JSON_MAX_DEPTH):
+    """The rows of a JSON-lines file through the boundary (FR3-19): the whole file at most max_bytes, each line capped like
+    loads_capped. A missing or unreadable file raises its OSError."""
+    data = read_capped(path, max_bytes, kind, 'JSON-lines file')
+    try:
+        text = data.decode('utf-8')
+    except UnicodeDecodeError:
+        raise ProjectDataError(kind, 'not-utf-8', 'JSON-lines file', 'UnicodeDecodeError') from None
+    return [loads_capped(line, kind, max_bytes, max_depth, 'JSON-lines file') for line in text.splitlines() if line.strip()]
 
 def atomic_json(path: Path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -104,9 +255,12 @@ def environment_gate(environment=None):
 SESSION_MARGIN_SECONDS = 600
 
 class Runner:
-    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification", source_root=None, fixture_root=None):
-        if build_profile not in {"build", "dependency-build"}:raise GateError("unapproved build adapter profile")
+    def __init__(self, root: Path, run_dir: Path, lock, scratch: Path, *, build_profile="build", purpose="qualification", source_root=None, fixture_root=None, file_mounts=None, redacted=False, input_root=None):
+        if build_profile not in {"build", "dependency-build", "bench"}:raise GateError("unapproved build adapter profile")
         self.build_profile=build_profile
+        self.file_mounts=dict(file_mounts) if file_mounts else None
+        self.redacted=bool(redacted)
+        self.input_root=Path(input_root).resolve() if input_root is not None else None
         self.root, self.run_dir, self.lock, self.scratch = root.resolve(), run_dir, lock, scratch.resolve()
         self.source_root = Path(source_root).resolve() if source_root is not None else self.root
         self.fixture_root = Path(fixture_root) if fixture_root is not None else None
@@ -116,6 +270,7 @@ class Runner:
         self.session_started=None
         self.collected_bytes=0;self.collected_files=0
         self.collection_sizes={}
+        self.collection_digests={}      # DD-01: destination -> sha256 of the bytes that collect fetched
         from container_policy import Launcher
         self.launcher=Launcher(self.root,self.run_dir,lock,purpose=purpose)
 
@@ -129,6 +284,8 @@ class Runner:
             destination=snapshot/relative;destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(self.source_root/relative,destination)
         for directory in ['src','include']:(snapshot/directory).mkdir(exist_ok=True)
+        from policy import write_tracked_manifest
+        write_tracked_manifest(self.source_root,snapshot)     # T27-03: the host tracked set, outside the source identity
         self.snapshot=snapshot
         mounts={'/src':snapshot}
         if self.fixture_root is not None:
@@ -143,7 +300,20 @@ class Runner:
             if {name:file_hash(self.fixture_snapshot/name) for name in fixture_files}!=fixture_files:
                 raise GateError('developer fixture changed during immutable snapshot creation')
             mounts['/fixture']=self.fixture_snapshot
-        self.session=self.launcher.create(self.build_profile,mounts)
+        if self.input_root is not None:
+            # Regular files only, copied into a private snapshot mounted read-only at /inputs.
+            self.input_snapshot=self.scratch/'inputs-snapshot'
+            if self.input_snapshot.exists():shutil.rmtree(self.input_snapshot)
+            self.input_snapshot.mkdir()
+            for source in sorted(self.input_root.rglob('*')):
+                mode=source.lstat().st_mode
+                if stat.S_ISDIR(mode):continue
+                if not stat.S_ISREG(mode):raise GateError('input snapshot accepts regular files only')
+                target=self.input_snapshot/source.relative_to(self.input_root)
+                target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copy2(source,target)
+            mounts['/inputs']=self.input_snapshot
+        self.session=self.launcher.create(self.build_profile,mounts,file_mounts=self.file_mounts,redacted=self.redacted)
         self.name=self.session['container_id'];self.alive=True;self.session_started=self.clock()
         from containment import expected_binding
         from policy import source_identity
@@ -212,30 +382,46 @@ print(base64.b64encode(p.read_bytes()).decode())"""
         destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(data)
         self.collected_bytes+=len(data)-previous;self.collected_files+=int(new_file)
         self.collection_sizes[str(destination)]=len(data)
+        self.collection_digests[str(destination)]=digest(data)
         return destination
 
     def fetch(self,relative,destination=None):
         self.start()
         return self.collect(self.session,relative,destination or self.scratch/relative)
 
-    def restore(self,relative,path):
+    def restore(self,relative,path,fetched=None,label=None):
         # Transfer finite chunks rather than one argv-sized base64 blob. Native
         # jobs and the builder keep the same mounts and resource ceilings.
-        import base64
+        # DD-01: a collected file is handed on only when its bytes still have the
+        # sha256 recorded when collect fetched them: `fetched` (passed on with a
+        # shared file to the Runner of a later check) or this Runner's own
+        # collection record. Only a host-made input (never collected, e.g. the
+        # plan) takes its digest from the bytes read here.
+        # DD-02: every restore writes its own receipt, transfers/<sha>[-<label>]
+        # [-<n>].json, where label names the destination job (other characters
+        # become '-', at most 96) and n counts the earlier receipts of the same
+        # name, so no receipt overwrites another.
+        import base64, re
         p=Path(relative);path=Path(path).absolute()
+        if label is not None and type(label) is not str:raise GateError('transfer receipt label is not text')
+        if fetched is None:fetched=self.collection_digests.get(str(path))
+        if fetched is not None and not (type(fetched) is str and re.fullmatch(r'[0-9a-f]{64}',fetched)):
+            raise GateError('malformed fetched artifact digest')
         if p.is_absolute() or '..' in p.parts or not p.parts:
             raise GateError('unsafe artifact restore path')
         if (not any(path.is_relative_to(base.absolute()) for base in [self.scratch,self.run_dir]) or
                 any(x.is_symlink() for x in [path,*path.parents]) or not path.is_file() or
                 path.stat().st_size>self.launcher.value['common']['artifact_bytes']):
             raise GateError('unapproved artifact restore source')
-        expected=file_hash(path);data=path.read_bytes()
-        if digest(data)!=expected:raise GateError('artifact restore source changed')
+        data=path.read_bytes();expected=digest(data) if fetched is None else fetched
+        if digest(data)!=expected:raise GateError('artifact restore source differs from the fetched bytes')
         pending=relative+'.restore-'+uuid.uuid4().hex
         deadline=time.monotonic()+30
-        receipt={'source_sha256':expected,'destination':relative,'bytes':len(data),
+        receipt={'source_sha256':expected,'destination':relative,'bytes':len(data),'label':label,
                  'input_binding':dict(self.input_binding),'steps':[],'status':'FAIL'}
-        evidence=self.run_dir/'transfers'/(expected+'.json')
+        name=expected+('-'+re.sub(r'[^A-Za-z0-9._-]','-',label)[:96] if label else '');count=1
+        while (self.run_dir/'transfers'/(name+('' if count==1 else f'-{count}')+'.json')).exists():count+=1
+        evidence=self.run_dir/'transfers'/(name+('' if count==1 else f'-{count}')+'.json')
         def step(stage,args):
             remaining=deadline-time.monotonic()
             if remaining<=0:raise GateError('finite artifact transfer deadline exhausted')
@@ -243,7 +429,7 @@ print(base64.b64encode(p.read_bytes()).decode())"""
             receipt['steps'].append({'stage':stage,'exit_code':result['exit_code'],
                 'failure':result['failure'],'evidence_complete':result['evidence_complete']})
             if not passed(result):
-                atomic_json(evidence.with_name(expected+'-failed-stage.json'),result)
+                atomic_json(evidence.with_name(evidence.stem+'-failed-stage.json'),result)
                 raise GateError('collected artifact transfer failed')
         prepare="""import pathlib,sys
 p=pathlib.Path('/work')
@@ -308,7 +494,7 @@ os.replace(p,pathlib.Path('/work')/sys.argv[2])
                 if active_corpus:
                     listing=self.launcher.execute(session,['python3','-c','import pathlib,json,sys;print(json.dumps([str(p.relative_to("/work")) for d in [sys.argv[1],"fuzz-failures"] for p in pathlib.Path("/work",d).iterdir()]))',active_corpus.removeprefix("/work/")],timeout=10)
                     if not passed(listing):raise GateError('live fuzz artifact inventory failed')
-                    for relative in json.loads(listing['output']):
+                    for relative in loads_capped(listing['output']):
                         if not __import__('re').fullmatch(r'(exploration-corpus|foundation-exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe fuzz output name')
                         collected=self.collect(session,relative,self.scratch/'native-output'/relative);self.restore(relative,collected)
             result['lifecycle']=self.launcher.dispose(session)

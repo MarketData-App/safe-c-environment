@@ -1,0 +1,11 @@
+{
+  "description": "P15 shipped-bench-assets (Task 29): the runtime image inventory of tools/runtime.py runtime_members with one planted bench driver; bench_b18.runtime_bench_files and runtime.inventory_gate must reject it",
+  "members": [
+    "demo",
+    "lib/x86_64-linux-gnu/libc.so.6",
+    "lib64/ld-linux-x86-64.so.2",
+    "opt/bench/bench-coordinator.py",
+    "opt/foundation/clang-O2/lib/libglib-2.0.so.0",
+    "opt/foundation/clang-O2/lib/libpcre2-8.so.0"
+  ]
+}

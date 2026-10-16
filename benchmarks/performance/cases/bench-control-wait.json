@@ -1,0 +1,11 @@
+{"schema_version":1,"case_id":"bench-control-wait","version":1,"kind":"function","adapter":"benchlab.controlcase:Wait",
+ "description":"Framework control: a finite sleep per seed (the GIL is released)",
+ "work_unit":"one seed waited wait_us microseconds",
+ "parameters":{"wait_us":{"value":1000,"label":"protocol"},"seed":{"value":20261007,"label":"protocol"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"py-optimized","language":"python","workers":["direct"],"status":"same-as-reference","reason":"control: no separate optimized implementation"},
+  {"id":"py-threads","language":"python","workers":[1,2,4],"status":"implemented"},
+  {"id":"py-processes","language":"python","workers":[1,2,4],"status":"implemented"}],
+ "scopes":["kernel","caller"],"sizes":["tiny","small","medium"],
+ "points":[],
+ "opportunity_record":null}

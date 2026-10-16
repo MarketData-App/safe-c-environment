@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "recipe": "container/parallel-mutant.py",
+  "recipe_sha256": "150ea867a574077a4d476b02bfad64d97dfe1263f5a79685f11fd79dd14e66f5",
+  "mutants": {
+    "plain-stop-read": {
+      "lane": "tsan",
+      "expected": "ThreadSanitizer"
+    },
+    "no-wait-teardown": {
+      "lane": "asan",
+      "expected": "AddressSanitizer",
+      "also_detected": {
+        "exit_code": 134,
+        "line": "g_mutex_clear() called on uninitialised or locked mutex"
+      },
+      "min_expected_runs": 1
+    },
+    "accounting-skip": {
+      "lane": "functional",
+      "expected": "PARALLEL_FAIL errors"
+    }
+  }
+}

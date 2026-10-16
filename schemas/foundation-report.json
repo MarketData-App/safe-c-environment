@@ -264,6 +264,9 @@
     "policy_probes": {
       "type": "object"
     },
+    "parallel": {
+      "type": "object"
+    },
     "starter": {
       "type": "object"
     },

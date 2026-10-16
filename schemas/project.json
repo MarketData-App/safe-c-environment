@@ -11,6 +11,8 @@
       "headers":{"type":"array","items":{"type":"string","pattern":"^include/[^\\0]+\\.h$"}},
       "tests":{"type":"array","minItems":1,"items":{"type":"string","pattern":"^tests/project/[^\\0]+\\.c$"}},
       "reads_external_input":{"type":"boolean"},
+      "uses":{"description":"Other declared modules that this module links (cmake/Project.cmake). Its tests link the uses closure; its fuzz targets compile the closure sources first. tools/project_model.py refuses an unknown name, the module itself and a cycle.","type":"array","maxItems":8,"uniqueItems":true,"items":{"type":"string","pattern":"^[a-z][a-z0-9_]{0,62}$"}},
+      "foundation":{"description":"Opt-in: the module library links sc_foundation, sc_parallel and the locked GLib profile of each build (foundation.lock.json); fuzz targets of its uses closure build against the locked fuzz-profile GLib.","const":"glib-parallel"},
       "fuzz":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["name","harness","corpus","regressions"],
         "properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9_]{0,62}$"},"harness":{"type":"string","pattern":"^fuzz/project/[^\\0]+\\.c$"},
           "corpus":{"type":"string","pattern":"^fuzz/project/"},"regressions":{"type":"string","pattern":"^fuzz/project/"}}}}}}},
@@ -18,4 +20,8 @@
     "properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,62}$"},"main":{"type":"string","pattern":"^src/[^\\0]+\\.c$"},
       "modules":{"type":"array","minItems":1,"items":{"type":"string"}}}}},
   "run":{"type":"object","additionalProperties":false,"required":["program","args","expect_exit"],
-    "properties":{"program":{"type":"string"},"args":{"type":"array","maxItems":16,"items":{"type":"string","maxLength":256}},"expect_exit":{"const":0}}}}}
+    "properties":{"program":{"type":"string"},"args":{"type":"array","maxItems":16,"items":{"type":"string","maxLength":256}},"expect_exit":{"const":0}}},
+  "libraries":{"description":"Shared libraries lib<name>.so made from the whole archives of the listed modules and their uses closure (cmake/Project.cmake, cmake/Safety.cmake). Every project module object is PIC; a version script exports only `exports`; the five non-instrumented builds link with -z defs and -z text. The hardened gate (tools/project_check.py) refuses a missing export, any other defined GLOBAL, WEAK or UNIQUE symbol, an undefined Py/_Py symbol, missing RELRO/BIND_NOW/non-executable stack or a text relocation, and a runtime closure whose GLib names do not resolve to the locked /opt/foundation/clang-O2/lib copy by sha256. Every project target links libm and compiles with -ffp-contract=off.","type":"array","minItems":1,"maxItems":2,"items":{"type":"object","additionalProperties":false,"required":["name","modules","exports"],
+    "properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9_]{0,30}$"},
+      "modules":{"type":"array","minItems":1,"items":{"type":"string","pattern":"^[a-z][a-z0-9_]{0,62}$"}},
+      "exports":{"type":"array","minItems":1,"maxItems":16,"uniqueItems":true,"items":{"type":"string","pattern":"^[a-z][a-z0-9_]{0,62}$"}}}}}}}

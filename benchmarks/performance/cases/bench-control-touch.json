@@ -1,0 +1,11 @@
+{"schema_version":1,"case_id":"bench-control-touch","version":1,"kind":"function","adapter":"benchlab.controlcase:Touch",
+ "description":"Framework control: a buffer of touch_kib KiB allocated, touched per page and released per seed",
+ "work_unit":"one seed with touch_kib KiB touched",
+ "parameters":{"touch_kib":{"value":1024,"label":"protocol"},"seed":{"value":20261007,"label":"protocol"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"py-optimized","language":"python","workers":["direct"],"status":"same-as-reference","reason":"control: no separate optimized implementation"},
+  {"id":"py-threads","language":"python","workers":[1,2,4],"status":"implemented"},
+  {"id":"py-processes","language":"python","workers":[1,2,4],"status":"implemented"}],
+ "scopes":["kernel","caller"],"sizes":["tiny","small","medium"],
+ "points":[],
+ "opportunity_record":null}

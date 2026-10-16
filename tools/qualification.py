@@ -4,13 +4,17 @@ import json
 import re
 import shlex
 from evidence import GateError, passed, read_json, file_hash, atomic_json
+from evidence import loads_capped, AST_JSON_MAX_DEPTH
 from policy import build_audit, lit_accounting
 
 PROFILE_FLAGS = {'asan':'-fsanitize=address,undefined','ubsan':'-fsanitize=undefined',
  'integer':'-fsanitize=undefined,unsigned-integer-overflow,implicit-integer-conversion',
  'msan':'-fsanitize=memory','tsan':'-fsanitize=thread',
  'fuzz':'-fsanitize=address,undefined,fuzzer-no-link','coverage':'-fcoverage-mapping'}
-INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c','foundation/src/sc-foundation.c','foundation/tests/contracts.c','foundation/tests/dependency-identity.c','foundation/tests/recipes.c']
+INFRA = ['tests/integration/demo.c','fuzz/parser_good.c','tests/integration/hardening.c','tests/integration/runtime-demo.c','foundation/src/sc-foundation.c','foundation/tests/contracts.c','foundation/tests/dependency-identity.c','foundation/tests/recipes.c','foundation/parallel/sc-parallel.c','foundation/parallel/tests/contracts.c','foundation/parallel/tests/checks.c','foundation/parallel/tests/faults.c']
+# Compiled only in the ordinary sc_parallel fault variant (SC_PARALLEL_FAULTS=ON); every analyzer and
+# the AST gate still scan it through INFRA.
+PARALLEL_FAULTS_SOURCE='foundation/parallel/tests/faults.c'
 
 def designated_runtime_result(result,expected):
     if type(result.get('exit_code')) is not int or result['failure'] is not None or result['exit_code']==0 or expected not in result['output']:
@@ -24,7 +28,7 @@ class Qualifier:
         self.builds = {}
         self.build_sessions = {}
 
-    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=(), foundation_mutant='NONE'):
+    def build(self, profile, *, case='NONE', variant='both', compiler=None, opt=0, foundation_case='NONE', guards=(), foundation_mutant='NONE', parallel_faults=False, parallel_mutant='NONE'):
         cc = compiler or ('gcc' if profile=='gcc-analyzer' else 'clang')
         key = f'{profile}-{cc}-O{opt}-{case}-{variant}'
         if foundation_case != 'NONE':
@@ -37,6 +41,14 @@ class Qualifier:
         if foundation_mutant != 'NONE':
             if foundation_mutant not in read_json(self.root/'safety/foundation-mutants.json')['mutants']:raise GateError('uninventoried foundation mutation')
             key += '-mutant-' + foundation_mutant
+        if type(parallel_faults) is not bool:raise GateError('typed sc_parallel fault variant required')
+        if parallel_faults and parallel_mutant != 'NONE':raise GateError('sc_parallel fault injection and mutation are separate variants')
+        if parallel_faults:
+            if profile != 'ordinary':raise GateError('sc_parallel fault injection is ordinary static test linkage only')
+            key += '-parallel-faults'
+        if parallel_mutant != 'NONE':
+            if parallel_mutant not in read_json(self.root/'safety/parallel-mutants.json')['mutants']:raise GateError('uninventoried sc_parallel mutation')
+            key += '-parallel-mutant-' + parallel_mutant
         # Build trees live in the session container's /work; a build from a disposed
         # session is gone and is redone in the current one.
         if key in self.builds and self.build_sessions.get('build/'+key) is not None and self.build_sessions['build/'+key]==self.session_id():
@@ -45,7 +57,8 @@ class Qualifier:
         config=self.runner.run(['cmake','-S','/src','-B','/work/'+relative,'-G','Ninja',
             '-DCMAKE_C_COMPILER='+cc,'-DSAFETY_PROFILE='+profile,'-DSAFETY_CASE='+case,
             '-DSAFETY_VARIANT='+variant,'-DCMAKE_C_FLAGS=-O'+str(opt),
-            '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_MUTANT='+foundation_mutant, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards)],timeout=60,label=key+'-configure')
+            '-DFOUNDATION_CASE='+foundation_case, '-DFOUNDATION_MUTANT='+foundation_mutant, '-DFOUNDATION_DISABLED_GUARDS='+';'.join(guards),
+            '-DSC_PARALLEL_FAULTS='+('ON' if parallel_faults else 'OFF'), '-DPARALLEL_MUTANT='+parallel_mutant],timeout=60,label=key+'-configure')
         result={'directory':relative,'configure':config,'build':None,'audit':None,'commands':[],'links':None}
         self.build_sessions[relative]=self.session_id()
         if passed(config):
@@ -53,7 +66,7 @@ class Qualifier:
             result['build']=compile_result
             try:
                 database=read_json(self.runner.fetch(relative+'/compile_commands.json'))
-                sources=INFRA.copy()
+                sources=[s for s in INFRA if s!=PARALLEL_FAULTS_SOURCE or parallel_faults]
                 if profile == 'fuzz':sources.append('foundation/tests/stateful-fuzzer.c')
                 if foundation_case != 'NONE':sources.append('safety/qualification/foundation/' + foundation_case + '.c')
                 if case in self.fixtures:
@@ -74,6 +87,19 @@ class Qualifier:
                     if sum(row['file']==generated for row in database)!=1:raise GateError('mutation object omitted/duplicated')
                     audited=[dict(row,file='/src/foundation/src/sc-foundation.c') if row['file']==generated else row for row in database]
                     result['mutation']=receipt
+                if parallel_mutant != 'NONE':
+                    receipt=read_json(self.runner.fetch(relative+'/parallel-mutation/mutation.json'))
+                    actual=self.runner.fetch(relative+'/parallel-mutation/sc-parallel-mutant.c')
+                    expected_recipe=read_json(self.root/'safety/parallel-mutants.json')
+                    generated='/work/'+relative+'/parallel-mutation/sc-parallel-mutant.c'
+                    if (receipt['status']!='PASS' or receipt['mutant']!=parallel_mutant or
+                        receipt['source_sha256']!=file_hash(self.root/'foundation/parallel/sc-parallel.c') or
+                        receipt['recipe_sha256']!=file_hash(self.root/expected_recipe['recipe']) or
+                        receipt['generated_source']!=generated or receipt['generated_sha256']!=file_hash(actual)):
+                        raise GateError('generated sc_parallel mutation identity mismatch')
+                    if sum(row['file']==generated for row in audited)!=1:raise GateError('sc_parallel mutation object omitted/duplicated')
+                    audited=[dict(row,file='/src/foundation/parallel/sc-parallel.c') if row['file']==generated else row for row in audited]
+                    result['parallel_mutation']=receipt
                 result['audit']=build_audit(audited,sources,profile)
                 links=self.runner.run(['ninja','-C','/work/'+relative,'-t','commands'],label=key+'-link-audit')
                 result['links']=links
@@ -148,7 +174,7 @@ class Qualifier:
                     row['evidence_paths'].append(raw['evidence_path'])
                     result=dict(raw)
                     if passed(raw):
-                        tree=json.loads(raw['output']);banned=ast_banned_calls(tree)
+                        tree=loads_capped(raw['output'],'clang-ast',max_depth=AST_JSON_MAX_DEPTH);banned=ast_banned_calls(tree)   # FR3-19
                         result['exit_code']=1 if banned else 0
                         sites=ast_call_sites(tree)
                         result['output']='\n'.join('AST/API policy banned callee: '+name+' in '+function+' /src/'+f[variant+'_sources'][0]+(' macro expansion' if macro else ' direct call') for name,function,macro in sites) if banned else 'AST/API policy clean'
@@ -229,7 +255,7 @@ class Qualifier:
         try:
             value=read_json(out)
             for row in value['tests']:
-                try:cases.append(json.loads(row['output']))
+                try:cases.append(loads_capped(row['output']))
                 except (ValueError,KeyError):pass
             lit_accounting(value,list(self.fixtures))
             status='PASS' if code==0 else 'FAIL'
@@ -463,18 +489,35 @@ def ast_call_sites(node):
     return sites
 
 
-def ast_foundation_uses(node, policy, source, inventory):
+def ast_foundation_uses(node, policy, source, inventory, source_sha256=None):
     """Extend the existing AST gate with actual first-party expressions.
 
     Header declarations/inline definitions do not grant API permission. Exact
     boundary paths must also exist in the protected source-to-target inventory;
     ownership and input pointer validity remain documented caller conventions.
+    A function_grants entry (Amendment F item 2) is not a boundary: it adds its
+    GLib names, its atomic expressions and its named indirect calls for that one
+    inventory-bound file only. The grant binds to the file identity: it is
+    active only when source_sha256 (the hash of the compiled bytes) equals the
+    inventory sha256, and the inventory role and targets equal the grant. A
+    granted indirect call is one call site per row, through a member
+    expression of exactly the granted callee type. Threading names and atomics
+    elsewhere are threading-outside-grant, also in boundary files.
     """
     expected = policy['boundary_inventory'].get(source)
     declared = inventory.get(source, {})
     boundary = (source in policy['boundaries'] and expected is not None and
                 all(declared.get(key) == value for key, value in expected.items()))
-    allowed = set(policy['approved_glib_functions'])
+    grant = policy.get('function_grants', {}).get(source)
+    granted = bool(grant and declared.get('role') == grant['role'] and declared.get('targets') == grant['targets']
+                   and source_sha256 is not None and declared.get('sha256') == source_sha256)
+    grant_names = set(grant['glib_functions']) if granted else set()
+    grant_calls = {(row['function'], row['callee_type']) for row in grant['indirect_calls']} if granted else set()
+    grant_calls_used = set()
+    grant_atomics = bool(granted and grant.get('atomic_expressions'))
+    threading = set(policy.get('threading_functions', []))
+    atomic_prefixes = ('__atomic_', '__sync_', '__c11_atomic_')
+    allowed = set(policy['approved_glib_functions']) | grant_names
     forbidden = set(policy['forbidden_glib_functions'])
     raw = set(policy['raw_memory_functions'])
     restricted = set(policy['restricted_types'])
@@ -502,12 +545,18 @@ def ast_foundation_uses(node, policy, source, inventory):
         kind = value.get('kind')
         if kind in {'NoSanitizeAttr', 'AsmStmt', 'GCCAsmStmt'}:
             record('suppression-or-inline-assembly', function, kind, value)
+        if kind == 'AtomicExpr' and not grant_atomics:
+            record('threading-outside-grant', function, kind, value)
         if kind == 'DeclRefExpr':
             declaration = value.get('referencedDecl', {})
             name = declaration.get('name', '')
             if declaration.get('kind') == 'FunctionDecl':
                 if name in forbidden:
                     record('forbidden-glib-api', function, name, value)
+                elif name in threading and name not in grant_names:
+                    record('threading-outside-grant', function, name, value)
+                elif name.startswith(atomic_prefixes) and not grant_atomics:
+                    record('threading-outside-grant', function, name, value)
                 elif not boundary and name in raw:
                     record('raw-memory-api', function, name, value)
                 elif not boundary and name.startswith(('g_', 'glib_')) and name not in allowed | cleanup:
@@ -521,7 +570,16 @@ def ast_foundation_uses(node, policy, source, inventory):
         if not boundary and kind == 'CallExpr' and value.get('inner'):
             declaration = reference(value['inner'][0])
             if declaration.get('kind') != 'FunctionDecl':
-                record('unknown-call-indirection', function, declaration.get('name', ''), value)
+                callee_type = value['inner'][0].get('type', {}).get('qualType', '')
+                callee = value['inner'][0]
+                while callee.get('kind') in {'ImplicitCastExpr', 'ParenExpr'} and callee.get('inner'):
+                    callee = callee['inner'][0]
+                key = (function, callee_type)
+                if (key not in grant_calls or key in grant_calls_used or callee.get('kind') != 'MemberExpr'
+                        or callee.get('type', {}).get('qualType', '') != callee_type):
+                    record('unknown-call-indirection', function, declaration.get('name', ''), value)
+                else:
+                    grant_calls_used.add(key)
             elif declaration.get('name') == 'g_free' and len(value['inner']) > 1:
                 argument_type = value['inner'][1].get('type', {}).get('qualType', '')
                 # Peel implicit pointer conversions to retain the owned type.

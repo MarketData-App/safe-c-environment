@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import tempfile
 from evidence import GateError, Runner, atomic_json, read_json, passed, environment_gate, file_hash
+from evidence import loads_capped
 from policy import inventory_gate, upstream_gate, baseline_gate, baseline_identity, source_files, build_audit, source_identity, validate_fresh_report, lit_accounting, configuration_gate, validate_lit_options
 from qualification import Qualifier, ast_banned_calls
 from fuzzing import adapter_build, adapter_replay
@@ -117,7 +118,7 @@ def run_sabotage(root,q,report):
         r=s.runner.run(args,label='ctest-discovery')
         if not passed(r):raise GateError('zero/filtered required tests rejected by CTest')
         value=s.runner.run(['ctest','--test-dir','/work/'+b['directory'],'--show-only=json-v1'],label='ctest-inventory')
-        if {row['name'] for row in json.loads(value['output'])['tests']}!={'infrastructure.boundaries','infrastructure.hardening'}:raise GateError('required CTest inventory missing')
+        if {row['name'] for row in loads_capped(value['output'])['tests']}!={'infrastructure.boundaries','infrastructure.hardening'}:raise GateError('required CTest inventory missing')
     p7=[test('P07','zero-test-discovery',lambda s:s.edit('CMakeLists.txt',lambda x:'\n'.join(line for line in x.splitlines() if not line.startswith('add_test('))),discovery,discovery),test('P07','filtered-required-tests',lambda s:None,lambda s:discovery(s,True),discovery),test('P07','bootstrap-with-application',lambda s:(s.root/'src/new.c').write_text('int new_unit(void){return 0;}'),lambda s:trusted_inventory(s.root),lambda s:trusted_inventory(s.root))]
     lit_control={'tests':[{'name':'suite :: '+cid+'.test','code':'PASS'} for cid in q.fixtures]}
     for state in ['XFAIL','XPASS','UNSUPPORTED','UNRESOLVED','SKIPPED','EXCLUDED','TIMEOUT','PASS_AFTER_RETRY']:

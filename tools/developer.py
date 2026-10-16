@@ -10,6 +10,7 @@ import os
 from contextlib import contextmanager
 
 from evidence import GateError, Runner, atomic_json, file_hash, read_json, passed
+from evidence import loads_capped
 from policy import source_identity, baseline_identity
 from schema_check import validate
 from host_capabilities import security_options
@@ -130,7 +131,7 @@ def namespace(root, profile):
                    'tools/developer_state.py', 'tools/developer_workspace.py',
                    'tools/developer_report.py', 'container/developer-job.py',
                    'container/developer-argv.py',
-                   'CMakeLists.txt','cmake/Developer.cmake','cmake/Foundation.cmake','cmake/Safety.cmake']}}
+                   'CMakeLists.txt','cmake/Developer.cmake','cmake/Foundation.cmake','cmake/FoundationLibraries.cmake','cmake/Safety.cmake']}}
     return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest(), fields
 
 
@@ -383,7 +384,7 @@ def execute(root, args, *, emit=True):
                                  label='developer-' + args.operation)
                 result['evidence_paths'].append(outcome['evidence_path'])
                 try:
-                    native = json.loads(outcome['output'])
+                    native = loads_capped(outcome['output'])
                 except (ValueError, TypeError):
                     raise GateError('developer helper returned invalid or incomplete structured evidence')
             result['result'] = native

@@ -60,7 +60,7 @@
         "version": "10.46"
       }
     ],
-    "licensing": "GLib LGPL-2.1-or-later; retained component notices; first-party licensing unchanged; owner distribution review pending",
+    "licensing": "GLib LGPL-2.1-or-later; retained component notices; first-party licensing MIT (LICENSE); agent engineering license review LR1 2026-10-13, not legal approval; owner license confirmation 2026-10-15: MIT for the project code, SOURCE-OFFER.md for the included components, each under its own license",
     "local_patches": [
       {
         "adapter": "container/glib-test-compat.py",
@@ -191,7 +191,7 @@
       "third_party/foundation-notices/libffi-copyright": "25ee86cfccc2b7eb9a156a127f1e1b38c46c231f516ff201912223eaf62ee186",
       "third_party/foundation-notices/libpkgconf3-copyright": "676c75e54ff7e3b9892940fbf1b31763cb6f2a6527a5607a3640ac59a2441fba",
       "third_party/foundation-notices/meson-COPYING": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-      "third_party/foundation-notices/pcre2-COPYING": "99272c55f3dcfa07a8a7e15a5c1a33096e4727de74241d65fa049fccfdd59507",
+      "third_party/foundation-notices/pcre2-COPYING": "9cf7ac6976099a1d856826d3ef1b093bd6b84489dc6100628ac79e740cf9885a",
       "third_party/foundation-notices/pkgconf-bin-copyright": "676c75e54ff7e3b9892940fbf1b31763cb6f2a6527a5607a3640ac59a2441fba",
       "third_party/foundation-notices/zlib1g-dev-copyright": "9e5b96d63773a5d177ba264254390f792be07e41748ebd94730981c6cac31cc6"
     },

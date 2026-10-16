@@ -33,7 +33,7 @@
       ]
     },
     "safety/qualification/C21/bad.c": {
-      "sha256": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed",
+      "sha256": "275d101f60a117f5f2c6bd98d166ff9ec138c49d1cb4204346850f122c9e7e12",
       "role": "qualification-only",
       "targets": [
         "C21_bad"
@@ -47,7 +47,7 @@
       ]
     },
     "safety/qualification/C01/bad.c": {
-      "sha256": "68550f82e12b841f52723c5bbbe4216592bdea44fb95728c58986c255e4e53e4",
+      "sha256": "b95e74c24678ecd1a215e401ceeb58acb1c9b191a794704f99f96b3f1f9b05c3",
       "role": "qualification-only",
       "targets": [
         "C01_bad"
@@ -75,7 +75,7 @@
       ]
     },
     "safety/qualification/C07/bad.c": {
-      "sha256": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610",
+      "sha256": "0dc33caa27d126091456b2f908383b79b8e7c80e6843cfcfba6fb30285134bf4",
       "role": "qualification-only",
       "targets": [
         "C07_bad"
@@ -103,7 +103,7 @@
       ]
     },
     "safety/qualification/C08/bad.c": {
-      "sha256": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5",
+      "sha256": "2ac33e1191fb9ba52815d6677284b4ef938064dc1b90c5d11cc1cfcf165e2828",
       "role": "qualification-only",
       "targets": [
         "C08_bad"
@@ -187,7 +187,7 @@
       ]
     },
     "safety/qualification/C05/bad.c": {
-      "sha256": "3a89ab60987694c093376746973b34c86d566d690792050c4b12bf4885eec383",
+      "sha256": "e48c849cb7a1d9018fabe156a9a0af2bbfc39b85d1c0611596a5241b0f83b84b",
       "role": "qualification-only",
       "targets": [
         "C05_bad"
@@ -327,7 +327,7 @@
       ]
     },
     "safety/qualification/C06/bad.c": {
-      "sha256": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
+      "sha256": "8c6dbcf6a4405e833ad4550783c5f5d3a6f8c72be9de274664a178aad2f3efac",
       "role": "qualification-only",
       "targets": [
         "C06_bad"
@@ -341,7 +341,7 @@
       ]
     },
     "safety/qualification/C11/bad.c": {
-      "sha256": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a",
+      "sha256": "1b14366a4d11db9b8e3735e184f9308f75f4694fcb52199d0e6245c0db7aa18a",
       "role": "qualification-only",
       "targets": [
         "C11_bad"
@@ -383,7 +383,7 @@
       ]
     },
     "safety/qualification/C03/bad.c": {
-      "sha256": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8",
+      "sha256": "610135f6da8ecd6675278600d537eb4ae50d21569322ae8da2ae2f1152c0e151",
       "role": "qualification-only",
       "targets": [
         "C03_bad"
@@ -467,7 +467,7 @@
       ]
     },
     "safety/qualification/C02/bad.c": {
-      "sha256": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2",
+      "sha256": "5445cd14c0615f7c474bde465f645ffc96772e6445fa2f7bd798f149b3d5baa5",
       "role": "qualification-only",
       "targets": [
         "C02_bad"
@@ -481,7 +481,7 @@
       ]
     },
     "safety/qualification/C04/bad.c": {
-      "sha256": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
+      "sha256": "19c7ca9c053f4f2cf0eb13091484c2198bbdf4e0032d74733824ae5d3c58af05",
       "role": "qualification-only",
       "targets": [
         "C04_bad"
@@ -707,6 +707,260 @@
         "project.greeting.test_greeting_main"
       ]
     },
+    "examples/bench-demo/src/bd_digest.c": {
+      "sha256": "0bc750b046800b2b591ea63ab2d0c2f1decdc13d46fe8ebaff67fc08e1111047",
+      "role": "example",
+      "targets": [
+        "bd-digest",
+        "bd-kernel",
+        "bd-worker",
+        "libbd_inproc.so"
+      ]
+    },
+    "examples/bench-demo/src/bd_main.c": {
+      "sha256": "5d2612ecbd63b14c28a667dd9b8437d65243b4d6d80249929d7a1ed1bc360185",
+      "role": "example",
+      "targets": [
+        "bd-digest"
+      ]
+    },
+    "examples/bench-demo/src/main.c": {
+      "sha256": "f18496b0c98a725eeb695d8822b651a6c34235130eb3de2ca205aebbc7db05dd",
+      "role": "example",
+      "targets": [
+        "bd-digest"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_digest.c": {
+      "sha256": "1acf80372687de5e95e4603860462b4e8f327d758d676783599f8b91a8859baa",
+      "role": "example",
+      "targets": [
+        "project.bd_digest.test_bd_digest"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_main.c": {
+      "sha256": "1b9e02d57fb0e666df34173e9ac7486170b32eab1a9108699643fbbc53730d32",
+      "role": "example",
+      "targets": [
+        "project.bd_digest.test_bd_main"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_request.c": {
+      "sha256": "45a061a490d54e5156448c55ed61eb8f80d5c81822fef4b66b229c155c153e66",
+      "role": "example",
+      "targets": [
+        "project.bd_digest.test_bd_request"
+      ]
+    },
+    "examples/bench-demo/src/bd_kernel.c": {
+      "sha256": "0c4a18662f81d3b830daccb78dcb4cc72fa0d8cefbf6c18e94b33a9a2fde2aef",
+      "role": "example",
+      "targets": [
+        "bd-kernel"
+      ]
+    },
+    "examples/bench-demo/src/kernel_main.c": {
+      "sha256": "0e0625156b845a52562fcc3dd9ae8f94187b58fe042ccc2b7c154b3672b0454a",
+      "role": "example",
+      "targets": [
+        "bd-kernel"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_kernel.c": {
+      "sha256": "b6a67daf09dd70e9c2a4e304c9415fc0c87ac72977f998f523a44191de8e7ad9",
+      "role": "example",
+      "targets": [
+        "project.bd_digest.test_bd_kernel"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_kernel_main.c": {
+      "sha256": "c017db38df1f7fc08d370ee830dfc377fb3cc3bcdc67a7463d2973b8200992bb",
+      "role": "example",
+      "targets": [
+        "project.bd_digest.test_bd_kernel_main"
+      ]
+    },
+    "examples/bench-demo/src/bd_wire.c": {
+      "sha256": "035245335995c5162311e9e48038c4c1fe496dcb7254aa73cebd5782bf34faf0",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/bd_io.c": {
+      "sha256": "cfd3fb1bd25c5fd6ebd5ccad56ca387e597480257a94a8fdef67fcfb44e5a98e",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/bd_serve.c": {
+      "sha256": "ba740cdf01e2e07fea16d9cdf486289ed9e77aff75dc19fea76e964ce514836a",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/bd_worker_cli.c": {
+      "sha256": "0db31fb3aaee8a067f43d7f1e4a397901aab63d8c45099c3e26dc1067f306f61",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/bd_kernel_cli.c": {
+      "sha256": "31a3ba5066f83f994336aaa12a5192c5e832a94512b49448c3792893a1335908",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/worker_main.c": {
+      "sha256": "38d0496da47a8a0fcee6dfa7f8377d47f6d91e3a27dbd8308f4035f3646f27c5",
+      "role": "example",
+      "targets": [
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/src/bd_inproc.c": {
+      "sha256": "6eafd751a218c0703b93c0840320baf70a35d75313a7ed1966bb86671a97604d",
+      "role": "example",
+      "targets": [
+        "libbd_inproc.so"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_wire.c": {
+      "sha256": "1de4cd81c3d95834557407a90f7e71777a4bf4152a3cac6effc0a1b42f0a6385",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_wire"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_io.c": {
+      "sha256": "431ea38e41e7ebc21f87bf8b4a7852c677bd8c2bb0cd81836785f3e8097ee57e",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_io"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_serve.c": {
+      "sha256": "73bc0a3076483b24bf77feea250af3b11b869eaa4af6a67b4ca3461c5efc678f",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_serve"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_shm.c": {
+      "sha256": "3232fc0bc8b4b0f1e08a0867df70c475f212dec95b00361e6c37b701eb709707",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_shm"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_worker_cli.c": {
+      "sha256": "4086c5d61a1dd5dfb6ccf1ff9a4f27b874569bd004ba5b46d1211606950fad87",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_worker_cli"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_kernel_cli.c": {
+      "sha256": "304a7eab4ba97067382e925869472924a96691618b3a07e0a2be827feb54ac44",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_kernel_cli"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_inproc.c": {
+      "sha256": "31c9f35955effbef60dbecd663a790403a44e4cfa3ff46209fe47d75d56ec3da",
+      "role": "example",
+      "targets": [
+        "project.bd_inproc.test_bd_inproc"
+      ]
+    },
+    "examples/bench-demo/fuzz/project/bd_frame_fuzz.c": {
+      "sha256": "81ad891379ec60584eccf191c5b7009bbdeadb0daef6f08690174d532e76af8f",
+      "role": "example",
+      "targets": [
+        "fuzz-bd_frame"
+      ]
+    },
+    "examples/bench-demo/fuzz/project/bd_inproc_fuzz.c": {
+      "sha256": "4a97abc778b5f6171409738e783b5f3ca1b3ab95fef0dac085a6016f060ad828",
+      "role": "example",
+      "targets": [
+        "fuzz-bd_inproc"
+      ]
+    },
+    "examples/bench-demo/fuzz/project/bd_kernel_parse_fuzz.c": {
+      "sha256": "a0b2f251a95c5b31be43bda934891c310dbd454811096f18864d08cabc41a2bf",
+      "role": "example",
+      "targets": [
+        "fuzz-bd_kernel_parse"
+      ]
+    },
+    "examples/bench-demo/src/bd_kernel_args.c": {
+      "sha256": "cc7fa9db74da19d94dc2ad69570003ef06276b4848bb988ff1c53ec17daeaf9b",
+      "role": "example",
+      "targets": [
+        "bd-kernel",
+        "bd-worker"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_shm_hostile.c": {
+      "sha256": "e7179ceedc24215ba49896ddbe3cb34d070c54d7707fdaa67820b3262e3323f4",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_shm_hostile"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_kernel_run.c": {
+      "sha256": "898c50af68d04de93bc70884d51222c6801cc43dd632ca8de4239912da60f3cb",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_kernel_run"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_serve_limits.c": {
+      "sha256": "85e194328d9fb30983983a0e26056d088ce99efdcfe29629ccf2199bf384eda2",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_serve_limits"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_shm_access.c": {
+      "sha256": "e1350af8d8b7c122b106daee1ff2662e5d9462508a05d5f784cd6ec19f1b925d",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_shm_access"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_kernel_fail.c": {
+      "sha256": "65c73931f5bca87470d7bbe626c37c8cb47145837c76d95e8403f8f0f315a714",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_kernel_fail"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_worker_usage.c": {
+      "sha256": "44caa1f6f4910d3e1e0e22d49d1c49b853c4227635e00e2719ed523cfa847846",
+      "role": "example",
+      "targets": [
+        "project.bd_wire.test_bd_worker_usage"
+      ]
+    },
+    "examples/bench-demo/fuzz/project/bd_decode_fuzz.c": {
+      "sha256": "98bd22e38148636df4d820db3e01b6c0bde46b26dfef1a11328592b633c6c284",
+      "role": "example",
+      "targets": [
+        "fuzz-bd_decode"
+      ]
+    },
     "safety/project-gate-fixtures/asan/test_seeded.c": {
       "sha256": "febb09feb1b8d1015fab42740c55c1ed09473a8ef6350c9eef3a0ec768752feb",
       "role": "qualification-only",
@@ -902,6 +1156,92 @@
       "targets": [
         "project-gate-unit"
       ]
+    },
+    "foundation/parallel/sc-parallel.c": {
+      "sha256": "7f95fa99b06eaa0dbadaa239cf7d404f69ddc6e80889c08ae37e515a7b984148",
+      "role": "parallel-adapter",
+      "targets": [
+        "sc_parallel"
+      ]
+    },
+    "foundation/parallel/tests/contracts.c": {
+      "sha256": "9222f1fa37e00ffbccc925229ce9f418cdab027137936181de0473b6537176fb",
+      "role": "foundation-test",
+      "targets": [
+        "foundation_parallel"
+      ]
+    },
+    "foundation/parallel/tests/checks.c": {
+      "sha256": "68aa5e26e8eddde05cd1bc964b31d6179ec5dae9ec17f1f4e729436a97a73125",
+      "role": "foundation-test",
+      "targets": [
+        "foundation_parallel"
+      ]
+    },
+    "foundation/parallel/tests/faults.c": {
+      "sha256": "d068ea20d6fbff3325efd62505126de32f5978945cf3d80e8fb51d7e5d8dcab5",
+      "role": "foundation-test",
+      "targets": [
+        "foundation_parallel_faults"
+      ]
+    },
+    "cmake/empty.c": {
+      "sha256": "3119dea16f55822ad27182cd705cb8ee193317f465d77b2a8f8d0cd1ad70d821",
+      "role": "infrastructure",
+      "targets": [
+        "project-library"
+      ]
+    },
+    "tests/fixtures/project-library/src/entry.c": {
+      "sha256": "857a1ed31361cb145bdcd3a1dd19198c8c309d434e48f551d8abd8deb5a998eb",
+      "role": "project-fixture",
+      "targets": [
+        "fixture-run",
+        "fixture_entry"
+      ]
+    },
+    "tests/fixtures/project-library/src/main.c": {
+      "sha256": "e1fdfea7403f6ba3ff946af27efa491b8ccbaa1cf0659554a0ed45a4377fb558",
+      "role": "project-fixture",
+      "targets": [
+        "fixture-run"
+      ]
+    },
+    "tests/fixtures/project-library/tests/project/test_entry.c": {
+      "sha256": "f532488bb2c56ae7abe9b4c714a5a5c1ce7a322d6c240e5f72e6539eb6044351",
+      "role": "project-fixture",
+      "targets": [
+        "project.entry.test_entry"
+      ]
+    },
+    "tests/fixtures/project-library/fuzz/project/entry_fuzz.c": {
+      "sha256": "d91e4009b6243317f94207f3d10ddbc20a6f6c8368ed050beb7a8272097d9ade",
+      "role": "project-fixture",
+      "targets": [
+        "fuzz-entry"
+      ]
+    },
+    "examples/bench-demo/src/bd_spread.c": {
+      "sha256": "6c51fa14c03013ccb9071cd66f929bf1eb39c3fcd19fe59b22d19a4d0daa6fd8",
+      "role": "example",
+      "targets": [
+        "project.bd_spread.test_bd_spread",
+        "project.bd_spread.test_bd_spread_threads"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_spread.c": {
+      "sha256": "c908b973b5ce4f5db2c1201e66cc5b47808eb4948f5473b47959f49b2b910c10",
+      "role": "example",
+      "targets": [
+        "project.bd_spread.test_bd_spread"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_spread_threads.c": {
+      "sha256": "280d0e7b61cbfc0dc7c93c4129e3008e6bd3b73f4d1aff7c6f88c803dd03f4f2",
+      "role": "example",
+      "targets": [
+        "project.bd_spread.test_bd_spread_threads"
+      ]
     }
   },
   "format_files": [
@@ -1006,6 +1346,59 @@
     "examples/hello-world/src/main.c",
     "examples/hello-world/tests/project/test_greeting.c",
     "examples/hello-world/tests/project/test_greeting_main.c",
-    "examples/hello-world/fuzz/project/greeting_fuzz.c"
+    "examples/hello-world/fuzz/project/greeting_fuzz.c",
+    "examples/bench-demo/include/bd_digest.h",
+    "examples/bench-demo/src/bd_digest.c",
+    "examples/bench-demo/src/bd_main.c",
+    "examples/bench-demo/src/main.c",
+    "examples/bench-demo/tests/project/test_bd_digest.c",
+    "examples/bench-demo/tests/project/test_bd_main.c",
+    "examples/bench-demo/tests/project/test_bd_request.c",
+    "examples/bench-demo/src/bd_kernel.c",
+    "examples/bench-demo/src/kernel_main.c",
+    "examples/bench-demo/tests/project/test_bd_kernel.c",
+    "examples/bench-demo/tests/project/test_bd_kernel_main.c",
+    "examples/bench-demo/include/bd_wire.h",
+    "examples/bench-demo/include/bd_inproc.h",
+    "examples/bench-demo/src/bd_wire.c",
+    "examples/bench-demo/src/bd_io.c",
+    "examples/bench-demo/src/bd_serve.c",
+    "examples/bench-demo/src/bd_worker_cli.c",
+    "examples/bench-demo/src/bd_kernel_cli.c",
+    "examples/bench-demo/src/worker_main.c",
+    "examples/bench-demo/src/bd_inproc.c",
+    "examples/bench-demo/tests/project/test_bd_wire.c",
+    "examples/bench-demo/tests/project/test_bd_io.c",
+    "examples/bench-demo/tests/project/test_bd_serve.c",
+    "examples/bench-demo/tests/project/test_bd_shm.c",
+    "examples/bench-demo/tests/project/test_bd_worker_cli.c",
+    "examples/bench-demo/tests/project/test_bd_kernel_cli.c",
+    "examples/bench-demo/tests/project/test_bd_inproc.c",
+    "examples/bench-demo/fuzz/project/bd_frame_fuzz.c",
+    "examples/bench-demo/fuzz/project/bd_inproc_fuzz.c",
+    "examples/bench-demo/fuzz/project/bd_kernel_parse_fuzz.c",
+    "examples/bench-demo/src/bd_kernel_args.c",
+    "examples/bench-demo/tests/project/test_bd_shm_hostile.c",
+    "examples/bench-demo/tests/project/test_bd_kernel_run.c",
+    "examples/bench-demo/tests/project/test_bd_serve_limits.c",
+    "examples/bench-demo/tests/project/test_bd_shm_access.c",
+    "examples/bench-demo/tests/project/test_bd_kernel_fail.c",
+    "examples/bench-demo/tests/project/test_bd_worker_usage.c",
+    "examples/bench-demo/fuzz/project/bd_decode_fuzz.c",
+    "foundation/parallel/sc-parallel.h",
+    "foundation/parallel/sc-parallel.c",
+    "foundation/parallel/tests/contracts.c",
+    "foundation/parallel/tests/checks.h",
+    "foundation/parallel/tests/checks.c",
+    "foundation/parallel/tests/faults.c",
+    "tests/fixtures/project-library/include/entry.h",
+    "tests/fixtures/project-library/src/entry.c",
+    "tests/fixtures/project-library/src/main.c",
+    "tests/fixtures/project-library/tests/project/test_entry.c",
+    "tests/fixtures/project-library/fuzz/project/entry_fuzz.c",
+    "examples/bench-demo/include/bd_spread.h",
+    "examples/bench-demo/src/bd_spread.c",
+    "examples/bench-demo/tests/project/test_bd_spread.c",
+    "examples/bench-demo/tests/project/test_bd_spread_threads.c"
   ]
 }

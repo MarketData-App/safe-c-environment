@@ -171,7 +171,7 @@ def apply_fixture(fixture_dir, fixture, project):
         elif op == 'delete':
             target.unlink()
         elif op in ('json_set', 'json_append'):
-            document = json.loads(target.read_text())
+            document = read_json(target)     # FR3-19: a project document of the fixture copy
             parent, key = _pointer(document, operation['pointer'])
             if op == 'json_append':
                 values = _step(parent, key, operation['pointer'])

@@ -13,7 +13,7 @@ import tempfile
 import time
 import uuid
 
-from evidence import GateError, read_json, atomic_json, passed
+from evidence import GateError, read_json, atomic_json, passed, loads_capped
 from container_policy import Launcher
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -54,7 +54,7 @@ def unique(pairs):
 
 def metadata(archive,member):
     if member.size>MAX_METADATA:raise GateError('image metadata byte bound exceeded')
-    return json.loads(archive.extractfile(member).read(),object_pairs_hook=unique)
+    return loads_capped(archive.extractfile(member).read(),'image-metadata',MAX_METADATA,object_pairs_hook=unique)   # FR3-19
 
 
 def inspect_archive(path,expected):
@@ -91,7 +91,7 @@ def inspect_archive(path,expected):
             content=archive.extractfile(config_member).read()
             identity='sha256:'+hashlib.sha256(content).hexdigest()
             if identity in found:raise GateError('duplicate runnable image config')
-            found.add(identity);config=json.loads(content,object_pairs_hook=unique)
+            found.add(identity);config=loads_capped(content,'image-config',MAX_METADATA,object_pairs_hook=unique)   # FR3-19
             settings=config.get('config',{})
             if (config.get('architecture')!='amd64' or config.get('os')!='linux' or
                     any(settings.get(k) for k in ['Entrypoint','Volumes','Healthcheck'])):

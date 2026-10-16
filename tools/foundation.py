@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import re
 from evidence import GateError, read_json, file_hash, passed, atomic_json
+from evidence import loads_capped
 from policy import exact_ids
 
 F_IDS = [f'F{i:02}' for i in range(1, 21)]
@@ -15,6 +16,8 @@ DEPENDENCY_PROFILES = {'gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'asan', 'ubsa
 NORMAL_PROFILES = {'gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'asan', 'ubsan',
                    'integer', 'msan', 'tsan', 'coverage', 'hardened', 'fuzz'}
 CONTRACT_GROUPS = {'sizes', 'text', 'bytes', 'lists', 'maps', 'errors', 'cleanup'}
+PARALLEL_GROUPS = {'config', 'execution', 'admission', 'errors', 'trace', 'nesting', 'race'}
+PARALLEL_DENOMINATOR = ['foundation/parallel/sc-parallel.c', 'foundation/parallel/sc-parallel.h']
 
 
 def required_hash(root, relative):
@@ -29,7 +32,7 @@ def analysis_flags(profile):
         raise GateError('unapproved foundation analyzer dependency profile')
     prefix = '/opt/foundation/' + profile
     return ['-std=c17', '-I/src/fuzz', '-I/src/foundation/include',
-            '-I/src/foundation/tests', '-isystem', prefix + '/include/glib-2.0',
+            '-I/src/foundation/parallel', '-I/src/foundation/tests', '-isystem', prefix + '/include/glib-2.0',
             '-isystem', prefix + '/lib/glib-2.0/include',
             '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
             '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
@@ -98,11 +101,47 @@ def fixture_inventory(root):
     return value
 
 
+THREAD_ERROR_HELPERS = ('g_set_error_literal', 'g_quark_from_static_string')
+
+
+def grants_consistent(policy, inventory, infra=None):
+    """Amendment F item 2: check the per-function grants against the boundaries and the inventory.
+
+    A granted path is never a blanket boundary. Its granted GLib names are a
+    subset of the threading names plus the two error helpers, and its
+    atomic_expressions value is a boolean. When the source inventory holds the
+    path, the row has the same role and targets, and the path is in INFRA (the
+    sources that the AST gate scans), so a granted source never escapes the
+    scan. Each threading name has exactly one grant holder.
+    """
+    if infra is None:
+        from qualification import INFRA as infra
+    grants = policy.get('function_grants', {})
+    threading = list(policy.get('threading_functions', []))
+    for path, grant in grants.items():
+        if path in policy['boundaries'] or path in policy['boundary_inventory']:
+            raise GateError('a granted source is also a blanket boundary: ' + path)
+        if set(grant['glib_functions']) - set(threading) - set(THREAD_ERROR_HELPERS):
+            raise GateError('a grant names a GLib function outside the threading list and the error helpers')
+        if type(grant.get('atomic_expressions')) is not bool:
+            raise GateError('a grant atomic_expressions value is not a boolean: ' + path)
+        row = inventory.get(path)
+        if row is not None and (row.get('role') != grant['role'] or row.get('targets') != grant['targets']):
+            raise GateError('granted source role or targets differ from the source inventory: ' + path)
+        if row is not None and path not in infra:
+            raise GateError('granted source is inventoried but not scanned by the AST gate: ' + path)
+    for name in threading:
+        holders = [path for path, grant in grants.items() if name in grant['glib_functions']]
+        if len(holders) != 1:
+            raise GateError('threading function without exactly one grant: ' + name)
+
+
 def boundary_inventory(root):
     from schema_check import validate
     policy = read_json(root / 'safety/foundation-api-policy.json')
     validate(root, 'foundation-api-policy', policy)
     inventory = read_json(root / 'safety/source-inventory.json')['files']
+    grants_consistent(policy, inventory)
     if set(policy['boundaries']) != set(policy['boundary_inventory']):
         raise GateError('foundation boundary policy inventory incomplete')
     for path, expected in policy['boundary_inventory'].items():
@@ -146,7 +185,7 @@ def loaded_binding(q, build, result):
     observed = q.runner.run(['python3', '-c', script, *expected], label='foundation-loaded-library-hashes')
     if not passed(observed):
         raise GateError('actual loaded library bytes unavailable')
-    hashes = json.loads(observed['output'])
+    hashes = loads_capped(observed['output'])
     for path in expected:
         if hashes[path] != record['files']['lib/' + Path(path).name]:
             raise GateError('actual loaded library bytes substituted')
@@ -378,7 +417,7 @@ for profile,row in lock['profiles'].items():
 print(json.dumps({'status':'FAIL' if errors else 'PASS','mismatched_paths':errors,'profiles':sorted(lock['profiles']),'observed_files':observed}))
 sys.exit(bool(errors))'''
     identities = q.runner.run(['python3', '-c', script], label='foundation-sdk-inputs')
-    observed = json.loads(identities['output']).get('observed_files', {}) if passed(identities) else {}
+    observed = loads_capped(identities['output']).get('observed_files', {}) if passed(identities) else {}
     if passed(identities):
         sdk_gate(q.root, observed)
     build = q.build('strict')
@@ -436,12 +475,57 @@ def normal_checks(q, *, full=True):
                 if recipe_clean and recipe['output'].count('FOUNDATION_RECIPE_PASS') == 1:
                     row['recipe_library_binding'] = loaded_binding(q, build, recipe)
                     row['recipe_binary_sha256'] = recipe['binary_sha256']
-                    row['status'] = 'PASS'
+                    settings = {'LLVM_PROFILE_FILE': '/work/foundation-parallel.profraw'} if profile == 'coverage' else None
+                    parallel = q.executable(build, 'foundation_parallel', env=settings, label='foundation-parallel-' + name)
+                    row['evidence_paths'].append(parallel['evidence_path'])
+                    try:
+                        parallel_clean = ordinary_gate(parallel)
+                    except GateError:
+                        parallel_clean = False
+                    groups = re.findall(r'^PARALLEL_PASS (\w+)$', parallel['output'], re.M)
+                    if parallel_clean and len(groups) == len(PARALLEL_GROUPS) and set(groups) == PARALLEL_GROUPS:
+                        row['parallel_groups'] = sorted(groups)
+                        row['parallel_binary_sha256'] = parallel['binary_sha256']
+                        row['status'] = 'PASS'
             if profile == 'coverage':
                 row['coverage_binary'] = build['directory'] + '/foundation_contracts'
+                row['parallel_coverage_binary'] = build['directory'] + '/foundation_parallel'
         rows.append(row)
         print('foundation profile ' + name + ': ' + row['status'], flush=True)
     return rows
+
+
+def _coverage_totals(data, wanted):
+    """Line and branch totals of the wanted sources in an llvm-cov export; ok only when every
+    wanted source is present and the totals reach 90% lines and 85% branches."""
+    files, totals = [], {'lines': {'count': 0, 'covered': 0}, 'branches': {'count': 0, 'covered': 0}}
+    for package in data:
+        for file in package['files']:
+            source = file['filename'].removeprefix('/src/')
+            if source in wanted:
+                files.append({'source': source, 'summary': file['summary']})
+                for category in totals:
+                    for name in ['count', 'covered']:
+                        totals[category][name] += file['summary'][category][name]
+    for value in totals.values():
+        value['percent'] = 100 * value['covered'] / value['count'] if value['count'] else 0
+    ok = ({r['source'] for r in files} == set(wanted) and totals['lines']['count'] > 0 and totals['branches']['count'] > 0
+          and totals['lines']['percent'] >= 90 and totals['branches']['percent'] >= 85)
+    return files, totals, ok
+
+
+def parallel_coverage(q, row):
+    """Own coverage of sc_parallel (spec 6): foundation_parallel over sc-parallel.c and .h."""
+    result = {'status': 'FAIL', 'denominator': list(PARALLEL_DENOMINATOR), 'evidence_paths': [], 'files': [], 'totals': {}}
+    merged = q.runner.run(['llvm-profdata', 'merge', '-sparse', '/work/foundation-parallel.profraw', '-o', '/work/parallel.profdata'],
+                          label='foundation-parallel-coverage-merge')
+    exported = q.runner.run(['llvm-cov', 'export', '-summary-only', '/work/' + row['parallel_coverage_binary'],
+                             '-instr-profile=/work/parallel.profdata'], label='foundation-parallel-coverage-export')
+    result['evidence_paths'] = [merged['evidence_path'], exported['evidence_path']]
+    if passed(merged) and passed(exported):
+        result['files'], result['totals'], ok = _coverage_totals(loads_capped(exported['output'])['data'], result['denominator'])
+        result['status'] = 'PASS' if ok else 'FAIL'
+    return result
 
 
 def coverage(q, profiles):
@@ -456,28 +540,15 @@ def coverage(q, profiles):
               'excluded': ['upstream dependencies', 'negative fixtures', 'test harnesses', 'infrastructure demos'],
               'application_coverage': 'NOT_APPLICABLE',
               'evidence_paths': [merged['evidence_path'], exported['evidence_path']], 'files': [], 'totals': {}}
+    result['parallel'] = parallel_coverage(q, row)
     if not passed(merged) or not passed(exported):
         return result
-    data = json.loads(exported['output'])['data']
-    wanted = set(result['denominator'])
-    totals = {'lines': {'count': 0, 'covered': 0}, 'branches': {'count': 0, 'covered': 0}}
-    for package in data:
-        for file in package['files']:
-            source = file['filename'].removeprefix('/src/')
-            if source not in wanted:
-                continue
-            summary = file['summary']
-            result['files'].append({'source': source, 'summary': summary})
-            for category in totals:
-                for name in ['count', 'covered']:
-                    totals[category][name] += summary[category][name]
-    if {r['source'] for r in result['files']} != wanted:
+    files, totals, ok = _coverage_totals(loads_capped(exported['output'])['data'], result['denominator'])
+    result['files'] = files
+    if {r['source'] for r in files} != set(result['denominator']):
         return result
-    for category in totals:
-        value = totals[category]
-        value['percent'] = 100 * value['covered'] / value['count'] if value['count'] else 0
     result['totals'] = totals
-    result['status'] = 'PASS' if totals['lines']['count'] > 0 and totals['branches']['count'] > 0 and totals['lines']['percent'] >= 90 and totals['branches']['percent'] >= 85 else 'FAIL'
+    result['status'] = 'PASS' if ok and result['parallel']['status'] == 'PASS' else 'FAIL'
     return result
 
 
@@ -490,7 +561,7 @@ def policy_checks(q):
     for index, source in enumerate(sources):
         native = q.runner.run(['python3', '/src/container/foundation-policy.py', source,
                                 'clang-O0', 'normal-' + str(index)], label='foundation-ast-' + str(index))
-        value = json.loads(native['output']) if passed(native) else {'status': 'FAIL'}
+        value = loads_capped(native['output']) if passed(native) else {'status': 'FAIL'}
         rows.append({'source': source, 'status': 'PASS' if passed(native) and value.get('status') == 'PASS' else 'FAIL',
                      'evidence_path': native['evidence_path'], 'findings': value.get('findings', [])})
     return {'status': 'PASS' if rows and all(r['status'] == 'PASS' for r in rows) else 'FAIL', 'sources': rows}
@@ -617,6 +688,114 @@ def functional_mutant_checks(q):
     return {'status':'PASS' if all(r['status']=='PASS' for r in rows+guard_rows) else 'FAIL','mutants':rows,'guard_controls':guard_rows}
 
 
+PARALLEL_FAULTS = {'create', 'incomplete', 'push-after-queue'}
+LANE_PROFILE = {'tsan': 'tsan', 'asan': 'asan', 'functional': 'strict'}
+# Each seeded mutant must be detected on every one of these runs of the same binary (P2-T6-MUTANT-01).
+MUTANT_RUNS = 3
+MUTANT_KEYS = {'lane', 'expected', 'also_detected', 'min_expected_runs'}
+
+
+def check_mutant_definition(name, definition):
+    """The protected inventory (safety/parallel-mutants.json) is the only acceptance rule of a mutant. GateError (the
+    selftest BLOCKS) for an unknown key, an empty or non-text `expected`, an `also_detected` that is not exactly
+    {exit_code: int, line: non-empty text}, or a `min_expected_runs` that is not an int in 1..MUTANT_RUNS (bool is
+    never an int here). P2-MUTANT-TEARDOWN-FLAKY-01, F1-POLICY-01."""
+    if not isinstance(definition, dict) or set(definition) - MUTANT_KEYS:
+        raise GateError('sc_parallel mutant definition has an unknown key: ' + name)
+    expected = definition.get('expected')
+    if not isinstance(expected, str) or not expected:
+        raise GateError('sc_parallel mutant expected text is malformed: ' + name)
+    if 'also_detected' in definition:
+        also = definition['also_detected']
+        if (not isinstance(also, dict) or set(also) != {'exit_code', 'line'} or type(also['exit_code']) is not int or
+                not isinstance(also['line'], str) or not also['line']):
+            raise GateError('sc_parallel mutant also_detected is malformed: ' + name)
+    if 'min_expected_runs' in definition:
+        runs = definition['min_expected_runs']
+        if type(runs) is not int or not 1 <= runs <= MUTANT_RUNS:
+            raise GateError('sc_parallel mutant min_expected_runs is malformed: ' + name)
+
+
+def expected_text(definition, result):
+    """A failed run (never a passing run) that printed the inventoried expected text."""
+    return not passed(result) and definition['expected'] in result['output']
+
+
+def mutant_detected(definition, result):
+    """A negative run detects the mutant: expected_text, or the definition's `also_detected` outcome (P2-MUTANT-TEARDOWN-
+    FLAKY-01: the GLib fatal abort that the no-wait-teardown defect can cause before AddressSanitizer reports): a failed
+    run with no runner failure, exactly that exit status and exactly that line on its own line of the output."""
+    if passed(result):
+        return False
+    if expected_text(definition, result):
+        return True
+    also = definition.get('also_detected')
+    return (also is not None and result['failure'] is None and result['exit_code'] == also['exit_code'] and
+            re.search('^' + re.escape(also['line']) + '$', result['output'], re.M) is not None)
+
+
+def parallel_static_link(build):
+    """The fault program links the same-source static GLib archive and no shared GLib image."""
+    import shlex
+    commands = [shlex.split(line) for line in build['links']['output'].splitlines()] if build['links'] else []
+    links = [args for args in commands if '-o' in args and
+             Path(args[args.index('-o') + 1]).name == 'foundation_parallel_faults']
+    profile = dependency_profile(build)
+    static_path = '/opt/foundation/' + profile + '/lib/libglib-2.0.a'
+    return (len(links) == 1 and static_path in links[0] and
+            not any('libglib-2.0.so' in arg for arg in links[0])), static_path
+
+
+def parallel_checks(q):
+    """Simulated lifecycle faults (labeled) and seeded race/lifetime/accounting mutants of sc_parallel."""
+    faults = {'status': 'BLOCKED', 'label': 'simulated', 'evidence_paths': []}
+    build = q.build('ordinary', compiler='clang', parallel_faults=True)
+    faults['evidence_paths'] = [r['evidence_path'] for r in [build['configure'], build['build'], build['links']] if r]
+    if q.built(build):
+        static, faults['link_input'] = parallel_static_link(build)
+        result = q.executable(build, 'foundation_parallel_faults', label='foundation-parallel-faults')
+        faults['evidence_paths'].append(result['evidence_path'])
+        names = re.findall(r'^PARALLEL_FAULT_PASS ([a-z-]+)$', result['output'], re.M)
+        labeled = result['output'].count('LABEL simulated\n') == 1
+        faults['status'] = ('PASS' if static and passed(result) and labeled and len(names) == 3 and
+                            set(names) == PARALLEL_FAULTS else 'FAIL')
+    print(json.dumps({'case_id': 'parallel-faults', 'verdict': faults['status']}), flush=True)
+    definitions = read_json(q.root / 'safety/parallel-mutants.json')
+    if file_hash(q.root / definitions['recipe']) != definitions['recipe_sha256']:
+        raise GateError('protected parallel mutation recipe changed')
+    for name, definition in definitions['mutants'].items():
+        check_mutant_definition(name, definition)
+    rows = []
+    for name, definition in definitions['mutants'].items():
+        if definition.get('lane') not in LANE_PROFILE:
+            raise GateError('sc_parallel mutant lane is not inventoried: ' + name)
+        profile = LANE_PROFILE[definition['lane']]
+        bad = q.build(profile, parallel_mutant=name)
+        good = q.build(profile)
+        row = {'id': name, 'lane': definition['lane'], 'bad': 'BLOCKED', 'control': 'BLOCKED', 'status': 'BLOCKED',
+               'evidence_paths': [r['evidence_path'] for b in [bad, good] for r in [b['configure'], b['build']] if r]}
+        if q.built(bad) and q.built(good):
+            negatives = [q.executable(bad, 'foundation_parallel', label='foundation-parallel-mutant-' + name + '-' + str(run))
+                         for run in range(1, MUTANT_RUNS + 1)]
+            control = q.executable(good, 'foundation_parallel', label='foundation-parallel-control-' + name)
+            row['evidence_paths'] += [r['evidence_path'] for r in negatives] + [control['evidence_path']]
+            row['mutation'] = bad['parallel_mutation']
+            row['detected_runs'] = sum(mutant_detected(definition, r) for r in negatives)
+            row['expected_runs'] = sum(expected_text(definition, r) for r in negatives)
+            row['runs'] = MUTANT_RUNS
+            # every run detected, and at least min_expected_runs of them by the inventoried text (F1-ASANLANE-01: the
+            # asan-lane row never passes on GLib aborts alone); without also_detected both counts must be MUTANT_RUNS
+            row['bad'] = ('PASS' if row['detected_runs'] == MUTANT_RUNS and
+                          row['expected_runs'] >= definition.get('min_expected_runs', 1) else 'FAIL')
+            groups = re.findall(r'^PARALLEL_PASS (\w+)$', control['output'], re.M)
+            row['control'] = 'PASS' if passed(control) and set(groups) == PARALLEL_GROUPS else 'FAIL'
+            row['status'] = 'PASS' if row['bad'] == row['control'] == 'PASS' else 'FAIL'
+        rows.append(row)
+        print(json.dumps({'case_id': 'parallel-mutant-' + name, 'verdict': row['status']}), flush=True)
+    status = 'PASS' if faults['status'] == 'PASS' and rows and all(r['status'] == 'PASS' for r in rows) else 'FAIL'
+    return {'status': status, 'faults': faults, 'mutants': rows}
+
+
 def policy_probe_checks(q):
     """Compile real expressions through the same production AST/compiler gates."""
     import importlib.util
@@ -635,8 +814,8 @@ def policy_probe_checks(q):
             '/work/foundation-probes/'+name+'/probe.c','/src/foundation/tests/dependency-identity.c',
             '/work/'+control_build['directory']+'/libsc_foundation.a','/opt/foundation/clang-O0/lib/libglib-2.0.so','-Wl,-rpath,/opt/foundation/clang-O0/lib','-ldl','-o','/work/'+binary],label='foundation-probe-control-build-'+name)
         ran=q.executable({'directory':str(Path(binary).parent)},'probe',label='foundation-probe-control-run-'+name) if passed(compiled) else None
-        ok=all(passed(r) for r in [created,observed,directory,compiled]) and ran is not None and passed(ran) and json.loads(observed['output']).get('status')=='PASS'
-        controls[name]={'status':'PASS' if ok else 'FAIL','evidence_paths':[r['evidence_path'] for r in [created,observed,directory,compiled,ran] if r], 'source_sha256':json.loads(created['output'])['source_sha256'] if passed(created) else None}
+        ok=all(passed(r) for r in [created,observed,directory,compiled]) and ran is not None and passed(ran) and loads_capped(observed['output']).get('status')=='PASS'
+        controls[name]={'status':'PASS' if ok else 'FAIL','evidence_paths':[r['evidence_path'] for r in [created,observed,directory,compiled,ran] if r], 'source_sha256':loads_capped(created['output'])['source_sha256'] if passed(created) else None}
     for name,definition in definitions.items():
         if definition['rule'] is None:
             rows.append({'id':name,'status':controls[name]['status'],'control':controls[name]['status'],'evidence_paths':controls[name]['evidence_paths'],'rule':None});continue
@@ -650,7 +829,7 @@ def policy_probe_checks(q):
             observed={'rule':'unused-result'}
         else:
             result=q.runner.run(['python3','/src/container/foundation-policy.py','@probe:'+name,'clang-O0','probe-'+name],label='foundation-probe-policy-'+name)
-            observed=json.loads(result['output']) if result['failure'] is None and result['output'].strip().startswith('{') else {}
+            observed=loads_capped(result['output']) if result['failure'] is None and result['output'].strip().startswith('{') else {}
             detected=(result['exit_code']==1 and result['failure'] is None and result['evidence_complete'] and observed.get('status')=='FAIL' and
                 definition['rule'] in {r['rule'] for r in observed.get('findings',[])})
             if name.startswith('macro-'):detected=detected and any(r.get('macro') is True for r in observed.get('findings',[]))
@@ -658,7 +837,7 @@ def policy_probe_checks(q):
         row={'id':name,'status':'PASS' if passed(created) and passed(ordinary) and detected and control['status']=='PASS' else 'FAIL',
              'control':control['status'],'rule':definition['rule'],'findings':observed.get('findings',[]),
              'evidence_paths':[r['evidence_path'] for r in [created,ordinary,result]]+control['evidence_paths'],
-             'source_sha256':json.loads(created['output'])['source_sha256'] if passed(created) else None}
+             'source_sha256':loads_capped(created['output'])['source_sha256'] if passed(created) else None}
         rows.append(row);print(json.dumps({'case_id':'policy-'+name,'verdict':row['status']}),flush=True)
     return {'status':'PASS' if all(r['status']=='PASS' for r in rows) else 'FAIL','probes':rows}
 
@@ -695,7 +874,7 @@ def fuzz_adapter_build(q, variant):
         audit=audit and complete
     observed=q.runner.run(['python3','-c','import json,sys;print(json.dumps(json.load(open(sys.argv[1]))["link_command"]))','/work/'+directory+'/adapter-build.json'],label='foundation-cfl-link-audit')
     row['evidence_paths'].append(observed['evidence_path'])
-    row['links']=dict(observed,output=shlex.join(json.loads(observed['output']))) if passed(observed) else observed
+    row['links']=dict(observed,output=shlex.join(loads_capped(observed['output']))) if passed(observed) else observed
     row['binary_sha256']=receipt['binary_sha256'];row['audit']=bool(audit and passed(observed));return row
 
 
@@ -738,7 +917,7 @@ def fuzz_checks(q, profile='smoke'):
         binding=loaded_binding(q,good,result)
         executions=re.findall(r'#(\d+)\s+DONE',result['output']);edges=re.findall(r'cov: (\d+)',result['output']);features=re.findall(r'ft: (\d+)',result['output'])
         listing=q.runner.run(['python3','-c','import pathlib,json;print(json.dumps({d:[str(p.relative_to("/work")) for p in pathlib.Path("/work",d).iterdir()] for d in ["foundation-exploration-corpus","fuzz-failures"]}))'],label='foundation-fuzz-retained-inputs')
-        files=json.loads(listing['output']) if passed(listing) else {};retained=[]
+        files=loads_capped(listing['output']) if passed(listing) else {};retained=[]
         for relative in files.get('foundation-exploration-corpus',[])+files.get('fuzz-failures',[]):
             if not re.fullmatch(r'(foundation-exploration-corpus|fuzz-failures)/[a-zA-Z0-9_-]+',relative):raise GateError('unsafe foundation fuzz output name')
             path=q.runner.fetch(relative,q.runner.run_dir/'foundation-fuzz-inputs'/relative)

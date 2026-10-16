@@ -136,8 +136,9 @@ class PlanTests(unittest.TestCase):
             sources=pc.project_c_files('my app',project)
             self.assertIn('my app/src/greeting.c',sources)
             self.assertEqual(pc.audit_sources('my app',project),['my app/src/greeting.c','my app/tests/project/test_greeting.c','my app/src/main.c'])
-            fuzz=pc.fuzz_build_argv('my app',project['modules'][0]['fuzz'][0],project['modules'][0])
+            fuzz,fuzz_env=pc.fuzz_build_argv('my app',project['modules'][0]['fuzz'][0],project['modules'][0],project)
             self.assertEqual(fuzz,['bash','/src/container/project-fuzz-build.sh','my app','greeting','fuzz/project/greeting_fuzz.c','src/greeting.c'])
+            self.assertEqual(fuzz_env,{})
             self.assertEqual(pc.analyzer_argv('ast','my app/src/greeting.c',0,'my app')[-3:],['--include','/src/my app/include','--project-rules'])
             self.assertIn('-I/src/my app/include',pc.analyzer_argv('tidy','my app/src/greeting.c',0,'my app'))
     def test_execution_order_runs_ubsan_and_integer_before_asan(self):
@@ -190,6 +191,16 @@ class DeadlineTests(unittest.TestCase):
     def test_exhausted_lifetime_blocks(self):
         for now in [940.5,1000,2000]:
             with self.assertRaises(GateError):pc.capped_timeout(300,1500,1000,now,reserve=60)
+    def test_container_lifetime_is_the_project_holder(self):
+        # T9-APP-03: the lifetime budget is the project profile's holder, never a separate constant.
+        import container_policy as cp
+        value=cp.policy(ROOT)
+        self.assertEqual(pc.container_seconds(value),cp.holder_seconds(value['profiles']['project']))
+        self.assertEqual(pc.container_seconds(value),2100)
+        for wall,seconds in ((1200,1800),(1201,1801),(1500,2100)):
+            self.assertEqual(pc.container_seconds({'profiles':{'project':{'wall_seconds':wall}}}),seconds)
+        with self.assertRaises(GateError):pc.container_seconds({'profiles':{'project':{'wall_seconds':0}}})
+        self.assertFalse(hasattr(pc,'CONTAINER_SECONDS'))
     def test_exec_infrastructure_error(self):
         self.assertTrue(pc.exec_infrastructure_error({'exit_code':126,'output':'OCI runtime exec failed: x'}))
         self.assertTrue(pc.exec_infrastructure_error({'exit_code':125,'output':'Error response from daemon: container abc is not running'}))

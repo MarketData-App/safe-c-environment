@@ -6,6 +6,7 @@ The exact SDK public/generated headers are imported through an actual Clang PCH
 so unrelated GLib header declarations are not treated as application API uses.
 """
 from pathlib import Path
+import hashlib as source_hashlib
 import json
 import re
 import subprocess
@@ -51,12 +52,15 @@ def main():
     prefix = Path('/opt/foundation') / profile
     directory = Path('/work/foundation-policy') / label
     directory.mkdir(parents=True, exist_ok=True)
-    flags = ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/tests', '-I/src/fuzz',
+    flags = ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/parallel', '-I/src/foundation/tests', '-I/src/fuzz',
              *includes,
              '-isystem', str(prefix / 'include/glib-2.0'),
              '-isystem', str(prefix / 'lib/glib-2.0/include'),
              '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
              '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70']
+    if project_rules:
+        # Amendment F item 3: project code compiles without floating-point contraction everywhere.
+        flags.append('-ffp-contract=off')
     # A PCH must see the primary source's feature-test macro before libc headers.
     # Match only its leading definition, with the same empty replacement text.
     primary=Path('/src',source)
@@ -92,7 +96,8 @@ def main():
     tree = json.loads(output.read_text())
     policy = json.loads(Path('/src/safety/foundation-api-policy.json').read_text())
     inventory = json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
-    findings = ast_foundation_uses(tree, policy, policy_source, inventory)
+    findings = ast_foundation_uses(tree, policy, policy_source, inventory,
+                                   source_hashlib.sha256(primary.read_bytes()).hexdigest())
     for name in ast_banned_calls(tree):
         findings.append({'rule': 'existing-api-policy', 'name': name, 'source': source})
     if project_rules:

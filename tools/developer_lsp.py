@@ -9,6 +9,7 @@ import time
 from urllib.parse import quote, unquote, urlsplit
 
 from evidence import GateError
+from evidence import loads_capped, read_json
 
 ENCODINGS = {'utf-8', 'utf-16', 'utf-32'}
 
@@ -117,7 +118,7 @@ class Client:
                     raise GateError('invalid semantic protocol content length')
                 end = marker + 4 + lengths[0]
                 if len(self.buffer) >= end:
-                    value = json.loads(self.buffer[marker + 4:end].decode('utf-8'))
+                    value = loads_capped(self.buffer[marker + 4:end].decode('utf-8'))
                     del self.buffer[:end]
                     if not isinstance(value, dict) or value.get('jsonrpc') != '2.0':
                         raise GateError('invalid semantic protocol record')
@@ -279,7 +280,7 @@ def mapped(value, encoding, default_path=None):
 
 def navigate(request, database, targets, policy):
     current=Path('/work/developer-build/compile_commands.json')
-    if not current.is_file() or json.loads(current.read_text())!=database:
+    if not current.is_file() or read_json(current)!=database:
         raise GateError('actual semantic compilation context is missing or changed')
     known = {row['file'] for row in database}
     kind = request['kind']

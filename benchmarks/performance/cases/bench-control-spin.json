@@ -1,0 +1,13 @@
+{"schema_version":1,"case_id":"bench-control-spin","version":5,"kind":"function","adapter":"benchlab.controlcase:Spin",
+ "description":"Framework control: a bounded CPU spin of repeated SHA-256 rounds per seed (the GIL stays held)",
+ "work_unit":"one seed hashed rounds times",
+ "parameters":{"rounds":{"value":2000,"label":"protocol"},"seed":{"value":20261007,"label":"protocol"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"py-optimized","language":"python","workers":["direct"],"status":"same-as-reference","reason":"control: no separate optimized implementation"},
+  {"id":"py-threads","language":"python","workers":[1,2,4],"status":"implemented"},
+  {"id":"py-processes","language":"python","workers":[1,2,4],"status":"implemented"}],
+ "scopes":["kernel","caller","capacity"],
+ "capacity":{"tier":"tiny","clients":[1,2,4],"requests_per_client":4,"configurations":[{"name":"serial-workers","variant":"py-reference"},{"name":"threaded-worker","variant":"py-threads"},{"name":"python-pool","variant":"py-processes"}]},"selectors":["all","hang"],
+ "call_deadline":{"selectors":["hang"],"reason":"control-hang","factor":10,"floor_seconds":2},"sizes":["tiny","small","medium"],
+ "points":[{"name":"qual-caller","scope":"caller","size":"small","modes":["warm"],"variants":["py-reference","py-threads","py-processes"],"class":"primary"}],
+ "opportunity_record":null}

@@ -22,10 +22,15 @@ System macros may expand differently per compiler (NULL, INT_MAX, DBL_MAX); the
 identity check therefore compares the project's own unexpanded tokens, and the
 build-macros check covers values that differ by build.
 
+Memory: the runs of one unit (every configuration) are folded into small result
+rows as soon as they finish, and at most UNITS_IN_FLIGHT units have runs alive,
+so peak memory depends on the largest units, not on the number of units.
+
 Usage: project-source-policy.py PLAN_JSON
 PLAN_JSON: {"project_root": "/src/...", "units": ["/src/..."],
             "configs": [{"name", "database"} | {"name", "argv", "gnu_source_probe"?}]}
 """
+import collections
 import json
 import posixpath
 import re
@@ -41,6 +46,7 @@ import project_source as ps
 WORK = Path('/work/project/source-policy')
 LIMIT = 20
 SECONDS = 120
+UNITS_IN_FLIGHT = 2
 _GNU_SOURCE = re.compile(r'^\s*#\s*define\s+_GNU_SOURCE\s*$', re.M)
 
 
@@ -141,59 +147,118 @@ def _difference(unit, kind, found):
             'other_token': found['other_token']}
 
 
+class Accumulator:
+    """The policy result, folded one unit at a time (bounded memory).
+
+    fold() takes the runs of one unit, computes that unit's facts (pragmas,
+    markers, errors, dependencies, differing macros, build-macro uses, first
+    code and defines differences) and keeps only those small rows; the unit's
+    token streams, directives and macro tables are not kept. Units are folded
+    in plan order. Each run carries its position in configuration-major run
+    order (for each configuration, for each unit), so the result rows keep the
+    order of an evaluation over all runs at once (P2-B2-SRCPOL-MEM-01)."""
+
+    def __init__(self, plan):
+        self.names = [c['name'] for c in plan['configs']]
+        self.units = list(plan['units'])
+        self.runs = 0
+        self.covered = set()
+        self.errors = []
+        self.pragmas, self.markers, self.uses, self.dependencies = {}, {}, {}, {}
+        self.differences = []
+        self.differing_count = 0
+
+    @staticmethod
+    def _seen(rows, key, order, config, row):
+        entry = rows.get(key)
+        if entry is None:
+            rows[key] = [order, row, {config: order}]
+            return
+        entry[0] = min(entry[0], order)
+        entry[2][config] = min(entry[2].get(config, order), order)
+
+    def fold(self, unit, runs):
+        """Fold one unit's runs: [(position, run)] in ascending position (configuration order)."""
+        tables, scanned, code, defines = [], [], [], []
+        for position, run in runs:
+            if run['unit'] != unit:
+                raise ValueError('run_of_another_unit')
+            self.runs += 1
+            self.covered.add((run['config'], run['unit']))
+            if 'error' in run:
+                self.errors.append((position, {'unit': _rel(unit), 'config': run['config'], 'error': run['error'],
+                                               'log': run['log']}))
+                continue
+            for k, (file, line, name) in enumerate(run['directives']):
+                self._seen(self.pragmas, (file, line, name), (position, k), run['config'],
+                           {'file': _rel(file), 'line': line, 'directive': name or '#'})
+            for k, (file, line, problem) in enumerate(run['markers']):
+                self._seen(self.markers, (file, line, problem), (position, k), run['config'],
+                           {'file': _rel(file), 'line': line, 'problem': problem})
+            tables.append(run['macros'])
+            scanned.append((run['config'], run['stream'], run['found']))
+            self.dependencies.setdefault(_rel(unit), set()).update(run['dependencies'])
+            code.append((run['config'], run['stream']))
+            defines.append((run['config'], run.get('defines', [])))
+        differing = ps.differing_macros(tables) if tables else set()
+        self.differing_count = max(self.differing_count, len(differing))
+        for config, stream, directives_found in scanned:
+            for file, line, name in ps.build_macro_uses(stream, directives_found, differing):
+                _add(self.uses, (file, line, name), {'file': _rel(file), 'line': line, 'macro': name, 'configs': [config]})
+        for kind, streams in (('code', code), ('defines', defines)):
+            found = ps.first_difference(streams)
+            if found is not None:
+                self.differences.append(_difference(unit, kind, found))
+
+    @staticmethod
+    def _rows(rows):
+        return [dict(row, configs=[c for c, _o in sorted(configs.items(), key=lambda item: item[1])])
+                for _order, row, configs in sorted(rows.values(), key=lambda entry: entry[0])]
+
+    def result(self):
+        errors = [row for _position, row in sorted(self.errors, key=lambda entry: entry[0])]
+        for name in self.names:
+            for unit in self.units:
+                if (name, unit) not in self.covered:
+                    errors.append({'unit': _rel(unit), 'config': name, 'error': 'no compile command'})
+        pragmas, markers = self._rows(self.pragmas), self._rows(self.markers)
+        uses, differences = list(self.uses.values()), self.differences
+        failed = [check for check, rows in (('preprocess', errors), ('pragmas', pragmas), ('markers', markers),
+                                             ('identity', differences), ('build-macros', uses)) if rows]
+        return {'status': 'FAIL' if failed else 'PASS', 'failed_checks': failed, 'configurations': list(self.names),
+                'units': [_rel(u) for u in self.units], 'runs': self.runs,
+                'preprocess_errors': errors[:LIMIT], 'pragmas': pragmas[:LIMIT],
+                'markers': markers[:LIMIT], 'differences': differences[:LIMIT],
+                'build_macros': uses[:LIMIT], 'differing_macros': self.differing_count,
+                'dependencies': {unit: sorted(paths) for unit, paths in sorted(self.dependencies.items())}}
+
+
+def wire(result):
+    """The printed form of a result: the per-unit dependencies as indexes into one
+    sorted table of distinct paths (`dependency_paths`), so that the line stays under
+    the protected capture record limit (safety/container-policy.json
+    common.capture_record_bytes) when many units share headers. Lossless: the host
+    (project_check.source_policy_dependencies) decodes the same {unit: [paths]}."""
+    paths = sorted({path for unit_paths in result['dependencies'].values() for path in unit_paths})
+    index = {path: k for k, path in enumerate(paths)}
+    return dict(result, dependency_paths=paths,
+                dependencies={unit: [index[path] for path in unit_paths]
+                              for unit, unit_paths in result['dependencies'].items()})
+
+
 def evaluate(plan, runs):
     """The policy result from the per-run scans (pure; runs in configuration order).
 
     Build macros: per unit, the macros whose definitions differ between the
     configurations (`-dM -E` of that unit) may not be named by project code or a
-    project macro body."""
-    names = [c['name'] for c in plan['configs']]
-    pragmas, markers, uses, dependencies, differences = {}, {}, {}, {}, []
-    errors = []
-    tables = {unit: [] for unit in plan['units']}
-    scanned = {unit: [] for unit in plan['units']}
-    code = {unit: [] for unit in plan['units']}
-    defines = {unit: [] for unit in plan['units']}
-    for run in runs:
-        unit = run['unit']
-        if 'error' in run:
-            errors.append({'unit': _rel(unit), 'config': run['config'], 'error': run['error'], 'log': run['log']})
-            continue
-        for file, line, name in run['directives']:
-            _add(pragmas, (file, line, name), {'file': _rel(file), 'line': line, 'directive': name or '#',
-                                              'configs': [run['config']]})
-        for file, line, problem in run['markers']:
-            _add(markers, (file, line, problem), {'file': _rel(file), 'line': line, 'problem': problem,
-                                                 'configs': [run['config']]})
-        tables[unit].append(run['macros'])
-        scanned[unit].append((run['config'], run['stream'], run['found']))
-        dependencies.setdefault(_rel(unit), set()).update(run['dependencies'])
-        code[unit].append((run['config'], run['stream']))
-        defines[unit].append((run['config'], run.get('defines', [])))
-    covered = {(r['config'], r['unit']) for r in runs}
-    for name in names:
-        for unit in plan['units']:
-            if (name, unit) not in covered:
-                errors.append({'unit': _rel(unit), 'config': name, 'error': 'no compile command'})
-    differing_count = 0
+    project macro body. The runs are folded one unit at a time (Accumulator)."""
+    accumulator = Accumulator(plan)
+    known = set(plan['units'])
+    if any(run['unit'] not in known for run in runs):
+        raise ValueError('run_of_unknown_unit')
     for unit in plan['units']:
-        differing = ps.differing_macros(tables[unit]) if tables[unit] else set()
-        differing_count = max(differing_count, len(differing))
-        for config, stream, directives_found in scanned[unit]:
-            for file, line, name in ps.build_macro_uses(stream, directives_found, differing):
-                _add(uses, (file, line, name), {'file': _rel(file), 'line': line, 'macro': name, 'configs': [config]})
-        for kind, streams in (('code', code[unit]), ('defines', defines[unit])):
-            found = ps.first_difference(streams)
-            if found is not None:
-                differences.append(_difference(unit, kind, found))
-    failed = [check for check, rows in (('preprocess', errors), ('pragmas', pragmas), ('markers', markers),
-                                         ('identity', differences), ('build-macros', uses)) if rows]
-    return {'status': 'FAIL' if failed else 'PASS', 'failed_checks': failed, 'configurations': names,
-            'units': [_rel(u) for u in plan['units']], 'runs': len(runs),
-            'preprocess_errors': errors[:LIMIT], 'pragmas': list(pragmas.values())[:LIMIT],
-            'markers': list(markers.values())[:LIMIT], 'differences': differences[:LIMIT],
-            'build_macros': list(uses.values())[:LIMIT], 'differing_macros': differing_count,
-            'dependencies': {unit: sorted(paths) for unit, paths in sorted(dependencies.items())}}
+        accumulator.fold(unit, [(position, run) for position, run in enumerate(runs) if run['unit'] == unit])
+    return accumulator.result()
 
 
 def main(argv):
@@ -206,19 +271,37 @@ def main(argv):
     for unit in plan['units']:
         if not unit.startswith('/src/') or '..' in unit.split('/'):
             raise ValueError('unit_under_src_required')
+    if len(set(plan['units'])) != len(plan['units']):
+        raise ValueError('unique_units_required')
     WORK.mkdir(parents=True, exist_ok=True)
     prefixes = ps.origin_prefixes(root)
-    jobs, index = [], 0
+    jobs, index = {unit: [] for unit in plan['units']}, 0
     for name, table in commands(plan):
         for unit in plan['units']:
             if unit in table:
-                jobs.append((index, name, unit, *table[unit], prefixes))
+                jobs[unit].append((index, name, unit, *table[unit], prefixes))
                 index += 1
+    # Memory bound: at most UNITS_IN_FLIGHT units have runs alive (submitted,
+    # finished or being folded); a unit's runs are dropped once it is folded.
+    accumulator = Accumulator(plan)
+    order = iter(plan['units'])
+    pending = collections.deque()
     with ThreadPoolExecutor(max_workers=2) as pool:
-        runs = list(pool.map(run_one, jobs))
-    result = evaluate(plan, runs)
-    (WORK/'result.json').write_text(json.dumps(result, sort_keys=True))
-    print(json.dumps(result, sort_keys=True))
+        def submit():
+            unit = next(order, None)
+            if unit is not None:
+                pending.append((unit, [(job[0], pool.submit(run_one, job)) for job in jobs.pop(unit)]))
+        for _ in range(UNITS_IN_FLIGHT):
+            submit()
+        while pending:
+            unit, futures = pending.popleft()
+            accumulator.fold(unit, [(position, future.result()) for position, future in futures])
+            del futures
+            submit()
+    result = accumulator.result()
+    line = json.dumps(wire(result), sort_keys=True)
+    (WORK/'result.json').write_text(line)
+    print(line)
     return 0 if result['status'] == 'PASS' else 1
 
 

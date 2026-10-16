@@ -223,7 +223,7 @@ def diagnose(root, manifest, directory):
     if manifest['test']:
         protected=[p for p in manifest['source_files'] if p.startswith(('foundation/tests/','tests/',
                    'safety/qualification/developer/')) or p in {'CMakeLists.txt','cmake/Developer.cmake',
-                   'cmake/Foundation.cmake','cmake/Safety.cmake','safety/contract.json'}]
+                   'cmake/Foundation.cmake','cmake/FoundationLibraries.cmake','cmake/Safety.cmake','safety/contract.json'}]
         unchanged=bool(protected) and all((root/p).is_file() and
             file_hash(root/p)==manifest['source_files'][p]['sha256'] for p in protected)
         if unchanged:

@@ -26,9 +26,15 @@ jobs:
           path = '/etc/docker/daemon.json'
           config = {}
           if os.path.exists(path):
-              with open(path) as f:
-                  text = f.read().strip()
-              config = json.loads(text) if text else {}
+              with open(path, 'rb') as f:
+                  data = f.read(1048577)
+              if len(data) > 1048576:
+                  raise SystemExit('daemon.json exceeds 1048576 bytes')
+              text = data.decode('utf-8').strip()
+              try:
+                  config = json.loads(text) if text else {}
+              except RecursionError:
+                  raise SystemExit('daemon.json nests too deep')
           config.setdefault('features', {})['containerd-snapshotter'] = True
           os.makedirs('/etc/docker', exist_ok=True)
           with open(path, 'w') as f:

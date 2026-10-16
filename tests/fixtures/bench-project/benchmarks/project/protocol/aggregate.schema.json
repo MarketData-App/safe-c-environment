@@ -1,0 +1,17 @@
+{"type":"object","additionalProperties":false,"required":["crosscheck"],
+ "properties":{"crosscheck":{"type":"object","additionalProperties":false,"required":["s1","s2"],
+  "properties":{
+   "s1":{"type":"object","additionalProperties":false,"required":["f1","f2","f3","f4","f5"],
+    "properties":{
+     "f1":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f2":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f3":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f4":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f5":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}}}},
+   "s2":{"type":"object","additionalProperties":false,"required":["f1","f2","f3","f4","f5"],
+    "properties":{
+     "f1":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f2":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f3":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f4":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}},
+     "f5":{"type":"object","additionalProperties":false,"required":["count","median","p90"],"properties":{"count":{"type":"integer","minimum":0},"median":{"type":["number","null"]},"p90":{"type":["number","null"]}}}}}}}}}

@@ -208,6 +208,21 @@ class ProjectModelMoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             d=Path(t); self.make(d,dict(PROJECT,run=dict(PROJECT['run'],program='nope')))
             with self.assertRaises(GateError): pm.load_project(d)
+    def test_run_args_refuse_nul_and_lone_surrogates(self):
+        """FR3-21: load_project (it runs before the project check creates any container) refuses a run argument that
+        holds NUL or a lone surrogate with a stable GateError; docker never receives the argv."""
+        bad=['a\x00b','\x00','\ud800','x\udfff','\udc00\ud800','ok\ud83d']
+        for arg in bad:
+            with self.subTest(arg=ascii(arg)),tempfile.TemporaryDirectory() as t:
+                d=Path(t); self.make(d,dict(PROJECT,run=dict(PROJECT['run'],args=['world',arg])))
+                with self.assertRaisesRegex(GateError,r'^project: run\.args\[1\] holds NUL or a lone surrogate$'): pm.load_project(d)
+    def test_run_args_accept_ordinary_text(self):
+        """FR3-21 boundary: zero arguments, a surrogate pair (one astral character), tab, newline, non-ASCII text and the
+        exact 256-character and 16-argument limits stay accepted."""
+        for args in ([],['\U0001f600','tab\there','line\nnext','grüße'],['x'*256],['a']*16):
+            with self.subTest(args=ascii(args)[:40]),tempfile.TemporaryDirectory() as t:
+                d=Path(t); self.make(d,dict(PROJECT,run=dict(PROJECT['run'],args=args)))
+                self.assertEqual(pm.load_project(d)['run']['args'],args)
     def test_write_manifest(self):
         import policy
         with tempfile.TemporaryDirectory() as t:

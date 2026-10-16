@@ -1,0 +1,13 @@
+{"schema_version":1,
+ "case_id":"demo-digest",
+ "version":3,
+ "kind":"function",
+ "adapter":"benchdemo.adapter:DemoDigest",
+ "description":"Framework example project (FR6): per record, xorshift64 steps folded into an FNV-1a 64 checksum (specs/project/bd_digest.md); three versions that agree byte for byte: native Python (py-reference), the C kernel bd-kernel with no Python in its timed loops, and the Python bridge to the same C code over the routes stdio, shm and inproc (c-serial)",
+ "work_unit":"one record (u64 seed, u32 steps) stepped and folded steps times",
+ "parameters":{"steps":{"value":64,"label":"protocol"},"seed":{"value":20261007,"label":"protocol"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},{"id":"py-optimized","language":"python","workers":["direct"],"status":"same-as-reference","reason":"example: no separate optimized implementation"},{"id":"c-serial","language":"c","workers":["direct"],"status":"implemented","routes":["stdio","shm","inproc"]}],
+ "scopes":["kernel","caller"],
+ "sizes":["tiny","small"],
+ "points":[{"name":"demo-caller","scope":"caller","size":"small","modes":["warm"],"variants":["py-reference","c-serial"],"class":"primary"},{"name":"demo-kernel","scope":"kernel","size":"small","modes":["direct"],"variants":["py-reference","c-serial"],"class":"exploratory"}],
+ "opportunity_record":"benchmarks/project/cases/demo-digest.opportunity.json"}

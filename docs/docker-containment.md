@@ -3,9 +3,7 @@
 Checkpoint: v2 is locally VALIDATED_UNSEALED at commit `6a38fff`. Its 34 detector
 cases, 34 repaired controls, 16 pipeline cases (64 executed subcases), full fresh
 child, second-child pair, benchmark, and extended fuzz run passed. Those results
-predate this amendment. `docs/bootstrap-prompt-v2.md` is an existing untracked owner
-input and remains untouched. The uploaded addendum is an owner input under
-`.agentwatch/uploads/`, not a workload input. No application development is begun.
+predate this amendment. No application development is begun.
 
 The existing trusted Python evaluator uses Docker for CMake configuration,
 configure-time probes, compilation, analysis, candidate scripts, C tests, unit
@@ -156,6 +154,11 @@ credentials are included. Docker-managed marker, console/bind placeholders and
 `etc/mtab -> /proc/mounts` are separately recorded; pseudo-filesystems and Docker
 managed files are not falsely described as immutable application payload.
 Local-only images have an image ID and no invented registry digest.
+
+No host decompression: every developer payload member stays within the 32 MiB
+container file limit and is extracted inside the confined job. The earlier
+host-streaming exception for oversized wheel members (ruling PLAN-T5B-BOUND-01)
+is removed with the example-only wheels (FR4); a new exception needs a new approval.
 
 ## Reports, operators and activation
 

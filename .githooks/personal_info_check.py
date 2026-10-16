@@ -6,6 +6,17 @@ committing machine (login name, home path, host name, non-noreply Git emails)
 and read from untracked private pattern files, one regular expression per line:
   <git common dir>/info/personal-patterns
   ~/.config/safe-c-environment/personal-patterns
+Private path patterns (personal-path-patterns in the same two places) match
+only the base name of each added or changed path, never content, so a tracked
+document that mentions a name is not blocked (finding private-path-pattern,
+with the path masked). Residuals of the path rule: it matches the exact base
+name only (case-insensitive), so a renamed copy, an extra suffix (such as
+.bak) and a directory of that name pass, and the file content is not
+detected; archive member names go to the content rules only, never to the
+path patterns (every first-party archive is a finding anyway); and --tree
+does not apply path patterns (--staged, --push and --history do). The primary
+control for a private fixture file remains its git-ignore rule and its use
+inside the containers only.
 The complete content and name of every added or changed file is checked, not
 only the changed lines; merge commits are compared with every parent and
 submodule entries are skipped. Archives are expanded member by member (zip, tar,
@@ -441,13 +452,53 @@ def rules():
     return compiled, errors, raw
 
 
+def path_rules(errors=None):
+    """Private path patterns: one regular expression per line, matched against the
+    base name of an added or changed path only (never content). An unreadable file
+    or an invalid line is an error line in `errors`, as for content patterns."""
+    errors = [] if errors is None else errors
+    compiled = []
+    common = Path(git('rev-parse', '--path-format=absolute', '--git-common-dir').strip())
+    for path in (common / 'info' / 'personal-path-patterns',
+                 Path.home() / '.config' / 'safe-c-environment' / 'personal-path-patterns'):
+        try:
+            lines = path.read_text().splitlines()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            errors.append(f'{path.name}: unreadable-private-path-patterns')
+            continue
+        for number, line in enumerate(lines, 1):
+            if line.strip() and not line.lstrip().startswith('#'):
+                try:
+                    compiled.append(re.compile(line.strip(), re.I))
+                except re.error:
+                    errors.append(f'{path.name}:{number}: invalid-private-path-pattern')
+    return compiled
+
+
 def mask(value):
     return value[0] + '*' * (len(value) - 1) if len(value) > 1 else '*'
+
+
+LOCK_MAX_BYTES = 64 * 1024 * 1024
+
+
+def lock_json(raw):
+    """A lock file through a capped parse (FR3-22): at most LOCK_MAX_BYTES bytes; a malformed, too deep or too large
+    document gives None (no pins, so more digests stay findings), never an exception that stops the hook."""
+    if len(raw) > LOCK_MAX_BYTES:
+        return None
+    try:
+        return json.loads(raw)
+    except (ValueError, RecursionError, MemoryError):
+        return None
 
 
 class Scanner:
     def __init__(self):
         self.rules, self.findings, self.raw = rules()
+        self.path_rules = path_rules(self.findings)
         self.pins = {}
 
     def pinned(self, rev):
@@ -462,10 +513,8 @@ class Scanner:
                 else:
                     raw = git('cat-file', 'blob', f'{rev}{lock}' if rev == ':' else f'{rev}:{lock}', binary=True,
                               check=False)
-                try:
-                    stack = [json.loads(raw)] if raw else []
-                except ValueError:
-                    stack = []
+                value = lock_json(raw) if raw else None
+                stack = [value] if value is not None else []
                 while stack:
                     item = stack.pop()
                     if isinstance(item, dict):
@@ -533,6 +582,11 @@ class Scanner:
 
     def blob(self, label, path, rev):
         spec = f':{path}' if rev == ':' else f'{rev}:{path}'
+        # Staged, committed and tagged paths: the base name against the private path
+        # patterns before the content scan; a match masks the path in every label.
+        if any(rx.search(path.rsplit('/', 1)[-1]) for rx in self.path_rules):
+            label = label[:len(label) - len(path)] + mask(path) if label.endswith(path) else mask(label)
+            self.findings.append(f'{label}: private-path-pattern')
         self.content(label, path, git('cat-file', 'blob', spec, binary=True), rev)
 
     def identity(self, label, role, email, name=''):

@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import time
 from evidence import GateError, atomic_json, passed, read_json, file_hash
+from evidence import loads_capped
 from container_policy import D_IDS, Launcher, make_plan, validate_plan, policy_hash
 from policy import exact_ids, source_identity, baseline_gate, baseline_identity
 
@@ -80,7 +81,7 @@ class Suite:
         r=self.l.execute(record,['python3','/src/safety/qualification/containment/probe.py',mode,'control' if control else 'probe',*extra],timeout=timeout,env=env,limit=limit)
         path=self.runner.run_dir/'containment'/('process-'+record['container_id'][:12]+'-'+mode+('-control' if control else '')+'.json')
         r['evidence_path']=str(path);atomic_json(path,r)
-        try:data=json.loads(r['output'])
+        try:data=loads_capped(r['output'])
         except ValueError:data={}
         return r,data
     def case(self,cid,checks,observations,records,control=True):
@@ -185,7 +186,7 @@ class Suite:
         finally:self.l.value['common']['artifact_bytes']=old
         self.l.dispose(r)
         fresh=self.launch();f=self.l.execute(fresh,['python3','-c','import pathlib,json;print(json.dumps({"previous":pathlib.Path("/work/valid").exists()}))'],timeout=5);self.l.dispose(fresh)
-        self.case('D10',{'byte-bound':d.get('space_errno')==errno.ENOSPC and 0<d.get('written',0)<24*1024*1024 and d.get('filesystem_bytes')==16*1024*1024,'inode-bound':d.get('inode_errno')==errno.ENOSPC and d.get('used_inodes')==d.get('filesystem_inodes')==64,'normal-io':c.get('written')==1024 and c.get('space_errno')==0,'oversize-rejected':rejected['oversized'],'invalid-artifact-rejected':rejected['../outside-canary'] and rejected['link'],'valid-artifact':valid.read_text()=='valid' and passed(setup),'scratch-freshness':passed(f) and json.loads(f['output'])['previous'] is False},{'operation':d,'control':c,'collector_rejections':rejected,'valid_artifact':str(valid)},[r,fresh],passed(positive) and passed(out))
+        self.case('D10',{'byte-bound':d.get('space_errno')==errno.ENOSPC and 0<d.get('written',0)<24*1024*1024 and d.get('filesystem_bytes')==16*1024*1024,'inode-bound':d.get('inode_errno')==errno.ENOSPC and d.get('used_inodes')==d.get('filesystem_inodes')==64,'normal-io':c.get('written')==1024 and c.get('space_errno')==0,'oversize-rejected':rejected['oversized'],'invalid-artifact-rejected':rejected['../outside-canary'] and rejected['link'],'valid-artifact':valid.read_text()=='valid' and passed(setup),'scratch-freshness':passed(f) and loads_capped(f['output'])['previous'] is False},{'operation':d,'control':c,'collector_rejections':rejected,'valid_artifact':str(valid)},[r,fresh],passed(positive) and passed(out))
     def logs(self):
         # PID 1 writes exercise the actual Docker log driver; docker exec stdout
         # alone would exercise only outer capture, not rotation.

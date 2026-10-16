@@ -1,0 +1,9 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
+ "description":"FR3-04 (ruling FR3-R2): the approval record of a project protocol, <project>/benchmarks/project/protocol/approval.json. An APPROVED protocol loads only when this record names the sha256 of the protocol file bytes and the protocol's approval reference (bench_model.load_protocol); otherwise every plan, run, check and decide of the project is BLOCKED. Tamper-evident, not tamper-proof: the record is unsigned, and review of the protected protocol directory is the control (docs/approval-protocol.md).",
+ "required":["schema_version","protocol_sha256","reference","verdict","approver"],
+ "properties":{
+  "schema_version":{"const":1},
+  "protocol_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "reference":{"type":"string","pattern":"^[A-Za-z0-9._/-]{8,160}$"},
+  "verdict":{"const":"APPROVE"},
+  "approver":{"const":"fresh-context-agent"}}}

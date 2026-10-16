@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 import policy
 import project_source
-from evidence import GateError, read_json
+from evidence import GateError, PROJECT_JSON_MAX_BYTES, load_project_json, read_json
 from schema_check import validate
 
 PROJECT_PATHS = project_source.PROJECT_PATHS
@@ -142,7 +142,13 @@ def load_project(root, project_dir='.', framework_root=None):
     path = base/PROJECT_FILE
     if path.is_symlink() or not path.is_file():
         raise GateError(f'{PROJECT_FILE} is missing: {project_dir}')
-    value = read_json(path)
+    # FR3-17: project data through the one boundary; every check of the parsed value runs inside it
+    return load_project_json(path, 'project-json', PROJECT_JSON_MAX_BYTES, label=PROJECT_FILE,
+                             check=lambda value: _check_project(fw, value))
+
+
+def _check_project(fw, value):
+    """The checks of load_project on the parsed project.json `value` (GateError on the first failure)."""
     validate(fw, 'project', value)
     for rel in _declared_paths(value) + _dir_paths(value):
         _safe_path(rel, rel)
@@ -155,6 +161,10 @@ def load_project(root, project_dir='.', framework_root=None):
                 raise GateError(f'project: program {program["name"]} uses unknown module {name}')
     if value['run']['program'] not in [p['name'] for p in value['programs']]:
         raise GateError('project: run.program is not a declared program')
+    # FR3-21: an argv cannot carry NUL, and a lone surrogate has no UTF-8 encoding; refuse both here, before any container
+    for index, arg in enumerate(value['run']['args']):
+        if any(c == '\x00' or '\ud800' <= c <= '\udfff' for c in arg):
+            raise GateError(f'project: run.args[{index}] holds NUL or a lone surrogate')
     return value
 
 
@@ -195,8 +205,8 @@ EXPORT_LIST = 'starter-export.json'
 # Substituted by instantiate; baseline_gate validates them against the origin.
 INSTANCE_FILES = ('starter.json', 'starter-baseline.lock.json')
 FRAMEWORK_DIRS = ('tools', 'safety', 'schemas', 'cmake', 'container', 'ci', 'foundation', 'third_party', '.githooks',
-                  '.github', 'fuzz', 'tests')
-_NOT_FRAMEWORK = ('fuzz/project/', 'tests/project/', _CI_WORKFLOW)
+                  '.github', 'fuzz', 'tests', 'benchmarks')
+_NOT_FRAMEWORK = ('fuzz/project/', 'tests/project/', 'benchmarks/project/', _CI_WORKFLOW)
 _SKIPPED_PARTS = {'__pycache__', _SCRATCH, 'artifacts', 'build', '.git', '.cache', '.direnv'}
 
 
@@ -350,11 +360,90 @@ def check_manifest(root, framework_root=None):
     return lines
 
 
+def check_module_dependencies(project):
+    """Amendment F item 3: `uses` names declared other modules without a cycle; `foundation` is closed."""
+    names = [m['name'] for m in project['modules']]
+    for m in project['modules']:
+        for u in m.get('uses', []):
+            if u == m['name']:
+                raise GateError(f"module uses itself: {m['name']}")
+            if u not in names:
+                raise GateError(f"module uses an unknown module: {m['name']} -> {u}")
+        if 'foundation' in m and m['foundation'] != 'glib-parallel':
+            raise GateError('foundation must be "glib-parallel"')
+    for m in project['modules']:
+        uses_closure(project, m['name'])
+
+
+def uses_closure(project, name):
+    """Modules that `name` links, dependencies first, each once; a cycle raises GateError."""
+    by_name = {m['name']: m for m in project['modules']}
+    order, state = [], {}
+    def visit(n, stack):
+        if state.get(n) == 'done':
+            return
+        if n in stack:
+            raise GateError('module dependency cycle: ' + ' -> '.join(stack + [n]))
+        for u in by_name[n].get('uses', []):
+            visit(u, stack + [n])
+        state[n] = 'done'
+        if n != name:
+            order.append(n)
+    visit(name, [])
+    return order
+
+
+# C17 and C23 keywords: an export with one of these names cannot be declared in C.
+C_KEYWORDS = frozenset((
+    'alignas', 'alignof', 'auto', 'bool', 'break', 'case', 'char', 'const', 'constexpr', 'continue', 'default', 'do',
+    'double', 'else', 'enum', 'extern', 'false', 'float', 'for', 'goto', 'if', 'inline', 'int', 'long', 'nullptr',
+    'register', 'restrict', 'return', 'short', 'signed', 'sizeof', 'static', 'static_assert', 'struct', 'switch',
+    'thread_local', 'true', 'typedef', 'typeof', 'typeof_unqual', 'union', 'unsigned', 'void', 'volatile', 'while'))
+_C_NAME = re.compile(r'[a-z][a-z0-9_]{0,62}')
+
+
+def library_closure(project, library):
+    """The modules whose whole archives form the library: each listed module's uses closure, then the module."""
+    names = []
+    for name in library['modules']:
+        names += uses_closure(project, name) + [name]
+    return list(dict.fromkeys(names))
+
+
+def check_libraries(project):
+    """Amendment F item 3: the closed `libraries` field.
+
+    Each listed module is declared and listed once; each export is a C name that is not a
+    keyword; library names are unique and differ from program names; at least one listed
+    module reads external input and has a fuzz target (the entry point is fuzzed)."""
+    libraries = project.get('libraries', [])
+    by_name = {m['name']: m for m in project['modules']}
+    programs = {p['name'] for p in project.get('programs', [])}
+    seen = set()
+    for library in libraries:
+        name = library['name']
+        if name in seen or name in programs:
+            raise GateError(f'library name is not unique or equals a program name: {name}')
+        seen.add(name)
+        if len(set(library['modules'])) != len(library['modules']):
+            raise GateError(f'library lists a module twice: {name}')
+        for module in library['modules']:
+            if module not in by_name:
+                raise GateError(f'library uses an unknown module: {name} -> {module}')
+        for export in library['exports']:
+            if not isinstance(export, str) or not _C_NAME.fullmatch(export) or export in C_KEYWORDS:
+                raise GateError(f'library export is not a valid C name: {name} -> {str(export)[:64]}')
+        if not any(by_name[m]['reads_external_input'] and by_name[m]['fuzz'] for m in library['modules']):
+            raise GateError(f'library module must declare reads_external_input and a fuzz target: {name}')
+
+
 def project_inventory(root, project_dir, project, framework_root=None):
     root = Path(root)
     base = root/project_dir
     if not project['modules']:
         raise GateError('project has zero modules')
+    check_module_dependencies(project)
+    check_libraries(project)
     declared = set(_declared_paths(project))
     for module in project['modules']:
         if not module['tests']:

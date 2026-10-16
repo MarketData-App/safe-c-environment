@@ -1436,9 +1436,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp",
       "original_sha256": "37fce1c623f958f11f25dfb7fad9c1de85e117783f779c47ac898f5a5d81fe85",
       "local_path": "safety/qualification/C01/bad.c",
-      "local_sha256": "68550f82e12b841f52723c5bbbe4216592bdea44fb95728c58986c255e4e53e4",
+      "local_sha256": "b95e74c24678ecd1a215e401ceeb58acb1c9b191a794704f99f96b3f1f9b05c3",
       "patch_path": "third_party/patches/C01.patch",
-      "patch_sha256": "d9c89002ca6d773898383145ef37c5307e76a3eb6049f219ea5669d8388bf80b",
+      "patch_sha256": "82a4075a101ea393e5ab1bfaa3b5ed8746dd875cfe152b22ef691008bccbe013",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C01/good.c"
@@ -1452,9 +1452,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp",
       "original_sha256": "37fce1c623f958f11f25dfb7fad9c1de85e117783f779c47ac898f5a5d81fe85",
       "local_path": "safety/qualification/C02/bad.c",
-      "local_sha256": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2",
+      "local_sha256": "5445cd14c0615f7c474bde465f645ffc96772e6445fa2f7bd798f149b3d5baa5",
       "patch_path": "third_party/patches/C02.patch",
-      "patch_sha256": "66f7ccabde22a68d152ac06490093e1a7c55a1bc2506e011474340dcebee72ea",
+      "patch_sha256": "b60d6c2e3f5f6ef64b3ad2dba5b74091f55990ade22863f1d4c7fc366821076f",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C02/good.c"
@@ -1468,9 +1468,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/stack-buffer-overflow.cpp",
       "original_sha256": "0c05c918fd14d916fe515486ed7f41e4b1eb23c8b863304072807c672d1a3095",
       "local_path": "safety/qualification/C03/bad.c",
-      "local_sha256": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8",
+      "local_sha256": "610135f6da8ecd6675278600d537eb4ae50d21569322ae8da2ae2f1152c0e151",
       "patch_path": "third_party/patches/C03.patch",
-      "patch_sha256": "75e63310315ae235970cf9a871da8d02dc497285e2896631cc2be260af943cf6",
+      "patch_sha256": "f4e159c3a483970857a285184ead5d022cd4d7a171d0a7eb4d2f0fcbcb506db1",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C03/good.c",
@@ -1486,9 +1486,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/global-overflow.cpp",
       "original_sha256": "9dd56b114e9b5912c4fd98028ccf6b1d751546acd4aad54ab2924a0359ee671d",
       "local_path": "safety/qualification/C04/bad.c",
-      "local_sha256": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90",
+      "local_sha256": "19c7ca9c053f4f2cf0eb13091484c2198bbdf4e0032d74733824ae5d3c58af05",
       "patch_path": "third_party/patches/C04.patch",
-      "patch_sha256": "61b1ca57d9e8f922f39703a9640cbb5c6d4c343702a0fdc81ad2e1a096ec3159",
+      "patch_sha256": "136510af52d9d48b0db4e5195b7c47f410b7b6fc4fbd774baabc27b55a4f1fc1",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C04/good.c",
@@ -1504,9 +1504,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-free.cpp",
       "original_sha256": "d42ad779e7f563dbc1d6dd1a55b0a6cad17f7f8d50de529fb05b49b5b6c3e6f5",
       "local_path": "safety/qualification/C05/bad.c",
-      "local_sha256": "3a89ab60987694c093376746973b34c86d566d690792050c4b12bf4885eec383",
+      "local_sha256": "e48c849cb7a1d9018fabe156a9a0af2bbfc39b85d1c0611596a5241b0f83b84b",
       "patch_path": "third_party/patches/C05.patch",
-      "patch_sha256": "08cebed60cd92894397825107e8bb79c43cf3f66498dcb78a9f3c77424942436",
+      "patch_sha256": "f7137d4ff5562960f6a02ffe5111526fdb48d9fc363aa7d0ca5d85e3f868a3bf",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C05/good.c",
@@ -1522,9 +1522,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/double-free.cpp",
       "original_sha256": "e340398cb8ca81b01312e627af07df438f2e9a440db5bbed51ce2e99f81fd854",
       "local_path": "safety/qualification/C06/bad.c",
-      "local_sha256": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
+      "local_sha256": "8c6dbcf6a4405e833ad4550783c5f5d3a6f8c72be9de274664a178aad2f3efac",
       "patch_path": "third_party/patches/C06.patch",
-      "patch_sha256": "c6ebcd76ffc9ddf2ca464b9cfd18dcc62d3411242750752623968b8d4153b736",
+      "patch_sha256": "cff047534cf8c01674a973b4c2ef90dfa9cec23b9293009ab0f25af0f94c9c15",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C06/good.c",
@@ -1540,9 +1540,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/invalid-free.cpp",
       "original_sha256": "d7fea86032f99d88d18f16df413ad54235c375b63025ea5c634b67f5426e7782",
       "local_path": "safety/qualification/C07/bad.c",
-      "local_sha256": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610",
+      "local_sha256": "0dc33caa27d126091456b2f908383b79b8e7c80e6843cfcfba6fb30285134bf4",
       "patch_path": "third_party/patches/C07.patch",
-      "patch_sha256": "9c5876d37bc4bf8dece6b94e12515946dca534138ed2ea6d5578e9ebe8f46907",
+      "patch_sha256": "53125f4a3abe9c55e5bae77c49367f466c470531e8bcbf03a35a1f91881e7b6e",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C07/good.c"
@@ -1556,9 +1556,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-scope.cpp",
       "original_sha256": "05b6ba8230eb727524ae4abb0d5931bbf5ba9c06e114d460a47a7f71d1a4e0bd",
       "local_path": "safety/qualification/C08/bad.c",
-      "local_sha256": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5",
+      "local_sha256": "2ac33e1191fb9ba52815d6677284b4ef938064dc1b90c5d11cc1cfcf165e2828",
       "patch_path": "third_party/patches/C08.patch",
-      "patch_sha256": "2361e0d5ed467441a2727b725ec53d5a9e81a3b0ff0955c221dee52e104e48e4",
+      "patch_sha256": "b631518f90a21a2ae2abf4b43c18cd5175751537701461bb6679737d773cd118",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C08/good.c",
@@ -1592,9 +1592,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/msan/heap-origin.cpp",
       "original_sha256": "5e189b2704a19c7e8fe84b2a29f402a58829799f7c076494f45a18998025a543",
       "local_path": "safety/qualification/C11/bad.c",
-      "local_sha256": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a",
+      "local_sha256": "1b14366a4d11db9b8e3735e184f9308f75f4694fcb52199d0e6245c0db7aa18a",
       "patch_path": "third_party/patches/C11.patch",
-      "patch_sha256": "bc22eb00889b7e10f98723980454d3aa738251140a9c0864792c0a848317f4c7",
+      "patch_sha256": "f36a9fd103f1a623d11ed45880137dbb515d7b64336f06110fa5afe0fb4412a1",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch.",
       "control_sources": [
         "safety/qualification/C11/good.c"
@@ -1624,9 +1624,9 @@
       "original_path": "third_party/originals/llvm/llvm-project/compiler-rt/test/tsan/simple_race.c",
       "original_sha256": "a96d8a5b394e45324f3eedafc548a323801b0b32e214e31a7f2aa4f628f0dda5",
       "local_path": "safety/qualification/C21/bad.c",
-      "local_sha256": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed",
+      "local_sha256": "275d101f60a117f5f2c6bd98d166ff9ec138c49d1cb4204346850f122c9e7e12",
       "patch_path": "third_party/patches/C21.patch",
-      "patch_sha256": "09b30c464a873420b6a8a2528617491ad37cb409c0c3ba5624a46735e8accdd9",
+      "patch_sha256": "2915e088a813044c5c2cba6ea6517b01b7587ebf609e50670cab89f09bf8602b",
       "reason": "C17 port; checked setup; separately materialized repair; source and runtime-input adaptation shown in patch. Use separate writer/reader workers rather than read-modify-write workers to avoid masking a conflict in the short detector demonstration. Volatile preserves accesses and supplies no synchronization.",
       "control_sources": [
         "safety/qualification/C21/good.c",
@@ -1658,9 +1658,9 @@
       "original_path": "third_party/originals/google/clusterfuzzlite/actions/build_fuzzers/action.yml",
       "original_sha256": "adb58e981a0348eaac2771a222441a4d0df16f241462e9a3b5de05dd6402274f",
       "local_path": "third_party/adapters/clusterfuzzlite-actions/build_fuzzers/action.yml",
-      "local_sha256": "a2bf5e244c86f8e95f9bb93594fc3b5dd1ffad8808be9ef928c735ba278c3365",
+      "local_sha256": "cb157c0f8be36b2a4e415e79f1db2b2832e353afa895da74da1b89caed159fd0",
       "patch_path": "third_party/patches/build_fuzzers-image-pin.patch",
-      "patch_sha256": "b9eb7af22e264cc6fd8183932b451d22a75a9260d3acf2c4b0365e27b464acf9",
+      "patch_sha256": "90fa840c819a3f4903bba579a1f13ee15524787a040e23efa5d583484e507cd7",
       "reason": "Pin upstream action container by observed registry manifest digest; configured only, not remotely executed",
       "control_sources": [],
       "control_hashes": {}
@@ -1670,9 +1670,9 @@
       "original_path": "third_party/originals/google/clusterfuzzlite/actions/run_fuzzers/action.yml",
       "original_sha256": "093527616d6fa1f5fb19ed378d57c7955f5a073caf40c33edd2448db42e2f7f9",
       "local_path": "third_party/adapters/clusterfuzzlite-actions/run_fuzzers/action.yml",
-      "local_sha256": "8e6c6060bca4c9207095b1aca96333fc54a257b3b3270b9e2ab73547bc006b3b",
+      "local_sha256": "b303e2b59b7414cdedbc3b77fcaf0a84299ba5250d4c87caa1038108ccaca53e",
       "patch_path": "third_party/patches/run_fuzzers-image-pin.patch",
-      "patch_sha256": "71c24c3dfe8cfafd230902e30feedb76a9593401c72fa3502297aa13fb6705ff",
+      "patch_sha256": "d0cefa6ecf424d99a3ed2affb5aa90ebb4284b8bf9c9b252091be728ecd17518",
       "reason": "Pin upstream action container by observed registry manifest digest; configured only, not remotely executed",
       "control_sources": [],
       "control_hashes": {}
@@ -1706,6 +1706,6 @@
     "clusterfuzzlite-run-fuzzers": "gcr.io/oss-fuzz-base/clusterfuzzlite-run-fuzzers@sha256:a042cc2d5b3416d231ca7b5f4df843e6012c7c718267fe026713fa0814911574",
     "base-builder": "gcr.io/oss-fuzz-base/base-builder@sha256:4d95d77396ce573bbfca794166cd2f1e28df5b3445a45132e52ef0e4ff7f566b"
   },
-  "notice_sha256": "e34c3ba38104ca048f0513766945325ed52a8d7f4efdfd95888f033785df81ec",
+  "notice_sha256": "ead02772e435a1f23f72c398ae7e42e0f83acd4827ed1a4fb24c77a27163f961",
   "foundation_lock": "foundation.lock.json"
 }

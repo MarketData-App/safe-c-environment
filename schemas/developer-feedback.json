@@ -288,6 +288,133 @@
         },
         "current_candidate_comparison": {
           "type": "object"
+        },
+        "performance": {
+          "description": "Task 24 (spec 13, Amendment H9): the ten readiness axes of the owner's brief section 18 with their value domains.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "benchmark_tooling",
+            "measurement_qualification",
+            "multicore_qualification",
+            "demo_experiment_execution",
+            "demo_performance_evidence",
+            "combined_local_checks",
+            "independent_enforcement",
+            "actual_django_workload_tested",
+            "native_adoption_authorized",
+            "production_authorized"
+          ],
+          "properties": {
+            "benchmark_tooling": {
+              "enum": [
+                "PASSED",
+                "FAILED",
+                "BLOCKED"
+              ]
+            },
+            "measurement_qualification": {
+              "enum": [
+                "PASSED",
+                "FAILED",
+                "BLOCKED"
+              ]
+            },
+            "multicore_qualification": {
+              "enum": [
+                "PASSED",
+                "FAILED",
+                "BLOCKED"
+              ]
+            },
+            "demo_experiment_execution": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "NOT_EXECUTED"
+              ]
+            },
+            "demo_performance_evidence": {
+              "enum": [
+                "DECISION_GRADE",
+                "EXPLORATORY",
+                "INCONCLUSIVE"
+              ]
+            },
+            "combined_local_checks": {
+              "enum": [
+                "PASSED",
+                "FAILED",
+                "BLOCKED"
+              ]
+            },
+            "independent_enforcement": {
+              "enum": [
+                "VERIFIED",
+                "PENDING",
+                "FAILED"
+              ]
+            },
+            "actual_django_workload_tested": {
+              "const": false
+            },
+            "native_adoption_authorized": {
+              "const": false
+            },
+            "production_authorized": {
+              "const": false
+            }
+          }
+        },
+        "performance_details": {
+          "description": "Task 24 (Amendment H9): reported next to the axes, never an axis; the handoff trial (Task 33) and the unit-verdict counts of the newest current owner-policy record.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "handoff_trial",
+            "unit_verdicts"
+          ],
+          "properties": {
+            "handoff_trial": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit_verdicts": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "KEEP_PYTHON",
+                    "PREFER_C",
+                    "INCONCLUSIVE",
+                    "INVALID_EXPERIMENT"
+                  ],
+                  "properties": {
+                    "KEEP_PYTHON": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "PREFER_C": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "INCONCLUSIVE": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "INVALID_EXPERIMENT": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
         }
       }
     },

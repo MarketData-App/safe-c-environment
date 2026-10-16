@@ -1,6 +1,12 @@
 --- third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/use-after-free.cpp
 +++ safety/qualification/C05/bad.c
-@@ -1,27 +1,16 @@
+@@ -1,27 +1,22 @@
++/* Modified file. Origin: LLVM compiler-rt/test/asan/TestCases/use-after-free.cpp
++ * at llvm-project revision cd708029e0b2869e80abe31ddb175f7c35361f90.
++ * License: Apache-2.0 WITH LLVM-exception; see
++ * third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT.
++ * Changed by MarketData-App (C17 qualification fixture); the full change is
++ * third_party/patches/C05.patch. */
 -// RUN: %clangxx_asan -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s
 -// RUN: %clangxx_asan -O1 %s -o %t && not %run %t 2>&1 | FileCheck %s
 -// RUN: %clangxx_asan -O2 %s -o %t && not %run %t 2>&1 | FileCheck %s

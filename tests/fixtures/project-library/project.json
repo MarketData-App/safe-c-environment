@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "name": "project-library",
+  "modules": [
+    {
+      "name": "entry",
+      "spec": "specs/project/entry.md",
+      "sources": [
+        "src/entry.c"
+      ],
+      "headers": [
+        "include/entry.h"
+      ],
+      "tests": [
+        "tests/project/test_entry.c"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "entry",
+          "harness": "fuzz/project/entry_fuzz.c",
+          "corpus": "fuzz/project/corpus/entry",
+          "regressions": "fuzz/project/regressions/entry"
+        }
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "name": "fixture-run",
+      "main": "src/main.c",
+      "modules": [
+        "entry"
+      ]
+    }
+  ],
+  "run": {
+    "program": "fixture-run",
+    "args": [
+      "--self-check"
+    ],
+    "expect_exit": 0
+  },
+  "libraries": [
+    {
+      "name": "fixture_entry",
+      "modules": [
+        "entry"
+      ],
+      "exports": [
+        "fixture_entry"
+      ]
+    }
+  ]
+}

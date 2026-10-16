@@ -10,19 +10,53 @@ import tempfile
 import time
 import uuid
 from evidence import GateError, bounded, read_json, digest, file_hash, atomic_json, passed
+from evidence import loads_capped
 from host_capabilities import active_lsm, context_endpoint, endpoint_problems, host_problems, inherited_problems, security_options
 
 MIB=1024*1024
 LABEL='org.safe-c.containment'
+# A fresh child ci exports its worktree digest in ANCESTOR_ENV; every container that
+# the child or one of its nested runs (the project-gates self-test copies the framework
+# to /tmp, so its containers carry another worktree label) creates also carries
+# ANCESTOR_LABEL.<digest>=1, so the parent can reap them after a child TIMEOUT.
+ANCESTOR_ENV='SAFE_C_ANCESTOR_SCOPES'
+ANCESTOR_LABEL='org.safe-c.ancestor'
+MAX_ANCESTORS=8
+
+
+def ancestor_labels(environ):
+    """`--label` arguments for the ancestor worktree digests named in ANCESTOR_ENV."""
+    raw=environ.get(ANCESTOR_ENV,'')
+    if not raw:return []
+    scopes=raw.split(',')
+    if len(scopes)>MAX_ANCESTORS or not all(re.fullmatch(r'[0-9a-f]{64}',s) for s in scopes):
+        raise GateError('ancestor container scopes must be at most '+str(MAX_ANCESTORS)+' worktree digests')
+    return [arg for s in scopes for arg in ('--label',ANCESTOR_LABEL+'.'+s+'=1')]
 # Lifetime of a session holder (Launcher.create default command). A host watchdog
 # outside this repository may `docker start` an expired holder again with an empty
 # /work; verify_session refuses such a container before any reuse.
 HOLDER_SECONDS=1800
+HOLDER_MARGIN_SECONDS=600   # Amendment H11: the holder outlives the longest job of its profile
+
+def holder_seconds(resources):
+    wall=resources.get('wall_seconds') if isinstance(resources,dict) else None
+    if isinstance(wall,bool) or not isinstance(wall,int) or wall<=0:raise GateError('profile wall_seconds must be a positive integer')
+    return max(HOLDER_SECONDS,wall+HOLDER_MARGIN_SECONDS)
+
+def holder_command(resources):
+    return ['python3','-c',f'import time; time.sleep({holder_seconds(resources)})']
+
 SESSION_RESTARTED='session container stopped or was restarted outside the launcher'
 D_IDS=[f'D{i:02}' for i in range(1,15)]
+# Bench profile (performance lab): fixed single-thread math-library environment,
+# one approved read-only fixture file target and a cross-process exclusive lock.
+BENCH_ENVIRONMENT={'OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1'}
+BENCH_FILE_TARGET='/data/dataset.json'
+BENCH_LOCK_PREFIX='/tmp/safe-c-bench-exclusive-'
 
-def policy(root):
-    value=read_json(root/'safety/container-policy.json')
+def policy(root):return check_policy(root,read_json(root/'safety/container-policy.json'))
+
+def check_policy(root,value):
     from schema_check import validate
     validate(root,'container-policy',value)
     c=value['common'];a=value['aggregate']
@@ -33,7 +67,7 @@ def policy(root):
         raise GateError('mandatory container restrictions missing')
     if any(c[k]!='private' for k in ['pid_namespace','ipc_namespace','cgroup_namespace']):
         raise GateError('host namespace requested')
-    required={'acquire','build','project','dependency-build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
+    required={'acquire','build','project','dependency-build','fuzz','integration','runtime-demo','runtime','probe','probe-memory','probe-pids','probe-cpu','bench'}|{'test-'+x for x in ['asan','ubsan','integer','msan','tsan','coverage','hardened','ordinary','strict']}
     if set(value['profiles'])!=required:raise GateError('container profile inventory mismatch')
     for name,p in value['profiles'].items():
         if any(p[k]<=0 for k in ['memory_bytes','cpus','pids','work_bytes','tmp_bytes','run_bytes','shm_bytes','work_inodes','wall_seconds']) or p['swap_bytes']!=0:
@@ -44,12 +78,74 @@ def policy(root):
         if p['network']!=network:raise GateError('unauthorized network policy')
     if a['resource_stress_concurrency']!=1 or a['compiler_jobs']!=2 or a['fuzz_workers']!=1:
         raise GateError('unapproved parallelism')
+    b=value['profiles']['bench']
+    if (b.get('fixed_environment')!=BENCH_ENVIRONMENT or b['cpus']!=4 or b['memory_bytes']!=2147483648 or b['pids']!=256 or
+            b['wall_seconds']>10800):raise GateError('bench profile differs from the approved envelope')
+    if any('fixed_environment' in p for n,p in value['profiles'].items() if n!='bench'):raise GateError('fixed environment allowed only for bench')
+    return value
+
+def parse_cpu_list(text):
+    cpus=[]
+    for part in text.strip().split(','):
+        if not part:continue
+        lo,_,hi=part.partition('-');cpus+=list(range(int(lo),int(hi or lo)+1))
+    return sorted(set(cpus))
+
+def host_topology():
+    allowed=sorted(os.sched_getaffinity(0))
+    try:
+        effective=set(parse_cpu_list(Path('/sys/fs/cgroup/cpuset.cpus.effective').read_text()))
+        allowed=[c for c in allowed if c in effective]
+    except OSError:pass
+    siblings={}
+    for c in allowed:
+        try:siblings[c]=frozenset(parse_cpu_list(Path(f'/sys/devices/system/cpu/cpu{c}/topology/thread_siblings_list').read_text()))
+        except OSError:siblings[c]=frozenset({c})
+    return allowed,siblings
+
+def choose_envelope(allowed,siblings,wanted=4):
+    """spec 8.1: a 4-CPU cpuset on distinct cores when possible; 2-3 usable CPUs give a 2-CPU envelope; fewer than 2 block multicore."""
+    allowed=sorted(set(allowed));cores=[];seen=set()
+    for cpu in allowed:
+        if cpu in seen:continue
+        group=sorted(c for c in siblings.get(cpu,frozenset({cpu})) if c in allowed) or [cpu]
+        seen.update(group);cores.append(group)
+    size=wanted if len(allowed)>=wanted else 2 if len(allowed)>=2 else 1
+    picked=[g[0] for g in cores][:size]
+    for g in cores:
+        for extra in g[1:]:
+            if len(picked)<size:picked.append(extra)
+    picked=sorted(picked)
+    shared=[sorted(set(g)&set(picked)) for g in cores if len(set(g)&set(picked))>1]
+    return {'cpus':size,'cpuset':picked,'smt_siblings':shared,'reduced':size<wanted,'multicore':'PASS' if size>=2 else 'BLOCKED'}
+
+def canonical_file_mount(path,max_bytes=32*MIB):
+    """The single bench fixture: the real path of one regular file of at most max_bytes."""
+    # Messages and exception chains never carry the fixture path (F-11).
+    try:
+        real=Path(path).resolve(strict=True)
+        mode=os.lstat(real)
+    except (OSError,RuntimeError):raise GateError('fixture path does not resolve to a file') from None
+    if not stat.S_ISREG(mode.st_mode):raise GateError('fixture must be a regular file')
+    if mode.st_size>max_bytes:raise GateError('fixture exceeds 32 MiB')
+    if any(ch in str(real) for ch in [',','\n','\x00']):raise GateError('ambiguous bind mount path rejected')
+    return str(real)
+
+def redact_output(result):
+    """Redacted sessions keep only the captured byte count, never the stream or a digest of it."""
+    result['output_bytes']=len(result.get('output','').encode('utf-8','surrogateescape'));result['output']='';return result
+
+def redact_fixture(value,real):
+    """F-11: replace the owner-fixture path in any nested evidence structure (plan, create command, effective settings)."""
+    if isinstance(value,str):return value.replace(real,'<redacted fixture>')
+    if isinstance(value,list):return [redact_fixture(v,real) for v in value]
+    if isinstance(value,dict):return {k:redact_fixture(v,real) for k,v in value.items()}
     return value
 
 def policy_hash(value):return digest(json.dumps(value,sort_keys=True,separators=(',',':')).encode())
 
-def validate_plan(plan,value, image, mounts, profile, *, lsm='apparmor'):
-    expected=make_plan(value,image,mounts,profile,lsm=lsm)
+def validate_plan(plan,value, image, mounts, profile, *, lsm='apparmor', file_mounts=None, envelope=None):
+    expected=make_plan(value,image,mounts,profile,lsm=lsm,file_mounts=file_mounts,envelope=envelope)
     if plan!=expected:raise GateError('unsafe/missing/merged container override rejected before creation')
     return plan
 
@@ -76,7 +172,7 @@ def canonical_mount(path):
 
 PLAN_LSM_LABELS={'apparmor':'docker-default-apparmor','selinux':'container_t-selinux'}
 
-def make_plan(value,image,mounts,profile,*,lsm='apparmor'):
+def make_plan(value,image,mounts,profile,*,lsm='apparmor',file_mounts=None,envelope=None):
     """lsm is the active host LSM from preflight; host-independent callers describe the AppArmor plan."""
     if lsm not in PLAN_LSM_LABELS:raise GateError('unapproved Linux security module for plan')
     if profile not in value['profiles']:raise GateError('unknown container profile')
@@ -84,14 +180,27 @@ def make_plan(value,image,mounts,profile,*,lsm='apparmor'):
     if profile in ['acquire','runtime']:raise GateError('acquisition/production execution requires separate authority')
     c=value['common'];p=value['profiles'][profile]
     if any(k not in ['/src','/inputs','/fixture'] for k in mounts):raise GateError('unapproved mount target')
-    return {'schema_version':1,'profile':profile,'image_id':image,'policy_hash':policy_hash(value),
+    file_mounts=file_mounts or {}
+    if file_mounts and (profile!='bench' or set(file_mounts)!={BENCH_FILE_TARGET}):raise GateError('unapproved file mount')
+    resources=dict(p);resources.pop('fixed_environment',None)
+    if profile=='bench':
+        if (not envelope or type(envelope.get('cpus')) is not int or envelope['cpus']<1 or envelope['cpus']>p['cpus'] or
+                len(envelope.get('cpuset') or [])!=envelope['cpus'] or len(set(envelope['cpuset']))!=envelope['cpus'] or
+                any(type(x) is not int or x<0 for x in envelope['cpuset'])):raise GateError('bench plan requires a recorded cpuset envelope')
+        resources['cpus']=envelope['cpus']
+    elif envelope is not None:raise GateError('cpuset envelope only for bench')
+    plan={'schema_version':1,'profile':profile,'image_id':image,'policy_hash':policy_hash(value),
             'user':f"{c['uid']}:{c['gid']}",'root_readonly':True,'capabilities':[],
             'security':['no-new-privileges','default-seccomp',PLAN_LSM_LABELS[lsm]],
             'namespaces':{'pid':'private','ipc':'private','cgroup':'private'},
             'mounts':{k:{'source':canonical_mount(v),'readonly':True,'recursive':'disabled'} for k,v in mounts.items()},
-            'resources':dict(p),'restart':'no','devices':[],'ports':[],
+            'resources':resources,'restart':'no','devices':[],'ports':[],
             'logging':{'driver':'local','max_size':c['log_bytes'],'max_files':c['log_files']},
-            'ulimits':{'core':0,'nofile':c['nofile'],'fsize':c['file_bytes']},'environment_names':list(c['environment_names'])}
+            'ulimits':{'core':0,'nofile':c['nofile'],'fsize':c['file_bytes']},'environment_names':list(c['environment_names']),
+            'file_mounts':{k:{'source':canonical_file_mount(v),'readonly':True} for k,v in file_mounts.items()},
+            'fixed_environment':dict(p.get('fixed_environment',{}))}
+    if profile=='bench':plan['cpuset']=','.join(map(str,envelope['cpuset']))
+    return plan
 
 def kernel_limits_gate(limits,p):
     expected={'memory.max':str(p['memory_bytes']),'memory.swap.max':'0','pids.max':str(p['pids']),'cpu.max':str(int(p['cpus']*100000))+' 100000'}
@@ -115,7 +224,7 @@ def completion_gate(outcome,lifecycle):
 
 class Launcher:
     def __init__(self,root,run_dir,lock,*,purpose='qualification'):
-        if purpose not in {'qualification','development','project'}:raise GateError('unregistered container purpose')
+        if purpose not in {'qualification','development','project','bench'}:raise GateError('unregistered container purpose')
         self.root=Path(root);self.run_dir=Path(run_dir);self.lock=lock;self.value=policy(self.root)
         self.purpose=purpose
         self.worktree_scope=__import__('hashlib').sha256(str(self.root.resolve()).encode()).hexdigest()
@@ -125,6 +234,7 @@ class Launcher:
         self.env={'PATH':'/usr/bin:/bin','HOME':str(self.config),'LANG':'C.UTF-8'}
         self.records=[]
         self.approved_runtime_images=set()
+        self.bench_lock=None;self.bench_started=None;self.bench_held_ns=None
     def image_gate(self,profile,image):
         if profile=='runtime-demo':
             if image not in self.approved_runtime_images:raise GateError('runtime image has not been assembled and approved by the trusted adapter')
@@ -133,7 +243,7 @@ class Launcher:
     def inspect_context(self):
         r=bounded(['/usr/bin/docker','context','inspect'],timeout=15,limit=65536)
         if not passed(r):raise GateError('active Docker context unavailable')
-        try:rows=json.loads(r['output'])
+        try:rows=loads_capped(r['output'])
         except ValueError as exc:raise GateError('active Docker context unreadable') from exc
         if not isinstance(rows,list) or len(rows)!=1 or not isinstance(rows[0],dict):raise GateError('active Docker context ambiguous')
         return rows[0]
@@ -174,7 +284,8 @@ class Launcher:
         if self.prefix is None:self.connect()
         return bounded(self.prefix+list(args),env=self.env,**kw)
     def reap_scope(self,scope,*,seconds=120,poll=5,quiet_polls=2,clock=None,sleep=None):
-        """Dispose every containment container labelled with worktree `scope` after its
+        """Dispose every containment container labelled with worktree `scope`, or with the
+        ancestor label of `scope` (the child's nested runs), after its
         controller was killed (a child TIMEOUT). Nothing else will dispose them, so they
         are killed and removed at once (running or stopped), never restarted; the scope
         is then polled for up to `seconds` and anything that reappears is removed again
@@ -184,9 +295,13 @@ class Launcher:
         clock=clock or _time.monotonic;sleep=sleep or _time.sleep
         if not re.fullmatch(r'[0-9a-f]{64}',scope or ''):raise GateError('container scope must be a worktree digest')
         def ids():
-            r=self.docker(['ps','-aq','--filter','label='+LABEL+'=1','--filter','label=org.safe-c.worktree='+scope],timeout=15)
-            if not passed(r):raise GateError('child container inventory unavailable')
-            return r['output'].split()
+            found=[]
+            # The child's own containers, then those of its nested runs (ancestor label).
+            for selector in ('label=org.safe-c.worktree='+scope,'label='+ANCESTOR_LABEL+'.'+scope+'=1'):
+                r=self.docker(['ps','-aq','--filter','label='+LABEL+'=1','--filter',selector],timeout=15)
+                if not passed(r):raise GateError('child container inventory unavailable')
+                found+=[cid for cid in r['output'].split() if cid not in found]
+            return found
         started=clock();removed=[];quiet=0;current=ids()
         while True:
             for cid in current:
@@ -199,7 +314,7 @@ class Launcher:
     def json(self,args):
         r=self.docker(args)
         if not passed(r):raise GateError('Docker API command failed: '+str(args[:2]))
-        return json.loads(r['output'])
+        return loads_capped(r['output'])
     def preflight(self):
         info,context=self.qualify_host();expected=self.value['runner']
         if (expected['role']!='portable' or expected['endpoint_scheme']!='unix' or expected['architecture']!='x86_64' or
@@ -212,7 +327,7 @@ class Launcher:
         core=Path('/proc/sys/kernel/core_pattern').read_text().strip()
         if core.startswith('|'):raise GateError('piped host core handling requires independent operator review')
         runtime=info.get('Runtimes',{}).get(info['DefaultRuntime'],{}).get('status',{})
-        features=json.loads(runtime.get('org.opencontainers.runtime-spec.features','{}'))
+        features=loads_capped(runtime.get('org.opencontainers.runtime-spec.features','{}'))
         annotations=features.get('annotations',{})
         self.runner_identity={k:info.get(k) for k in ['ID','Name','ServerVersion','KernelVersion','OperatingSystem','Architecture','NCPU','MemTotal','CgroupDriver','CgroupVersion','SecurityOptions','Driver','DefaultRuntime']}
         self.runner_identity.update(endpoint=self.endpoint,role=expected['role'],lsm=active_lsm(info),rootless=any('rootless' in x for x in security),runtime_annotations=annotations,controllers=Path('/sys/fs/cgroup/cgroup.controllers').read_text().split(),core_pattern=core)
@@ -234,16 +349,51 @@ class Launcher:
         sizes=[x.stat().st_size for x in files if x.is_file() and not x.is_symlink()]
         if len(sizes)>a['evidence_files'] or sum(sizes)>a['evidence_bytes']:raise GateError('evidence retention budget exhausted; archive owned prior evidence')
         return {'active_before':len(active),'available_memory_bytes':available,'reserved_memory_bytes':a['reserved_memory_bytes'],'finite_probe_memory_bytes':finite_memory,'disk_free_bytes':free,'retained_evidence_bytes':sum(sizes),'max_active':a['max_active']}
-    def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0):
+    def bench_wait(self,seconds=60,poll=1.0,clock=time.monotonic,sleep=time.sleep):
+        """Every non-bench admission waits (bounded) while a bench session holds the exclusive lock, then BLOCKS."""
+        if self.bench_lock is not None:raise GateError('a bench session admits only bench jobs')
+        deadline=clock()+seconds
+        while True:
+            fd=os.open(BENCH_LOCK_PREFIX+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+            try:
+                try:
+                    fcntl.flock(fd,fcntl.LOCK_SH|fcntl.LOCK_NB);fcntl.flock(fd,fcntl.LOCK_UN);return True
+                except BlockingIOError:pass
+            finally:os.close(fd)
+            if clock()>=deadline:raise GateError('bench exclusive admission is held; job BLOCKED')
+            sleep(poll)
+    def bench_exclusive(self,active):
+        """A bench job is admitted only with zero active containment jobs; the first one takes the exclusive lock for the session."""
+        if active!=0:raise GateError('bench admission requires zero active containment jobs')
+        if self.bench_lock is None:
+            fd=os.open(BENCH_LOCK_PREFIX+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+            try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                os.close(fd);raise GateError('another bench session holds exclusive admission') from exc
+            self.bench_lock=fd;self.bench_started=time.monotonic_ns()
+        return True
+    def bench_interval(self):return self.bench_held_ns
+    def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0,file_mounts=None,redacted=False):
+        if profile!='bench' and (file_mounts or redacted):raise GateError('file mounts and redaction are bench-only')
+        # Fail closed: a fixture file mount exists only in a redacted session, so its path never reaches evidence.
+        if file_mounts and not redacted:raise GateError('a fixture file mount requires a redacted session')
         self.preflight()
-        image=image or self.lock['image_id'];self.image_gate(profile,image);lsm=active_lsm(self.info);plan=make_plan(self.value,image,mounts,profile,lsm=lsm)
-        validate_plan(plan,self.value,image,mounts,profile,lsm=lsm)
+        envelope=choose_envelope(*host_topology(),wanted=int(self.value['profiles']['bench']['cpus'])) if profile=='bench' else None
+        image=image or self.lock['image_id'];self.image_gate(profile,image);lsm=active_lsm(self.info)
+        plan=make_plan(self.value,image,mounts,profile,lsm=lsm,file_mounts=file_mounts,envelope=envelope)
+        validate_plan(plan,self.value,image,mounts,profile,lsm=lsm,file_mounts=file_mounts,envelope=envelope)
+        if profile!='bench':self.bench_wait()
+        real=plan['file_mounts'][BENCH_FILE_TARGET]['source'] if redacted and plan['file_mounts'] else None
+        if real is not None:
+            # Hashed before creation: a vanished fixture BLOCKS without a container and without its path.
+            try:fixture_sha256=file_hash(Path(real))
+            except OSError:raise GateError('fixture file unavailable during admission') from None
         if network is not None and (profile!='integration' or not network.startswith('safe-c-integration-')):raise GateError('unauthorized test network')
         if profile=='integration' and not network:raise GateError('integration requires a disposable internal network')
         c=self.value['common'];p=plan['resources'];name='safe-c-'+uuid.uuid4().hex
         argv=['create','--pull=never','--name',name,'--label',LABEL+'=1','--label','org.safe-c.profile='+profile,'--label','org.safe-c.source='+file_hash(self.root/'safety/contract.json'),
               '--label','org.safe-c.purpose='+self.purpose,'--label','org.safe-c.worktree='+self.worktree_scope,
-              '--label','org.safe-c.run='+self.run_dir.name,
+              '--label','org.safe-c.run='+self.run_dir.name,*ancestor_labels(os.environ),
               '--network',network or 'none','--read-only','--cap-drop=ALL',*['--security-opt='+o for o in security_options(self.info)],
               '--ipc=private','--cgroupns=private','--restart=no','--user',plan['user'],
               '--memory',str(p['memory_bytes']),'--memory-swap',str(p['memory_bytes']),
@@ -254,30 +404,43 @@ class Launcher:
               '--tmpfs',f"/run:rw,nosuid,nodev,noexec,size={p['run_bytes']},uid={c['uid']},gid={c['gid']}",
               '--tmpfs',f"/work:rw,nosuid,nodev,exec,size={p['work_bytes']},nr_inodes={p['work_inodes']},uid={c['uid']},gid={c['gid']}",
               '--workdir=/work']
+        if profile=='bench':argv+=['--cpuset-cpus',plan['cpuset']]
         for key,v in c['fixed_environment'].items():argv+=['--env',key+'='+v]
+        for key,v in plan['fixed_environment'].items():argv+=['--env',key+'='+v]
         for target,m in plan['mounts'].items():argv+=['--mount',f"type=bind,src={m['source']},dst={target},readonly,bind-recursive=disabled"]
-        argv+=[image,*(command or ['python3','-c','import time; time.sleep(1800)'])]
+        for target,m in plan['file_mounts'].items():argv+=['--mount',f"type=bind,src={m['source']},dst={target},readonly"]
+        argv+=[image,*(command or holder_command(p))]
         # Cross-process admission and creation are one short critical section.
         fd=os.open('/tmp/safe-c-containment-admission-'+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
         try:
             fcntl.flock(fd,fcntl.LOCK_EX)
             reservation=self.admission(plan,finite_memory)
+            if profile=='bench':self.bench_exclusive(reservation['active_before'])
+            else:self.bench_wait(seconds=0)
             r=self.docker(argv)
             if not passed(r):raise GateError('protected container creation failed')
             container=r['output'].strip()
             start=self.docker(['start',container])
             if not passed(start):self.docker(['rm','--force',container]);raise GateError('protected container startup failed')
             record={'container_id':container,'name':name,'profile':profile,'plan':plan,'policy_hash':plan['policy_hash'],'runner':self.runner_identity,'reservation':reservation,'create_command':self.prefix[:1]+['--host',self.endpoint]+argv,'effective':None,'lifecycle':None,'execution_path':'docker'}
+            record['bench']={'envelope':envelope,'active_before':reservation['active_before']} if profile=='bench' else None
+            record['redacted']=bool(redacted)
+            # F-11: a redacted record keeps only the digest of the fixture, never its path.
+            # Redact before the record can reach evidence (dispose writes it, also on failure).
+            if real is not None:
+                record.update(redact_fixture({k:record[k] for k in ('plan','create_command')},real),fixture_sha256=fixture_sha256)
             self.records.append(record)
         finally:os.close(fd)
         if command is None:
-            try:record['effective']=self.effective(container,plan)
+            try:
+                effective=self.effective(container,plan)
+                record['effective']=redact_fixture(effective,real) if real is not None else effective
             except Exception:
                 self.dispose(record);raise
         return record
     def effective(self,container,plan,python_probe=True):
         obj=self.json(['inspect',container])[0];h=obj['HostConfig'];cfg=obj['Config'];p=plan['resources']
-        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},sorted(h['SecurityOpt'])==sorted(security_options(self.host_info())),(obj['AppArmorProfile']=='docker-default' if active_lsm(self.host_info())=='apparmor' else ':container_t:' in obj.get('ProcessLabel','')),not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
+        checks=[obj['Image']==plan['image_id'],cfg['User']==plan['user'],h['ReadonlyRootfs'],h['CapDrop']==['ALL'],not h.get('CapAdd'),not h['Privileged'],not h['Devices'],not h['DeviceRequests'],h['NetworkMode']!='host',h['PidMode']=='',h['IpcMode']=='private',h['CgroupnsMode']=='private',h['RestartPolicy']['Name']=='no',h['Memory']==p['memory_bytes'],h['MemorySwap']==p['memory_bytes'],h['NanoCpus']==int(p['cpus']*1e9),h.get('CpusetCpus','')==plan.get('cpuset',''),h['PidsLimit']==p['pids'],h['LogConfig']=={'Type':'local','Config':{'max-size':str(self.value['common']['log_bytes']),'max-file':str(self.value['common']['log_files']),'compress':'false'}},sorted(h['SecurityOpt'])==sorted(security_options(self.host_info())),(obj['AppArmorProfile']=='docker-default' if active_lsm(self.host_info())=='apparmor' else ':container_t:' in obj.get('ProcessLabel','')),not cfg.get('Volumes'),not cfg.get('Healthcheck'),not h.get('PortBindings'),not h.get('ExtraHosts')]
         if not all(checks):raise GateError('effective Docker settings mismatch')
         c=self.value['common']
         expected_tmpfs={'/tmp':f"rw,nosuid,nodev,noexec,size={p['tmp_bytes']},uid={c['uid']},gid={c['gid']}",'/run':f"rw,nosuid,nodev,noexec,size={p['run_bytes']},uid={c['uid']},gid={c['gid']}",'/work':f"rw,nosuid,nodev,exec,size={p['work_bytes']},nr_inodes={p['work_inodes']},uid={c['uid']},gid={c['gid']}"}
@@ -289,7 +452,8 @@ class Launcher:
         # The host-side /proc and /sys/fs/cgroup reads below (workload cgroup and
         # namespace comparison) are the locality proof for the unix-socket endpoint:
         # they succeed only when the daemon runs the workload on this kernel.
-        if len(obj['Mounts'])!=len(plan['mounts']) or any(m['RW'] or m['Destination'] not in plan['mounts'] or m['Source']!=plan['mounts'][m['Destination']]['source'] for m in obj['Mounts']):raise GateError('unexpected effective bind mounts')
+        expected_mounts={**{k:v['source'] for k,v in plan['mounts'].items()},**{k:v['source'] for k,v in plan.get('file_mounts',{}).items()}}
+        if len(obj['Mounts'])!=len(expected_mounts) or any(m['RW'] or m['Destination'] not in expected_mounts or m['Source']!=expected_mounts[m['Destination']] for m in obj['Mounts']):raise GateError('unexpected effective bind mounts')
         pid=obj['State']['Pid']
         paths=Path(f'/proc/{pid}/cgroup').read_text().splitlines()
         unified=[line.split(':',2)[2] for line in paths if line.startswith('0::')]
@@ -300,7 +464,7 @@ class Launcher:
         if python_probe:
             probe=self.docker(['exec',container,'python3','-c','import os,json,pathlib,resource; s=pathlib.Path("/proc/self/status").read_text(); print(json.dumps({"uid":os.getuid(),"gid":os.getgid(),"status":{x.split(":")[0]:x.split(":")[1].strip() for x in s.splitlines() if x.startswith(("CapEff:","CapBnd:","NoNewPrivs:","Seccomp:","Groups:"))},"limits":{k:pathlib.Path("/sys/fs/cgroup",k).read_text().strip() for k in ["memory.max","memory.swap.max","pids.max","cpu.max"]},"namespaces":{k:os.readlink("/proc/self/ns/"+k) for k in ["pid","net","ipc","mnt","cgroup"]},"compute":sum(range(10)),"apparmor_active":pathlib.Path("/proc/self/attr/current").read_text().strip(),"scratch":{k:{"bytes":os.statvfs(k).f_blocks*os.statvfs(k).f_frsize,"inodes":os.statvfs(k).f_files} for k in ["/work","/tmp","/run","/dev/shm"]},"ulimits":{k:resource.getrlimit(v) for k,v in {"core":resource.RLIMIT_CORE,"nofile":resource.RLIMIT_NOFILE,"fsize":resource.RLIMIT_FSIZE,"address":resource.RLIMIT_AS}.items()},"mount_inventory":[x for x in pathlib.Path("/proc/self/mountinfo").read_text().splitlines() if x.split()[4] in ["/","/work","/tmp","/run","/dev/shm","/src","/inputs","/fixture"]]}))'])
             if not passed(probe):raise GateError('harmless in-container capability probe failed')
-            inside=json.loads(probe['output'])
+            inside=loads_capped(probe['output'])
         else:
             status={x.split(':',1)[0]:x.split(':',1)[1].strip() for x in Path(f'/proc/{pid}/status').read_text().splitlines() if ':' in x}
             logs=self.docker(['logs',container],timeout=5)
@@ -320,10 +484,10 @@ class Launcher:
         groups=s['Groups'].split()
         if any(int(x)!=c['gid'] for x in groups):raise GateError('unnecessary supplementary groups')
         if any(inside['namespaces'][k]==os.readlink('/proc/self/ns/'+k) for k in ['pid','net','ipc','mnt','cgroup']):raise GateError('host namespace sharing')
-        return {'inspect':{'host_config':h,'image_id':obj['Image'],'user':cfg['User'],'apparmor':obj['AppArmorProfile'],'mounts':obj['Mounts'],'state':obj['State'],'network':obj['NetworkSettings']['Networks']},'cgroup_path':str(cg),'limits':limits,'inside':inside,'events_before':self.counters(cg)}
+        return {'inspect':{'host_config':h,'image_id':obj['Image'],'user':cfg['User'],'apparmor':obj['AppArmorProfile'],'mounts':obj['Mounts'],'state':obj['State'],'network':obj['NetworkSettings']['Networks']},'cgroup_path':str(cg),'cgroup_inode':os.stat(cg).st_ino,'limits':limits,'inside':inside,'events_before':self.counters(cg)}
     @staticmethod
     def counters(cg):
-        return {k:(Path(cg)/k).read_text().strip() for k in ['memory.events','pids.events','cpu.stat','memory.current','pids.current','memory.peak','pids.peak'] if (Path(cg)/k).exists()}
+        return {k:(Path(cg)/k).read_text().strip() for k in ['memory.events','pids.events','cpu.stat','memory.current','pids.current','memory.peak','pids.peak','memory.stat'] if (Path(cg)/k).exists()}
     def execute(self,record,args,*,timeout,env=None,limit=None):
         dispatch_gate(record)
         p=record['plan']['resources'];c=self.value['common']
@@ -337,6 +501,7 @@ class Launcher:
         argv+=[record['container_id'],*args]
         result=self.docker(argv,timeout=timeout,limit=limit or c['capture_bytes'])
         if any(len(line)>c['capture_record_bytes'] for line in result['output'].splitlines()):result['failure']='RECORD_LIMIT';result['evidence_complete']=False
+        if record.get('redacted'):redact_output(result)
         result.update(container_id=record['container_id'],profile=record['profile'],container_policy_hash=record['policy_hash'],effective_settings=record['effective'],runner_identity=self.runner_identity)
         if result['failure']:self.dispose(record)
         return result
@@ -349,7 +514,7 @@ class Launcher:
         r=self.docker(['inspect',record['container_id']],timeout=15)
         ok=False
         if passed(r) and expected.get('StartedAt'):
-            try:rows=json.loads(r['output'])
+            try:rows=loads_capped(r['output'])
             except ValueError:rows=None
             if isinstance(rows,list) and len(rows)==1 and isinstance(rows[0],dict):
                 state=rows[0].get('State') or {}
@@ -377,4 +542,7 @@ class Launcher:
         import shutil
         for record in self.records:
             if record['lifecycle'] is None:self.dispose(record)
+        if self.bench_lock is not None:
+            self.bench_held_ns=time.monotonic_ns()-self.bench_started
+            fcntl.flock(self.bench_lock,fcntl.LOCK_UN);os.close(self.bench_lock);self.bench_lock=None
         shutil.rmtree(self.config,ignore_errors=True)

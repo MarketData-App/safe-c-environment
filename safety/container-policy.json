@@ -371,6 +371,25 @@
       "wall_seconds": 600,
       "network": "none",
       "executable_work": true
+    },
+    "bench": {
+      "memory_bytes": 2147483648,
+      "swap_bytes": 0,
+      "cpus": 4,
+      "pids": 256,
+      "work_bytes": 536870912,
+      "tmp_bytes": 67108864,
+      "run_bytes": 1048576,
+      "shm_bytes": 67108864,
+      "work_inodes": 65536,
+      "wall_seconds": 10800,
+      "network": "none",
+      "executable_work": true,
+      "fixed_environment": {
+        "OPENBLAS_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1"
+      }
     }
   }
 }

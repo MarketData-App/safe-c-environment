@@ -24,7 +24,8 @@ created. Follow these steps for each module:
    failure behavior.
 2. Declare the module in `project.json`: spec, sources, headers, tests,
    `reads_external_input` and fuzz targets. Declare programs and `run` there too.
-   The file never holds flags or gate settings.
+   The file never holds flags or gate settings. The framework applies the
+   build rules in "Project build rules" below to every module.
 3. Write boundary tests in `tests/project/`. Cover zero, one, exact bounds,
    one-past, signed-negative and representable maxima.
 4. Write a fuzz target in `fuzz/project/` for every module that reads external
@@ -70,6 +71,50 @@ line and check. Sanitizer reports go to an evidence file; read them with
 | `clusterfuzzlite` | Builds each fuzz target with the ClusterFuzzLite build contract and audits sanitizer and coverage instrumentation |
 | `inventory` | Every project source has a spec and tests; external input has a fuzz target |
 | `review-protocol` | `review/ledger.json` is schema-valid and has no OPEN, UNRESOLVED or BLOCKED high-severity finding |
+
+### Project build rules
+
+The framework sets every flag. `project.json` only selects the rules below
+(`cmake/Project.cmake`, `cmake/Safety.cmake`, `tools/project_model.py`,
+`tools/project_check.py`).
+
+- Every project target links `libm` and compiles with `-ffp-contract=off`
+  (IEEE binary64 without contraction) in every build, the fuzz builds included.
+- `uses` names up to 8 other declared modules. The module library links them.
+  A module test links its module, so it also links the `uses` closure. A fuzz
+  target compiles the sources of the `uses` closure first, then its module. The
+  inventory refuses an unknown name, a module that uses itself and a cycle.
+- `"foundation": "glib-parallel"` is opt-in per module. The module library then
+  links `sc_foundation` and `sc_parallel` and the locked GLib profile of the
+  build (`foundation.lock.json`). Tests and programs find that profile library
+  through the build run path. No other value is accepted. A fuzz target whose
+  `uses` closure sets `foundation` builds against the locked fuzz-profile GLib
+  (`/opt/foundation/fuzz`).
+- `libraries` (1 or 2 entries; each has `name`, `modules`, `exports`) builds
+  `lib<name>.so` from the whole archives of the listed modules and their `uses`
+  closure:
+  - Every project module object is position-independent (`-fPIC`) in every
+    build when the project declares a library. `project_check` checks the
+    compile database.
+  - A version script exports only the names in `exports`. Every other symbol is
+    local.
+  - The five non-instrumented builds (`gcc-O0`, `gcc-O2`, `clang-O0`,
+    `clang-O2`, `hardened`) link with `-z defs` (no undefined symbol of the
+    project) and `-z text`. Sanitizer, coverage and fuzz builds omit `-z defs`,
+    because their runtimes stay undefined in a shared object.
+  - The `hardened` gate reads the dynamic symbols. Each export must be defined.
+    Any other defined `GLOBAL`, `WEAK` or `UNIQUE` symbol is a FAIL. An
+    undefined symbol that starts with `Py` or `_Py` (the Python C API) is a
+    FAIL. The library must also have full RELRO, `BIND_NOW`, a non-executable
+    stack and no text relocation.
+  - The runtime closure of each library, and of each program, must resolve to
+    system libraries. A GLib runtime name (`libglib-2.0.so.0`,
+    `libpcre2-8.so.0`) must resolve to the locked copy in
+    `/opt/foundation/clang-O2/lib` with the sha256 from `foundation.lock.json`.
+    A system copy of that name is a FAIL.
+  - A library name must be unique and differ from every program name. Each
+    export must be a C name that is not a keyword. At least one listed module
+    must set `reads_external_input` and declare a fuzz target.
 
 ### Project source rules
 

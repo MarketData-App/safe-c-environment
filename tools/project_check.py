@@ -10,6 +10,7 @@ import argparse
 import base64
 from datetime import datetime, timezone
 import hashlib
+import inspect
 import io
 import json
 import posixpath
@@ -25,7 +26,9 @@ import policy
 import project_model as pm
 import project_source
 from foundation import analysis_flags
-from evidence import GateError, RUNTIME_ENV, atomic_json, digest, environment_gate, file_hash, passed, read_json
+from evidence import (GateError, PROJECT_JSON_LARGE_BYTES, RUNTIME_ENV, atomic_json, digest, environment_gate, file_hash,
+                      load_project_json, passed, read_json)
+from evidence import loads_capped
 from schema_check import validate
 
 GATES = ('format', 'gcc-O0', 'gcc-O2', 'clang-O0', 'clang-O2', 'hardened', 'tidy', 'csa', 'gcc-analyzer', 'ast',
@@ -51,12 +54,18 @@ EXECUTION_ORDER = ('inventory', 'review-protocol', 'format',
                    'clusterfuzzlite', 'fuzz-replay', 'fuzz-exploration')
 HARDENED_FLAGS = ('-fstack-protector-strong', '-fstack-clash-protection', '-D_FORTIFY_SOURCE=3', '-fPIE')
 FUZZ_ENV = {'CC': 'clang', 'CXX': 'clang++',
-            'CFLAGS': '-O1 -g -fno-omit-frame-pointer -fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all',
+            'CFLAGS': '-O1 -g -fno-omit-frame-pointer -fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -ffp-contract=off',
             'LIB_FUZZING_ENGINE': '-fsanitize=fuzzer'}
+# Amendment F item 3: the locked fuzz-profile GLib of a project fuzz build whose module
+# closure sets "foundation". container/project-fuzz-build.sh takes it as `--glib` (only this
+# prefix); an argument, because the protected launcher admits only the policy's environment names.
+FUZZ_GLIB_PREFIX = '/opt/foundation/fuzz'
+FUZZ_GLIB_FLAGS = ('-isystem', FUZZ_GLIB_PREFIX+'/include/glib-2.0', '-isystem', FUZZ_GLIB_PREFIX+'/lib/glib-2.0/include',
+                   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70', '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70',
+                   '-I/src/foundation/include', '-I/src/foundation/parallel')
+FUZZ_FRAMEWORK_SOURCES = ('foundation/src/sc-foundation.c', 'foundation/parallel/sc-parallel.c')
 BLOCKING_STATES = {'OPEN', 'UNRESOLVED', 'BLOCKED'}
 MIN_FUZZ_SECONDS = 30
-# Launcher.create's default command sleeps 1800 s; the container ends then.
-CONTAINER_SECONDS = 1800
 CONTAINER_RESERVE = 60
 NO_FUZZ = {'targets': 0, 'reason': 'no module reads external input'}
 RUNTIME_BYTES = 8*1024*1024
@@ -126,7 +135,7 @@ def coverage_ok(summary, files, line, branch):
 def parse_ctest_names(json_text):
     """Test names from `ctest --show-only=json-v1`, in CTest order."""
     try:
-        value = json.loads(json_text)
+        value = loads_capped(json_text)
     except ValueError as exc:
         raise GateError('CTest inventory is not JSON') from exc
     if not isinstance(value, dict) or not isinstance(value.get('tests'), list):
@@ -185,6 +194,95 @@ def elf_hardened(text):
     return all(checks.values()), details
 
 
+def library_exports_ok(text, exports):
+    """Amendment F item 3: problems in `readelf --wide --dyn-syms` of a project shared library.
+
+    A defined GLOBAL, WEAK or GNU UNIQUE symbol of type FUNC, OBJECT, TLS, IFUNC or NOTYPE must be
+    an export, every export must be defined, and no undefined symbol may name the Python C API."""
+    defined, problems = set(), []
+    for line in text.splitlines():
+        parts = line.split()
+        if (len(parts) < 8 or parts[3] not in ('FUNC', 'OBJECT', 'TLS', 'IFUNC', 'NOTYPE')
+                or parts[4] not in ('GLOBAL', 'WEAK', 'UNIQUE')):
+            continue
+        name = parts[7].split('@')[0]
+        if parts[6] == 'UND':
+            if name.startswith(('Py', '_Py')):
+                problems.append('undefined Python API symbol: ' + name[:64])
+            continue
+        defined.add(name)
+    problems += ['unexpected export: ' + n[:64] for n in sorted(defined - set(exports))]
+    problems += ['missing export: ' + n[:64] for n in sorted(set(exports) - defined)]
+    return problems
+
+
+def library_elf_hardened(text):
+    """Amendment F item 3: structural hardening of one project shared library from
+    `readelf --wide -h -l -d`: a DYN object with full RELRO (GNU_RELRO and BIND_NOW or
+    FLAGS_1 NOW), a non-executable GNU_STACK and no text relocation. (ok, details)."""
+    checks = {'shared_object': bool(re.search(r'Type:\s+DYN\b', text)),
+              'relro': bool(re.search(r'^\s*GNU_RELRO\b', text, re.M)),
+              'bind_now': bool(re.search(r'\(BIND_NOW\)|\(FLAGS\)[^\n]*\bBIND_NOW\b|\(FLAGS_1\)[^\n]*\bNOW\b', text)),
+              'non_executable_stack': bool(re.search(r'^\s*GNU_STACK[^\n]*\sRW\s', text, re.M)),
+              'no_text_relocation': not re.search(r'\(TEXTREL\)|\(FLAGS\)[^\n]*\bTEXTREL\b', text)}
+    return all(checks.values()), dict(checks, failed=[k for k, v in checks.items() if not v])
+
+
+_PIC_FLAGS = ('-fPIC', '-fpic', '-fPIE', '-fpie', '-fno-pic', '-fno-PIC', '-fno-pie', '-fno-PIE')
+
+
+COVERAGE_ATOMIC = '-fprofile-update=atomic'
+
+
+def coverage_atomic_problems(database, sources):
+    """P2-COV-ATOMIC-01: every project translation unit (relative to /src) of the coverage build is in the compilation
+    database, and its last -fprofile-update= flag is -fprofile-update=atomic (clang uses the last one), so worker threads
+    lose no counter update."""
+    problems, found = [], set()
+    for row in database:
+        rel = row['file'].removeprefix('/src/')
+        if rel not in sources:
+            continue
+        found.add(rel)
+        argv = row.get('arguments') or shlex.split(row['command'])
+        update = [a for a in argv if a.startswith('-fprofile-update=')]
+        if not update or update[-1] != COVERAGE_ATOMIC:
+            problems.append('coverage counters are not atomic: ' + rel[:200])
+    problems += ['coverage unit missing from the compilation database: ' + rel[:200] for rel in sources if rel not in found]
+    return problems
+
+
+def library_pic_problems(database, sources):
+    """Amendment F item 3: every translation unit of a project shared library (relative to /src)
+    is in the compilation database, and its last position-independence flag is -fPIC."""
+    problems, found = [], set()
+    for row in database:
+        rel = row['file'].removeprefix('/src/')
+        if rel not in sources:
+            continue
+        found.add(rel)
+        argv = row.get('arguments') or shlex.split(row['command'])
+        pic = [a for a in argv if a in _PIC_FLAGS]
+        if not pic or pic[-1] != '-fPIC':
+            problems.append('library object is not compiled with -fPIC last: ' + rel[:200])
+    problems += ['library object missing from compilation database: ' + rel[:200] for rel in sorted(set(sources) - found)]
+    return problems
+
+
+def library_sources(project_dir, project):
+    """The translation units of every declared library, relative to /src: the module sources
+    of each library's closure, the framework foundation sources when the closure sets
+    "foundation", and cmake/empty.c."""
+    by_name = {m['name']: m for m in project['modules']}
+    result = []
+    for library in project.get('libraries', []):
+        closure = [by_name[n] for n in pm.library_closure(project, library)]
+        result += [_rel(project_dir, s) for m in closure for s in m['sources']]
+        if any('foundation' in m for m in closure):
+            result += list(FUZZ_FRAMEWORK_SOURCES)
+    return _unique(result + (['cmake/empty.c'] if result else []))
+
+
 def fuzz_stats(output):
     """libFuzzer end-of-run counters: `-print_final_stats=1` stat lines and the final DONE line, both anchored."""
     executions = re.findall(r'^stat::number_of_executed_units: (\d+)$', output, re.M)
@@ -192,6 +290,13 @@ def fuzz_stats(output):
     return {'executions': int(executions[-1]) if executions else 0,
             'coverage_edges': int(done[-1][1]) if done else 0,
             'features': int(done[-1][2]) if done else 0}
+
+
+def container_seconds(value):
+    """The project container's lifetime: Launcher.create's default holder for the project profile
+    (container_policy.holder_seconds, Amendment H11); the container ends then (T9-APP-03)."""
+    from container_policy import holder_seconds
+    return holder_seconds(value['profiles']['project'])
 
 
 def capped_timeout(requested, wall, deadline, now, reserve=CONTAINER_RESERVE):
@@ -295,7 +400,7 @@ def test_binaries(project):
 
 
 def analyzer_argv(name, rel, index, project_dir):
-    flags = analysis_flags('gcc-O0' if name == 'gcc-analyzer' else 'clang-O0') + ['-I'+include_dir(project_dir)]
+    flags = analysis_flags('gcc-O0' if name == 'gcc-analyzer' else 'clang-O0') + ['-I'+include_dir(project_dir), '-ffp-contract=off']
     if name == 'tidy':
         return ['clang-tidy', '--config-file=/src/.clang-tidy', '/src/'+rel, '--', *flags]
     if name == 'csa':
@@ -314,10 +419,11 @@ def analyzer_argv(name, rel, index, project_dir):
 # its public header is a PCH, which -include reproduces for preprocessing.
 def _ast_scan_flags(project_dir):
     prefix = '/opt/foundation/clang-O0'
-    return ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/tests', '-I/src/fuzz',
+    return ['-std=c17', '-I/src/foundation/include', '-I/src/foundation/parallel', '-I/src/foundation/tests', '-I/src/fuzz',
             '-idirafter', include_dir(project_dir), '-isystem', prefix+'/include/glib-2.0',
             '-isystem', prefix+'/lib/glib-2.0/include', '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_70',
-            '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70', '-include', '/src/foundation/include/sc-foundation.h']
+            '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_70', '-ffp-contract=off',
+            '-include', '/src/foundation/include/sc-foundation.h']
 
 
 def source_policy_plan(project_dir, project):
@@ -331,11 +437,12 @@ def source_policy_plan(project_dir, project):
     include = '-I'+include_dir(project_dir)
     configs = [{'name': b['gate'], 'database': '/work/'+b['directory']+'/compile_commands.json'}
                for b in build_plan(project_dir)]
+    glib = FUZZ_GLIB_FLAGS if any('foundation' in m for m in project['modules']) else []
     configs += [{'name': 'fuzz', 'argv': ['clang', *FUZZ_ENV['CFLAGS'].split(), '-std=c17',
-                                          '-I'+container_dir(project_dir)+'/include']},
-                {'name': 'tidy', 'argv': ['clang', *analysis_flags('clang-O0'), include]},
-                {'name': 'csa', 'argv': ['clang', *analysis_flags('clang-O0'), include, '-D__clang_analyzer__=1']},
-                {'name': 'gcc-analyzer', 'argv': ['gcc', *analysis_flags('gcc-O0'), include, '-O0', '-fanalyzer']},
+                                          '-I'+container_dir(project_dir)+'/include', *glib]},
+                {'name': 'tidy', 'argv': ['clang', *analysis_flags('clang-O0'), include, '-ffp-contract=off']},
+                {'name': 'csa', 'argv': ['clang', *analysis_flags('clang-O0'), include, '-ffp-contract=off', '-D__clang_analyzer__=1']},
+                {'name': 'gcc-analyzer', 'argv': ['gcc', *analysis_flags('gcc-O0'), include, '-ffp-contract=off', '-O0', '-fanalyzer']},
                 {'name': 'ast-scan', 'argv': ['clang', *_ast_scan_flags(project_dir)], 'gnu_source_probe': True}]
     return {'project_root': container_dir(project_dir), 'units': ['/src/'+rel for rel in project_c_files(project_dir, project)],
             'configs': configs}
@@ -354,6 +461,24 @@ def framework_headers(root, project_dir):
     return result
 
 
+def source_policy_dependencies(result):
+    """{unit: [paths]} from the printed source-policy result.
+
+    The step prints each unit's dependencies as indexes into one table of
+    distinct paths (container/project-source-policy.py wire()). Any other
+    form, a duplicate path or an index out of range BLOCKS the gate."""
+    paths, units = result.get('dependency_paths'), result.get('dependencies')
+    if (not isinstance(paths, list) or not all(isinstance(p, str) for p in paths) or len(set(paths)) != len(paths)
+            or not isinstance(units, dict)):
+        raise GateError('project source policy dependencies are malformed')
+    decoded = {}
+    for unit, indexes in units.items():
+        if not isinstance(indexes, list) or any(type(k) is not int or not 0 <= k < len(paths) for k in indexes):
+            raise GateError('project source policy dependencies are malformed')
+        decoded[unit] = [paths[k] for k in indexes]
+    return decoded
+
+
 def source_policy_findings(result, project_dir, project, root):
     """(failed checks, details) from the container result plus the host dependency check."""
     if not isinstance(result, dict) or result.get('status') not in ('PASS', 'FAIL'):
@@ -362,7 +487,7 @@ def source_policy_findings(result, project_dir, project, root):
     headers = {h for m in project['modules'] for h in m['headers']}
     known = framework_headers(root, project_dir)
     dependency_rows = []
-    for unit, paths in sorted(result.get('dependencies', {}).items()):
+    for unit, paths in sorted(source_policy_dependencies(result).items()):
         for problem in project_source.dependency_problems(paths, unit, project_dir, headers, known):
             dependency_rows.append(dict(problem, unit=unit))
     failed = list(result.get('failed_checks', []))
@@ -375,8 +500,28 @@ def source_policy_findings(result, project_dir, project, root):
     return details['failed_checks'], details
 
 
-def fuzz_build_argv(project_dir, fuzz, module):
-    return ['bash', '/src/container/project-fuzz-build.sh', project_dir, fuzz['name'], fuzz['harness'], *module['sources']]
+def fuzz_sources(module, project):
+    """Amendment F item 3: the project sources of a fuzz target, the module's uses closure first."""
+    names = pm.uses_closure(project, module['name'])
+    by_name = {m['name']: m for m in project['modules']}
+    return _unique([s for n in names for s in by_name[n]['sources']] + module['sources'])
+
+
+def fuzz_build_argv(project_dir, fuzz, module, project):
+    """The fuzz build argv and its extra environment (always empty: the launcher admits only
+    the policy's environment names).
+
+    The target compiles the sources of its module and of the module's uses closure. When a
+    module of that closure sets "foundation", the argv selects the locked fuzz-profile GLib
+    (`--glib`) and the framework foundation sources (`--framework`), compiled with the same
+    flags (Amendment F item 3)."""
+    by_name = {m['name']: m for m in project['modules']}
+    closure = [by_name[n] for n in pm.uses_closure(project, module['name'])] + [module]
+    argv = ['bash', '/src/container/project-fuzz-build.sh', project_dir, fuzz['name'], fuzz['harness'],
+            *fuzz_sources(module, project)]
+    if not any('foundation' in m for m in closure):
+        return argv, {}
+    return argv + ['--glib', FUZZ_GLIB_PREFIX, '--framework', *FUZZ_FRAMEWORK_SOURCES], {}
 
 
 def gate_row(name, status, details=None, evidence=()):
@@ -396,14 +541,20 @@ def review_gate(root, project_dir, framework_root):
     path = Path(root)/project_dir/'review/ledger.json'
     if path.is_symlink() or not path.is_file():
         return gate_row('review-protocol', 'FAIL', {'reason': 'review/ledger.json is missing'})
-    try:
-        value = read_json(path)
+    got = {}
+
+    def check(value):
         validate(Path(framework_root), 'ledger', value)
+        got['blocking'] = [f['id'] for f in value['findings'] if f['state'] in BLOCKING_STATES
+                           and re.match(r'\s*(high|critical)\b', f['severity'], re.I)]
+        got['details'] = {'findings': len(value['findings']), 'review_records': len(value['review'])}
+    try:
+        # FR3-17: project data through the one boundary; the checks of the parsed ledger run inside it
+        load_project_json(path, 'review-ledger', PROJECT_JSON_LARGE_BYTES, label='review/ledger.json', check=check)
     except (GateError, ValueError) as exc:
         return gate_row('review-protocol', 'FAIL', {'reason': 'review/ledger.json is invalid: '+str(exc)[:300]})
-    blocking = [f['id'] for f in value['findings'] if f['state'] in BLOCKING_STATES
-                and re.match(r'\s*(high|critical)\b', f['severity'], re.I)]
-    details = {'findings': len(value['findings']), 'review_records': len(value['review']), 'blocking_findings': blocking}
+    blocking = got['blocking']
+    details = dict(got['details'], blocking_findings=blocking)
     if blocking:
         details['reason'] = 'high-severity findings are OPEN, UNRESOLVED or BLOCKED'
         return gate_row('review-protocol', 'FAIL', details)
@@ -432,28 +583,77 @@ def project_identity(root, project_dir):
 
 # ------------------------------------------------------------ container steps
 
+def fuzz_library_argv(project_dir, library, project):
+    """Amendment F item 3: the fuzz-build argv of lib<name>.so (the fuzz flags, -fPIC, the export
+    version script, no -z defs) from the sources of the library's module closure."""
+    by_name = {m['name']: m for m in project['modules']}
+    closure = [by_name[n] for n in pm.library_closure(project, library)]
+    argv = ['bash', '/src/container/project-fuzz-build.sh', '--library', project_dir, library['name'],
+            ','.join(library['exports']), *_unique([s for m in closure for s in m['sources']])]
+    if not any('foundation' in m for m in closure):
+        return argv
+    return argv + ['--glib', FUZZ_GLIB_PREFIX, '--framework', *FUZZ_FRAMEWORK_SOURCES]
+
+
 class Stop(Exception):
     """A gate failed; later gates do not run."""
 
 
-_CLOSURE = r'''
-import json,os,re,subprocess,sys
+FOUNDATION_RUNTIME_PROFILE = 'clang-O2'
+LOCKED_RUNTIME_NAMES = ('libglib-2.0.so.0', 'libpcre2-8.so.0')
+
+
+def closure_allowlist(root):
+    """Amendment F item 3: the locked GLib runtime files of the hardened build's profile, by name and sha256."""
+    files = read_json(Path(root)/'foundation.lock.json')['profiles'][FOUNDATION_RUNTIME_PROFILE]['files']
+    return {name: files['lib/'+name] for name in LOCKED_RUNTIME_NAMES}
+
+
+def resolve_library(name, allow, system_dirs, profile_dir, isfile, sha256_of):
+    """Amendment F item 3: a locked name resolves only to the lock-identified profile file; never a system copy."""
+    import os
+    if name in allow:
+        path = os.path.join(profile_dir, name)
+        if not isfile(path):
+            raise SystemExit(44)
+        if sha256_of(os.path.realpath(path)) != allow[name]:
+            raise SystemExit(43)
+        return os.path.realpath(path)
+    for d in system_dirs:
+        path = os.path.join(d, name)
+        if isfile(path):
+            return os.path.realpath(path)
+    raise SystemExit(42)
+
+
+# The container script runs the tested resolve_library itself (its source text), so the
+# unit-tested function is the executed one. argv: program path, allowlist JSON, and
+# `library` for a project shared library (a shared object has no program interpreter).
+_CLOSURE_DRIVER = r'''
+import hashlib,json,os,re,subprocess,sys
 dirs=['/lib/x86_64-linux-gnu','/usr/lib/x86_64-linux-gnu']
+allow=json.loads(sys.argv[2])
+library=len(sys.argv)>3 and sys.argv[3]=='library'
+def sha256_of(path):
+    with open(path,'rb') as f:return hashlib.sha256(f.read()).hexdigest()
 def dyn(path):
     out=subprocess.run(['readelf','--wide','-l','-d',path],capture_output=True,text=True,check=True).stdout
     return re.findall(r'Shared library: \[([^\]]+)\]',out),re.findall(r'Requesting program interpreter: ([^\]]+)\]',out)
 needed,interp=dyn(sys.argv[1])
-if len(interp)!=1 or interp[0]!='/lib64/ld-linux-x86-64.so.2':raise SystemExit(40)
-libs={};queue=list(needed)
+if library:
+    if interp:raise SystemExit(40)
+elif len(interp)!=1 or interp[0]!='/lib64/ld-linux-x86-64.so.2':raise SystemExit(40)
+libs={};digests={};queue=list(needed)
 while queue:
     name=queue.pop(0)
     if name in libs:continue
     if '/' in name or not re.fullmatch(r'[A-Za-z0-9_.+-]+',name):raise SystemExit(41)
-    found=[os.path.realpath(os.path.join(d,name)) for d in dirs if os.path.isfile(os.path.join(d,name))]
-    if not found:raise SystemExit(42)
-    libs[name]=found[0];queue+=dyn(found[0])[0]
-print(json.dumps({'interpreter':interp[0],'interpreter_path':os.path.realpath(interp[0]),'libraries':libs}))
+    libs[name]=resolve_library(name,allow,dirs,'/opt/foundation/clang-O2/lib',os.path.isfile,sha256_of)
+    digests[name]=sha256_of(libs[name]);queue+=dyn(libs[name])[0]
+if library:print(json.dumps({'interpreter':None,'libraries':libs,'sha256':digests}))
+else:print(json.dumps({'interpreter':interp[0],'interpreter_path':os.path.realpath(interp[0]),'libraries':libs,'sha256':digests}))
 '''
+_CLOSURE = inspect.getsource(resolve_library) + _CLOSURE_DRIVER
 _STAT = r'''
 import hashlib,json,pathlib,stat,sys
 p=pathlib.Path(sys.argv[1])
@@ -543,7 +743,7 @@ class ProjectCheck:
         r = self.step(label+'-stat', ['python3', '-c', _STAT, path, str(RUNTIME_BYTES)], timeout=30)
         if not passed(r):
             raise GateError('runtime file is not a bounded regular file: '+path)
-        meta = json.loads(r['output'])
+        meta = loads_capped(r['output'])
         data = bytearray()
         for offset in range(0, meta['bytes'], CHUNK):
             chunk = self.step(label+'-chunk', ['python3', '-c', _CHUNK, path, str(offset), str(CHUNK)], timeout=60, keep_output=False)
@@ -595,8 +795,19 @@ class ProjectCheck:
         try:
             text, path = self.read_text(gate+'-compile-database', '/work/'+directory+'/compile_commands.json')
             evidence.append(path)
-            database = json.loads(text)
+            database = loads_capped(text)
             details['build_audit'] = policy.build_audit(database, audit_sources(self.project_dir, self.project), profile)
+            # Amendment F item 3: library objects are PIC in every build (-fPIC after -fPIE).
+            library_units = library_sources(self.project_dir, self.project)
+            if library_units:
+                pic_problems = library_pic_problems(database, library_units)
+                if pic_problems:
+                    raise GateError(pic_problems[0])
+                details['library_pic_units'] = len(library_units)
+            if profile == 'coverage':
+                atomic_problems = coverage_atomic_problems(database, audit_sources(self.project_dir, self.project))
+                if atomic_problems:
+                    raise GateError(atomic_problems[0])
             if profile == 'hardened':
                 for row in database:
                     argv = row.get('arguments') or shlex.split(row['command'])
@@ -629,6 +840,28 @@ class ProjectCheck:
                     details.update(stage='elf', programs=programs)
                     self.set(gate, 'FAIL', details, evidence)
             details['programs'] = programs
+            # Amendment F item 3: each project shared library is hardened and exports exactly
+            # its declared names.
+            libraries = {}
+            for library in self.project.get('libraries', []):
+                name = library['name']
+                path = '/work/'+directory+'/lib'+name+'.so'
+                elf = self.step('hardened-library-elf-'+name, ['readelf', '--wide', '-h', '-l', '-d', path], timeout=30)
+                evidence.append(elf['evidence_path'])
+                ok, hardening = library_elf_hardened(elf['output']) if passed(elf) else (False, {'failed': ['readelf failed']})
+                libraries[name] = {'hardening': hardening}
+                if not ok:
+                    details.update(stage='library-hardening', libraries=libraries, failed_checks=['library-hardening'])
+                    self.set(gate, 'FAIL', details, evidence)
+                dyn = self.step('hardened-exports-'+name, ['readelf', '--wide', '--dyn-syms', path], timeout=30)
+                evidence.append(dyn['evidence_path'])
+                problems = library_exports_ok(dyn['output'], library['exports']) if passed(dyn) else ['readelf failed']
+                libraries[name].update(exports=len(library['exports']), problems=problems[:20])
+                if problems:
+                    details.update(stage='library-exports', libraries=libraries, failed_checks=['library-exports'])
+                    self.set(gate, 'FAIL', details, evidence)
+            if libraries:
+                details['libraries'] = libraries
         tests = self.run_tests(gate, directory, profile, evidence)
         details['tests'] = tests
         if gate in TEST_BUILDS:
@@ -707,7 +940,7 @@ class ProjectCheck:
         line, branch = coverage_thresholds(self.root)
         listing = self.step('coverage-profiles', ['python3', '-c', _LIST, '/work/project/profiles'], timeout=30)
         evidence.append(listing['evidence_path'])
-        profiles = json.loads(listing['output']) if passed(listing) else []
+        profiles = loads_capped(listing['output']) if passed(listing) else []
         if not profiles or any(not re.fullmatch(r'/work/project/profiles/[A-Za-z0-9_-]+\.profraw', p) for p in profiles):
             details.update(stage='coverage', reason='no test coverage profiles were written')
             self.set('coverage', 'FAIL', details, evidence)
@@ -719,7 +952,7 @@ class ProjectCheck:
                                                  '-instr-profile=/work/project/coverage.profdata'], timeout=120)
         evidence.append(exported['evidence_path'])
         try:
-            summary = json.loads(exported['output']) if passed(merged) and passed(exported) else {}
+            summary = loads_capped(exported['output']) if passed(merged) and passed(exported) else {}
         except ValueError:
             summary = {}
         ok, result = coverage_ok(summary, coverage_files(self.project_dir, self.project), line, branch)
@@ -752,7 +985,7 @@ class ProjectCheck:
     def ast_row(result, row, checks):
         """Status and rule names of one AST policy scan; adds the failed check names."""
         try:
-            value = json.loads(result['output'])
+            value = loads_capped(result['output'])
         except ValueError:
             value = None
         value = value if isinstance(value, dict) else {}
@@ -775,11 +1008,19 @@ class ProjectCheck:
         r = self.step('ast-source-policy', ['python3', '/src/container/project-source-policy.py',
                                             json.dumps(plan, separators=(',', ':'))], timeout=600)
         evidence.append(r['evidence_path'])
+        # A runner failure (RECORD_LIMIT, OUTPUT_LIMIT, TIMEOUT, CGROUP_OOM, ...) BLOCKS the
+        # gate even when the printed result looks complete (P2-B2-STEPFAIL-01).
+        if r['failure'] is not None:
+            raise GateError('project source policy step failed: '+str(r['failure'])[:80])
         lines = r['output'].strip().splitlines()
         try:
-            result = json.loads(lines[-1]) if lines else None
+            result = loads_capped(lines[-1]) if lines else None
         except ValueError:
             result = None
+        # The step exits 0 for PASS and 1 for FAIL (container/project-source-policy.py main).
+        status = result.get('status') if isinstance(result, dict) else None
+        if status in ('PASS', 'FAIL') and r['exit_code'] != {'PASS': 0, 'FAIL': 1}[status]:
+            raise GateError('project source policy exit code '+str(r['exit_code'])[:20]+' contradicts its result '+status)
         return source_policy_findings(result, self.project_dir, self.project, self.snapshot)
 
     def fuzz(self):
@@ -791,18 +1032,34 @@ class ProjectCheck:
         built, evidence = {}, []
         for module, fuzz in targets:
             out = '/work/project/fuzz/'+fuzz['name']
-            env = dict(FUZZ_ENV, OUT=out, WORK=out)
-            r = self.step('clusterfuzzlite-'+fuzz['name'], fuzz_build_argv(self.project_dir, fuzz, module), timeout=600, env=env)
+            argv, env_extra = fuzz_build_argv(self.project_dir, fuzz, module, self.project)
+            env = dict(FUZZ_ENV, OUT=out, WORK=out, **env_extra)
+            r = self.step('clusterfuzzlite-'+fuzz['name'], argv, timeout=600, env=env)
             evidence.append(r['evidence_path'])
             row = {'target': fuzz['name'], 'build': 'PASS' if passed(r) else 'FAIL'}
             if passed(r):
-                objects = [f'{out}/module-{i}.o' for i in range(len(module['sources']))] + [out+'/harness.o']
+                objects = [f'{out}/module-{i}.o' for i in range(len(fuzz_sources(module, self.project)))] + [out+'/harness.o']
                 symbols = self.step('clusterfuzzlite-symbols-'+fuzz['name'], ['llvm-nm', '--undefined-only', *objects], timeout=60)
                 evidence.append(symbols['evidence_path'])
                 row['instrumentation'] = passed(symbols) and '__asan_report' in symbols['output'] and '__sanitizer_cov' in symbols['output']
             else:
                 row['findings'] = diagnostics(r['output'])
             built[fuzz['name']] = row
+        # Amendment F item 3: every project shared library also builds with the fuzz flags.
+        for library in self.project.get('libraries', []):
+            out = '/work/project/fuzz/lib-'+library['name']
+            shared = out+'/lib'+library['name']+'.so'
+            r = self.step('clusterfuzzlite-library-'+library['name'], fuzz_library_argv(self.project_dir, library, self.project),
+                          timeout=600, env=dict(FUZZ_ENV, OUT=out, WORK=out))
+            evidence.append(r['evidence_path'])
+            row = {'target': 'lib'+library['name']+'.so', 'kind': 'library', 'build': 'PASS' if passed(r) else 'FAIL'}
+            if passed(r):
+                symbols = self.step('clusterfuzzlite-library-symbols-'+library['name'], ['llvm-nm', '--dynamic', '--undefined-only', shared], timeout=60)
+                evidence.append(symbols['evidence_path'])
+                row['instrumentation'] = passed(symbols) and '__asan_report' in symbols['output'] and '__sanitizer_cov' in symbols['output']
+            else:
+                row['findings'] = diagnostics(r['output'])
+            built[row['target']] = row
         failed = [n for n, row in built.items() if row['build'] != 'PASS' or not row.get('instrumentation')]
         self.set('clusterfuzzlite', 'FAIL' if failed else 'PASS',
                  {'targets': list(built.values()), 'environment': FUZZ_ENV, 'failed_targets': failed}, evidence)
@@ -836,7 +1093,7 @@ class ProjectCheck:
             evidence.append(r['evidence_path'])
             crashes = self.step('fuzz-failures-'+fuzz['name'], ['python3', '-c', _LIST, failures_dir], timeout=30)
             evidence.append(crashes['evidence_path'])
-            crashed = json.loads(crashes['output']) if passed(crashes) else ['failure inventory unavailable']
+            crashed = loads_capped(crashes['output']) if passed(crashes) else ['failure inventory unavailable']
             stats = fuzz_stats(r['output'])
             banner = sanitizer_banner(r['output'], self.banners)
             ok = (passed(r) and banner is None and not crashed and stats['executions'] > 0
@@ -851,10 +1108,11 @@ class ProjectCheck:
     def collect_runtime(self):
         program = self.project['run']['program']
         binary = '/work/project/hardened-clang-O2/'+program
-        closure = self.step('runtime-closure', ['python3', '-c', _CLOSURE, binary], timeout=60)
+        allow = json.dumps(closure_allowlist(self.root), sort_keys=True, separators=(',', ':'))
+        closure = self.step('runtime-closure', ['python3', '-c', _CLOSURE, binary, allow], timeout=60)
         if not passed(closure):
             raise GateError('runtime shared-library closure is not a supported system closure')
-        value = json.loads(closure['output'])
+        value = loads_capped(closure['output'])
         members = {'bin/'+program: self.fetch('runtime-program', binary)}
         interpreter = value['interpreter'].lstrip('/')
         members[interpreter] = self.fetch('runtime-interpreter', value['interpreter_path'])
@@ -862,7 +1120,16 @@ class ProjectCheck:
             if name == posixpath.basename(interpreter):
                 continue
             members['lib/x86_64-linux-gnu/'+name] = self.fetch('runtime-library', path)
-        return members, closure['evidence_path']
+        evidence = [closure['evidence_path']]
+        # Amendment F item 3: each project shared library has a supported closure by the same
+        # rules (no interpreter); it is not copied into the runtime image (no run entry).
+        for library in self.project.get('libraries', []):
+            shared = '/work/project/hardened-clang-O2/lib'+library['name']+'.so'
+            result = self.step('runtime-closure-'+library['name'], ['python3', '-c', _CLOSURE, shared, allow, 'library'], timeout=60)
+            evidence.append(result['evidence_path'])
+            if not passed(result):
+                raise GateError('library shared-library closure is not a supported system closure: '+library['name'])
+        return members, evidence
 
 
 def runtime_start(launcher, run_dir, project, members):
@@ -883,7 +1150,7 @@ def runtime_start(launcher, run_dir, project, members):
     label = 'org.safe-c.project-runtime=1'
     inspection = launcher.docker(['image', 'inspect', tag])
     if passed(inspection):
-        image = json.loads(inspection['output'])[0]['Id']
+        image = loads_capped(inspection['output'])[0]['Id']
     else:
         # Remove only this project's own earlier runtime images; never prune others.
         old = launcher.docker(['image', 'ls', '--filter', 'label='+label, '--filter', 'label=org.safe-c.project-name='+project['name'], '--format', '{{.ID}}'])
@@ -1000,7 +1267,7 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
         if policy.source_identity(snapshot)[0] != report['source_identity']:
             raise GateError('source changed during the immutable project snapshot')
         launcher = Launcher(root, run_dir, lock, purpose='project')
-        deadline = time.monotonic()+CONTAINER_SECONDS
+        deadline = time.monotonic()+container_seconds(launcher.value)
         record = launcher.create('project', {'/src': snapshot})
         atomic_json(run_dir/'container.json', {k: record.get(k) for k in ('container_id', 'name', 'profile', 'plan', 'policy_hash', 'runner', 'reservation', 'effective')})
         check = ProjectCheck(root, project_dir, project, run_dir, launcher, record, project_policy,
@@ -1012,7 +1279,7 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
         members, closure_evidence = check.collect_runtime()
         launcher.dispose(record)
         report['runtime'] = runtime_start(launcher, run_dir, project, members)
-        report['runtime']['evidence_paths'].insert(0, closure_evidence)
+        report['runtime']['evidence_paths'][:0] = closure_evidence
         print(f'project runtime {project["run"]["program"]}: {report["runtime"]["status"]}', flush=True)
     except Stop as stop:
         report['stopped_after'] = str(stop)

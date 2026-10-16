@@ -16,7 +16,7 @@
       ],
       "source_hashes": {
         "safety/qualification/C01/good.c": "5ddec9eeeed4995b18419ac44acdfe5ced6991b90dc1a5a23ef42d0db93fbd88",
-        "safety/qualification/C01/bad.c": "68550f82e12b841f52723c5bbbe4216592bdea44fb95728c58986c255e4e53e4"
+        "safety/qualification/C01/bad.c": "b95e74c24678ecd1a215e401ceeb58acb1c9b191a794704f99f96b3f1f9b05c3"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "heap-buffer-overflow",
@@ -44,7 +44,7 @@
         "safety/qualification/C02/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C02/bad.c": "3e64c8b4d9f6dc2d780330e348dc8a8d5446b7fc8a83bf4d3fe30049d3a3ddd2",
+        "safety/qualification/C02/bad.c": "5445cd14c0615f7c474bde465f645ffc96772e6445fa2f7bd798f149b3d5baa5",
         "safety/qualification/C02/good.c": "a9bfe1e1799ba5a9776c880ed655931d357aba173b431abff62b4364aed2f339"
       },
       "required_detector": "asan",
@@ -77,7 +77,7 @@
       "source_hashes": {
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
         "safety/qualification/C03/good.c": "2674f547d997efad179d1a7bdc760ced8a8dee3e794e57b8ede27900df6f1ec5",
-        "safety/qualification/C03/bad.c": "8fbdbf68d6c0c247944d7c4ffa6966f1bbfba94c480224292b4a7bf26a50e9d8"
+        "safety/qualification/C03/bad.c": "610135f6da8ecd6675278600d537eb4ae50d21569322ae8da2ae2f1152c0e151"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "stack-buffer-overflow",
@@ -114,7 +114,7 @@
       "source_hashes": {
         "safety/qualification/C04/good.c": "dc0787a8da64aec8975a960f6447f72a81e9313b9539e65bfbed02619bdde035",
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
-        "safety/qualification/C04/bad.c": "c376196299a03617dc78fd049dd1a846cd84870fb4fb75ea7c82d1052206cf90"
+        "safety/qualification/C04/bad.c": "19c7ca9c053f4f2cf0eb13091484c2198bbdf4e0032d74733824ae5d3c58af05"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "global-buffer-overflow",
@@ -150,7 +150,7 @@
       ],
       "source_hashes": {
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
-        "safety/qualification/C05/bad.c": "3a89ab60987694c093376746973b34c86d566d690792050c4b12bf4885eec383",
+        "safety/qualification/C05/bad.c": "e48c849cb7a1d9018fabe156a9a0af2bbfc39b85d1c0611596a5241b0f83b84b",
         "safety/qualification/C05/good.c": "db3d890d4c97218d31d43f3d4babbec8bff297ebff0a453b8d963555eb405b8c"
       },
       "required_detector": "asan",
@@ -186,7 +186,7 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C06/bad.c": "7c7aa6747830168a24da85c1e731b3ad63775d521bf49dd9b85ea6d189d9fd49",
+        "safety/qualification/C06/bad.c": "8c6dbcf6a4405e833ad4550783c5f5d3a6f8c72be9de274664a178aad2f3efac",
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
         "safety/qualification/C06/good.c": "bc900ddc9df6e29deaf6195c929c956bf92aabe75057d4796f64dec79013a76c"
       },
@@ -221,7 +221,7 @@
         "safety/qualification/C07/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C07/bad.c": "0aa6eeddae05d8b7cdaa6b74b3a85729a36da667cbc8ef7aab98ce2e82a90610",
+        "safety/qualification/C07/bad.c": "0dc33caa27d126091456b2f908383b79b8e7c80e6843cfcfba6fb30285134bf4",
         "safety/qualification/C07/good.c": "1a9ef4cbbe335de9f4c5166dc026f8c37ccebb2a7ae9491e539a07a267e147c6"
       },
       "required_detector": "asan",
@@ -259,7 +259,7 @@
       "source_hashes": {
         "safety/qualification/C08/good.c": "6e7a5172b981156638f3209c3df09363cc62c78aeefc056eb1270507a8448690",
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
-        "safety/qualification/C08/bad.c": "5814c40b5315c3ceb602472c870abe17395ccb11d5270be14964705795399cc5"
+        "safety/qualification/C08/bad.c": "2ac33e1191fb9ba52815d6677284b4ef938064dc1b90c5d11cc1cfcf165e2828"
       },
       "required_detector": "asan",
       "expected_rule_or_class": "stack-use-after-scope",
@@ -366,7 +366,7 @@
         "safety/qualification/C11/good.c"
       ],
       "source_hashes": {
-        "safety/qualification/C11/bad.c": "94d9eb5709b20458dd7de7e28f3bee97b6511309c0ae711e3d47e988fc6a1f1a",
+        "safety/qualification/C11/bad.c": "1b14366a4d11db9b8e3735e184f9308f75f4694fcb52199d0e6245c0db7aa18a",
         "safety/qualification/C11/good.c": "a50a528e1d980fd80039ffb84395f99a4e29b22ae1aa8c0b6ccd56c37b684dfd"
       },
       "required_detector": "msan",
@@ -674,7 +674,7 @@
         "safety/qualification/support.c"
       ],
       "source_hashes": {
-        "safety/qualification/C21/bad.c": "1670481f348d8fc6622a5cfd1efaae445c172e88656faadeed1ec64780875bed",
+        "safety/qualification/C21/bad.c": "275d101f60a117f5f2c6bd98d166ff9ec138c49d1cb4204346850f122c9e7e12",
         "safety/qualification/support.c": "5e5f76f5419a97ef72267aaf4952abbb1d383ac205726dc8808fa2924660f0a6",
         "safety/qualification/C21/good.c": "d7dc5aa3d47acff6697344fefc97d7f1e5860c3ee84556007901f3d54f652040"
       },

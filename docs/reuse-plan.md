@@ -1,6 +1,6 @@
 # Bounded reuse plan
 
-Written before infrastructure implementation. The original Makefile and local environment are preserved. No first-party publication license was supplied; owner licensing is a release blocker. Native Linux x86-64/glibc is the selected target. Revisions are acquisition identities, not independent approval.
+Written before infrastructure implementation. The original Makefile and local environment are preserved. The framework's own files are under MIT (LICENSE); third-party components keep their own licenses, with the written source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15. Native Linux x86-64/glibc is the selected target. Revisions are acquisition identities, not independent approval.
 
 | Component | Source / actual revision | Role | License / evidence | Decision and integration |
 |---|---|---|---|---|

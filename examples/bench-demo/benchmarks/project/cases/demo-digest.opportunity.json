@@ -1,0 +1,12 @@
+{"schema_version":1,"case_id":"demo-digest","operation":"framework example (FR6): xorshift64 steps folded into an FNV-1a 64 checksum per record; the native control of the framework C routes, not a production workload",
+ "sizes":{"records_per_call":null},"frequency":"example only (no production traffic)","target":{"kind":"none","value":null,"unit":null},
+ "footprint":{"cpu_ns_per_unit":{"value":null,"reason":"example: the framework run measures it; no decision uses it"},"wall_ns_per_unit":{"value":null,"reason":"example: the framework run measures it; no decision uses it"},
+  "ready_state_bytes":{"value":null,"reason":"example: the framework run measures it; no decision uses it"},"group_peak_bytes":{"value":null,"reason":"example: the framework run measures it; no decision uses it"}},
+ "breakdown":{"computation":{"share":1,"uncertainty":"integer computation only, no I/O in the timed call"},"allocation":{"share":null,"uncertainty":"not separated"},
+  "serialization":{"share":null,"uncertainty":"the route copies; reported as copied_bytes and the transport phase"},"database":{"share":0,"uncertainty":"no database"},
+  "io_wait":{"share":0,"uncertainty":"no network or disk in the timed call"},"lock_contention":{"share":0,"uncertainty":"no pool (threads 0)"},"queueing":{"share":0,"uncertainty":"no pool"}},
+ "python_options":[{"name":"native Python reference (py-reference)","state":"measured","run_id":null}],
+ "approval":{"state":"APPROVED","reference":"owner authority 2026-10-13, plan amendment FR6 (Release 1 option B): the framework example bench-demo carries the native C routes as its native control; the approver of FR6 task N4 reviews this record","baseline_variant":"py-reference"},
+ "operational_costs":{"transport":"three routes: stdio frames over pipes, shm sealed memfd regions, inproc verified shared library","deployment_artifacts":"bd-kernel, bd-worker and libbd_inproc.so, built once per run by the framework native build",
+  "observability":"route, route_label, copied_bytes, transport phase and kernel self-timing in every observation","failure_handling":"a refused binary or a route failure is an ineligible row with a named failure; no route replaces another",
+  "retries_idempotency":"none: each request is computed once per call","ownership_abi":"the bench-demo project owns the SCPL v2 codec and the in-process ABI 2","native_boundary_maintenance":"the 23 project gates of the bench-demo C project"}}

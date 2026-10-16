@@ -1,8 +1,7 @@
 # GitHub-hosted runner acquisition proposal
 
-Status: SUPERSEDED by
-docs/superpowers/specs/2026-10-06-project-ci-design.md (portable containment
-and project CI). The text below stays for history only.
+Status: SUPERSEDED by the portable containment and project CI rules in
+ci/README.md and AGENTS.md. The text below stays for history only.
 
 Original status: PROPOSED; no platform or policy migration is activated. The existing
 single container policy remains machine-pinned. A new GitHub VM cannot inherit
@@ -58,5 +57,7 @@ Do not label this executable gap as independent-enforcement-only readiness.
 The GitHub-hosted workflow is configured to fail closed at the existing doctor
 until an approved platform binding exists. It retains the mandatory aggregate,
 opaque bounded evidence and immutable action revisions. Image publication and
-repository pushes require explicit owner authorization; licensing review remains
-pending. Performance work remains queued until the current ordered task finishes.
+repository pushes require explicit owner authorization. The framework's own files
+are under MIT (LICENSE); third-party components keep their own licenses, with the
+written source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15.
+Performance work remains queued until the current ordered task finishes.

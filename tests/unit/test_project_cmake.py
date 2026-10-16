@@ -200,4 +200,34 @@ class ProjectCMakeTests(unittest.TestCase):
         body=project[project.index('function(safety_project'):]
         self.assertLess(body.index('set(_SAFETY_PROJECT_TARGETS ON)'),body.index('safety_target('))
         self.assertNotIn('_SAFETY_PROJECT_TARGETS',(ROOT/'CMakeLists.txt').read_text())
+    def test_the_coverage_profile_updates_counters_atomically(self):
+        """P2-COV-ATOMIC-01: the coverage profile of cmake/Safety.cmake compiles with -fprofile-update=atomic, so worker
+        threads never lose a counter update and two runs on one source identity give the same counts."""
+        safety=re.sub(r'(?m)#.*$','',(ROOT/'cmake/Safety.cmake').read_text())
+        block=re.search(r'elseif\(SAFETY_PROFILE STREQUAL "coverage"\)(.*?)elseif\(',safety,re.S).group(1)
+        compile_line=next(l for l in block.splitlines() if 'target_compile_options' in l)
+        flags=re.findall(r'[^\s()]+',compile_line)
+        self.assertIn('-fprofile-update=atomic',flags)
+        self.assertIn('-fprofile-instr-generate',flags)
+    def test_the_first_party_foundation_libraries_take_the_coverage_profile(self):
+        """FR7b-A05: sc_foundation and sc_parallel (threaded) are framework targets of safety_target, so the foundation
+        coverage build compiles them with the coverage profile flags, -fprofile-update=atomic included. The pinned GLib
+        coverage variant of foundation.lock.json is a dependency build outside the first-party coverage thresholds."""
+        libs=re.sub(r'(?m)#.*$','',(ROOT/'cmake/FoundationLibraries.cmake').read_text())
+        for target in ('sc_foundation','sc_parallel'):
+            with self.subTest(target=target):
+                self.assertRegex(libs,r'add_library\('+target+r' STATIC [^)]*\)\s*safety_target\('+target+r'\)')
+        self.assertNotIn('target_compile_options(sc_',libs)
+    def test_the_coverage_gate_refuses_non_atomic_counters(self):
+        """P2-COV-ATOMIC-01: project_check refuses a coverage compile command of a project unit whose last
+        -fprofile-update value is not atomic (clang uses the last one)."""
+        sys.path.insert(0,str(ROOT/'tools'))
+        import project_check as pc
+        row=lambda f,*flags:{'file':'/src/'+f,'arguments':['clang','-std=c17','-fprofile-instr-generate','-fcoverage-mapping',*flags,'-c',f]}
+        units=['p/src/a.c','p/tests/t.c']
+        self.assertEqual(pc.coverage_atomic_problems([row('p/src/a.c','-fprofile-update=atomic'),row('p/tests/t.c','-fprofile-update=single','-fprofile-update=atomic'),
+                                                      row('other/x.c')],units),[])
+        self.assertEqual(pc.coverage_atomic_problems([row('p/src/a.c'),row('p/tests/t.c','-fprofile-update=atomic','-fprofile-update=single')],units),
+                         ['coverage counters are not atomic: p/src/a.c','coverage counters are not atomic: p/tests/t.c'])
+        self.assertEqual(pc.coverage_atomic_problems([row('p/src/a.c','-fprofile-update=atomic')],units),['coverage unit missing from the compilation database: p/tests/t.c'])
 if __name__=='__main__':unittest.main()

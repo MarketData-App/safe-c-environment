@@ -1,0 +1,11 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,
+ "description":"Base Task 18 (addendum E-T18-7; Amendment H16.1): the owner's sensitivity confirmation (owner-sensitivity.json). It names the SDD ledger entry and the coverage record that the owner saw; bench decide under a unit-threshold policy refuses (sensitivity-unconfirmed) unless the sha256 of the coverage_path file equals coverage_sha256 and that record certifies the current code.",
+ "required":["schema_version","ledger_id","coverage_sha256","coverage_path","owner_words","date"],
+ "properties":{
+  "schema_version":{"const":1},
+  "ledger_id":{"type":"string","pattern":"^P3-OWNER-SENS-[0-9]{2}$"},
+  "coverage_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "coverage_path":{"type":"string","minLength":1,"maxLength":300},
+  "owner_words":{"type":"string","maxLength":600},
+  "date":{"type":"string","pattern":"^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"}
+ }}

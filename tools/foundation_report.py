@@ -3,7 +3,7 @@ from evidence import atomic_json, read_json
 from foundation import (new_report, expected_binding, validate_report, doctor,
                         normal_checks, coverage, policy_checks,
                         runtime_fixture_checks, functional_mutant_checks,
-                        policy_probe_checks, fuzz_checks)
+                        policy_probe_checks, fuzz_checks, parallel_checks)
 
 
 def check(q, *, full=True, fuzz_profile='smoke'):
@@ -21,6 +21,15 @@ def experiments(q, value):
     value['runtime_pairs'] = runtime_fixture_checks(q)
     value['functional'] = functional_mutant_checks(q)
     value['policy_probes'] = policy_probe_checks(q)
+    value['parallel'] = parallel_checks(q)
+
+
+def selftest_statuses(value):
+    """Statuses of the selftest-only lanes. A check run has neither `functional` nor `parallel` and
+    counts nothing; a selftest or ci report (it has `functional`) without `parallel` is BLOCKED."""
+    if 'parallel' in value:
+        return [value['parallel']['status']]
+    return ['BLOCKED'] if 'functional' in value else []
 
 
 def project(q, value, starter=None):
@@ -150,13 +159,17 @@ def project(q, value, starter=None):
     value['dependency']['qualified_build_profiles'] = lock['profiles']
     required = [r['status'] for r in value['cases'] + value['sabotage'] + normal]
     required += [value[k]['status'] for k in ['doctor', 'policy', 'coverage', 'fuzz', 'runtime', 'starter']]
+    required += selftest_statuses(value)
     value['status'] = 'FAIL' if 'FAIL' in required else 'BLOCKED' if 'BLOCKED' in required else 'PASS'
     value['limitations'] = [
         'Finite execution does not prove arbitrary C pointer validity or ownership.',
         'API policy is mechanically enforced; live spans, cleanup pairing and synchronization remain caller obligations.',
         'F19 uses a same-source ordinary static test-link variant; shared-runtime injection is not claimed.',
         'MSan instruments GLib and PCRE2 with documented libc interceptor boundaries.',
-        'Independent approval, distribution/license review and remote execution remain pending.',
+        'Independent approval and remote execution remain pending.',
+        "The framework's own files are under MIT (LICENSE); third-party components keep their own licenses, with the "
+        'written source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15. A project that publishes the '
+        'copied binaries needs its own source arrangement.',
         'Application, production OOM strategy and deployment are not authorized.']
     validate_report(q.root, value, expected_binding(q))
     return value

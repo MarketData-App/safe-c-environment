@@ -7,7 +7,7 @@ implementation. See [qualification commands](docs/qualification.md),
 exists. Passing local qualification does not activate independent enforcement.
 
 Two tiers apply. Framework qualification (`./tools/safety ci`) runs in this
-repository when framework files change. It covers all 42 required gates (including project-gates), two exports and
+repository when framework files change. It covers all 44 required gates of `safety/contract.json` (including project-gates), two exports and
 a fresh child. Project CI (`./tools/safety project check`) runs in every project
 on every push and pull request. It applies the 23 code gates to the project code
 and verifies `framework-manifest.json`. The manifest is unsigned. The check is
@@ -22,14 +22,20 @@ Unix socket (rootless allowed), Docker containerd image store, cgroup v2 limits,
 enforcing, no inherited DOCKER_* settings and non-piped core handling. A failed
 check BLOCKS the run. Windows, macOS and ARM64 are out of scope.
 
-The SDK and developer images come as one release archive, `images-sdk-developer-v2`:
-https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v2/images.tar.gz
-(sha256 `ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624`).
+The SDK and developer images come as one release archive, `images-sdk-developer-v3`:
+https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v3/images.tar.gz
+(sha256 `e8c9c5d2bfb96073965da6c83260a5aa6f7a9703bbf05307c32c41976b51d99f`).
+It is the published release. The earlier release is
+`images-sdk-developer-v2` (sha256
+`ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624`).
 Load it with `ci/images load --archive FILE --sha256 HASH`. The descriptor is
-[ci/image-bundle.json](ci/image-bundle.json). See container/README.md. Image
-transfer grants no baseline approval. See [CI activation](ci/README.md), the
-[hello-world example](examples/hello-world/README.md) and the
-[design](docs/superpowers/specs/2026-10-06-project-ci-design.md). The earlier
+[ci/image-bundle.json](ci/image-bundle.json). The images contain GPL and LGPL
+programs; [SOURCE-OFFER.md](SOURCE-OFFER.md) gives the directions to their source
+code and a written offer, with the listing
+[third_party/source-availability.json](third_party/source-availability.json).
+Copies of both belong next to the archive as release assets. See container/README.md. Image
+transfer grants no baseline approval. See [CI activation](ci/README.md) and the
+[hello-world example](examples/hello-world/README.md). The earlier
 [runner migration proposal](specs/github-runner-migration.md) is superseded.
 
 ```sh
@@ -53,8 +59,10 @@ transfer grants no baseline approval. See [CI activation](ci/README.md), the
 Exports require complete current local CI. No history, secrets or passing evidence
 is exported. Each child has its own source identity, target-runner qualification and
 enforcement status. Give a future agent [the instantiation prompt](docs/instantiate-prompt.md).
-Read AGENTS.md before development. Independent approval, owner publication licensing
-and actual remote enforcement remain separate activation work. No automatic remote
+Read AGENTS.md before development. Independent approval and actual remote
+enforcement remain separate activation work. The framework's own files are under MIT
+(LICENSE); third-party components keep their own licenses, with the written
+source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15. No automatic remote
 publishing, paid model calls, corpus provisioning or recurring jobs were performed.
 
 Enable the commit hooks once per clone with `git config core.hooksPath .githooks`.
@@ -109,3 +117,30 @@ Docker containment commands: `./tools/safety sandbox plan --profile build`,
 The selftest alias runs the amended complete local suite, including fresh-child
 containment. Runtime smoke assembles and tests an infrastructure-only image without
 pushing or deploying it. Generated workload execution has no host fallback.
+
+## Performance laboratory
+
+`./tools/safety bench` measures whether a Python workload needs a faster
+implementation. It times Python variants and C rows of one registered
+workload in disposable containers. The C rows use the routes `stdio`, `shm`
+and `inproc`, or time a pure C kernel. A decision is a review recommendation
+only. The framework names no workload: each project brings its own cases and
+protocol data, and `examples/bench-demo` is the reference project with three
+versions of one workload that must agree byte for byte. See
+[the performance laboratory](docs/performance-laboratory.md) and its
+quickstart.
+
+## License
+
+The project's own files are under the MIT license. See [LICENSE](LICENSE).
+The MIT license covers only the files that the project wrote. Third-party
+files keep their own licenses. This includes the retained upstream files, the
+adapted fixtures, the foundation inputs, the developer packages and the
+container images. Their licenses and origins are recorded in
+[third_party/NOTICE.md](third_party/NOTICE.md), `upstream.lock.json`,
+`foundation.lock.json`, `developer.lock.json` and the notice folders under
+`third_party/`. For the GPL and LGPL programs in the published images and in
+the repository, [SOURCE-OFFER.md](SOURCE-OFFER.md) gives the directions to
+the corresponding source code (GPL-3.0 section 6(d)) and a written offer
+(GPL-2.0 section 3(b)). SOURCE-OFFER.md is a separate document. It is also a
+release asset next to `images.tar.gz`.

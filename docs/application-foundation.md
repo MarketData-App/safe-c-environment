@@ -9,7 +9,6 @@ starter exports. `artifacts/final-aggregate-bootstrap-report.json` records run
 run `cc083c9edaa3468aa815ab1fb348ebcd` passed 901.4027 seconds and 765813749
 executions. These results become historical as this amendment changes inputs;
 they do not qualify the foundation. Independent enforcement remains UNSEALED.
-The owner's untracked `docs/bootstrap-prompt-v2.md` is preserved.
 
 ## Claim and allocation contract
 

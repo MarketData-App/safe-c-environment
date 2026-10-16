@@ -1,0 +1,6 @@
+{"schema_version":1,"name":"bench-demo","cases":["demo-digest"],
+ "protocol":{"file":"protocol/protocol.json","sha256":"408cd4f2ca1ce5888dae77ba47afc77d88a5beb75af5c8dd6e8042ebc3d19828"},
+ "native":{"kernel":{"program":"bd-kernel","args":["--input","{input}","--records","{records}","--loops","{loops}","--handshake","--output","{output}"]},"agreement":"demo-native"},
+ "checks":[{"name":"demo-agreement","module":"benchdemo.checks","before_run":true},
+  {"name":"demo-vectors","module":"benchdemo.checks","before_run":false},
+  {"name":"demo-native","module":"benchdemo.checks","before_run":false}]}

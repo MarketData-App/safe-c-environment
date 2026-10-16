@@ -31,6 +31,31 @@ def source_files(root):
             result[str(rel)] = file_hash(path)
     return result
 
+# T27-03: the git-tracked set of a source root, written into its job snapshot under an excluded part (.cache), so the
+# snapshot's source identity is unchanged and a tree without .git (the container /src) still knows which files git tracks.
+TRACKED_MANIFEST = '.cache/git-tracked-files.json'
+
+def write_tracked_manifest(source_root, snapshot):
+    """Write {'tracked': [sorted git-tracked paths]} of `source_root` to snapshot/TRACKED_MANIFEST and return it. A root
+    without its own .git entry gets no manifest (None): the snapshot then holds exactly the files of such a tree. A checkout
+    whose tracked set cannot be read records {'tracked': None, 'reason': ...}, so a consumer fails closed."""
+    root = Path(source_root)
+    if not (root/'.git').exists() and not (root/'.git').is_symlink():
+        return None
+    from evidence import bounded, passed
+    try:
+        r = bounded(['git', '-C', str(root), '-c', 'core.quotePath=false', 'ls-files', '-z'], timeout=60, limit=16*1024*1024)
+    except OSError:
+        r = None
+    if r is not None and passed(r):
+        value = {'tracked': sorted({p for p in r['output'].split('\0') if p})}
+    else:
+        value = {'tracked': None, 'reason': 'git ls-files failed for the source snapshot'}
+    path = Path(snapshot)/TRACKED_MANIFEST
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, sort_keys=True))
+    return value
+
 def source_identity(root):
     inventory = source_files(root)
     return digest(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode()), inventory
@@ -138,7 +163,21 @@ def upstream_gate(root):
     developer_policy,developer_lock,_=developer_inputs(root)
     return {'status':'PASS','originals':len(lock['files']),'adaptations':len(lock['adaptations']),
             'developer_payload':{'image_id':developer_lock['image_id'],'inputs':len(developer_lock['inputs']),
-                                 'notices':len(developer_lock['notices']),'license_review':developer_lock['license_review']}}
+                                 'notices':len(developer_lock['notices']),'license_review':developer_lock['license_review']},
+            'bench_wheels':verify_bench_wheels(root)}
+
+def verify_bench_wheels(root):
+    """upstream verify: every retained bench wheel rejoins to its PyPI sha256 and is bound in developer.lock.json."""
+    path=root/'third_party/developer/provenance/wheel-selection.json'
+    if not path.is_file():return 0
+    selection=read_json(path);bound={r['path']:r['sha256'] for r in read_json(root/'developer.lock.json')['inputs']}
+    for wheel in selection['wheels']:
+        data=b''
+        for part in wheel['parts']:
+            if bound.get(part['path'])!=part['sha256'] or file_hash(root/part['path'])!=part['sha256']:raise GateError('bench wheel part changed: '+wheel['name'])
+            data+=(root/part['path']).read_bytes()
+        if digest(data)!=wheel['sha256']:raise GateError('bench wheel digest changed: '+wheel['name'])
+    return len(selection['wheels'])
 
 def export_inventory(root):
     manifest = read_json(root/'starter-export.json')
@@ -147,7 +186,7 @@ def export_inventory(root):
         raise GateError('invalid export inventory')
     if (root/'foundation.lock.json').exists():
         lock=read_json(root/'foundation.lock.json')
-        required={'cmake/Foundation.cmake','foundation/src/sc-foundation.c','foundation/include/sc-foundation.h',
+        required={'cmake/Foundation.cmake','cmake/FoundationLibraries.cmake','foundation/src/sc-foundation.c','foundation/include/sc-foundation.h',
                   'foundation/tests/recipes.c','specs/foundation-contract.md',
                   'safety/foundation-api-policy.json','safety/foundation-fixtures.json',
                   'foundation.lock.json','tools/foundation.py','tools/foundation_report.py',

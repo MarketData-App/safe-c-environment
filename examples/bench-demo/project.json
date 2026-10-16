@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "name": "bench-demo",
+  "modules": [
+    {
+      "name": "bd_digest",
+      "spec": "specs/project/bd_digest.md",
+      "sources": [
+        "src/bd_digest.c",
+        "src/bd_main.c",
+        "src/bd_kernel.c"
+      ],
+      "headers": [
+        "include/bd_digest.h"
+      ],
+      "tests": [
+        "tests/project/test_bd_digest.c",
+        "tests/project/test_bd_main.c",
+        "tests/project/test_bd_request.c",
+        "tests/project/test_bd_kernel.c",
+        "tests/project/test_bd_kernel_main.c"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "bd_decode",
+          "harness": "fuzz/project/bd_decode_fuzz.c",
+          "corpus": "fuzz/project/corpus/bd_decode",
+          "regressions": "fuzz/project/regressions/bd_decode"
+        }
+      ]
+    },
+    {
+      "name": "bd_wire",
+      "spec": "specs/project/bd_wire.md",
+      "sources": [
+        "src/bd_wire.c",
+        "src/bd_io.c",
+        "src/bd_serve.c",
+        "src/bd_worker_cli.c",
+        "src/bd_kernel_args.c",
+        "src/bd_kernel_cli.c"
+      ],
+      "headers": [
+        "include/bd_wire.h"
+      ],
+      "tests": [
+        "tests/project/test_bd_wire.c",
+        "tests/project/test_bd_io.c",
+        "tests/project/test_bd_serve.c",
+        "tests/project/test_bd_serve_limits.c",
+        "tests/project/test_bd_shm.c",
+        "tests/project/test_bd_shm_hostile.c",
+        "tests/project/test_bd_shm_access.c",
+        "tests/project/test_bd_worker_cli.c",
+        "tests/project/test_bd_worker_usage.c",
+        "tests/project/test_bd_kernel_cli.c",
+        "tests/project/test_bd_kernel_run.c",
+        "tests/project/test_bd_kernel_fail.c"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "bd_frame",
+          "harness": "fuzz/project/bd_frame_fuzz.c",
+          "corpus": "fuzz/project/corpus/bd_frame",
+          "regressions": "fuzz/project/regressions/bd_frame"
+        },
+        {
+          "name": "bd_kernel_parse",
+          "harness": "fuzz/project/bd_kernel_parse_fuzz.c",
+          "corpus": "fuzz/project/corpus/bd_kernel_parse",
+          "regressions": "fuzz/project/regressions/bd_kernel_parse"
+        }
+      ],
+      "uses": [
+        "bd_digest"
+      ]
+    },
+    {
+      "name": "bd_inproc",
+      "spec": "specs/project/bd_inproc.md",
+      "sources": [
+        "src/bd_inproc.c"
+      ],
+      "headers": [
+        "include/bd_inproc.h"
+      ],
+      "tests": [
+        "tests/project/test_bd_inproc.c"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "bd_inproc",
+          "harness": "fuzz/project/bd_inproc_fuzz.c",
+          "corpus": "fuzz/project/corpus/bd_inproc",
+          "regressions": "fuzz/project/regressions/bd_inproc"
+        }
+      ],
+      "uses": [
+        "bd_digest"
+      ]
+    },
+    {
+      "name": "bd_spread",
+      "spec": "specs/project/bd_spread.md",
+      "sources": [
+        "src/bd_spread.c"
+      ],
+      "headers": [
+        "include/bd_spread.h"
+      ],
+      "tests": [
+        "tests/project/test_bd_spread.c",
+        "tests/project/test_bd_spread_threads.c"
+      ],
+      "foundation": "glib-parallel",
+      "reads_external_input": false,
+      "fuzz": []
+    }
+  ],
+  "programs": [
+    {
+      "name": "bd-digest",
+      "main": "src/main.c",
+      "modules": [
+        "bd_digest"
+      ]
+    },
+    {
+      "name": "bd-kernel",
+      "main": "src/kernel_main.c",
+      "modules": [
+        "bd_wire"
+      ]
+    },
+    {
+      "name": "bd-worker",
+      "main": "src/worker_main.c",
+      "modules": [
+        "bd_wire"
+      ]
+    }
+  ],
+  "libraries": [
+    {
+      "name": "bd_inproc",
+      "modules": [
+        "bd_inproc"
+      ],
+      "exports": [
+        "bd_inproc_abi_version",
+        "bd_inproc_digest"
+      ]
+    }
+  ],
+  "run": {
+    "program": "bd-kernel",
+    "args": [
+      "--self-check"
+    ],
+    "expect_exit": 0
+  }
+}

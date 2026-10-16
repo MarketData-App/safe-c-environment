@@ -5,17 +5,24 @@ Debian archive/package notices remain with the resulting development payload.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
 import tarfile
+import zipfile
 
 INPUTS = Path('/inputs')
 WORK = Path('/work/developer-acquisition')
 MAX_FILES = 4096
 MAX_BYTES = 256 * 1024 * 1024
 MAX_FILE = 32 * 1024 * 1024
+WHEEL_ROOT = 'opt/bench-python/'
+# Separate bench-wheel pass bounds (controller ruling on PLAN-T5-BOUND-01): about 1.2x the
+# measured 156288867 included bytes and 1268 included files; the Debian bounds above are unchanged.
+WHEEL_MAX_BYTES = 192 * 1024 * 1024
+WHEEL_MAX_FILES = 1536
 
 
 def digest(path):
@@ -34,7 +41,54 @@ def safe_name(name):
 def included(name):
     return (name in {'usr/bin/gdb', 'usr/bin/clangd-19'} or
             name.startswith(('usr/lib/', 'usr/share/gdb/', 'usr/share/doc/',
-                             'usr/share/source-highlight/')))
+                             'usr/share/source-highlight/', WHEEL_ROOT)))
+
+
+def wheel_member_included(name):
+    parts = PurePosixPath(name).parts
+    return not ('tests' in parts[1:] or '__pycache__' in parts or name.endswith('.pyc'))
+
+
+def extract_wheel(data, dist, extracted, owners, total, max_bytes=WHEEL_MAX_BYTES,
+                  max_files=WHEEL_MAX_FILES, label='wheel'):
+    with zipfile.ZipFile(io.BytesIO(data)) as source:
+        for info in source.infolist():
+            name = safe_name(info.filename)
+            if info.is_dir():
+                continue
+            kind = (info.external_attr >> 16) & 0o170000
+            if kind not in (0, 0o100000):
+                raise ValueError('special wheel member')
+            if info.file_size > MAX_FILE:
+                raise ValueError('wheel file bound')
+            if not wheel_member_included(name):
+                continue
+            target = WHEEL_ROOT + name
+            if target in owners:
+                raise ValueError('duplicate wheel member')
+            owners[target] = dist
+            if len(owners) > max_files:
+                raise ValueError(label + ' file inventory bound')
+            total += info.file_size
+            if total > max_bytes:
+                raise ValueError(label + ' total byte bound')
+            body = source.read(info)
+            if len(body) != info.file_size:
+                raise ValueError('wheel short read')
+            destination = extracted / target
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(body)
+            destination.chmod(0o555 if (info.external_attr >> 16) & 0o111 else 0o444)
+    return total
+
+
+def wheel_notice(extracted, dist):
+    for info in sorted((extracted / WHEEL_ROOT).glob('*.dist-info')):
+        if info.name.lower().startswith(dist.lower() + '-'):
+            for path in sorted(info.rglob('*')):
+                if path.is_file() and path.name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING')):
+                    return path
+    raise ValueError('wheel notice unavailable')
 
 
 def main():
@@ -81,6 +135,8 @@ def main():
                             raise ValueError('package file inventory bound')
                         if not included(name):
                             continue
+                        if name.startswith(WHEEL_ROOT):
+                            raise ValueError('package member in bench wheel root')
                         destination = extracted / name
                         destination.parent.mkdir(parents=True, exist_ok=True)
                         if member.isfile():
@@ -162,6 +218,21 @@ def main():
         destination.write_bytes(data)
         destination.chmod(0o555 if os.access(origin, os.X_OK) else 0o444)
         aliases.append({'path': name, 'target': target, 'sha256': digest(destination)})
+    # Separate bench-wheel pass with its own owners and byte total; Debian bounds stay unchanged.
+    wheels = (json.loads((INPUTS / 'wheel-selection.json').read_text())['wheels']
+              if (INPUTS / 'wheel-selection.json').exists() else [])
+    wheel_owners, wheel_total = {}, 0
+    for wheel in wheels:
+        data = b''.join((INPUTS / PurePosixPath(p['path']).name).read_bytes() for p in wheel['parts'])
+        if len(data) != wheel['bytes'] or hashlib.sha256(data).hexdigest() != wheel['sha256']:
+            raise ValueError('wheel identity mismatch')
+        if set(wheel) - {'name', 'version', 'filename', 'url', 'sha256', 'bytes', 'parts'}:
+            raise ValueError('wheel record outside the bench wheel pass')
+        wheel_total = extract_wheel(data, wheel['name'], extracted, wheel_owners, wheel_total)
+    if set(wheel_owners) & set(owners):
+        raise ValueError('duplicate wheel member')
+    debian_files = sum(1 for name in owners if included(name))
+    owners.update(wheel_owners)
     layer, identical = {}, []
     for path in sorted(extracted.rglob('*')):
         if not path.is_file():
@@ -182,6 +253,13 @@ def main():
             raise ValueError('package notice unavailable')
         notices[package] = {'path': path.relative_to(extracted).as_posix(),
                             'sha256': digest(path)}
+    for wheel in wheels:
+        path = wheel_notice(extracted, wheel['name'])
+        notices[wheel['name']] = {'path': path.relative_to(extracted).as_posix(),
+                                  'sha256': digest(path)}
+        copy = WORK / 'notices' / wheel['name'] / path.name
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, copy)
     groups, current, size = [], [], 0
     for name, record in layer.items():
         if current and size + record['bytes'] > 16 * 1024 * 1024:
@@ -205,12 +283,18 @@ def main():
            'notices': notices, 'normalized_aliases': aliases,
            'identical_base_files_omitted': identical,
            'archives': archives,
+           'payload_bytes': {'debian': total, 'wheels': wheel_total},
+           'payload_files': {'debian': debian_files, 'wheels': len(wheel_owners)},
+           'payload_bounds': {'debian_bytes': MAX_BYTES, 'debian_files': MAX_FILES,
+                              'wheel_bytes': WHEEL_MAX_BYTES, 'wheel_files': WHEEL_MAX_FILES,
+                              'container_file_bytes': MAX_FILE},
            'package_scripts_executed': False,
            'independent_approval': 'PENDING'}
     (WORK / 'manifest.json').write_text(json.dumps(row, indent=2) + '\n')
     print(json.dumps({'status': row['status'], 'files': len(layer),
                       'packages': len(packages), 'archives': len(archives),
-                      'archive_bytes': sum(r['bytes'] for r in archives)}))
+                      'archive_bytes': sum(r['bytes'] for r in archives),
+                      'payload_bytes': row['payload_bytes'], 'payload_files': row['payload_files']}))
 
 
 if __name__ == '__main__':

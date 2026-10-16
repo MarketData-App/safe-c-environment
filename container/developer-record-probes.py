@@ -53,7 +53,7 @@ def main():
     paths=['tools/developer.py','tools/developer_lsp.py','tools/developer_gdb.py',
            'tools/developer_state.py','tools/developer_workspace.py','tools/developer_report.py',
            'container/developer-job.py','container/developer-argv.py','CMakeLists.txt',
-           'cmake/Developer.cmake','cmake/Foundation.cmake','cmake/Safety.cmake',
+           'cmake/Developer.cmake','cmake/Foundation.cmake','cmake/FoundationLibraries.cmake','cmake/Safety.cmake',
            'starter-baseline.lock.json','toolchain.lock.json','foundation.lock.json',
            'developer.lock.json','safety/developer-policy.json','safety/contract.json','safety/foundation-api-policy.json']
     with tempfile.TemporaryDirectory(dir='/work') as temporary:

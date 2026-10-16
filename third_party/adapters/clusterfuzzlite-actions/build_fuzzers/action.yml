@@ -1,4 +1,9 @@
 # action.yml
+# Modified file. Origin: google/clusterfuzzlite actions/build_fuzzers/action.yml
+# at revision 52ecc61cb587ee99c26825a112a21abf19c7448c.
+# License: Apache-2.0; see third_party/originals/google/clusterfuzzlite/LICENSE.
+# Changed by MarketData-App (runner image pinned to a digest); the full change
+# is third_party/patches/build_fuzzers-image-pin.patch.
 name: 'build-fuzzers'
 description: "Builds project's fuzzers."
 inputs:

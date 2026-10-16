@@ -18,7 +18,10 @@ Artifacts and scratch binaries are ignored by Git. Builds use fresh tmpfs direct
 per command; immutable downloaded inputs and the pinned image may be reused.
 report --format json refuses stale source/toolchain/policy evidence. CI remote
 execution and authority stay explicitly unexecuted/unsealed until independently
-verified. Named missing capability and licensing blockers are retained.
+verified. Named missing capability blockers are retained. Licensing is not a
+blocker: the framework's own files are under MIT (LICENSE); third-party
+components keep their own licenses, with the written source offer in
+SOURCE-OFFER.md; the owner confirmed this on 2026-10-15.
 
 CI compares executed gate names with the complete protected inventory and rejects
 missing or duplicate execution. Coverage demonstrates both covered and uncovered

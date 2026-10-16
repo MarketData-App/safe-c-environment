@@ -1,0 +1,10 @@
+{"schema_version":1,"case_id":"fixture-case","operation":"unit-test fixture only (FR1, FS1 F3); describes no real workload",
+ "sizes":{"records_per_call":null},"frequency":"fixture","target":{"kind":"none","value":null,"unit":null},
+ "footprint":{"cpu_ns_per_unit":{"value":null,"reason":"fixture: never measured"},"wall_ns_per_unit":{"value":null,"reason":"fixture: never measured"},
+  "ready_state_bytes":{"value":null,"reason":"fixture: never measured"},"group_peak_bytes":{"value":null,"reason":"fixture: never measured"}},
+ "breakdown":{"computation":{"share":null,"uncertainty":"fixture"},"allocation":{"share":null,"uncertainty":"fixture"},"serialization":{"share":null,"uncertainty":"fixture"},
+  "database":{"share":0,"uncertainty":"fixture"},"io_wait":{"share":0,"uncertainty":"fixture"},"lock_contention":{"share":null,"uncertainty":"fixture"},"queueing":{"share":null,"uncertainty":"fixture"}},
+ "python_options":[{"name":"fixture option","state":"proposed","run_id":null}],
+ "approval":{"state":"APPROVED","reference":"unit-test fixture; approves no workload","baseline_variant":"py-reference"},
+ "operational_costs":{"transport":"fixture: none","deployment_artifacts":"fixture: none","observability":"fixture: none","failure_handling":"fixture: none",
+  "retries_idempotency":"fixture: none","ownership_abi":"fixture: none","native_boundary_maintenance":"fixture: none"}}

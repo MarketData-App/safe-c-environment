@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'tools'))
 from evidence import GateError, Runner
@@ -91,7 +92,7 @@ class SessionRestartDetectionTests(unittest.TestCase):
 
     def test_holder_lifetime_stays_1800_seconds(self):
         self.assertEqual(container_policy.HOLDER_SECONDS, 1800)
-        self.assertIn("'import time; time.sleep(1800)'", (ROOT/'tools/container_policy.py').read_text())
+        self.assertEqual(container_policy.holder_command({'wall_seconds':600}), ['python3','-c','import time; time.sleep(1800)'])
 
     def test_unchanged_running_session_is_reused(self):
         self.docker.add('c1')
@@ -255,6 +256,40 @@ class BuildCacheTests(unittest.TestCase):
         q.runner.alive = False;q.runner.start()
         with self.assertRaises(GateError):
             q.executable(build, 'C33_bad')
+
+
+class HolderLifetimeTests(unittest.TestCase):
+    def test_holder_outlives_the_bench_wall(self):
+        self.assertEqual(container_policy.holder_seconds({'wall_seconds':10800}),11400)
+        self.assertEqual(container_policy.holder_command({'wall_seconds':10800}),['python3','-c','import time; time.sleep(11400)'])
+    def test_short_profiles_keep_the_1800_second_holder(self):
+        self.assertEqual(container_policy.holder_seconds({'wall_seconds':600}),1800)
+        self.assertEqual(container_policy.holder_seconds({'wall_seconds':1200}),1800)
+        self.assertEqual(container_policy.holder_seconds({'wall_seconds':1201}),1801)   # one past the bound (T9-APP-02)
+    def test_bad_wall_is_refused(self):
+        for bad in (None,0,-1,True,'600'):
+            with self.assertRaises(container_policy.GateError):container_policy.holder_seconds({'wall_seconds':bad})
+    def created(self,profile):
+        """Drive the real Launcher.create with a fake daemon; return the `docker create` argv and the record (T9-APP-01)."""
+        temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);calls=[]
+        l=container_policy.Launcher.__new__(container_policy.Launcher)
+        l.root=ROOT;l.run_dir=Path(temp.name);l.value=container_policy.policy(ROOT);l.lock={'image_id':'sha256:'+'a'*64}
+        l.purpose='unit';l.worktree_scope='w';l.info={'SecurityOptions':['name=apparmor']};l.prefix=['docker'];l.endpoint='unix:///fake'
+        l.runner_identity=None;l.records=[];l.bench_lock=None
+        l.preflight=lambda:None;l.bench_wait=lambda seconds=60:None;l.bench_exclusive=lambda active:None
+        l.admission=lambda plan,finite_memory=0:{'active_before':0};l.effective=lambda container,plan:{}
+        def docker(argv,**kw):
+            calls.append(list(argv));return {'exit_code':0,'failure':None,'output':'c'*64+'\n'}
+        l.docker=docker
+        with mock.patch.object(container_policy,'host_topology',return_value=([0,1,2,3],{c:frozenset({c}) for c in range(4)})):
+            rec=l.create(profile,{})
+        return [c for c in calls if c[0]=='create'][0],rec
+    def test_create_uses_the_profile_holder(self):
+        for profile,seconds in (('bench',11400),('project',2100),('build',1800)):
+            with self.subTest(profile=profile):
+                argv,rec=self.created(profile)
+                self.assertEqual(argv[-3:],['python3','-c',f'import time; time.sleep({seconds})'])
+                self.assertEqual(argv[-3:],container_policy.holder_command(rec['plan']['resources']))
 
 
 if __name__ == '__main__':

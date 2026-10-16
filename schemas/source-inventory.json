@@ -110,6 +110,41 @@
         "examples/hello-world/src/greeting_main.c",
         "examples/hello-world/src/greeting_text.c",
         "examples/hello-world/tests/project/test_greeting_main.c",
+        "examples/bench-demo/src/bd_digest.c",
+        "examples/bench-demo/src/bd_main.c",
+        "examples/bench-demo/src/main.c",
+        "examples/bench-demo/tests/project/test_bd_digest.c",
+        "examples/bench-demo/tests/project/test_bd_main.c",
+        "examples/bench-demo/tests/project/test_bd_request.c",
+        "examples/bench-demo/src/bd_kernel.c",
+        "examples/bench-demo/src/kernel_main.c",
+        "examples/bench-demo/tests/project/test_bd_kernel.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_main.c",
+        "examples/bench-demo/src/bd_wire.c",
+        "examples/bench-demo/src/bd_io.c",
+        "examples/bench-demo/src/bd_serve.c",
+        "examples/bench-demo/src/bd_worker_cli.c",
+        "examples/bench-demo/src/bd_kernel_cli.c",
+        "examples/bench-demo/src/worker_main.c",
+        "examples/bench-demo/src/bd_inproc.c",
+        "examples/bench-demo/tests/project/test_bd_wire.c",
+        "examples/bench-demo/tests/project/test_bd_io.c",
+        "examples/bench-demo/tests/project/test_bd_serve.c",
+        "examples/bench-demo/tests/project/test_bd_shm.c",
+        "examples/bench-demo/tests/project/test_bd_worker_cli.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_cli.c",
+        "examples/bench-demo/tests/project/test_bd_inproc.c",
+        "examples/bench-demo/fuzz/project/bd_frame_fuzz.c",
+        "examples/bench-demo/fuzz/project/bd_inproc_fuzz.c",
+        "examples/bench-demo/fuzz/project/bd_kernel_parse_fuzz.c",
+        "examples/bench-demo/src/bd_kernel_args.c",
+        "examples/bench-demo/tests/project/test_bd_shm_hostile.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_run.c",
+        "examples/bench-demo/tests/project/test_bd_serve_limits.c",
+        "examples/bench-demo/tests/project/test_bd_shm_access.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_fail.c",
+        "examples/bench-demo/tests/project/test_bd_worker_usage.c",
+        "examples/bench-demo/fuzz/project/bd_decode_fuzz.c",
         "safety/project-gate-fixtures/asan/test_seeded.c",
         "safety/project-gate-fixtures/ast/test_seeded.c",
         "safety/project-gate-fixtures/ast-attribute/test_seeded_attribute.c",
@@ -137,7 +172,19 @@
         "safety/project-gate-fixtures/tidy/test_seeded.c",
         "safety/project-gate-fixtures/tsan/test_seeded.c",
         "safety/project-gate-fixtures/ubsan/test_seeded.c",
-        "safety/project-gate-fixtures/unit/test_seeded.c"
+        "safety/project-gate-fixtures/unit/test_seeded.c",
+        "foundation/parallel/sc-parallel.c",
+        "foundation/parallel/tests/contracts.c",
+        "foundation/parallel/tests/checks.c",
+        "foundation/parallel/tests/faults.c",
+        "cmake/empty.c",
+        "tests/fixtures/project-library/src/entry.c",
+        "tests/fixtures/project-library/src/main.c",
+        "tests/fixtures/project-library/tests/project/test_entry.c",
+        "tests/fixtures/project-library/fuzz/project/entry_fuzz.c",
+        "examples/bench-demo/src/bd_spread.c",
+        "examples/bench-demo/tests/project/test_bd_spread.c",
+        "examples/bench-demo/tests/project/test_bd_spread_threads.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -2345,6 +2392,820 @@
             }
           }
         },
+        "examples/bench-demo/src/bd_digest.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-digest",
+                "bd-kernel",
+                "bd-worker",
+                "libbd_inproc.so"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-digest"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-digest"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_digest.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_digest.test_bd_digest"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_digest.test_bd_main"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_request.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_digest.test_bd_request"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_kernel.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/kernel_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_kernel.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_digest.test_bd_kernel"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_kernel_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_digest.test_bd_kernel_main"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_wire.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_io.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_serve.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_worker_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_kernel_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/worker_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_inproc.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "libbd_inproc.so"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_wire.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_wire"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_io.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_io"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_serve.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_serve"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_shm.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_shm"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_worker_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_worker_cli"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_kernel_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_kernel_cli"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_inproc.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_inproc.test_bd_inproc"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/fuzz/project/bd_frame_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "fuzz-bd_frame"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/fuzz/project/bd_inproc_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "fuzz-bd_inproc"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/fuzz/project/bd_kernel_parse_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "fuzz-bd_kernel_parse"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_kernel_args.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-kernel",
+                "bd-worker"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_shm_hostile.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_shm_hostile"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_kernel_run.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_kernel_run"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_serve_limits.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_serve_limits"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_shm_access.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_shm_access"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_kernel_fail.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_kernel_fail"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_worker_usage.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_wire.test_bd_worker_usage"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/fuzz/project/bd_decode_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "fuzz-bd_decode"
+              ]
+            }
+          }
+        },
         "safety/project-gate-fixtures/asan/test_seeded.c": {
           "type": "object",
           "additionalProperties": false,
@@ -2988,6 +3849,284 @@
               ]
             }
           }
+        },
+        "foundation/parallel/sc-parallel.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "parallel-adapter"
+            },
+            "targets": {
+              "const": [
+                "sc_parallel"
+              ]
+            }
+          }
+        },
+        "foundation/parallel/tests/contracts.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-test"
+            },
+            "targets": {
+              "const": [
+                "foundation_parallel"
+              ]
+            }
+          }
+        },
+        "foundation/parallel/tests/checks.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-test"
+            },
+            "targets": {
+              "const": [
+                "foundation_parallel"
+              ]
+            }
+          }
+        },
+        "foundation/parallel/tests/faults.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "foundation-test"
+            },
+            "targets": {
+              "const": [
+                "foundation_parallel_faults"
+              ]
+            }
+          }
+        },
+        "cmake/empty.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "infrastructure"
+            },
+            "targets": {
+              "const": [
+                "project-library"
+              ]
+            }
+          }
+        },
+        "tests/fixtures/project-library/src/entry.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "project-fixture"
+            },
+            "targets": {
+              "const": [
+                "fixture-run",
+                "fixture_entry"
+              ]
+            }
+          }
+        },
+        "tests/fixtures/project-library/src/main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "project-fixture"
+            },
+            "targets": {
+              "const": [
+                "fixture-run"
+              ]
+            }
+          }
+        },
+        "tests/fixtures/project-library/tests/project/test_entry.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "project-fixture"
+            },
+            "targets": {
+              "const": [
+                "project.entry.test_entry"
+              ]
+            }
+          }
+        },
+        "tests/fixtures/project-library/fuzz/project/entry_fuzz.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "project-fixture"
+            },
+            "targets": {
+              "const": [
+                "fuzz-entry"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_spread.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_spread.test_bd_spread",
+                "project.bd_spread.test_bd_spread_threads"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_spread.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_spread.test_bd_spread"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_spread_threads.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_spread.test_bd_spread_threads"
+              ]
+            }
+          }
         }
       }
     },
@@ -3098,7 +4237,60 @@
         "examples/hello-world/src/main.c",
         "examples/hello-world/tests/project/test_greeting.c",
         "examples/hello-world/tests/project/test_greeting_main.c",
-        "examples/hello-world/fuzz/project/greeting_fuzz.c"
+        "examples/hello-world/fuzz/project/greeting_fuzz.c",
+        "examples/bench-demo/include/bd_digest.h",
+        "examples/bench-demo/src/bd_digest.c",
+        "examples/bench-demo/src/bd_main.c",
+        "examples/bench-demo/src/main.c",
+        "examples/bench-demo/tests/project/test_bd_digest.c",
+        "examples/bench-demo/tests/project/test_bd_main.c",
+        "examples/bench-demo/tests/project/test_bd_request.c",
+        "examples/bench-demo/src/bd_kernel.c",
+        "examples/bench-demo/src/kernel_main.c",
+        "examples/bench-demo/tests/project/test_bd_kernel.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_main.c",
+        "examples/bench-demo/include/bd_wire.h",
+        "examples/bench-demo/include/bd_inproc.h",
+        "examples/bench-demo/src/bd_wire.c",
+        "examples/bench-demo/src/bd_io.c",
+        "examples/bench-demo/src/bd_serve.c",
+        "examples/bench-demo/src/bd_worker_cli.c",
+        "examples/bench-demo/src/bd_kernel_cli.c",
+        "examples/bench-demo/src/worker_main.c",
+        "examples/bench-demo/src/bd_inproc.c",
+        "examples/bench-demo/tests/project/test_bd_wire.c",
+        "examples/bench-demo/tests/project/test_bd_io.c",
+        "examples/bench-demo/tests/project/test_bd_serve.c",
+        "examples/bench-demo/tests/project/test_bd_shm.c",
+        "examples/bench-demo/tests/project/test_bd_worker_cli.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_cli.c",
+        "examples/bench-demo/tests/project/test_bd_inproc.c",
+        "examples/bench-demo/fuzz/project/bd_frame_fuzz.c",
+        "examples/bench-demo/fuzz/project/bd_inproc_fuzz.c",
+        "examples/bench-demo/fuzz/project/bd_kernel_parse_fuzz.c",
+        "examples/bench-demo/src/bd_kernel_args.c",
+        "examples/bench-demo/tests/project/test_bd_shm_hostile.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_run.c",
+        "examples/bench-demo/tests/project/test_bd_serve_limits.c",
+        "examples/bench-demo/tests/project/test_bd_shm_access.c",
+        "examples/bench-demo/tests/project/test_bd_kernel_fail.c",
+        "examples/bench-demo/tests/project/test_bd_worker_usage.c",
+        "examples/bench-demo/fuzz/project/bd_decode_fuzz.c",
+        "foundation/parallel/sc-parallel.h",
+        "foundation/parallel/sc-parallel.c",
+        "foundation/parallel/tests/contracts.c",
+        "foundation/parallel/tests/checks.h",
+        "foundation/parallel/tests/checks.c",
+        "foundation/parallel/tests/faults.c",
+        "tests/fixtures/project-library/include/entry.h",
+        "tests/fixtures/project-library/src/entry.c",
+        "tests/fixtures/project-library/src/main.c",
+        "tests/fixtures/project-library/tests/project/test_entry.c",
+        "tests/fixtures/project-library/fuzz/project/entry_fuzz.c",
+        "examples/bench-demo/include/bd_spread.h",
+        "examples/bench-demo/src/bd_spread.c",
+        "examples/bench-demo/tests/project/test_bd_spread.c",
+        "examples/bench-demo/tests/project/test_bd_spread_threads.c"
       ]
     }
   },

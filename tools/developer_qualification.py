@@ -12,6 +12,7 @@ import os
 import subprocess
 
 from evidence import Runner, GateError, bounded, atomic_json, file_hash, read_json, passed
+from evidence import loads_capped
 from policy import source_identity, source_files
 from schema_check import validate
 from developer_report import qualification,feedback
@@ -57,7 +58,7 @@ class Suite:
         path=self.out/('public-%03d-%s.opaque.json'%(len(self.calls),operation))
         atomic_json(path,record)
         try:
-            value=json.loads(record['output'])
+            value=loads_capped(record['output'])
             feedback(value)
         except (ValueError,TypeError,GateError):
             value={'status':'BLOCKED','reason':'Public entrypoint did not produce valid structured feedback.'}
@@ -93,7 +94,7 @@ class Suite:
         try:
             record=runner.run(['python3','/src/container/developer-qualification.py',case],
                              timeout=90,label='developer-fixed-experiment')
-            value=json.loads(record['output'])
+            value=loads_capped(record['output'])
             for name in value.get('artifacts',[]):
                 if not name.startswith('developer-job/') or '..' in Path(name).parts:
                     raise GateError('developer experiment collection path rejected')
@@ -362,7 +363,7 @@ class Suite:
                             check=launcher.docker(['exec',identifier,'python3','-I','-S','-c',
                                 'import pathlib,json;print(json.dumps({"gdb":any(p.name.isdecimal() and (p/"comm").is_file() and (p/"comm").read_text().strip()=="gdb" for p in pathlib.Path("/proc").iterdir())}))'],timeout=2)
                             atomic_json(self.out/'cancellation-observation.opaque.json',check)
-                            if passed(check) and json.loads(check['output']).get('gdb'):observed=True;break
+                            if passed(check) and loads_capped(check['output']).get('gdb'):observed=True;break
                     if observed:break
                     time.sleep(.05)
                 cancelled=self.call('stop')
@@ -412,7 +413,7 @@ class Suite:
             atomic_json(input_file,{'debug':debug['value'],'qualification':self.report})
             runner.start();runner.restore('developer-record-input.json',input_file)
             record=runner.run(['python3','/src/container/developer-record-probes.py'],timeout=45,label='developer-negative-record-controls')
-            data=json.loads(record['output'])
+            data=loads_capped(record['output'])
             runner.fetch(data['artifact'],self.out/'record-probes/result.json')
             if data.get('status')!='PASS':
                 self.report['limitations'].append('One or more negative record controls failed.')

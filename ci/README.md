@@ -66,12 +66,15 @@ limits, seccomp, AppArmor or
 SELinux enforcing, no inherited DOCKER_* settings and non-piped core handling. A
 failed check BLOCKS the run. The earlier
 [migration proposal](../specs/github-runner-migration.md) is superseded by
-[the design](../docs/superpowers/specs/2026-10-06-project-ci-design.md).
+the portable containment and project CI rules in this file and in `AGENTS.md`.
 
 The two exact images have a data-only transfer payload, identified in
-`ci/image-bundle.json`. It is published as the release `images-sdk-developer-v2`:
-https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v2/images.tar.gz
-(sha256 `ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624`).
+`ci/image-bundle.json`. It is the release `images-sdk-developer-v3`:
+https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v3/images.tar.gz
+(sha256 `e8c9c5d2bfb96073965da6c83260a5aa6f7a9703bbf05307c32c41976b51d99f`).
+It is the published release. The earlier release is
+`images-sdk-developer-v2` (sha256
+`ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624`).
 Rebuilding `container/Dockerfile` is acquisition with mutable-source
 limitations, not a substitute for those locked bytes.
 

@@ -150,5 +150,52 @@
         "foundation_fuzzer"
       ]
     }
+  },
+  "threading_functions": [
+    "g_thread_pool_new",
+    "g_thread_pool_push",
+    "g_thread_pool_free",
+    "g_thread_pool_get_num_threads",
+    "g_thread_self",
+    "g_mutex_init",
+    "g_mutex_clear",
+    "g_mutex_lock",
+    "g_mutex_unlock",
+    "g_cond_init",
+    "g_cond_clear",
+    "g_cond_wait",
+    "g_cond_broadcast"
+  ],
+  "function_grants": {
+    "foundation/parallel/sc-parallel.c": {
+      "role": "parallel-adapter",
+      "targets": [
+        "sc_parallel"
+      ],
+      "glib_functions": [
+        "g_thread_pool_new",
+        "g_thread_pool_push",
+        "g_thread_pool_free",
+        "g_thread_pool_get_num_threads",
+        "g_thread_self",
+        "g_mutex_init",
+        "g_mutex_clear",
+        "g_mutex_lock",
+        "g_mutex_unlock",
+        "g_cond_init",
+        "g_cond_clear",
+        "g_cond_wait",
+        "g_cond_broadcast",
+        "g_set_error_literal",
+        "g_quark_from_static_string"
+      ],
+      "atomic_expressions": true,
+      "indirect_calls": [
+        {
+          "function": "sc_parallel_worker",
+          "callee_type": "ScParallelTaskFn"
+        }
+      ]
+    }
   }
 }

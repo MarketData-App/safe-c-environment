@@ -327,5 +327,8 @@ fresh masked-output; mkarc tar-uname a.tar "$LOGIN"; git add -A
 fresh ok-pinned-tar;  mkdir -p container/foundation-inputs; mkarc ok-tar container/foundation-inputs/up.tar x
                      printf '{"inputs": [{"path": "container/foundation-inputs/up.tar", "sha256": "%s"}]}\n' "$(sha256sum container/foundation-inputs/up.tar | cut -c1-64)" > foundation.lock.json
                      r ok-pinned-upstream-tar ok "$(reach)"
+fresh path-pattern;  printf '%s\n' '^secret-dataset\.json$' > .git/info/personal-path-patterns; echo '{}' > secret-dataset.json; git add -A
+                     if git commit -q -m pp >/dev/null 2>"$BASE/out"; then o=ALLOWED; elif grep -q -F 'secret-dataset' "$BASE/out"; then o=LEAKED; elif grep -q -F ': private-path-pattern' "$BASE/out"; then o=BLOCKED; else o=NO:private-path-pattern; fi; r private-path-pattern bad $o
+fresh ok-path-text;  printf '%s\n' '^secret-dataset\.json$' > .git/info/personal-path-patterns; echo 'secret-dataset.json' > notes.txt; r ok-path-pattern-in-content ok "$(reach)"
 rm -rf "$BASE"
 exit $FAIL

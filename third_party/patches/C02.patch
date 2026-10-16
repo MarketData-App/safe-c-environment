@@ -1,6 +1,12 @@
 --- third_party/originals/llvm/llvm-project/compiler-rt/test/asan/TestCases/heap-overflow.cpp
 +++ safety/qualification/C02/bad.c
-@@ -1,24 +1,17 @@
+@@ -1,24 +1,23 @@
++/* Modified file. Origin: LLVM compiler-rt/test/asan/TestCases/heap-overflow.cpp
++ * at llvm-project revision cd708029e0b2869e80abe31ddb175f7c35361f90.
++ * License: Apache-2.0 WITH LLVM-exception; see
++ * third_party/originals/llvm/llvm-project/compiler-rt/LICENSE.TXT.
++ * Changed by MarketData-App (C17 qualification fixture); the full change is
++ * third_party/patches/C02.patch. */
 -// RUN: %clangxx_asan -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s
 -// RUN: %clangxx_asan -O1 %s -o %t && not %run %t 2>&1 | FileCheck %s
 -// RUN: %clangxx_asan -O2 %s -o %t && not %run %t 2>&1 | FileCheck %s

@@ -6,6 +6,9 @@ This is a viewing utility, not an acceptance classifier.
 from pathlib import Path
 import argparse
 import json
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from evidence import loads_capped
 import re
 
 RULES = {
@@ -26,13 +29,13 @@ def reduce_file(path, case_id):
         raise ValueError('finite_summary_input_required')
     content = path.read_text(errors='replace')
     try:
-        value = json.loads(content)
+        value = loads_capped(content)
         rows = value if isinstance(value, list) else [value]
     except ValueError:
         rows = []
         for line in content.splitlines():
             try:
-                value = json.loads(line)
+                value = loads_capped(line)
                 if isinstance(value, dict):
                     rows.append(value)
             except ValueError:

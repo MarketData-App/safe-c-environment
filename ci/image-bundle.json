@@ -2,17 +2,27 @@
   "schema_version": 1,
   "status": "PUBLISHED",
   "publication_authorized": true,
-  "license_review": "OWNER_CONFIRMED_COMPLIANT_2026-10-06",
-  "archive_sha256": "ea82b842693ae0382e4d7e6448ce43fff1c956ddf4557c57b01500a346c8f624",
-  "archive_bytes": 496826156,
+  "license_review": "OWNER_CONFIRMED_2026-10-15",
+  "license_review_agent": "AGENT_ENGINEERING_REVIEW_LR1_2026-10-13; found no source offer for the GPL/LGPL image contents, now SOURCE-OFFER.md; not legal approval",
+  "archive_sha256": "e8c9c5d2bfb96073965da6c83260a5aa6f7a9703bbf05307c32c41976b51d99f",
+  "archive_bytes": 512160947,
   "image_ids": [
-    "sha256:9b90ce96e4e0b2dc7f11a16d8c5fcd79e59672fccd9134163cea428e4fe9c1a6",
+    "sha256:323daee40b10313e19988592dcb32bb7f0aa6a7e72301ed85a1a9f61aed82e30",
     "sha256:fabbb83309d3767840466b4ccb82a1da9940b76d76ae7d16eedf04d6a540d179"
   ],
   "config_ids": [
-    "sha256:656026b2fcb4e4b83f376f8abcbe79fb0f8c253ce4e56ee9cdf2a325d42c29e3",
+    "sha256:41ffc347e8cc3ac4f624aa43732e79297cb46aea6035649621c97bc9ca5f805b",
     "sha256:d5856c404be7c6928b663a1c0dd296f957f3e977416d339b9104a503d94b1fc1"
   ],
-  "url": "https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v2/images.tar.gz",
+  "url": "https://github.com/MarketData-App/safe-c-environment/releases/download/images-sdk-developer-v3/images.tar.gz",
+  "source_offer": {
+    "path": "SOURCE-OFFER.md",
+    "release_asset": "SOURCE-OFFER.md",
+    "source_listing": "third_party/source-availability.json",
+    "source_listing_release_asset": "source-availability.json",
+    "covers": "GPL/LGPL components of both image_ids and of the repository binaries",
+    "basis": "GPL-3.0 6(d) directions to snapshot.debian.org; LGPL-2.1-or-later libraries distributed under LGPL-3.0 (6(d) directions); GPL-2.0 3(b) written offer; LGPL-2.1-only (libbabeltrace1 list.h) written offer plus directions, confirmed by the owner on 2026-10-15",
+    "note": "images.tar.gz cannot hold these files (ci/images verify rejects unregistered members); they are sibling release assets. Release images-sdk-developer-v3 is the published release; release images-sdk-developer-v2 is an earlier release. License basis confirmed by the owner on 2026-10-15: MIT for the project code; a separate written source offer (SOURCE-OFFER.md) for the included third-party components, each under its own license"
+  },
   "qualification_inherited": false
 }

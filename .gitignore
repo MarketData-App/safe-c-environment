@@ -61,3 +61,6 @@ vgcore.*
 artifacts/
 __pycache__/
 *.pyc
+
+# Local owner data (performance laboratory fixture); never commit
+.agentwatch/

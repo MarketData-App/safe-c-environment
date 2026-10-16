@@ -1,11 +1,16 @@
 {
   "assembly_recipe": "tools/assemble_developer_image.py",
-  "assembly_recipe_sha256": "d654bf0783a053754b15599c73b4b966331dbf499bd52f7344e3f24155c20d62",
+  "assembly_recipe_sha256": "520cdda28a9b2c4a3652aba873dce324f505d727976953910d3b7e3666d83e40",
   "base_image_id": "sha256:fabbb83309d3767840466b4ccb82a1da9940b76d76ae7d16eedf04d6a540d179",
+  "bench_python": {
+    "numpy": "2.3.3",
+    "psutil": "7.1.0",
+    "pyperf": "2.9.0"
+  },
   "extraction_recipe": "container/developer-package.py",
-  "extraction_recipe_sha256": "9c6707e420506da2896502ba9cba30ad41adaf4b2e08e09666c01839231237bd",
-  "foundation_lock_sha256": "14a93fbe161ffb93804213792d14feca05a40c7ed8e39f6e024a07be6054df56",
-  "image_id": "sha256:9b90ce96e4e0b2dc7f11a16d8c5fcd79e59672fccd9134163cea428e4fe9c1a6",
+  "extraction_recipe_sha256": "bc784ccdf467b29eae02042cd51d4fb97e8f9a495fe66f31edfbadf7652adbff",
+  "foundation_lock_sha256": "06679084b2028f1b0d887df28340dba15beb2f520ea13efb09a6a122859e03a9",
+  "image_id": "sha256:323daee40b10313e19988592dcb32bb7f0aa6a7e72301ed85a1a9f61aed82e30",
   "image_registry_digest": null,
   "independent_approval": "PENDING",
   "inherited_project_qualification": false,
@@ -191,73 +196,121 @@
       "sha256": "3a1d44df306e0252e8a16df07eba457bc9f2ef736ee890a1c35ffdfd548eafa0"
     },
     {
-      "bytes": 4975688,
+      "bytes": 4497859,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-0.tar.gz",
-      "sha256": "7659f28b98d50011e08cd0b932283a5fdc3bcee5d8590c9368e0be9b71c45759"
+      "sha256": "cb8766dcba5c695e6f8220ef2a46054393ae7537ce3c1ce1e55f5dfadec33855"
     },
     {
-      "bytes": 4505672,
+      "bytes": 3067305,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-1.tar.gz",
-      "sha256": "4e8e2cf8055d746cbf24ddbe3db74cead250e7e59bbc7d559a22b033c3ce1773"
+      "sha256": "02fad18302b8e25a24d756cdf43703ee5f9af33aef9a9eb2dc56f177e2ffdd70"
     },
     {
-      "bytes": 4975705,
+      "bytes": 7261582,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-2.tar.gz",
-      "sha256": "aa4cb1b93db36ea8752fa2e4bbb70cef2898f2008dec6c7c8d148dbdb3e67da0"
+      "sha256": "167b512701b0c5d56bf748c1461cb61c257f796ff8006c00878cd9f58af6ec7e"
     },
     {
-      "bytes": 5266838,
+      "bytes": 233180,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-3.tar.gz",
-      "sha256": "33d13cebfd8afd3adcb7fa858d7c99dae34157119ef71c5a12b22912fe7b2bf8"
+      "sha256": "82b69b8d0d4613e422d67c87540bebb3fd9f761a10e2ccac468f11e821644908"
     },
     {
-      "bytes": 4348218,
+      "bytes": 4975682,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-4.tar.gz",
-      "sha256": "0b7011adeba14a6532ef1e62c640339c74d7a531dae64efa2ffa496322fc8680"
+      "sha256": "a7e9b573809acd2bd3c854a1e001d86b8bff23c7e63c5595295ecb6cee049a8e"
     },
     {
-      "bytes": 5985644,
+      "bytes": 4505674,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-5.tar.gz",
-      "sha256": "28e8f9a0d5766bc4e36f505bb41a98d0206937a36ae2381740cd020b7b4bfabb"
+      "sha256": "8d725fc751e55f14c39c49ad5b75801b96c01c4fb3d84ae1a388e54b457b2c1c"
     },
     {
-      "bytes": 5176670,
+      "bytes": 4975713,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-6.tar.gz",
-      "sha256": "d0c66fd05e21829407828e6985051e9718e09324baf8fd83e4437327925cd8f3"
+      "sha256": "b4e1bf8faea9e6eb9ba8fbcb5439be3ac14a5a2d832c648186fd7cf9387f25ea"
     },
     {
-      "bytes": 3572242,
+      "bytes": 5266981,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-7.tar.gz",
-      "sha256": "16cd73b78d20b8b7dd241f507cb31038b304db2e3dce5f298af77bba480844b0"
+      "sha256": "5c47df9a5ac92f0ac7518e99af601262e930c3200e42752928973759e6eeda25"
     },
     {
-      "bytes": 5882592,
+      "bytes": 4348219,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-8.tar.gz",
-      "sha256": "4fd2e14a52affbd07e557b13c5e05c8068a8dbe1a68c298eb7e5734b5e496122"
+      "sha256": "da367074f00bb3bb4c8dc81a28bd224d995794addc5d1df8782d3be17e25bd83"
     },
     {
-      "bytes": 2339551,
+      "bytes": 5985649,
       "kind": "development-payload",
       "path": "third_party/developer/payload/development-layer-9.tar.gz",
-      "sha256": "4fe2879caa58815c4e6fba56d0f5307a46ed3b179b7179cf3d23991fad12ebd1"
+      "sha256": "fdbc3fcebef8ae016a0f2564e919d5c01a496f5802dda256dc46534c851d5d0b"
     },
     {
-      "bytes": 216814,
+      "bytes": 5176709,
+      "kind": "development-payload",
+      "path": "third_party/developer/payload/development-layer-10.tar.gz",
+      "sha256": "05c9c0c1fd3a9d8d239b585ab45deb70a5eb904fcc70d0b1289ab413f24c0b81"
+    },
+    {
+      "bytes": 3572235,
+      "kind": "development-payload",
+      "path": "third_party/developer/payload/development-layer-11.tar.gz",
+      "sha256": "83a23236c35ce2a13fef7a2016c588b5bb006d635210cff5cb01d3b5da733da9"
+    },
+    {
+      "bytes": 5882595,
+      "kind": "development-payload",
+      "path": "third_party/developer/payload/development-layer-12.tar.gz",
+      "sha256": "94b494320a82c1577151df4f968e78ad8c0826656f0863584bcb7e317d4c47a6"
+    },
+    {
+      "bytes": 2339547,
+      "kind": "development-payload",
+      "path": "third_party/developer/payload/development-layer-13.tar.gz",
+      "sha256": "864ae977cc9c40d47a46238c358ebd81b176398600e66bbb5a5fd8b1913440d3"
+    },
+    {
+      "bytes": 340624,
       "kind": "payload-manifest",
       "path": "third_party/developer/payload/manifest.json",
-      "sha256": "627153e9885c2c112783865bc62097c07c686e51ae327a47ce4569c8354e6529"
+      "sha256": "da3c8b402f366e4ace035b8b4775de249ece0e7c26b6c9d3dae0bab99214413e"
+    },
+    {
+      "bytes": 16636301,
+      "kind": "python-wheel-part",
+      "path": "third_party/developer/wheels/numpy-2.3.3-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "sha256": "5b83648633d46f77039c29078751f80da65aa64d5622a3cd62aaef9d835b6c93"
+    },
+    {
+      "bytes": 144204,
+      "kind": "python-wheel-part",
+      "path": "third_party/developer/wheels/pyperf-2.9.0-py3-none-any.whl",
+      "sha256": "215673fb60f3fbbc6c7a90b609b0806d8466fded8dd502bf5731e2b92506076e"
+    },
+    {
+      "bytes": 291163,
+      "kind": "python-wheel-part",
+      "path": "third_party/developer/wheels/psutil-7.1.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "sha256": "8c70e113920d51e89f212dd7be06219a9b88014e63a4cec69b684c327bc474e3"
+    },
+    {
+      "bytes": 2811,
+      "kind": "provenance-data",
+      "path": "third_party/developer/provenance/wheel-selection.json",
+      "sha256": "7aaff2594249b7764ca8508730c262562e0ff228699b9ab85483eb0816cd6808"
     }
   ],
-  "license_review": "PENDING",
+  "license_review": "OWNER_CONFIRMED_2026-10-15",
   "notices": {
     "clangd-19": {
       "license_tags": [
@@ -268,7 +321,7 @@
         "Python",
         "solar-public-domain"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/clangd-19/copyright",
       "review_status": "PENDING",
       "sha256": "4c22cf66ddd6dfae2ac4e034342f93a9c96581d5e88c7bb700a125a71cf66cd7"
@@ -283,7 +336,7 @@
         "LGPL-2+",
         "LGPL-2.1+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/gdb/copyright",
       "review_status": "PENDING",
       "sha256": "52f303b7daf073734530a19433d4c5779de02299c70581787c6e10645c9a5fb6"
@@ -292,7 +345,7 @@
       "license_tags": [
         "Apache-2.0"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libabsl20240722/copyright",
       "review_status": "PENDING",
       "sha256": "11c5c45f066788910b5c5eb70875d8a2db0084561ea2cfbbe7b794b1fc61074b"
@@ -304,7 +357,7 @@
         "LGPL-2.1",
         "MIT"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libbabeltrace1/copyright",
       "review_status": "PENDING",
       "sha256": "7248e28acc68570e17c71dff6b7090ba48f7f5d603982b5bcc358d2a212792b9"
@@ -326,7 +379,7 @@
         "LGPL-2.1+",
         "X11"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libcares2/copyright",
       "review_status": "PENDING",
       "sha256": "e0f253c911d565ebad63515e7dc8c2cdd7f8c25219923f766f097b50515c47eb"
@@ -340,7 +393,7 @@
         "LGPL-2.1+",
         "LGPL-3+ or GPL-2+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libdebuginfod-common/copyright",
       "review_status": "PENDING",
       "sha256": "657e078ed1e718b57ca839cdc38bb93196a0009488bea43cd0f429e7531530fa"
@@ -354,7 +407,7 @@
         "LGPL-2.1+",
         "LGPL-3+ or GPL-2+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libdebuginfod1t64/copyright",
       "review_status": "PENDING",
       "sha256": "657e078ed1e718b57ca839cdc38bb93196a0009488bea43cd0f429e7531530fa"
@@ -368,7 +421,7 @@
         "LGPL-2.1+",
         "LGPL-3+ or GPL-2+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libdw1t64/copyright",
       "review_status": "PENDING",
       "sha256": "657e078ed1e718b57ca839cdc38bb93196a0009488bea43cd0f429e7531530fa"
@@ -382,7 +435,7 @@
         "LGPL-2.1+",
         "LGPL-3+ or GPL-2+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libelf1t64/copyright",
       "review_status": "PENDING",
       "sha256": "657e078ed1e718b57ca839cdc38bb93196a0009488bea43cd0f429e7531530fa"
@@ -413,7 +466,7 @@
         "cmph",
         "old-glib-tests"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libglib2.0-0t64/copyright",
       "review_status": "PENDING",
       "sha256": "b9fe78c8a0720c051c9ac8e8c6f25663b54f228e501d24fc0ba89c66cec7f7c1"
@@ -425,7 +478,7 @@
         "GPL-2+",
         "MIT"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libgrpc++1.51t64/copyright",
       "review_status": "PENDING",
       "sha256": "d7903ed215328cd283ec872b3aae64f8f38a12b4ee3929589c7215e7508fb0e8"
@@ -437,7 +490,7 @@
         "GPL-2+",
         "MIT"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libgrpc29t64/copyright",
       "review_status": "PENDING",
       "sha256": "d7903ed215328cd283ec872b3aae64f8f38a12b4ee3929589c7215e7508fb0e8"
@@ -446,7 +499,7 @@
       "license_tags": [
         "Expat"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libipt2/copyright",
       "review_status": "PENDING",
       "sha256": "26476781d1992ed84358d76ee69d2d1bcbb9dddf3182ea97179f5605561a3e8d"
@@ -455,7 +508,7 @@
       "license_tags": [
         "Expat"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libjson-c5/copyright",
       "review_status": "PENDING",
       "sha256": "95f676ac96c7f4771bba4f17a11bddca699f7cba8317dd099cfd5600a81aa848"
@@ -471,7 +524,7 @@
         "Public-Domain",
         "Public-Domain or Expat"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libprotobuf32t64/copyright",
       "review_status": "PENDING",
       "sha256": "77ae762c8b3aa11e07a48184818111d28e2274229a8eb121e19477d1a40f3b76"
@@ -487,7 +540,7 @@
         "Public-Domain",
         "Public-Domain or Expat"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libprotoc32t64/copyright",
       "review_status": "PENDING",
       "sha256": "77ae762c8b3aa11e07a48184818111d28e2274229a8eb121e19477d1a40f3b76"
@@ -507,7 +560,7 @@
         "This software is provided 'as-is', without any express or implied",
         "This software is provided as-is, without express or implied"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libpython3.13/copyright",
       "review_status": "PENDING",
       "sha256": "f1cbf908e1daa8789b389fdcf17811ed36b675d736b39a103591399861350382"
@@ -517,7 +570,7 @@
         "BSD-3-google",
         "Lucent"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libre2-11/copyright",
       "review_status": "PENDING",
       "sha256": "b2734d0b98bff45ef1989959aa806bebd95f75dcb85c99f1aa95be3185283e54"
@@ -528,7 +581,7 @@
         "GPL-3+",
         "GPL-3+ "
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libsource-highlight-common/copyright",
       "review_status": "PENDING",
       "sha256": "f8305da6853fc5ef976007d88526130c2f011ea100010fecf4c7e6100911e073"
@@ -539,7 +592,7 @@
         "GPL-3+",
         "GPL-3+ "
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libsource-highlight4t64/copyright",
       "review_status": "PENDING",
       "sha256": "f8305da6853fc5ef976007d88526130c2f011ea100010fecf4c7e6100911e073"
@@ -550,7 +603,7 @@
         "Artistic or GPL-1+",
         "GPL-1+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libtext-charwidth-perl/copyright",
       "review_status": "PENDING",
       "sha256": "a8b977da6e759fe80e5669f3624394b989f5693976a44c71d661ff00de081885"
@@ -561,10 +614,45 @@
         "Artistic or GPL-1+",
         "GPL-1+"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/libtext-wrapi18n-perl/copyright",
       "review_status": "PENDING",
       "sha256": "04670c33e3250932ba698b12e609fe6a7c7eb847c2fa5d05baaf2782e5935375"
+    },
+    "numpy": {
+      "license_tags": [
+        "Apache 2.0",
+        "BSD",
+        "BSD-3",
+        "BSD-3-Clause",
+        "BSD-3-Clause-Open-MPI",
+        "GPL-3.0-or-later WITH GCC-exception-3.1",
+        "LGPL-2.1-or-later",
+        "MIT",
+        "Zlib"
+      ],
+      "owner": "MarketData-App legal team (license review); MarketData-App framework maintainers (technical)",
+      "path": "third_party/developer/notices/numpy/LICENSE.txt",
+      "review_status": "PENDING",
+      "sha256": "2046a3130e50b11c01659b3a0d963e6ae0b7436ff8e89cbcfd9e87bc6112d595"
+    },
+    "psutil": {
+      "license_tags": [
+        "BSD-3-Clause"
+      ],
+      "owner": "MarketData-App legal team (license review); MarketData-App framework maintainers (technical)",
+      "path": "third_party/developer/notices/psutil/LICENSE",
+      "review_status": "PENDING",
+      "sha256": "b89c063b3786e28e0c0a38f1931db61fed35e69dd2a2966fbecffee0f46c8d10"
+    },
+    "pyperf": {
+      "license_tags": [
+        "MIT"
+      ],
+      "owner": "MarketData-App legal team (license review); MarketData-App framework maintainers (technical)",
+      "path": "third_party/developer/notices/pyperf/COPYING",
+      "review_status": "PENDING",
+      "sha256": "64ccf157f932c37cb42296a7ca86d8bf111d9a7578eada257992290a2f4c165f"
     },
     "sensible-utils": {
       "license_tags": [
@@ -573,7 +661,7 @@
         "configure",
         "installsh"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/sensible-utils/copyright",
       "review_status": "PENDING",
       "sha256": "cedd6fcbc166321e6792b0161dd387d9ad4de72aa1e8fd4ec6da9f252dba2543"
@@ -582,14 +670,14 @@
       "license_tags": [
         "GPL-2"
       ],
-      "owner": "MarketDataApp",
+      "owner": "MarketData-App",
       "path": "third_party/developer/notices/ucf/copyright",
       "review_status": "PENDING",
       "sha256": "b14f660653d37c8bf828ded913e517e2833e4e3d4dc3ae39d4e31038656040cd"
     }
   },
   "ordinary_image_migrated": false,
-  "owner": "MarketDataApp",
+  "owner": "MarketData-App",
   "packages": [
     {
       "bytes": 3991712,
@@ -810,34 +898,522 @@
   ],
   "payload_chunks": [
     {
-      "bytes": 4975688,
+      "bytes": 4497859,
       "files": [
-        "usr/bin/clangd-19"
+        "opt/bench-python/numpy/__config__.py",
+        "opt/bench-python/numpy/__config__.pyi",
+        "opt/bench-python/numpy/__init__.cython-30.pxd",
+        "opt/bench-python/numpy/__init__.pxd",
+        "opt/bench-python/numpy/__init__.py",
+        "opt/bench-python/numpy/__init__.pyi",
+        "opt/bench-python/numpy/_array_api_info.py",
+        "opt/bench-python/numpy/_array_api_info.pyi",
+        "opt/bench-python/numpy/_configtool.py",
+        "opt/bench-python/numpy/_configtool.pyi",
+        "opt/bench-python/numpy/_core/__init__.py",
+        "opt/bench-python/numpy/_core/__init__.pyi",
+        "opt/bench-python/numpy/_core/_add_newdocs.py",
+        "opt/bench-python/numpy/_core/_add_newdocs.pyi",
+        "opt/bench-python/numpy/_core/_add_newdocs_scalars.py",
+        "opt/bench-python/numpy/_core/_add_newdocs_scalars.pyi",
+        "opt/bench-python/numpy/_core/_asarray.py",
+        "opt/bench-python/numpy/_core/_asarray.pyi",
+        "opt/bench-python/numpy/_core/_dtype.py",
+        "opt/bench-python/numpy/_core/_dtype.pyi",
+        "opt/bench-python/numpy/_core/_dtype_ctypes.py",
+        "opt/bench-python/numpy/_core/_dtype_ctypes.pyi",
+        "opt/bench-python/numpy/_core/_exceptions.py",
+        "opt/bench-python/numpy/_core/_exceptions.pyi",
+        "opt/bench-python/numpy/_core/_internal.py",
+        "opt/bench-python/numpy/_core/_internal.pyi",
+        "opt/bench-python/numpy/_core/_machar.py",
+        "opt/bench-python/numpy/_core/_machar.pyi",
+        "opt/bench-python/numpy/_core/_methods.py",
+        "opt/bench-python/numpy/_core/_methods.pyi",
+        "opt/bench-python/numpy/_core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_operand_flag_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_rational_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_simd.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_simd.pyi",
+        "opt/bench-python/numpy/_core/_string_helpers.py",
+        "opt/bench-python/numpy/_core/_string_helpers.pyi",
+        "opt/bench-python/numpy/_core/_struct_ufunc_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_type_aliases.py",
+        "opt/bench-python/numpy/_core/_type_aliases.pyi",
+        "opt/bench-python/numpy/_core/_ufunc_config.py",
+        "opt/bench-python/numpy/_core/_ufunc_config.pyi",
+        "opt/bench-python/numpy/_core/_umath_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/arrayprint.py",
+        "opt/bench-python/numpy/_core/arrayprint.pyi",
+        "opt/bench-python/numpy/_core/cversions.py",
+        "opt/bench-python/numpy/_core/defchararray.py",
+        "opt/bench-python/numpy/_core/defchararray.pyi",
+        "opt/bench-python/numpy/_core/einsumfunc.py",
+        "opt/bench-python/numpy/_core/einsumfunc.pyi",
+        "opt/bench-python/numpy/_core/fromnumeric.py",
+        "opt/bench-python/numpy/_core/fromnumeric.pyi",
+        "opt/bench-python/numpy/_core/function_base.py",
+        "opt/bench-python/numpy/_core/function_base.pyi",
+        "opt/bench-python/numpy/_core/getlimits.py",
+        "opt/bench-python/numpy/_core/getlimits.pyi",
+        "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.c",
+        "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.c",
+        "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/_neighborhood_iterator_imp.h",
+        "opt/bench-python/numpy/_core/include/numpy/_numpyconfig.h",
+        "opt/bench-python/numpy/_core/include/numpy/_public_dtype_api_table.h",
+        "opt/bench-python/numpy/_core/include/numpy/arrayobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/arrayscalars.h",
+        "opt/bench-python/numpy/_core/include/numpy/dtype_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/halffloat.h",
+        "opt/bench-python/numpy/_core/include/numpy/ndarrayobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/ndarraytypes.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_2_compat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_2_complexcompat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_3kcompat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_common.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_cpu.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_endian.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_math.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_no_deprecated_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_os.h",
+        "opt/bench-python/numpy/_core/include/numpy/numpyconfig.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/LICENSE.txt",
+        "opt/bench-python/numpy/_core/include/numpy/random/bitgen.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/distributions.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/libdivide.h",
+        "opt/bench-python/numpy/_core/include/numpy/ufuncobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/utils.h",
+        "opt/bench-python/numpy/_core/lib/libnpymath.a",
+        "opt/bench-python/numpy/_core/lib/npy-pkg-config/mlib.ini",
+        "opt/bench-python/numpy/_core/lib/npy-pkg-config/npymath.ini",
+        "opt/bench-python/numpy/_core/lib/pkgconfig/numpy.pc",
+        "opt/bench-python/numpy/_core/memmap.py",
+        "opt/bench-python/numpy/_core/memmap.pyi",
+        "opt/bench-python/numpy/_core/multiarray.py",
+        "opt/bench-python/numpy/_core/multiarray.pyi",
+        "opt/bench-python/numpy/_core/numeric.py",
+        "opt/bench-python/numpy/_core/numeric.pyi",
+        "opt/bench-python/numpy/_core/numerictypes.py",
+        "opt/bench-python/numpy/_core/numerictypes.pyi",
+        "opt/bench-python/numpy/_core/overrides.py",
+        "opt/bench-python/numpy/_core/overrides.pyi",
+        "opt/bench-python/numpy/_core/printoptions.py",
+        "opt/bench-python/numpy/_core/printoptions.pyi",
+        "opt/bench-python/numpy/_core/records.py",
+        "opt/bench-python/numpy/_core/records.pyi",
+        "opt/bench-python/numpy/_core/shape_base.py",
+        "opt/bench-python/numpy/_core/shape_base.pyi",
+        "opt/bench-python/numpy/_core/strings.py",
+        "opt/bench-python/numpy/_core/strings.pyi",
+        "opt/bench-python/numpy/_core/umath.py",
+        "opt/bench-python/numpy/_core/umath.pyi",
+        "opt/bench-python/numpy/_distributor_init.py",
+        "opt/bench-python/numpy/_distributor_init.pyi",
+        "opt/bench-python/numpy/_expired_attrs_2_0.py",
+        "opt/bench-python/numpy/_expired_attrs_2_0.pyi",
+        "opt/bench-python/numpy/_globals.py",
+        "opt/bench-python/numpy/_globals.pyi",
+        "opt/bench-python/numpy/_pyinstaller/__init__.py",
+        "opt/bench-python/numpy/_pyinstaller/__init__.pyi",
+        "opt/bench-python/numpy/_pyinstaller/hook-numpy.py",
+        "opt/bench-python/numpy/_pyinstaller/hook-numpy.pyi",
+        "opt/bench-python/numpy/_pytesttester.py",
+        "opt/bench-python/numpy/_pytesttester.pyi",
+        "opt/bench-python/numpy/_typing/__init__.py",
+        "opt/bench-python/numpy/_typing/_add_docstring.py",
+        "opt/bench-python/numpy/_typing/_array_like.py",
+        "opt/bench-python/numpy/_typing/_callable.pyi",
+        "opt/bench-python/numpy/_typing/_char_codes.py",
+        "opt/bench-python/numpy/_typing/_dtype_like.py",
+        "opt/bench-python/numpy/_typing/_extended_precision.py",
+        "opt/bench-python/numpy/_typing/_nbit.py",
+        "opt/bench-python/numpy/_typing/_nbit_base.py",
+        "opt/bench-python/numpy/_typing/_nbit_base.pyi",
+        "opt/bench-python/numpy/_typing/_nested_sequence.py",
+        "opt/bench-python/numpy/_typing/_scalars.py",
+        "opt/bench-python/numpy/_typing/_shape.py",
+        "opt/bench-python/numpy/_typing/_ufunc.py",
+        "opt/bench-python/numpy/_typing/_ufunc.pyi",
+        "opt/bench-python/numpy/_utils/__init__.py",
+        "opt/bench-python/numpy/_utils/__init__.pyi",
+        "opt/bench-python/numpy/_utils/_convertions.py",
+        "opt/bench-python/numpy/_utils/_convertions.pyi",
+        "opt/bench-python/numpy/_utils/_inspect.py",
+        "opt/bench-python/numpy/_utils/_inspect.pyi",
+        "opt/bench-python/numpy/_utils/_pep440.py",
+        "opt/bench-python/numpy/_utils/_pep440.pyi",
+        "opt/bench-python/numpy/char/__init__.py",
+        "opt/bench-python/numpy/char/__init__.pyi",
+        "opt/bench-python/numpy/conftest.py",
+        "opt/bench-python/numpy/core/__init__.py",
+        "opt/bench-python/numpy/core/__init__.pyi",
+        "opt/bench-python/numpy/core/_dtype.py",
+        "opt/bench-python/numpy/core/_dtype.pyi",
+        "opt/bench-python/numpy/core/_dtype_ctypes.py",
+        "opt/bench-python/numpy/core/_dtype_ctypes.pyi",
+        "opt/bench-python/numpy/core/_internal.py",
+        "opt/bench-python/numpy/core/_multiarray_umath.py",
+        "opt/bench-python/numpy/core/_utils.py",
+        "opt/bench-python/numpy/core/arrayprint.py",
+        "opt/bench-python/numpy/core/defchararray.py",
+        "opt/bench-python/numpy/core/einsumfunc.py",
+        "opt/bench-python/numpy/core/fromnumeric.py",
+        "opt/bench-python/numpy/core/function_base.py",
+        "opt/bench-python/numpy/core/getlimits.py",
+        "opt/bench-python/numpy/core/multiarray.py",
+        "opt/bench-python/numpy/core/numeric.py",
+        "opt/bench-python/numpy/core/numerictypes.py",
+        "opt/bench-python/numpy/core/overrides.py",
+        "opt/bench-python/numpy/core/overrides.pyi",
+        "opt/bench-python/numpy/core/records.py",
+        "opt/bench-python/numpy/core/shape_base.py",
+        "opt/bench-python/numpy/core/umath.py",
+        "opt/bench-python/numpy/ctypeslib/__init__.py",
+        "opt/bench-python/numpy/ctypeslib/__init__.pyi",
+        "opt/bench-python/numpy/ctypeslib/_ctypeslib.py",
+        "opt/bench-python/numpy/ctypeslib/_ctypeslib.pyi",
+        "opt/bench-python/numpy/doc/ufuncs.py",
+        "opt/bench-python/numpy/dtypes.py",
+        "opt/bench-python/numpy/dtypes.pyi",
+        "opt/bench-python/numpy/exceptions.py",
+        "opt/bench-python/numpy/exceptions.pyi",
+        "opt/bench-python/numpy/f2py/__init__.py",
+        "opt/bench-python/numpy/f2py/__init__.pyi",
+        "opt/bench-python/numpy/f2py/__main__.py",
+        "opt/bench-python/numpy/f2py/__version__.py",
+        "opt/bench-python/numpy/f2py/__version__.pyi",
+        "opt/bench-python/numpy/f2py/_backends/__init__.py",
+        "opt/bench-python/numpy/f2py/_backends/__init__.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_backend.py",
+        "opt/bench-python/numpy/f2py/_backends/_backend.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_distutils.py",
+        "opt/bench-python/numpy/f2py/_backends/_distutils.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_meson.py",
+        "opt/bench-python/numpy/f2py/_backends/_meson.pyi",
+        "opt/bench-python/numpy/f2py/_backends/meson.build.template",
+        "opt/bench-python/numpy/f2py/_isocbind.py",
+        "opt/bench-python/numpy/f2py/_isocbind.pyi",
+        "opt/bench-python/numpy/f2py/_src_pyf.py",
+        "opt/bench-python/numpy/f2py/_src_pyf.pyi",
+        "opt/bench-python/numpy/f2py/auxfuncs.py",
+        "opt/bench-python/numpy/f2py/auxfuncs.pyi",
+        "opt/bench-python/numpy/f2py/capi_maps.py",
+        "opt/bench-python/numpy/f2py/capi_maps.pyi",
+        "opt/bench-python/numpy/f2py/cb_rules.py",
+        "opt/bench-python/numpy/f2py/cb_rules.pyi",
+        "opt/bench-python/numpy/f2py/cfuncs.py",
+        "opt/bench-python/numpy/f2py/cfuncs.pyi",
+        "opt/bench-python/numpy/f2py/common_rules.py",
+        "opt/bench-python/numpy/f2py/common_rules.pyi",
+        "opt/bench-python/numpy/f2py/crackfortran.py",
+        "opt/bench-python/numpy/f2py/crackfortran.pyi",
+        "opt/bench-python/numpy/f2py/diagnose.py",
+        "opt/bench-python/numpy/f2py/diagnose.pyi",
+        "opt/bench-python/numpy/f2py/f2py2e.py",
+        "opt/bench-python/numpy/f2py/f2py2e.pyi",
+        "opt/bench-python/numpy/f2py/f90mod_rules.py",
+        "opt/bench-python/numpy/f2py/f90mod_rules.pyi",
+        "opt/bench-python/numpy/f2py/func2subr.py",
+        "opt/bench-python/numpy/f2py/func2subr.pyi",
+        "opt/bench-python/numpy/f2py/rules.py",
+        "opt/bench-python/numpy/f2py/rules.pyi",
+        "opt/bench-python/numpy/f2py/setup.cfg",
+        "opt/bench-python/numpy/f2py/src/fortranobject.c",
+        "opt/bench-python/numpy/f2py/src/fortranobject.h",
+        "opt/bench-python/numpy/f2py/symbolic.py",
+        "opt/bench-python/numpy/f2py/symbolic.pyi",
+        "opt/bench-python/numpy/f2py/use_rules.py",
+        "opt/bench-python/numpy/f2py/use_rules.pyi",
+        "opt/bench-python/numpy/fft/__init__.py",
+        "opt/bench-python/numpy/fft/__init__.pyi",
+        "opt/bench-python/numpy/fft/_helper.py",
+        "opt/bench-python/numpy/fft/_helper.pyi"
       ],
       "name": "development-layer-0.tar.gz",
       "path": "third_party/developer/payload/development-layer-0.tar.gz",
-      "sha256": "7659f28b98d50011e08cd0b932283a5fdc3bcee5d8590c9368e0be9b71c45759"
+      "sha256": "cb8766dcba5c695e6f8220ef2a46054393ae7537ce3c1ce1e55f5dfadec33855"
     },
     {
-      "bytes": 4505672,
+      "bytes": 3067305,
       "files": [
-        "usr/bin/gdb"
+        "opt/bench-python/numpy/fft/_pocketfft.py",
+        "opt/bench-python/numpy/fft/_pocketfft.pyi",
+        "opt/bench-python/numpy/fft/_pocketfft_umath.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/fft/helper.py",
+        "opt/bench-python/numpy/fft/helper.pyi",
+        "opt/bench-python/numpy/lib/__init__.py",
+        "opt/bench-python/numpy/lib/__init__.pyi",
+        "opt/bench-python/numpy/lib/_array_utils_impl.py",
+        "opt/bench-python/numpy/lib/_array_utils_impl.pyi",
+        "opt/bench-python/numpy/lib/_arraypad_impl.py",
+        "opt/bench-python/numpy/lib/_arraypad_impl.pyi",
+        "opt/bench-python/numpy/lib/_arraysetops_impl.py",
+        "opt/bench-python/numpy/lib/_arraysetops_impl.pyi",
+        "opt/bench-python/numpy/lib/_arrayterator_impl.py",
+        "opt/bench-python/numpy/lib/_arrayterator_impl.pyi",
+        "opt/bench-python/numpy/lib/_datasource.py",
+        "opt/bench-python/numpy/lib/_datasource.pyi",
+        "opt/bench-python/numpy/lib/_format_impl.py",
+        "opt/bench-python/numpy/lib/_format_impl.pyi",
+        "opt/bench-python/numpy/lib/_function_base_impl.py",
+        "opt/bench-python/numpy/lib/_function_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_histograms_impl.py",
+        "opt/bench-python/numpy/lib/_histograms_impl.pyi",
+        "opt/bench-python/numpy/lib/_index_tricks_impl.py",
+        "opt/bench-python/numpy/lib/_index_tricks_impl.pyi",
+        "opt/bench-python/numpy/lib/_iotools.py",
+        "opt/bench-python/numpy/lib/_iotools.pyi",
+        "opt/bench-python/numpy/lib/_nanfunctions_impl.py",
+        "opt/bench-python/numpy/lib/_nanfunctions_impl.pyi",
+        "opt/bench-python/numpy/lib/_npyio_impl.py",
+        "opt/bench-python/numpy/lib/_npyio_impl.pyi",
+        "opt/bench-python/numpy/lib/_polynomial_impl.py",
+        "opt/bench-python/numpy/lib/_polynomial_impl.pyi",
+        "opt/bench-python/numpy/lib/_scimath_impl.py",
+        "opt/bench-python/numpy/lib/_scimath_impl.pyi",
+        "opt/bench-python/numpy/lib/_shape_base_impl.py",
+        "opt/bench-python/numpy/lib/_shape_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_stride_tricks_impl.py",
+        "opt/bench-python/numpy/lib/_stride_tricks_impl.pyi",
+        "opt/bench-python/numpy/lib/_twodim_base_impl.py",
+        "opt/bench-python/numpy/lib/_twodim_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_type_check_impl.py",
+        "opt/bench-python/numpy/lib/_type_check_impl.pyi",
+        "opt/bench-python/numpy/lib/_ufunclike_impl.py",
+        "opt/bench-python/numpy/lib/_ufunclike_impl.pyi",
+        "opt/bench-python/numpy/lib/_user_array_impl.py",
+        "opt/bench-python/numpy/lib/_user_array_impl.pyi",
+        "opt/bench-python/numpy/lib/_utils_impl.py",
+        "opt/bench-python/numpy/lib/_utils_impl.pyi",
+        "opt/bench-python/numpy/lib/_version.py",
+        "opt/bench-python/numpy/lib/_version.pyi",
+        "opt/bench-python/numpy/lib/array_utils.py",
+        "opt/bench-python/numpy/lib/array_utils.pyi",
+        "opt/bench-python/numpy/lib/format.py",
+        "opt/bench-python/numpy/lib/format.pyi",
+        "opt/bench-python/numpy/lib/introspect.py",
+        "opt/bench-python/numpy/lib/introspect.pyi",
+        "opt/bench-python/numpy/lib/mixins.py",
+        "opt/bench-python/numpy/lib/mixins.pyi",
+        "opt/bench-python/numpy/lib/npyio.py",
+        "opt/bench-python/numpy/lib/npyio.pyi",
+        "opt/bench-python/numpy/lib/recfunctions.py",
+        "opt/bench-python/numpy/lib/recfunctions.pyi",
+        "opt/bench-python/numpy/lib/scimath.py",
+        "opt/bench-python/numpy/lib/scimath.pyi",
+        "opt/bench-python/numpy/lib/stride_tricks.py",
+        "opt/bench-python/numpy/lib/stride_tricks.pyi",
+        "opt/bench-python/numpy/lib/user_array.py",
+        "opt/bench-python/numpy/lib/user_array.pyi",
+        "opt/bench-python/numpy/linalg/__init__.py",
+        "opt/bench-python/numpy/linalg/__init__.pyi",
+        "opt/bench-python/numpy/linalg/_linalg.py",
+        "opt/bench-python/numpy/linalg/_linalg.pyi",
+        "opt/bench-python/numpy/linalg/_umath_linalg.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/linalg/_umath_linalg.pyi",
+        "opt/bench-python/numpy/linalg/lapack_lite.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/linalg/lapack_lite.pyi",
+        "opt/bench-python/numpy/linalg/linalg.py",
+        "opt/bench-python/numpy/linalg/linalg.pyi",
+        "opt/bench-python/numpy/ma/API_CHANGES.txt",
+        "opt/bench-python/numpy/ma/LICENSE",
+        "opt/bench-python/numpy/ma/README.rst",
+        "opt/bench-python/numpy/ma/__init__.py",
+        "opt/bench-python/numpy/ma/__init__.pyi",
+        "opt/bench-python/numpy/ma/core.py",
+        "opt/bench-python/numpy/ma/core.pyi",
+        "opt/bench-python/numpy/ma/extras.py",
+        "opt/bench-python/numpy/ma/extras.pyi",
+        "opt/bench-python/numpy/ma/mrecords.py",
+        "opt/bench-python/numpy/ma/mrecords.pyi",
+        "opt/bench-python/numpy/ma/testutils.py",
+        "opt/bench-python/numpy/matlib.py",
+        "opt/bench-python/numpy/matlib.pyi",
+        "opt/bench-python/numpy/matrixlib/__init__.py",
+        "opt/bench-python/numpy/matrixlib/__init__.pyi",
+        "opt/bench-python/numpy/matrixlib/defmatrix.py",
+        "opt/bench-python/numpy/matrixlib/defmatrix.pyi",
+        "opt/bench-python/numpy/polynomial/__init__.py",
+        "opt/bench-python/numpy/polynomial/__init__.pyi",
+        "opt/bench-python/numpy/polynomial/_polybase.py",
+        "opt/bench-python/numpy/polynomial/_polybase.pyi",
+        "opt/bench-python/numpy/polynomial/_polytypes.pyi",
+        "opt/bench-python/numpy/polynomial/chebyshev.py",
+        "opt/bench-python/numpy/polynomial/chebyshev.pyi",
+        "opt/bench-python/numpy/polynomial/hermite.py",
+        "opt/bench-python/numpy/polynomial/hermite.pyi",
+        "opt/bench-python/numpy/polynomial/hermite_e.py",
+        "opt/bench-python/numpy/polynomial/hermite_e.pyi",
+        "opt/bench-python/numpy/polynomial/laguerre.py",
+        "opt/bench-python/numpy/polynomial/laguerre.pyi",
+        "opt/bench-python/numpy/polynomial/legendre.py",
+        "opt/bench-python/numpy/polynomial/legendre.pyi",
+        "opt/bench-python/numpy/polynomial/polynomial.py",
+        "opt/bench-python/numpy/polynomial/polynomial.pyi",
+        "opt/bench-python/numpy/polynomial/polyutils.py",
+        "opt/bench-python/numpy/polynomial/polyutils.pyi",
+        "opt/bench-python/numpy/py.typed",
+        "opt/bench-python/numpy/random/LICENSE.md",
+        "opt/bench-python/numpy/random/__init__.pxd",
+        "opt/bench-python/numpy/random/__init__.py",
+        "opt/bench-python/numpy/random/__init__.pyi",
+        "opt/bench-python/numpy/random/_bounded_integers.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_bounded_integers.pxd",
+        "opt/bench-python/numpy/random/_bounded_integers.pyi",
+        "opt/bench-python/numpy/random/_common.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_common.pxd",
+        "opt/bench-python/numpy/random/_common.pyi",
+        "opt/bench-python/numpy/random/_examples/cffi/extending.py",
+        "opt/bench-python/numpy/random/_examples/cffi/parse.py",
+        "opt/bench-python/numpy/random/_examples/cython/extending.pyx",
+        "opt/bench-python/numpy/random/_examples/cython/extending_distributions.pyx",
+        "opt/bench-python/numpy/random/_examples/cython/meson.build",
+        "opt/bench-python/numpy/random/_examples/numba/extending.py",
+        "opt/bench-python/numpy/random/_examples/numba/extending_distributions.py",
+        "opt/bench-python/numpy/random/_generator.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_generator.pyi",
+        "opt/bench-python/numpy/random/_mt19937.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_mt19937.pyi",
+        "opt/bench-python/numpy/random/_pcg64.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_pcg64.pyi",
+        "opt/bench-python/numpy/random/_philox.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_philox.pyi",
+        "opt/bench-python/numpy/random/_pickle.py",
+        "opt/bench-python/numpy/random/_pickle.pyi",
+        "opt/bench-python/numpy/random/_sfc64.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_sfc64.pyi",
+        "opt/bench-python/numpy/random/bit_generator.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/bit_generator.pxd",
+        "opt/bench-python/numpy/random/bit_generator.pyi",
+        "opt/bench-python/numpy/random/c_distributions.pxd",
+        "opt/bench-python/numpy/random/lib/libnpyrandom.a",
+        "opt/bench-python/numpy/random/mtrand.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/mtrand.pyi",
+        "opt/bench-python/numpy/rec/__init__.py",
+        "opt/bench-python/numpy/rec/__init__.pyi",
+        "opt/bench-python/numpy/strings/__init__.py",
+        "opt/bench-python/numpy/strings/__init__.pyi",
+        "opt/bench-python/numpy/testing/__init__.py",
+        "opt/bench-python/numpy/testing/__init__.pyi",
+        "opt/bench-python/numpy/testing/_private/__init__.py",
+        "opt/bench-python/numpy/testing/_private/__init__.pyi",
+        "opt/bench-python/numpy/testing/_private/extbuild.py",
+        "opt/bench-python/numpy/testing/_private/extbuild.pyi",
+        "opt/bench-python/numpy/testing/_private/utils.py",
+        "opt/bench-python/numpy/testing/_private/utils.pyi",
+        "opt/bench-python/numpy/testing/overrides.py",
+        "opt/bench-python/numpy/testing/overrides.pyi",
+        "opt/bench-python/numpy/testing/print_coercion_tables.py",
+        "opt/bench-python/numpy/testing/print_coercion_tables.pyi",
+        "opt/bench-python/numpy/typing/__init__.py",
+        "opt/bench-python/numpy/typing/mypy_plugin.py",
+        "opt/bench-python/numpy/version.py",
+        "opt/bench-python/numpy/version.pyi",
+        "opt/bench-python/numpy-2.3.3.dist-info/LICENSE.txt",
+        "opt/bench-python/numpy-2.3.3.dist-info/METADATA",
+        "opt/bench-python/numpy-2.3.3.dist-info/RECORD",
+        "opt/bench-python/numpy-2.3.3.dist-info/WHEEL",
+        "opt/bench-python/numpy-2.3.3.dist-info/entry_points.txt",
+        "opt/bench-python/numpy.libs/libgfortran-040039e1-0352e75f.so.5.0.0",
+        "opt/bench-python/numpy.libs/libquadmath-96973f99-934c22de.so.0.0.0"
       ],
       "name": "development-layer-1.tar.gz",
       "path": "third_party/developer/payload/development-layer-1.tar.gz",
-      "sha256": "4e8e2cf8055d746cbf24ddbe3db74cead250e7e59bbc7d559a22b033c3ce1773"
+      "sha256": "02fad18302b8e25a24d756cdf43703ee5f9af33aef9a9eb2dc56f177e2ffdd70"
     },
     {
-      "bytes": 4975705,
+      "bytes": 7261582,
       "files": [
-        "usr/lib/llvm-19/bin/clangd"
+        "opt/bench-python/numpy.libs/libscipy_openblas64_-8fb3d286.so"
       ],
       "name": "development-layer-2.tar.gz",
       "path": "third_party/developer/payload/development-layer-2.tar.gz",
-      "sha256": "aa4cb1b93db36ea8752fa2e4bbb70cef2898f2008dec6c7c8d148dbdb3e67da0"
+      "sha256": "167b512701b0c5d56bf748c1461cb61c257f796ff8006c00878cd9f58af6ec7e"
     },
     {
-      "bytes": 5266838,
+      "bytes": 233180,
+      "files": [
+        "opt/bench-python/psutil/__init__.py",
+        "opt/bench-python/psutil/_common.py",
+        "opt/bench-python/psutil/_psaix.py",
+        "opt/bench-python/psutil/_psbsd.py",
+        "opt/bench-python/psutil/_pslinux.py",
+        "opt/bench-python/psutil/_psosx.py",
+        "opt/bench-python/psutil/_psposix.py",
+        "opt/bench-python/psutil/_pssunos.py",
+        "opt/bench-python/psutil/_psutil_linux.abi3.so",
+        "opt/bench-python/psutil/_psutil_posix.abi3.so",
+        "opt/bench-python/psutil/_pswindows.py",
+        "opt/bench-python/psutil-7.1.0.dist-info/LICENSE",
+        "opt/bench-python/psutil-7.1.0.dist-info/METADATA",
+        "opt/bench-python/psutil-7.1.0.dist-info/RECORD",
+        "opt/bench-python/psutil-7.1.0.dist-info/WHEEL",
+        "opt/bench-python/psutil-7.1.0.dist-info/top_level.txt",
+        "opt/bench-python/pyperf/__init__.py",
+        "opt/bench-python/pyperf/__main__.py",
+        "opt/bench-python/pyperf/_bench.py",
+        "opt/bench-python/pyperf/_cli.py",
+        "opt/bench-python/pyperf/_collect_metadata.py",
+        "opt/bench-python/pyperf/_command.py",
+        "opt/bench-python/pyperf/_compare.py",
+        "opt/bench-python/pyperf/_cpu_utils.py",
+        "opt/bench-python/pyperf/_formatter.py",
+        "opt/bench-python/pyperf/_hooks.py",
+        "opt/bench-python/pyperf/_linux_memory.py",
+        "opt/bench-python/pyperf/_manager.py",
+        "opt/bench-python/pyperf/_metadata.py",
+        "opt/bench-python/pyperf/_process_time.py",
+        "opt/bench-python/pyperf/_psutil_memory.py",
+        "opt/bench-python/pyperf/_runner.py",
+        "opt/bench-python/pyperf/_system.py",
+        "opt/bench-python/pyperf/_timeit.py",
+        "opt/bench-python/pyperf/_timeit_cli.py",
+        "opt/bench-python/pyperf/_utils.py",
+        "opt/bench-python/pyperf/_win_memory.py",
+        "opt/bench-python/pyperf/_worker.py",
+        "opt/bench-python/pyperf-2.9.0.dist-info/COPYING",
+        "opt/bench-python/pyperf-2.9.0.dist-info/METADATA",
+        "opt/bench-python/pyperf-2.9.0.dist-info/RECORD",
+        "opt/bench-python/pyperf-2.9.0.dist-info/WHEEL",
+        "opt/bench-python/pyperf-2.9.0.dist-info/entry_points.txt",
+        "opt/bench-python/pyperf-2.9.0.dist-info/top_level.txt"
+      ],
+      "name": "development-layer-3.tar.gz",
+      "path": "third_party/developer/payload/development-layer-3.tar.gz",
+      "sha256": "82b69b8d0d4613e422d67c87540bebb3fd9f761a10e2ccac468f11e821644908"
+    },
+    {
+      "bytes": 4975682,
+      "files": [
+        "usr/bin/clangd-19"
+      ],
+      "name": "development-layer-4.tar.gz",
+      "path": "third_party/developer/payload/development-layer-4.tar.gz",
+      "sha256": "a7e9b573809acd2bd3c854a1e001d86b8bff23c7e63c5595295ecb6cee049a8e"
+    },
+    {
+      "bytes": 4505674,
+      "files": [
+        "usr/bin/gdb"
+      ],
+      "name": "development-layer-5.tar.gz",
+      "path": "third_party/developer/payload/development-layer-5.tar.gz",
+      "sha256": "8d725fc751e55f14c39c49ad5b75801b96c01c4fb3d84ae1a388e54b457b2c1c"
+    },
+    {
+      "bytes": 4975713,
+      "files": [
+        "usr/lib/llvm-19/bin/clangd"
+      ],
+      "name": "development-layer-6.tar.gz",
+      "path": "third_party/developer/payload/development-layer-6.tar.gz",
+      "sha256": "b4e1bf8faea9e6eb9ba8fbcb5439be3ac14a5a2d832c648186fd7cf9387f25ea"
+    },
+    {
+      "bytes": 5266981,
       "files": [
         "usr/lib/mime/packages/sensible-utils",
         "usr/lib/python3.13/config-3.13-x86_64-linux-gnu/libpython3.13.so",
@@ -1047,12 +1623,12 @@
         "usr/lib/x86_64-linux-gnu/libelf-0.192.so",
         "usr/lib/x86_64-linux-gnu/libelf.so.1"
       ],
-      "name": "development-layer-3.tar.gz",
-      "path": "third_party/developer/payload/development-layer-3.tar.gz",
-      "sha256": "33d13cebfd8afd3adcb7fa858d7c99dae34157119ef71c5a12b22912fe7b2bf8"
+      "name": "development-layer-7.tar.gz",
+      "path": "third_party/developer/payload/development-layer-7.tar.gz",
+      "sha256": "5c47df9a5ac92f0ac7518e99af601262e930c3200e42752928973759e6eeda25"
     },
     {
-      "bytes": 4348218,
+      "bytes": 4348219,
       "files": [
         "usr/lib/x86_64-linux-gnu/libgio-2.0.so.0",
         "usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8400.4",
@@ -1075,24 +1651,24 @@
         "usr/lib/x86_64-linux-gnu/libgrpc++_unsecure.so.1.51",
         "usr/lib/x86_64-linux-gnu/libgrpc++_unsecure.so.1.51.1"
       ],
-      "name": "development-layer-4.tar.gz",
-      "path": "third_party/developer/payload/development-layer-4.tar.gz",
-      "sha256": "0b7011adeba14a6532ef1e62c640339c74d7a531dae64efa2ffa496322fc8680"
+      "name": "development-layer-8.tar.gz",
+      "path": "third_party/developer/payload/development-layer-8.tar.gz",
+      "sha256": "da367074f00bb3bb4c8dc81a28bd224d995794addc5d1df8782d3be17e25bd83"
     },
     {
-      "bytes": 5985644,
+      "bytes": 5985649,
       "files": [
         "usr/lib/x86_64-linux-gnu/libgrpc.so.29",
         "usr/lib/x86_64-linux-gnu/libgrpc.so.29.0.0",
         "usr/lib/x86_64-linux-gnu/libgrpc_plugin_support.so.1.51",
         "usr/lib/x86_64-linux-gnu/libgrpc_plugin_support.so.1.51.1"
       ],
-      "name": "development-layer-5.tar.gz",
-      "path": "third_party/developer/payload/development-layer-5.tar.gz",
-      "sha256": "28e8f9a0d5766bc4e36f505bb41a98d0206937a36ae2381740cd020b7b4bfabb"
+      "name": "development-layer-9.tar.gz",
+      "path": "third_party/developer/payload/development-layer-9.tar.gz",
+      "sha256": "fdbc3fcebef8ae016a0f2564e919d5c01a496f5802dda256dc46534c851d5d0b"
     },
     {
-      "bytes": 5176670,
+      "bytes": 5176709,
       "files": [
         "usr/lib/x86_64-linux-gnu/libgrpc_unsecure.so.29",
         "usr/lib/x86_64-linux-gnu/libgrpc_unsecure.so.29.0.0",
@@ -1106,35 +1682,35 @@
         "usr/lib/x86_64-linux-gnu/libjson-c.so.5.4.0",
         "usr/lib/x86_64-linux-gnu/libprotobuf.so.32"
       ],
-      "name": "development-layer-6.tar.gz",
-      "path": "third_party/developer/payload/development-layer-6.tar.gz",
-      "sha256": "d0c66fd05e21829407828e6985051e9718e09324baf8fd83e4437327925cd8f3"
+      "name": "development-layer-10.tar.gz",
+      "path": "third_party/developer/payload/development-layer-10.tar.gz",
+      "sha256": "05c9c0c1fd3a9d8d239b585ab45deb70a5eb904fcc70d0b1289ab413f24c0b81"
     },
     {
-      "bytes": 3572242,
+      "bytes": 3572235,
       "files": [
         "usr/lib/x86_64-linux-gnu/libprotobuf.so.32.0.12",
         "usr/lib/x86_64-linux-gnu/libprotoc.so.32",
         "usr/lib/x86_64-linux-gnu/libprotoc.so.32.0.12"
       ],
-      "name": "development-layer-7.tar.gz",
-      "path": "third_party/developer/payload/development-layer-7.tar.gz",
-      "sha256": "16cd73b78d20b8b7dd241f507cb31038b304db2e3dce5f298af77bba480844b0"
+      "name": "development-layer-11.tar.gz",
+      "path": "third_party/developer/payload/development-layer-11.tar.gz",
+      "sha256": "83a23236c35ce2a13fef7a2016c588b5bb006d635210cff5cb01d3b5da733da9"
     },
     {
-      "bytes": 5882592,
+      "bytes": 5882595,
       "files": [
         "usr/lib/x86_64-linux-gnu/libpython3.13.so.1",
         "usr/lib/x86_64-linux-gnu/libpython3.13.so.1.0",
         "usr/lib/x86_64-linux-gnu/libre2.so.11",
         "usr/lib/x86_64-linux-gnu/libre2.so.11.0.0"
       ],
-      "name": "development-layer-8.tar.gz",
-      "path": "third_party/developer/payload/development-layer-8.tar.gz",
-      "sha256": "4fd2e14a52affbd07e557b13c5e05c8068a8dbe1a68c298eb7e5734b5e496122"
+      "name": "development-layer-12.tar.gz",
+      "path": "third_party/developer/payload/development-layer-12.tar.gz",
+      "sha256": "94b494320a82c1577151df4f968e78ad8c0826656f0863584bcb7e317d4c47a6"
     },
     {
-      "bytes": 2339551,
+      "bytes": 2339547,
       "files": [
         "usr/lib/x86_64-linux-gnu/libsource-highlight.so.4",
         "usr/lib/x86_64-linux-gnu/libsource-highlight.so.4.0.1",
@@ -1513,9 +2089,9 @@
         "usr/share/source-highlight/xorg.lang",
         "usr/share/source-highlight/zsh.lang"
       ],
-      "name": "development-layer-9.tar.gz",
-      "path": "third_party/developer/payload/development-layer-9.tar.gz",
-      "sha256": "4fe2879caa58815c4e6fba56d0f5307a46ed3b179b7179cf3d23991fad12ebd1"
+      "name": "development-layer-13.tar.gz",
+      "path": "third_party/developer/payload/development-layer-13.tar.gz",
+      "sha256": "864ae977cc9c40d47a46238c358ebd81b176398600e66bbb5a5fd8b1913440d3"
     }
   ],
   "payload_manifest": "third_party/developer/payload/manifest.json",

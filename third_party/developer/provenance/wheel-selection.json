@@ -1,0 +1,62 @@
+{
+  "consumers": [
+    {
+      "consumer": "bench jobs (tools/bench.py) on the developer image",
+      "migration": "bench doctor PASS on the new image_id"
+    },
+    {
+      "consumer": "dev commands (tools/developer.py) on the developer image",
+      "migration": "developer suite and live trial requalified in Task 20"
+    }
+  ],
+  "index": "https://pypi.org/pypi/<name>/<version>/json",
+  "sanitizer_boundary": "wheel native code runs only inside bench containers; it is never linked into first-party C, so sanitizer qualification does not apply",
+  "schema_version": 1,
+  "wheels": [
+    {
+      "bytes": 16636301,
+      "filename": "numpy-2.3.3-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "name": "numpy",
+      "parts": [
+        {
+          "bytes": 16636301,
+          "path": "third_party/developer/wheels/numpy-2.3.3-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+          "sha256": "5b83648633d46f77039c29078751f80da65aa64d5622a3cd62aaef9d835b6c93"
+        }
+      ],
+      "sha256": "5b83648633d46f77039c29078751f80da65aa64d5622a3cd62aaef9d835b6c93",
+      "url": "https://files.pythonhosted.org/packages/9a/a5/bf3db6e66c4b160d6ea10b534c381a1955dfab34cb1017ea93aa33c70ed3/numpy-2.3.3-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "version": "2.3.3"
+    },
+    {
+      "bytes": 144204,
+      "filename": "pyperf-2.9.0-py3-none-any.whl",
+      "name": "pyperf",
+      "parts": [
+        {
+          "bytes": 144204,
+          "path": "third_party/developer/wheels/pyperf-2.9.0-py3-none-any.whl",
+          "sha256": "215673fb60f3fbbc6c7a90b609b0806d8466fded8dd502bf5731e2b92506076e"
+        }
+      ],
+      "sha256": "215673fb60f3fbbc6c7a90b609b0806d8466fded8dd502bf5731e2b92506076e",
+      "url": "https://files.pythonhosted.org/packages/19/29/ce5d2dcb095debb3bed0654950c45207a7d138e194abef0ded4b86de1dc1/pyperf-2.9.0-py3-none-any.whl",
+      "version": "2.9.0"
+    },
+    {
+      "bytes": 291163,
+      "filename": "psutil-7.1.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "name": "psutil",
+      "parts": [
+        {
+          "bytes": 291163,
+          "path": "third_party/developer/wheels/psutil-7.1.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "sha256": "8c70e113920d51e89f212dd7be06219a9b88014e63a4cec69b684c327bc474e3"
+        }
+      ],
+      "sha256": "8c70e113920d51e89f212dd7be06219a9b88014e63a4cec69b684c327bc474e3",
+      "url": "https://files.pythonhosted.org/packages/9d/de/04c8c61232f7244aa0a4b9a9fbd63a89d5aeaf94b2fc9d1d16e2faa5cbb0/psutil-7.1.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "version": "7.1.0"
+    }
+  ]
+}

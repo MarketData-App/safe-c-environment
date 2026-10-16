@@ -1,6 +1,2742 @@
 {
   "status": "CANDIDATE_DATA_EXTRACTED",
   "files": {
+    "opt/bench-python/numpy/__config__.py": {
+      "sha256": "b8af3482fcbc0b2a1aa3a465120dc8f4a767f2a0c219c4fca1f89ab8bbb2092d",
+      "bytes": 5277,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/__config__.pyi": {
+      "sha256": "ee713e91436cda558f229a1f4dab2d6dfd8f08c80291aec50a22b98eb1640d81",
+      "bytes": 2367,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/__init__.cython-30.pxd": {
+      "sha256": "a93eddf7f4d6923e14b1fa58d6e6815267187e5a6d72365f0c666c609b61f2b5",
+      "bytes": 47123,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/__init__.pxd": {
+      "sha256": "04561891c41472b97411ef117a8422034c20b71b167881a8bc2f2361e130e6a8",
+      "bytes": 43758,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/__init__.py": {
+      "sha256": "8236a753805db34c29ef9cd03694e0af883b6325eb4fd246cc83d2be0b847e89",
+      "bytes": 25226,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/__init__.pyi": {
+      "sha256": "94566bbbc57f29652e2bea03e6d82a08dcb5a49499f9a2b22404a39dc4e5446a",
+      "bytes": 219154,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_array_api_info.py": {
+      "sha256": "373252b9ff2fbad8c64aa8aa6a1ab78d12374b1317e17d5cbdae09e9d16fe045",
+      "bytes": 10354,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_array_api_info.pyi": {
+      "sha256": "40ffed6036e3b5338fb491029377a1457390db840cf1366301f597f1702c6423",
+      "bytes": 4864,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_configtool.py": {
+      "sha256": "105449de96b34f162113da29fa8716c8a4cb66bae91617e6992fed5ababc0b1a",
+      "bytes": 1007,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_configtool.pyi": {
+      "sha256": "7787f6d901b0a5bd59b4393ed529fbd9fb6fa388a7702e44d890229268f37c92",
+      "bytes": 24,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/__init__.py": {
+      "sha256": "c89d22cb57d793da200859df9425b30412f094a492fb1950582a560a8cda4fa7",
+      "bytes": 5542,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/__init__.pyi": {
+      "sha256": "323d88e01b6a055354655b39a354f9f19ef049a5a37e15f49c297e6b450b8e00",
+      "bytes": 86,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_add_newdocs.py": {
+      "sha256": "c922ae3ffe2c54f34b1e9d688e04cc8524568b7775f02701147147903f177fe5",
+      "bytes": 208893,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_add_newdocs.pyi": {
+      "sha256": "afffddffe18791f8f3b99d2aca30f3b6c2a075cd5e23278df9c06861580c06ea",
+      "bytes": 168,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_add_newdocs_scalars.py": {
+      "sha256": "67959c2005f2d95b3c9162c2ce0cafc56547d02025f8eeb86052b7b6d6d4ef27",
+      "bytes": 12600,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_add_newdocs_scalars.pyi": {
+      "sha256": "667224d1380bd2ccebbfa48f087fb8745e3af50ffdd94bd5e7f7a4e3b3a3ec73",
+      "bytes": 573,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_asarray.py": {
+      "sha256": "7c23472da6823fee486be451fdb22b1f1598df1925726be56621a12480e228b3",
+      "bytes": 3911,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_asarray.pyi": {
+      "sha256": "407c9bf0333ff54d28b51ba0a0d2322a3b6f4d54b77592e7e834b11a2fd95385",
+      "bytes": 1073,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_dtype.py": {
+      "sha256": "70ce899e3a072d445608780df15990ca37a28838dcc210792ff7cf30e7b5bae3",
+      "bytes": 10547,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_dtype.pyi": {
+      "sha256": "b6eae6e91c9554418a9ba6a7b6a5969f20346e74b602e33098a7858fef666070",
+      "bytes": 1851,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_dtype_ctypes.py": {
+      "sha256": "28f3e56a40ec3e4b938523abe6a1705b48c9f559e36ef5b811684e6c21d81881",
+      "bytes": 3726,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_dtype_ctypes.pyi": {
+      "sha256": "5701191558823ee1e509446fda3a49a7db1b1e1da1614a730bf15164d34630cc",
+      "bytes": 3682,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_exceptions.py": {
+      "sha256": "5fc120d61ab5b94f0bf7088ec05a368d1aba4b4be78c27606051e3de1016f42a",
+      "bytes": 5159,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_exceptions.pyi": {
+      "sha256": "1125e98a3a042b41eb3f2d1d418b633badbe2ab774e35f562e5ac344eab04f25",
+      "bytes": 1900,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_internal.py": {
+      "sha256": "619ea730654ebdf4c3d67ce4d97a91773f24d395959d81a29636f54e71ef32af",
+      "bytes": 28981,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_internal.pyi": {
+      "sha256": "d95dab5cc428719647c3ccfff474ab522dcb346c5ac40d679b40747dca1f8d4f",
+      "bytes": 2654,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_machar.py": {
+      "sha256": "6145f6e1761bc5727bf4aad66abdbb1650d829f7a876bfd10a413bc346c44eab",
+      "bytes": 11569,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_machar.pyi": {
+      "sha256": "1125e98a3a042b41eb3f2d1d418b633badbe2ab774e35f562e5ac344eab04f25",
+      "bytes": 1900,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_methods.py": {
+      "sha256": "e2a8945044b9c273857979cf6afb6aa8c561674f5965e48a970a9d3f0d9e2922",
+      "bytes": 9430,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_methods.pyi": {
+      "sha256": "e47cc4b76674fafc507d2d5024a0e54ef3722d77229cdb236bec5089e84c19bc",
+      "bytes": 526,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "d158c06acc1b2cc5af89343e0ffb951bc9a101a36e6493486e7a00c9e5df0081",
+      "bytes": 141784,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "e0b9eb0dbb00b24c0634a5386f8f44d0895241fa87b34dba37562c58252cc05e",
+      "bytes": 10804753,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_operand_flag_tests.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "ac744e2b2472fbcc0b0d40a10049820bad5107abd2d55ddcae8ce4a380562214",
+      "bytes": 16800,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_rational_tests.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "c9c9f5d5812dc24927e0426266c94f189dd5988240366f0049b389fa5af2c710",
+      "bytes": 59592,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_simd.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "c8ed29166b950f0a8ab6e14a882adfcafcd4575a12d02b2e1aff6996aaa82d6b",
+      "bytes": 2882368,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_simd.pyi": {
+      "sha256": "db3dac14f817af7291cc796d6eddf51d5ae19173345705c5a759548f16913003",
+      "bytes": 669,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_string_helpers.py": {
+      "sha256": "e929a0a22ea80f60ae9e3c014abf41676d079029ef5ba9d33db953394de95a78",
+      "bytes": 2845,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_string_helpers.pyi": {
+      "sha256": "c4b94b2891eeb44633c8a9d31b693b725716bd5513bc3df5f528e72a60d7b9a7",
+      "bytes": 358,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_struct_ufunc_tests.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "9ebb0c9fce5ce940c3d7dcbb514b0fe96930f74f18cf1f63d9db3c1ec9432c98",
+      "bytes": 16928,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_type_aliases.py": {
+      "sha256": "9ac147064676b35c0a432ba0b8afdc17a3414b4ff700ec30ee3de8876ea6a374",
+      "bytes": 3489,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_type_aliases.pyi": {
+      "sha256": "4e7d44c786c01906b51ee331d159feb44065dc70c5fee7ac4f39a24abcfcd644",
+      "bytes": 2388,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_ufunc_config.py": {
+      "sha256": "8552323a62e3158759418e6994a5ae38c93e53b533798484a38ca08973857015",
+      "bytes": 15052,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_ufunc_config.pyi": {
+      "sha256": "ae1d638589e469f8c6beb737cad0b998e4b04678f0868820c3cc8378b092de37",
+      "bytes": 972,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/_umath_tests.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "136cb6d50a3d03ca7612167d5853a3262c14f28b127930e35bd157f1cc6ef767",
+      "bytes": 50304,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/arrayprint.py": {
+      "sha256": "00002f92b23453a3daff064e9e9b95641a5db020a3a58a5c585f2c03f48f61b8",
+      "bytes": 65278,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/arrayprint.pyi": {
+      "sha256": "a203189e9da2a447da8000f345a44af7248601f1ffa1a6c63497a0880e8b89c6",
+      "bytes": 6971,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/cversions.py": {
+      "sha256": "1ff88d229c7dfa1635710371aa34f677fe525d98496cca3f71aab8feae8b07b2",
+      "bytes": 347,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/defchararray.py": {
+      "sha256": "d6d4af2d611e69cdb40e87690c1c5aa492b0c1cce9246d65572daa8d27085578",
+      "bytes": 38007,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/defchararray.pyi": {
+      "sha256": "32afb2b67365898da3118025ff4979653471f48a4d31a2690e69287ab45420b1",
+      "bytes": 27985,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/einsumfunc.py": {
+      "sha256": "85e15e0a210a8e2faa7d593ccc06756f96ca9be31430bcc2113310ef2c870617",
+      "bytes": 52820,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/einsumfunc.pyi": {
+      "sha256": "6f5d0229d01e2c4af269bc1131d896d5c29d372a962dae64315ecedbf5fc8370",
+      "bytes": 4893,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/fromnumeric.py": {
+      "sha256": "b347fa59f908455c0564c943add61bdc48f217dbcc1abd1b9acd0f73e55c3803",
+      "bytes": 143882,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/fromnumeric.pyi": {
+      "sha256": "568505f9ddf53ae658691222f9dba86000013800dee0a8db061145c771ddfcc7",
+      "bytes": 42034,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/function_base.py": {
+      "sha256": "413d696e597ff2b7ffdd9b06b4b42801e435392a82a9e006b4c4f33c013523fc",
+      "bytes": 19683,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/function_base.pyi": {
+      "sha256": "03d0655907a25f4f222300d027a5b5154872daaad13d57a75ed1e21273e4b749",
+      "bytes": 7064,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/getlimits.py": {
+      "sha256": "df641eeed94115dca20ef7528c6d5ca766b4349d2b48cc5e0d18a3dda8223eb8",
+      "bytes": 26101,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/getlimits.pyi": {
+      "sha256": "ab7d21437c037a79b1a19512a123aac95ad96551a5b22c570877ba414b616e9f",
+      "bytes": 61,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.c": {
+      "sha256": "9dd045e706dd77b17cff35af479d8c0ced109b5e7f3eb0820654a4e1d932e05f",
+      "bytes": 12698,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.h": {
+      "sha256": "e9ea78338b340b1a23e038091a7b3ed3ffff4dd4aa0c9a143e766bd01058c245",
+      "bytes": 61639,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.c": {
+      "sha256": "160ed6947e0ec3a8c44ca440ad52ff405d75001298cf55693af7b9ebf537134c",
+      "bytes": 1755,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.h": {
+      "sha256": "27987d287767b4cdbb5d076ad4fc07c08ed5daffac3b1e8021b802c0ff2683d3",
+      "bytes": 13175,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/_neighborhood_iterator_imp.h": {
+      "sha256": "b3e1f0fe5e564702ad62fb22220845d1b83e980fc28169f314539854527eab89",
+      "bytes": 1857,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/_numpyconfig.h": {
+      "sha256": "95f80417fdf54a2c6a3b07991078e7d7d6cde6783ad8c4b0b955845d2d7fa7f5",
+      "bytes": 926,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/_public_dtype_api_table.h": {
+      "sha256": "9fafca6fdf12cafb11fd7eecb62340e95b86a7f7395b57b87cc55c25d3b4c22b",
+      "bytes": 4574,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/arrayobject.h": {
+      "sha256": "994e6fa5c43de4f1f58f76e9f0a62124e14707e1b1c118d252c47b9f19534919",
+      "bytes": 204,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/arrayscalars.h": {
+      "sha256": "2e5cab6486bfe6d775d417ea7cc0afd6161b886ebfff3c711afd4c463f2e215a",
+      "bytes": 4243,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/dtype_api.h": {
+      "sha256": "1a7dfb47339b99c4ec2fa614618f5a1b6d82b7c17eaf865a0b9dcd3c5a9a22ca",
+      "bytes": 19238,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/halffloat.h": {
+      "sha256": "4d165f5e08a96be745a695f6b8d824ae3acf962fb505f26d69d5a301e99b278b",
+      "bytes": 1959,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/ndarrayobject.h": {
+      "sha256": "327ca45a6721c92d3995eaff67284522bff48fa73421c9dd122dd7de7d195839",
+      "bytes": 12057,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/ndarraytypes.h": {
+      "sha256": "912f6e8ab05ffdec1774882c9914044e4dda4177923e32cf09aea1957e41cbed",
+      "bytes": 65810,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_2_compat.h": {
+      "sha256": "c1d8c1efff80b56de8a7aed76e3dc4547e9aa5217b7111ba877739841cfe60cb",
+      "bytes": 8546,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_2_complexcompat.h": {
+      "sha256": "784f5d57f22ade311f1862451ffa508c99ef0ba790d765a0381edc64c9870721",
+      "bytes": 857,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_3kcompat.h": {
+      "sha256": "82b37a5b59fb6de9e3dc5da94803a997fb3abe7d58e7441f00ff836a5783edc0",
+      "bytes": 9648,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_common.h": {
+      "sha256": "fb4e5b6af6e4e382948f2e50faa9cce58cd4df654946fd0df28cdf088fd229c1",
+      "bytes": 32586,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_cpu.h": {
+      "sha256": "570f2654f9b57c698b75e2d5dd1a0166704c31703c720860c117568659032e2e",
+      "bytes": 4225,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_endian.h": {
+      "sha256": "bef2bb6653add2f82a4d5ac8caf896ce8c50cfbd12f81bdf952e19fe4e97e571",
+      "bytes": 2834,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_math.h": {
+      "sha256": "69e485b3ad106d63f2d6020fc870cfad813189f9b999b0c07233ff98b93f3c5d",
+      "bytes": 18858,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_no_deprecated_api.h": {
+      "sha256": "d3266b25c40427a3021c9227424e533fdfea678b7b11f06ea0b389df822525de",
+      "bytes": 678,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/npy_os.h": {
+      "sha256": "86542c83fefe464bd2decf0e33c297cbdf71c7225b0a6f96d4061571d9ced5cc",
+      "bytes": 1256,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/numpyconfig.h": {
+      "sha256": "146b833c8af4813158814ce154c5eaab904840bf96aa09977e9d34ddc530a561",
+      "bytes": 7333,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/random/LICENSE.txt": {
+      "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec",
+      "bytes": 1018,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/random/bitgen.h": {
+      "sha256": "e3d03028e479e76afe36486e48e175bac6ff51188c49132f0f6d89179a4a2278",
+      "bytes": 488,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/random/distributions.h": {
+      "sha256": "5b9b4ec844ddd26d56d0675a6797493fc7ca941b6c4e91b6dd5d99966ae5aa98",
+      "bytes": 9861,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/random/libdivide.h": {
+      "sha256": "7b0f4c3613d07752ec0998968859a3f4867bc8e9c0dc728e5df7c3791f57d63c",
+      "bytes": 80138,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/ufuncobject.h": {
+      "sha256": "05e9e0bea5ea8b2e22a73cf6dca422d4a95dcbdc9b614b384a9e7203bdd58225",
+      "bytes": 11780,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/include/numpy/utils.h": {
+      "sha256": "c0c3689921f70df8f4abbf0fae32d5b45b4df853e8ed4278a3489f0943bee84b",
+      "bytes": 1185,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/lib/libnpymath.a": {
+      "sha256": "a177921ab332dcbff30db9e3e7c6acd618a17c515fb4759bef76a1dca3de093e",
+      "bytes": 54312,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/lib/npy-pkg-config/mlib.ini": {
+      "sha256": "fcbb16575792b4dab085d8983dadb9dfc18be3a7677d5c13e0cac8d736eca05c",
+      "bytes": 147,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/lib/npy-pkg-config/npymath.ini": {
+      "sha256": "d223336ab05f92467f1173bde7f933f921d945c34813021e3a313f7ac5419114",
+      "bytes": 361,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/lib/pkgconfig/numpy.pc": {
+      "sha256": "48165c64be4d67f1e02715bac1ce716493a83a3031c124e8e77f5dffabfed6d9",
+      "bytes": 191,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/memmap.py": {
+      "sha256": "c88b10ea7f64a59ba58204492459136e35709c1e257a8ca2cef529736894e27f",
+      "bytes": 12651,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/memmap.pyi": {
+      "sha256": "fcb2a36ff3ee85c430a6a73694568bdfbf4363343d3edb8a765555de35ce6043",
+      "bytes": 47,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/multiarray.py": {
+      "sha256": "cf01c17723a8c6205170e846d9007fc410189bea7c0114a941bc9ef44cebac1a",
+      "bytes": 58155,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/multiarray.pyi": {
+      "sha256": "532e549e67337e4ecfcb3f0e86087fe60e00498eda674658a6686198f9c6e8e0",
+      "bytes": 32150,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/numeric.py": {
+      "sha256": "fc3727bd7bbaa1a1d74a2f50f8157dc86cdfc7bb5cf620b1ebdafd3272439b98",
+      "bytes": 82322,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/numeric.pyi": {
+      "sha256": "652593062da474fec13c6dca30625624896a33d04b2859a0abfc602bf1a70d4a",
+      "bytes": 19042,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/numerictypes.py": {
+      "sha256": "98a3dbb0ecd7f6fc96404bf88e57f8c6794f7cfe086005de20b1c575bd854b42",
+      "bytes": 15957,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/numerictypes.pyi": {
+      "sha256": "2a9e3f7c483f5a3fd8bfcc6f23b1f54c95eb0d5b316fdea8207e449a74325b57",
+      "bytes": 3270,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/overrides.py": {
+      "sha256": "32d8333816af1bbc33418080eceec0add089555ef649321bfdcbe4581b832c91",
+      "bytes": 7241,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/overrides.pyi": {
+      "sha256": "da51ed7b811b3930d0be49e355f3bbd518222d79cea46424cb98f699e4b4f495",
+      "bytes": 1713,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/printoptions.py": {
+      "sha256": "345a6fcb96e78dbbea9ca7aa42dd2f784131a400180153688865c7de98255807",
+      "bytes": 1056,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/printoptions.pyi": {
+      "sha256": "78d8a58829c3b9907195ae97f64c19fbb6220a7f94b4c6d3f94fea4e7c3c97dc",
+      "bytes": 594,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/records.py": {
+      "sha256": "8685c20ecc0cea16f2b6219d6069214484b34239ea2265dc21d1a536e3940d7e",
+      "bytes": 36767,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/records.pyi": {
+      "sha256": "b686fd0310016c25ec3befa05975fea43e41a39d0d8025ca3ade09b2d5444a36",
+      "bytes": 8935,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/shape_base.py": {
+      "sha256": "ef20cfac85d39a606764c512b475ecab58893621a623110071ea7143da3e2554",
+      "bytes": 32738,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/shape_base.pyi": {
+      "sha256": "4207e2d62cdbbca811580a2308c5f0dc7b0e360becaf2142b03840bcd2357591",
+      "bytes": 4753,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/strings.py": {
+      "sha256": "ca375e346d9ed30a658e99f01884a2ecd5d52c3e2db42339bc0612495d7223c9",
+      "bytes": 50642,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/strings.pyi": {
+      "sha256": "1728eaef464fef40735773afe3dd1dc57e443afefab209f103ba95071797b915",
+      "bytes": 13502,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/umath.py": {
+      "sha256": "b7f49020747b764305f95469f1d2b2ae838477dd28a8d9739a01b0687dbca96f",
+      "bytes": 2130,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_core/umath.pyi": {
+      "sha256": "148aa6950c1022e788aecfbf41e855de0b8d127244d8bc55b3734f0a3dfc55da",
+      "bytes": 2643,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_distributor_init.py": {
+      "sha256": "14148976054795071ae41ad011560fa059ba2924c98481675ad59b1241214d2a",
+      "bytes": 421,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_distributor_init.pyi": {
+      "sha256": "e88bcccc09abd3e67aa2a4e465c81782b909ad05d5323062876019bcb74380e1",
+      "bytes": 27,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_expired_attrs_2_0.py": {
+      "sha256": "ccfdf511799bc3281c384cf27ad0c4a7e4712fd7147db51486df79eb368e49ff",
+      "bytes": 3826,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_expired_attrs_2_0.pyi": {
+      "sha256": "9f68a90d4153152e29b820f9e9d94d586915930fdbd0ce9c132ba0a38421dc73",
+      "bytes": 1253,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_globals.py": {
+      "sha256": "9396559f351b28d48b3e667451163024de42ffbc48cdf30d69a4ac052acf4ee2",
+      "bytes": 3091,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_globals.pyi": {
+      "sha256": "22b1c72179a26d7ce02b45549440902f0e08124bde5d21e8fd95a74e47e72dee",
+      "bytes": 280,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pyinstaller/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pyinstaller/__init__.pyi": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pyinstaller/hook-numpy.py": {
+      "sha256": "314db6a50e0091460f416bb90bca510e99d85c494b27c4741463582544298951",
+      "bytes": 1362,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pyinstaller/hook-numpy.pyi": {
+      "sha256": "b40bed30fa2fa22facbabd03d4d028dff7af4a660a2d38746e04520bb42b0889",
+      "bytes": 349,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pytesttester.py": {
+      "sha256": "0e39582fcb8834dd9759ade79e55fa80f1aea0b8dcc750627bf3d0cdba767290",
+      "bytes": 6328,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_pytesttester.pyi": {
+      "sha256": "5570aec0f6136fdf8f17a9f15f089bc016eb7b4856f63201e279339ad9b6925b",
+      "bytes": 497,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/__init__.py": {
+      "sha256": "306e56bfd75cdd9c8e9837e2747e5c16dca47b234cefb02b0b8477516ed39fe6",
+      "bytes": 7188,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_add_docstring.py": {
+      "sha256": "ff783b0fee87010dcc4f85fa0c4d3bc8bb9af4ba96161b24355c754d2ed7f4ee",
+      "bytes": 3999,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_array_like.py": {
+      "sha256": "10f6547c94a36a6bec589e91b39670c00ff916106961da227dc555b557163e7d",
+      "bytes": 4188,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_callable.pyi": {
+      "sha256": "fe79ff54b9b64e02281a4e0121b641a60b9bc282428838c83854f3d169318d78",
+      "bytes": 9139,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_char_codes.py": {
+      "sha256": "8f4ee7a64f3635bec8adadb3ed94e553751c38fc2dda033ba992ab3cb7634f8f",
+      "bytes": 8764,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_dtype_like.py": {
+      "sha256": "f0ce517a42ea7617848d63089f84676e4133b12ee309ab42893d03e6183ee777",
+      "bytes": 3762,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_extended_precision.py": {
+      "sha256": "a649d4aa06a4d0504d33eb0444fa96fa91461fbd7f2be89e84549e7b9a108aa1",
+      "bytes": 434,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_nbit.py": {
+      "sha256": "2926cac0e2adb686fee72b53e6f095907ac3327d181efca9b534f28ffe8061cc",
+      "bytes": 632,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_nbit_base.py": {
+      "sha256": "9cf669b1096db91e41d22680605f6a0f685efe45e79acb2ffd185a50d16c5beb",
+      "bytes": 3058,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_nbit_base.pyi": {
+      "sha256": "90702a4e6a585166d0c9351546ce0d28a703c22109814cd6bef4f5150810f3d2",
+      "bytes": 740,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_nested_sequence.py": {
+      "sha256": "b28d5a818187779803a3f201bef1ea041e65b2a19b1ea37f8a6c82e541d4f872",
+      "bytes": 2505,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_scalars.py": {
+      "sha256": "2e15d8d814c799e60acde2197e98efb8c9fee5e38b8d4da7f73ef3d65e5b29ff",
+      "bytes": 944,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_shape.py": {
+      "sha256": "e9c16ff8b6d2c86f6695f4813861b2ba5f50fc652b95c1d00bd2596be9b6d1c0",
+      "bytes": 275,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_ufunc.py": {
+      "sha256": "1ce91a13eeb05747dddeb9876460b7f580072087fcb72be5cde903e32e064310",
+      "bytes": 156,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_typing/_ufunc.pyi": {
+      "sha256": "d4d8b6e9db22d9f6c7da836f5c334d5da04f410cdd864c00ed543c7b2b894bf7",
+      "bytes": 26575,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/__init__.py": {
+      "sha256": "8559d9ec2d0c09235b330f99caaf8c282612b5a197e91cea14c9e787b79de1d1",
+      "bytes": 3477,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/__init__.pyi": {
+      "sha256": "57113280dbe9f746a557ccd8b144ae0d835d17b044b9c5d4c77c39e447fb6172",
+      "bytes": 726,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_convertions.py": {
+      "sha256": "d3133175e2cece20e61ec44cffc96e121e12fa441d328320e86c4d0c36acebd9",
+      "bytes": 329,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_convertions.pyi": {
+      "sha256": "e25fb45263c2c9503bd1427c580776038e47aca152ce00b4b050c14a729c6224",
+      "bytes": 118,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_inspect.py": {
+      "sha256": "cc5b890011f4f03d4a82afde79c6240f53a0834397a75b78a2a8d9c4cd2474b9",
+      "bytes": 7436,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_inspect.pyi": {
+      "sha256": "c056a3990a424d7a4c6c905b7628b224c6f6f4791a316d231162cca9b41c4399",
+      "bytes": 2255,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_pep440.py": {
+      "sha256": "8adf4fe3fa075d6c37071768573ec93ccba3e64c45e4ceff049f19d66f67bb4c",
+      "bytes": 13988,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/_utils/_pep440.pyi": {
+      "sha256": "c73609a19e839e3be068aafc3ac0708a6efb7c0274c5e40923d5c0b7be60bdf2",
+      "bytes": 3870,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/char/__init__.py": {
+      "sha256": "c6cea9a6b31d98d79755fb934645379c5f6a761bad59d3eee6869ea760235a67",
+      "bytes": 93,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/char/__init__.pyi": {
+      "sha256": "b22c2a0e1ed7eeee1ed071b1df183c78368956acb4fe769ce72f14333cfe05c3",
+      "bytes": 1540,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/conftest.py": {
+      "sha256": "a5776ff822a8728204a6bd03b18b2dbbb4e0aaf35dcd2bdf88334c94cc26a989",
+      "bytes": 8577,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/__init__.py": {
+      "sha256": "c0935a445d5414e9d92aa881aecb2158b8d31a2119f6bbd695c8add318fb634c",
+      "bytes": 1290,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/__init__.pyi": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_dtype.py": {
+      "sha256": "1870617d5b6c56b3fbbf5dc8ba3133f5a18810d91821d6dfb91bbe35ec355275",
+      "bytes": 323,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_dtype.pyi": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_dtype_ctypes.py": {
+      "sha256": "c17e26dfb6f4cd08319734f93a313fba3d84e42a625fd13b1cb1693ba87f9436",
+      "bytes": 351,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_dtype_ctypes.pyi": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_internal.py": {
+      "sha256": "ab1a472442d735471826426dd4b92d42e666e01c18bb86d79ccb8110ea7a3ce5",
+      "bytes": 949,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_multiarray_umath.py": {
+      "sha256": "4fcf07660143e550ae5d109278b6cfa23f7d9ca512760cb0f315b27fa7aa8714",
+      "bytes": 2098,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/_utils.py": {
+      "sha256": "e5f935f09378dd183a607bda9fa42376b39e3ae2ed4652d598fe8c69d0442550",
+      "bytes": 923,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/arrayprint.py": {
+      "sha256": "2db7b8b26597605cddf6c3bd2cb2793d94b80b76d2bcbb7a1d1b70484e7ac4df",
+      "bytes": 339,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/defchararray.py": {
+      "sha256": "6bd96ebef9e2f2046b19574a3bb53fc70b0516f9339719d58312fbe632d19822",
+      "bytes": 347,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/einsumfunc.py": {
+      "sha256": "08db9c20d81422ba622d09f8c4f23f9a88308df2a5140de1ee0c00bd15706f93",
+      "bytes": 339,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/fromnumeric.py": {
+      "sha256": "e536a89c956e0b5d74aafddfddca93b668dac935f4066a89020a00267e47dd92",
+      "bytes": 343,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/function_base.py": {
+      "sha256": "be18e1cec1330ddd7544783aa6295f3093b75fa93de1a9f944026a8fe9e5ce6b",
+      "bytes": 351,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/getlimits.py": {
+      "sha256": "ea70a4e13c342e35bb8e85aca6b2392e23338ded60b0e8ceda5490fcec0107c2",
+      "bytes": 335,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/multiarray.py": {
+      "sha256": "6e374f2dbbc9ba3eb533a4d991b0793573823661f841b52aea0dde3e428fe930",
+      "bytes": 793,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/numeric.py": {
+      "sha256": "0ad93f42293207698cd31234941781f184d47d3c104977d576920c46dba76cca",
+      "bytes": 360,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/numerictypes.py": {
+      "sha256": "6d7c13c3351a8736c7ac51a14b946424ebdbe93604b109d00b9c30f6637ed55c",
+      "bytes": 347,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/overrides.py": {
+      "sha256": "d456726f453a249bb2a23b7116f43b1d2276ae97e159e73417e5f499aa428dcf",
+      "bytes": 335,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/overrides.pyi": {
+      "sha256": "fb7c5f8c77dae14682ba14d5c3044de0438ce6ecfdbd947480c79356f11d6d82",
+      "bytes": 525,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/records.py": {
+      "sha256": "f727c50f1c8e73af255ea7db6a8b2044d970d5d6d63fc0911f320f12d12d4a07",
+      "bytes": 327,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/shape_base.py": {
+      "sha256": "dacadd42d17577c2e951b0e318c5d3f93ab3d8ad8d6933be6440b8be2098b306",
+      "bytes": 339,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/core/umath.py": {
+      "sha256": "84c56636b20276a5d18a2446ed4315d06afef7162a2469a438d1909f6d222bdf",
+      "bytes": 319,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ctypeslib/__init__.py": {
+      "sha256": "585c0c8695762c93fe2103aca5a227855f1ce973ca670aa9a44f9cbed229aaf5",
+      "bytes": 193,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ctypeslib/__init__.pyi": {
+      "sha256": "474b47024d4fd23c3e1cb6238ca06a5c48c3c97841cabb5b8eb80ec61b7db44e",
+      "bytes": 619,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ctypeslib/_ctypeslib.py": {
+      "sha256": "36d114a62b108437c44c12c092a61fec08ead3188d859bab6f94a61861f9e290",
+      "bytes": 19079,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ctypeslib/_ctypeslib.pyi": {
+      "sha256": "c52f8d2c43bac708d4afe01459f1b1cf737b5f98f020605597a46139451867be",
+      "bytes": 8084,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/doc/ufuncs.py": {
+      "sha256": "f71b7c1f7e0686b5eb16af5c585506bc915e3daf58b87f53ab50f30279b61361",
+      "bytes": 5414,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/dtypes.py": {
+      "sha256": "cee3f0802d228c5da80d100e27a23d24a85a26e857140ca00722d06a856d4f9e",
+      "bytes": 1312,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/dtypes.pyi": {
+      "sha256": "b0d37893351f840ac7b8a68c44aa1f04d679eedae5df951a679d680d6acc989e",
+      "bytes": 15544,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/exceptions.py": {
+      "sha256": "c75cfb0b6463ac3156f2d2dec1b663c8c890a24d16066e642ae44f23154b5238",
+      "bytes": 7800,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/exceptions.pyi": {
+      "sha256": "3096c21e3c051a9b3ded669538f91aa146fcc22fa5e4e51b7051dd59980119b2",
+      "bytes": 751,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/__init__.py": {
+      "sha256": "7008141d680941966c7eff1ca3c28136bfe6f01e9fa7374169436f25e05ffcda",
+      "bytes": 2448,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/__init__.pyi": {
+      "sha256": "51b82a1992989c31c61d7f4c970041dda059d93e3bd288eb351108864c2dea07",
+      "bytes": 132,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/__main__.py": {
+      "sha256": "ea2da3547d9f3eb895d5aa1c4d8fdd505bd62b5f2a6bece3a6721203e3a9177c",
+      "bytes": 130,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/__version__.py": {
+      "sha256": "f7d4ba9927afba1c0698ef64bbefbb55425e921374a2de3e2747192a21dcaa9c",
+      "bytes": 48,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/__version__.pyi": {
+      "sha256": "2f857a7fa07ec2e3e2f36074333790b2037436e1d442cf6b2989758f2ded1bbb",
+      "bytes": 45,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/__init__.py": {
+      "sha256": "eff6c0edcff10e92dce3ff2f3df1f7dbe2f19fd7dc513823436e6caddbf0bc03",
+      "bytes": 299,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/__init__.pyi": {
+      "sha256": "8b85e10d1c1bae5d2d6ba40624fc616067d282e80d19db6859fd7fdbb79277ad",
+      "bytes": 136,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_backend.py": {
+      "sha256": "a055d9f3e57071049b96d97cfe98162cfa82399f18fe9c7ba1e4e4fc19712537",
+      "bytes": 1151,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_backend.pyi": {
+      "sha256": "b14e18887bc67cc9330c56e166aa903d3fa4c0966c5a919e9a42f10e2a27eecb",
+      "bytes": 1342,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_distutils.py": {
+      "sha256": "8444f4581e2acbe0f80739de906016864f78e64e707aada51940d1ea1ae25cca",
+      "bytes": 2385,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_distutils.pyi": {
+      "sha256": "f8bf0ad4a41284f186775be0af80e59d87fa02c84715a47301c806a8abf6d398",
+      "bytes": 463,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_meson.py": {
+      "sha256": "568b94424591524ef85a10ed91fe8747bf50a0af96af1f04eea3bb815a720e79",
+      "bytes": 8107,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/_meson.pyi": {
+      "sha256": "c2f62d05d8a9a4a7a249e2f369829e86a974ff74e14bc4fc02a6add378618d0e",
+      "bytes": 1869,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_backends/meson.build.template": {
+      "sha256": "8507936a9018d31b678b92e2f90684b56c7d0c7f560ca6a1da5704b9265f2cba",
+      "bytes": 1599,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_isocbind.py": {
+      "sha256": "cda060a5f3cd466c551b776850895b6488b207df7432c5e2c0369bad28fd1e74",
+      "bytes": 2360,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_isocbind.pyi": {
+      "sha256": "2aecea1c9424d184909d19dbf31aa7ca1f13d0318d9c30fa6cd23cf34b5a7426",
+      "bytes": 339,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_src_pyf.py": {
+      "sha256": "3c7a68f43dbc2aadeaff7f8a157f03dec143f5e5fc0357372ee2cdcd7cc1c8ec",
+      "bytes": 7695,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/_src_pyf.pyi": {
+      "sha256": "f4d2a7a2f85b2e26db4248c2ad19f28933c3c37301ab270e1e5d7ef8136b22ac",
+      "bytes": 1012,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/auxfuncs.py": {
+      "sha256": "767694c2b740bf8f8b6c488735b4b5beb8d03423b4941bb25a48f746dfd48b31",
+      "bytes": 26920,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/auxfuncs.pyi": {
+      "sha256": "ed1528596687aea49812674d779cc236799b8d4604e6909ed050b13177a36e18",
+      "bytes": 8011,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/capi_maps.py": {
+      "sha256": "ec2f8d9dd23651b4ad3465db8606d63a6afdb4b0317d0bf0d737fb67bc394859",
+      "bytes": 30079,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/capi_maps.pyi": {
+      "sha256": "a51d29559854c5a0a972dabb14e585480188fe068b744f8d580c93f7a7165998",
+      "bytes": 1066,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/cb_rules.py": {
+      "sha256": "e8a6cfbbdc9f27eee901adb8223f47df82e5d7941cf025d3a8216250923a47c6",
+      "bytes": 25051,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/cb_rules.pyi": {
+      "sha256": "5ff8adf3e434d7cf040e55ddf90c6145d737394a00dade95fe380ce538900bcf",
+      "bytes": 495,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/cfuncs.py": {
+      "sha256": "e09e0fd76a06a725991dbd4054a025ed827741482783018c0a7075221ac99fb5",
+      "bytes": 52660,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/cfuncs.pyi": {
+      "sha256": "12202d490c70e31f94971b0628810e26795dd5dedd358ae4d1bb7fae5a8b4a9d",
+      "bytes": 802,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/common_rules.py": {
+      "sha256": "ffdcb32289493068297770fde0b741b0e0e77d4b2431182ddafd37ac40881c94",
+      "bytes": 5030,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/common_rules.pyi": {
+      "sha256": "d6ecd391cc228a7e9d5416d6522395075669a632811e84471bf072bf0fb551b2",
+      "bytes": 323,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/crackfortran.py": {
+      "sha256": "bdb02f5a3e97b332d2fa75349ce79d68d36dc2daaf92433c82a6403fd32f3c12",
+      "bytes": 146879,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/crackfortran.pyi": {
+      "sha256": "02f57f28f784f632c6f447663dd6f6bbbfa03c95dcd47db25959a68a11f30a03",
+      "bytes": 10276,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/diagnose.py": {
+      "sha256": "616363d6f33af1ee3b2dbdbbd30959939cab714fb24e5cc669834f059ee74c05",
+      "bytes": 5075,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/diagnose.pyi": {
+      "sha256": "645542593c1fff1ccbef7ea9f4571f09859fb4e5dc36a48c0a6abe2b6eca34df",
+      "bytes": 23,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/f2py2e.py": {
+      "sha256": "92b496e11a593c31cd5f62162dd9f6f0a5b38f497314d49cffa7d271b19031f2",
+      "bytes": 28763,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/f2py2e.pyi": {
+      "sha256": "42de9978e601ba024b169018dc5f4aff885c9b4b19b7fdc03d3b5d28b28e6d60",
+      "bytes": 2153,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/f90mod_rules.py": {
+      "sha256": "ed9e6fa2b538c215f8d39c4c2faea1af88b589c09473d82be9a9f847e00c87b3",
+      "bytes": 9810,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/f90mod_rules.pyi": {
+      "sha256": "afac340ee1f625db7cc0f7436009d7640426cad21852a3cec55cfe41a5b0b7be",
+      "bytes": 451,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/func2subr.py": {
+      "sha256": "f6280230c0edb48805d4c1ba90139a8248c8fd217e5251a3002023dcd72fd3ea",
+      "bytes": 10049,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/func2subr.pyi": {
+      "sha256": "f8c0db3ab85a9ee8b37f7ae5730050a28085e069e81a9ac0f32a5e155fe6f1dd",
+      "bytes": 386,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/rules.py": {
+      "sha256": "22b8fed77a0b1a8c0d1d8125155f93654b34544774350a51b27a269c8d4d4f1f",
+      "bytes": 63091,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/rules.pyi": {
+      "sha256": "f467c598d03c527960de9c5c1b0ab0165ef278ac887139b1ef088fba20404fe9",
+      "bytes": 1326,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/setup.cfg": {
+      "sha256": "1699f8b23a93979393e6ca7c85aa8a2119d47133d934ce8c22f509054ec12218",
+      "bytes": 48,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/src/fortranobject.c": {
+      "sha256": "90b8873adcbc7d4aeecdf3a62f93107953452521870639fb5ba41b3d88106f7d",
+      "bytes": 46356,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/src/fortranobject.h": {
+      "sha256": "edc7d137fb53a0043535ad77550d8acdbdae8cc1d40201ac6d27277cb54e1eab",
+      "bytes": 5823,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/symbolic.py": {
+      "sha256": "52e16ce35d56612a91ec97dbb2ec8dbfffc80bdc0aab14005a85910de28f71dc",
+      "bytes": 53214,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/symbolic.pyi": {
+      "sha256": "a6266b6adb3c497ace0f5a84003a3e99bb1ce4d64e21a676ec59777777327537",
+      "bytes": 6083,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/use_rules.py": {
+      "sha256": "7a666148b3db343c811e7b1f28a5c39c6cf83ff830ae02f475f099703de7f43e",
+      "bytes": 3376,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/f2py/use_rules.pyi": {
+      "sha256": "8080007a659f72275c9556195296ba451992754103c381439c63da08da3ddd9c",
+      "bytes": 424,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/__init__.py": {
+      "sha256": "3961349ba1ff6e5cafd70b6a42989753992ac45e8ed94c71715e6dd75534e511",
+      "bytes": 8291,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/__init__.pyi": {
+      "sha256": "e97800b1df5ca2a2778c138f0f7be7d7ef0071b30b863c7341ddb5c637aa9a50",
+      "bytes": 514,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/_helper.py": {
+      "sha256": "8489f66721181b87cb077306bc23efa52acb5c57e1fb13b8cc62a58e4fd34236",
+      "bytes": 6787,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/_helper.pyi": {
+      "sha256": "d40d648ad73993ad8447a5f55cb17b3c840be45895c7144abbf882aa24359085",
+      "bytes": 1394,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/_pocketfft.py": {
+      "sha256": "09fa40a51f51d123ae72a97d829f6f5da766ff2e5c04cf979e3e6dac3a6f1521",
+      "bytes": 62598,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/_pocketfft.pyi": {
+      "sha256": "fd1211c1d86d8b18cde2ab33664fb17989f68e6716fcd3403042477844e282fd",
+      "bytes": 3174,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/_pocketfft_umath.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "6fa117ec21a0a9a04baac40a2aff3bec3a7e7065dd40685fc05830446cf3a963",
+      "bytes": 539072,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/helper.py": {
+      "sha256": "4681000ec3a7a028124cbd601399fedfa965cfc8b0c46ce7e7669fdcbfbd2846",
+      "bytes": 611,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/fft/helper.pyi": {
+      "sha256": "2ac178e5b572678fde25b045a64111f4bf0c0969a0edd26e84ba98ffbb85359b",
+      "bytes": 891,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/__init__.py": {
+      "sha256": "cd81aea847cfaaaecb0db89da7162cf068023409a8278c50805bc5dd7289e518",
+      "bytes": 3004,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/__init__.pyi": {
+      "sha256": "67b3ac400646511778708df19c4177eee9db394aad927c04913f3241317e005f",
+      "bytes": 1651,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_array_utils_impl.py": {
+      "sha256": "1985a2c8da8b43b0c6512057cf46db47a000a994ad0c8c147bbb6c6d9fffd793",
+      "bytes": 1697,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_array_utils_impl.pyi": {
+      "sha256": "024b527997057bf5d443abad60743224a1bc97c6e133cb502f62adb63d438dc4",
+      "bytes": 820,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arraypad_impl.py": {
+      "sha256": "cf9fbe5d3f344dc9c365ecc756b7716ae252637c82e2f30375dec994efa1df3c",
+      "bytes": 32296,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arraypad_impl.pyi": {
+      "sha256": "5bdf173ec82eb9ff01f76e0a555c6cea5fc438133d24acf04e61cbf7c08a6ecd",
+      "bytes": 1837,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arraysetops_impl.py": {
+      "sha256": "545760a456497322616053dc4e4fcb403fd2aea5faa68cbfb21b0b2af662832d",
+      "bytes": 41275,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arraysetops_impl.pyi": {
+      "sha256": "621fb0f65e37c3abcc04b7f0cc82909711dc13a805a8eb1fbb98322a932073fb",
+      "bytes": 13403,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arrayterator_impl.py": {
+      "sha256": "1ed3800c81ee1bd0036db3138268783ff9ae91ed55fbc13e14d10eddb54e18f0",
+      "bytes": 7218,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_arrayterator_impl.pyi": {
+      "sha256": "f2ed276f934fa563626fe16559a5e5a7a05704f813bf9fff345df4143ff5aa63",
+      "bytes": 1876,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_datasource.py": {
+      "sha256": "ce4f956e7e099431c455adc37ba0373608e79e2cd2262f8717466fbc0e98228e",
+      "bytes": 22731,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_datasource.pyi": {
+      "sha256": "d77e51bc3de9fb798774da7fb1957868df5baf0105bc4338f5513578794511fb",
+      "bytes": 996,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_format_impl.py": {
+      "sha256": "cdc437c57c4f7fb7a992db18adc7416c83ee38287d38f575837801ea085fe2b1",
+      "bytes": 36865,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_format_impl.pyi": {
+      "sha256": "ff494486dda129b4debefd1e18286660c053020fb68c07efadf53da77dba547b",
+      "bytes": 869,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_function_base_impl.py": {
+      "sha256": "0191b2376f44730e0b46e5354cd51c3c2edc5473bdc9ee1b27d15023b9ff1b07",
+      "bytes": 196425,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_function_base_impl.pyi": {
+      "sha256": "1d8db582625c508bd3b182f651467c9763188f7e1ca7fecc76c99c93e1637841",
+      "bytes": 24116,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_histograms_impl.py": {
+      "sha256": "52dbbb68041ced9a6c1e7ff4e288149d9ab565c7477e2a5cabd791abcd7ba155",
+      "bytes": 38432,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_histograms_impl.pyi": {
+      "sha256": "428b8ec56d2c6bf2cc276843bf95843bd93de664cc8c4bdb3f6fbbb30349c732",
+      "bytes": 1093,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_index_tricks_impl.py": {
+      "sha256": "83b369e04f001bdb20ca2f474d482f38cd3ca489408ff72f5f0e1c73b36b5392",
+      "bytes": 32186,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_index_tricks_impl.pyi": {
+      "sha256": "810c18d668ff4b19367a8f415dca89ebc17cf17bf3401f35a349cd52443dc3da",
+      "bytes": 6325,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_iotools.py": {
+      "sha256": "d23b69be99792feff5383236d45fb58b5f6dd5edcbfbac09c517750922dec0bd",
+      "bytes": 30876,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_iotools.pyi": {
+      "sha256": "ebd85f048f3d5b650fea8cc7892072b7e1b14eea678be80144f8a115b5d287a4",
+      "bytes": 3393,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_nanfunctions_impl.py": {
+      "sha256": "71d393edd6308ef52923d8841d3af0cdb6ed2a13fd65980e08c8ab4c17983d49",
+      "bytes": 71949,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_nanfunctions_impl.pyi": {
+      "sha256": "8f9772273fdcf92403c57acbf4dda8b8a0be0ec3ff1150d9c8b79d197a82a4c2",
+      "bytes": 833,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_npyio_impl.py": {
+      "sha256": "92e71acf00ae7e1e26370102c99c447abc6ca9afc6c50333d6462e65444323cb",
+      "bytes": 99277,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_npyio_impl.pyi": {
+      "sha256": "596946c5ba1bc0b804883fa4e7c83f43d2b51d6d6f0e4fbe018ac14a38ea00b1",
+      "bytes": 9388,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_polynomial_impl.py": {
+      "sha256": "4d68aa946dd60daf7bb5acb1402125b590fd4cd854c85a6bccbfd499decbc6ca",
+      "bytes": 44134,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_polynomial_impl.pyi": {
+      "sha256": "f4fbe73e6782938e6576227cc47c2c215757f43ae33e163d1fb08415b54930b4",
+      "bytes": 6999,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_scimath_impl.py": {
+      "sha256": "400538b8cfc837356a093b3e013132cb526144497fc03267ff2814ef962d7e01",
+      "bytes": 15692,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_scimath_impl.pyi": {
+      "sha256": "a570598c73c1fc56de05f7bd33737c4e3ac44ffa1c946b9a7d68d31c2fb18d4b",
+      "bytes": 2774,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_shape_base_impl.py": {
+      "sha256": "e6f914f6b3cec0abd273b4f3c5d7d6b4cd3cb95d26d798873d3c5ba9c638ece7",
+      "bytes": 39479,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_shape_base_impl.pyi": {
+      "sha256": "dfa82681b15dd5c5264947d48a116d6f56eb73680a2d88bc3570c01332f20664",
+      "bytes": 5412,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_stride_tricks_impl.py": {
+      "sha256": "cb7531a778c5cc3c26210d77ecddb36a9efebd6fe338d5109979db7eaaeceb40",
+      "bytes": 18025,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_stride_tricks_impl.pyi": {
+      "sha256": "eab47b20ed38c3514f08a50cf76d2bf4a7ff03f86965b200068e91725df8b452",
+      "bytes": 1815,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_twodim_base_impl.py": {
+      "sha256": "de738bbc20fa71f33a303de8dfcd45e3c181f29a2ab1418308339094e0505e66",
+      "bytes": 33925,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_twodim_base_impl.pyi": {
+      "sha256": "9c146a393483db58a8064530eafb73cb5f99c9ccc972fc9b92f1b7fa1bd22246",
+      "bytes": 11193,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_type_check_impl.py": {
+      "sha256": "59e55f5b3ff42a5bdbd8affa974c789c7c070703d881f7317998a757f769fe6c",
+      "bytes": 19221,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_type_check_impl.pyi": {
+      "sha256": "c69655e4b4ad5461db10301c2546c3ee2645134a27c023d966ec1bd353f8a3f4",
+      "bytes": 9713,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_ufunclike_impl.py": {
+      "sha256": "d1e7a67ff11894b9926b88a736bde2b89d5ea1332a2f2211d27e9d4329a06b76",
+      "bytes": 6309,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_ufunclike_impl.pyi": {
+      "sha256": "489ef06e358523a58bfeba7708da9b6682a8cdae0ebb8b83c17be9b7889e932b",
+      "bytes": 1288,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_user_array_impl.py": {
+      "sha256": "b779e7ac5baf6c18b3155d4adc2f4d37220cf342d4e6ca40f3c325ad82731289",
+      "bytes": 7697,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_user_array_impl.pyi": {
+      "sha256": "019a48f5f1c76292f1c982fdb9de580c77198712e5f98a5f076de2f5fd79e014",
+      "bytes": 9110,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_utils_impl.py": {
+      "sha256": "ec14ab791707348b1478c8f753519bab35632582afcae1161dd1bf0b84cce3a4",
+      "bytes": 23346,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_utils_impl.pyi": {
+      "sha256": "724c5d52374611a6b72402954191d8819d51de0959660facb21f74be457b7498",
+      "bytes": 371,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_version.py": {
+      "sha256": "e1d52b73d26cd0a3c443969da18291e5d9cfe1f7e3083b4950a3ea70c6aec18e",
+      "bytes": 4851,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/_version.pyi": {
+      "sha256": "bf2b18e5597f9e1e2c8ba1a431712807aa540e5fa32798342e94836b8d05d76e",
+      "bytes": 641,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/array_utils.py": {
+      "sha256": "5db732849f52d0894d9cff4dcbacb280b30400259650f34e53cbdebe3d531292",
+      "bytes": 144,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/array_utils.pyi": {
+      "sha256": "2df63f7f37d376d8e82c88b9152083b02e70798ae6007161edfc457e78aea5b8",
+      "bytes": 296,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/format.py": {
+      "sha256": "9e9274789853eee28d2b96b49423067e226ff91e23c8d86220f7996c970d5c1b",
+      "bytes": 477,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/format.pyi": {
+      "sha256": "7e1fb948de0c391be32e5895f0bc0e6f756a1bcb45bce68c786e159f9081bac0",
+      "bytes": 1482,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/introspect.py": {
+      "sha256": "bbec207ccb98b7c188dc09d135d5ece23e30f5e353b1ace5aab6b34be3fb80a0",
+      "bytes": 2749,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/introspect.pyi": {
+      "sha256": "016557e9bf66cddc2cc62cce6342f275628112919ab4769e79719cdadc582443",
+      "bytes": 152,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/mixins.py": {
+      "sha256": "29f7fbe9272981657772bba2708f40edae337c19c65665edc10cccceee710c4a",
+      "bytes": 7200,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/mixins.pyi": {
+      "sha256": "237897aab707a55e23c2c801189293d84ae8d929534846590e67dcc770c9ec27",
+      "bytes": 3131,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/npyio.py": {
+      "sha256": "79a3ef7c7192cd413bd132471cb3823c85fd1b98a132e0447b1cbafcf36127d4",
+      "bytes": 68,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/npyio.pyi": {
+      "sha256": "a97ebc765832eccd8cb4080d49a6d357cad63935ce5c2135ffbd9771d26ad746",
+      "bytes": 192,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/recfunctions.py": {
+      "sha256": "4f869ae715dabfd9ed7f0e589b33e2abf614921d76c06938d17c812d03c21335",
+      "bytes": 59539,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/recfunctions.pyi": {
+      "sha256": "3537f81723362a29f1e7a9cd1dcc868ca533fd1052250afeaad66c2ca78862f4",
+      "bytes": 13216,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/scimath.py": {
+      "sha256": "aa315a41eab4cc4225ee02aa3a16a3fef9820bf29a15dc9398774b514912a792",
+      "bytes": 169,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/scimath.pyi": {
+      "sha256": "15eeec7e5785498d2e086523e60013c63128327bdad67279dd8c8fd703f5d4d9",
+      "bytes": 512,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/stride_tricks.py": {
+      "sha256": "c74fc17f097270102547706fa714e775e3fde9d1c14ff7c049b9134d3cc16202",
+      "bytes": 88,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/stride_tricks.pyi": {
+      "sha256": "14ba346fc3652cfb12e7c5738c515c862be904e8e313f99e53412158414f40d6",
+      "bytes": 170,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/user_array.py": {
+      "sha256": "ceceaee93017a00c9218065cd6a13a7ca0f800dfadeaead909a89968a9878aca",
+      "bytes": 63,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/lib/user_array.pyi": {
+      "sha256": "f02f9a4de904600d1b554ec5dedbab6b0d70d23f057c5bc3a7dc4a6bd3df7bde",
+      "bytes": 53,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/__init__.py": {
+      "sha256": "ee956f17038914a380ac6794b3a30d8f730daaab31ef1c74beddbfedabcd020e",
+      "bytes": 2124,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/__init__.pyi": {
+      "sha256": "0b77d91ca3d26b8c297d1a9f4e3c370e9cc4e69f82ce3bace3c3ae30bb037244",
+      "bytes": 1060,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/_linalg.py": {
+      "sha256": "eab0bbee9c8758d387934dc32849f01deceb50261d02e22d41f03ad6ff2562cc",
+      "bytes": 115106,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/_linalg.pyi": {
+      "sha256": "8a78a35c338513365ac8e2f7ec734a3aac87f3008b41a534afffe93b8768ec08",
+      "bytes": 11141,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/_umath_linalg.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "7f9eb8599d9967315f791ddfff066eea29fcb76ed69df833207dbb3a936d3419",
+      "bytes": 231833,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/_umath_linalg.pyi": {
+      "sha256": "6b0bd13f5146ba89b27de691d30cc7beb5d444023cb54177bb6451676e21917c",
+      "bytes": 1409,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/lapack_lite.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "b8907ab47060421b5bb3c939dbfe02ac85906f90c6cd721c06d4eff0d86b28cb",
+      "bytes": 29985,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/lapack_lite.pyi": {
+      "sha256": "423692f11e2ebba32224370214d13910e0181a714272b373f3bde0b363945c43",
+      "bytes": 2672,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/linalg.py": {
+      "sha256": "e8d8a63faf2d61ad2a051825587f3bfed3a1dac72c86d0e97307ef06f99de8fa",
+      "bytes": 585,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/linalg/linalg.pyi": {
+      "sha256": "f04e6c6ca78ce4eaeceebd78de633b038ba2f24159334485ecd7d4196d5e37ee",
+      "bytes": 932,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/API_CHANGES.txt": {
+      "sha256": "17fe235bc5f971805bce9730b5eca69289d39afce028a636906ac717502d9eb2",
+      "bytes": 3405,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/LICENSE": {
+      "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6",
+      "bytes": 1593,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/README.rst": {
+      "sha256": "92b7f672f54aff33507f5777c95630834b831f34e2478bc76ebf75cf0680ca82",
+      "bytes": 9874,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/__init__.py": {
+      "sha256": "5e90d6617c1ab83738f7e20db24e39e43d37530e29eb115db1d58e9f6aedf3b5",
+      "bytes": 1406,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/__init__.pyi": {
+      "sha256": "415ec5d5e37b1902c0d95daf23f6d85c2fd7868665fb622a5c7588a89b572ca5",
+      "bytes": 6946,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/core.py": {
+      "sha256": "4ded11216c3c2721b6889263792886fedd5a84a00808376beffa65e06e90d587",
+      "bytes": 288881,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/core.pyi": {
+      "sha256": "4712febf3773a4107ded4a8d7ac0241e3bc5c505289b501152f2aead0833e7c2",
+      "bytes": 40459,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/extras.py": {
+      "sha256": "7fca9feadff1f64df838a98788d21fb7d3c50b22d831e0521a18988e152e2297",
+      "bytes": 70680,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/extras.pyi": {
+      "sha256": "e272433ffd32a04b5c856260733774b9b5db6bbe93b063c13ae0917b142055b1",
+      "bytes": 3794,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/mrecords.py": {
+      "sha256": "d34833cf2ff1c42e34f295592115124616f0a9cd541dcca113eb4ed8560cf081",
+      "bytes": 27073,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/mrecords.pyi": {
+      "sha256": "616f35ccbf4b0f38be2fed9623bd77e7e1f10738f5da7e18800447876a99e81b",
+      "bytes": 1973,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/ma/testutils.py": {
+      "sha256": "bcd1b56b2ebcf733a4b6b9bedf7b72cf46ec08bc642472ba8fefb626d1d13eae",
+      "bytes": 10235,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matlib.py": {
+      "sha256": "fd2f4df12d8d36c1c6414725a31af1001b490de8c7894c8c74c24eed26b23e40",
+      "bytes": 10638,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matlib.pyi": {
+      "sha256": "77d4f0f9386b58d5205ca193890bc28eaae4590496a87717517031bd810db589",
+      "bytes": 9602,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matrixlib/__init__.py": {
+      "sha256": "52de88a9f8ee03e930c28e8704e6008058d75c2fe1ed857fdc7c83b0a33bd9d9",
+      "bytes": 243,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matrixlib/__init__.pyi": {
+      "sha256": "7bdc42ea45a1218a0fa9adfeb66b7175aabc44b8d7ac18e9c972ea57ea55f546",
+      "bytes": 106,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matrixlib/defmatrix.py": {
+      "sha256": "c29c3a95953d5faaa9f30009a240d7b76441acbd5e5ea96606dfa88c8c18ce55",
+      "bytes": 30875,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/matrixlib/defmatrix.pyi": {
+      "sha256": "45e4227306c2ab810518cea96a3e4aa137852b77f2881302e1f24b25c3f4488e",
+      "bytes": 478,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/__init__.py": {
+      "sha256": "8064b02cda4f0a95df3e08894ac815a15b09d004b573efcc5a518e7a21b9e6c2",
+      "bytes": 6726,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/__init__.pyi": {
+      "sha256": "b555aa037fd9cdc4f27e9e7222be1c6bced3831e18b58e3aeb45108b72617c92",
+      "bytes": 688,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/_polybase.py": {
+      "sha256": "6f49028938149bc0f9402fcb5929bac8dbf00bbf67a4301e92c2b4bd03dc8824",
+      "bytes": 39358,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/_polybase.pyi": {
+      "sha256": "98a6f1bbacf7882e8d9c33571cfacc9ba568e9142faefb427a5ed2e4c8b74374",
+      "bytes": 8187,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/_polytypes.pyi": {
+      "sha256": "7beb8ee4799b62c59f7d9b4e2820e0af112abd49be60a4ea40a5e3f379bc8fab",
+      "bytes": 22382,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/chebyshev.py": {
+      "sha256": "4f4beb0ec3ab3bc36dc5bcdfffed1dbff94fc85e5ce393a30e85490f37860402",
+      "bytes": 62322,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/chebyshev.pyi": {
+      "sha256": "8e7db534c06c738158bc2ff904ce2439f9d811a51220d76add1ca8a12fb9ae35",
+      "bytes": 4787,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/hermite.py": {
+      "sha256": "220bb0262b6d283877cb4ac5d4cf652ee229b455e0abe3e16873538df1370a70",
+      "bytes": 54603,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/hermite.pyi": {
+      "sha256": "6cdae5c535474ec90550e2836f2ac84976ceb263f1c619c01a6666385d662e97",
+      "bytes": 2463,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/hermite_e.py": {
+      "sha256": "7e1bae8b68cb73423958412c443732c3c14a485c4e97d8ebf1be32448c4466a4",
+      "bytes": 52305,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/hermite_e.pyi": {
+      "sha256": "3b28d1cb33fbb73e6c0cffbdd03e1da67f36cc9e333d4088ce1a5768e0a99026",
+      "bytes": 2555,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/laguerre.py": {
+      "sha256": "5c9e5d36a5ae64d86ac0045bfd05b89dfad11f226fd4930282c3f65b8f8a13d3",
+      "bytes": 52474,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/laguerre.pyi": {
+      "sha256": "ffbd89b2c6a044e73ebf0b7c5b58b768ea3cb39976bf61b63733149b5e2f667c",
+      "bytes": 2191,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/legendre.py": {
+      "sha256": "b0c25398675ec0d85c72b2bd0b27cd208151833998f80247860a3acf1b4662fa",
+      "bytes": 51129,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/legendre.pyi": {
+      "sha256": "74f8b3448e072ea010f099acf136bf1edb14c87578f5f93784509934e89dd5fa",
+      "bytes": 2191,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/polynomial.py": {
+      "sha256": "f88202a2c6f68fc0a5b087d73c35a05ea2f1e96ba153aa25a1c538264c4dee42",
+      "bytes": 52196,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/polynomial.pyi": {
+      "sha256": "037a0adf02ad7a246451c34493382f650d751c8aa5a08468c46d97f6b3d56411",
+      "bytes": 2021,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/polyutils.py": {
+      "sha256": "99011ade80b3f57f9dd4768d757929049cd7586ce0638d960cc8c93a7f7cf0ef",
+      "bytes": 22657,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/polynomial/polyutils.pyi": {
+      "sha256": "82707b4d065c95b3069de555144d73e4b5f9420b3718289d45358bf7bae36bee",
+      "bytes": 10235,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/py.typed": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/LICENSE.md": {
+      "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f",
+      "bytes": 3511,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/__init__.pxd": {
+      "sha256": "f496e75f9e34689352a2d846b3eededb7a33862946e94f2d20d394129d3c33f9",
+      "bytes": 431,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/__init__.py": {
+      "sha256": "585ce7b73b5454d6a25c2a50967f2dc322fc1d214d4bb5c0589949b105e06ea9",
+      "bytes": 7480,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/__init__.pyi": {
+      "sha256": "e57e54a920e47abb9969f196bfd12761bd11ae346ce3dafe4e5cd5dcf3d03a3b",
+      "bytes": 2109,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_bounded_integers.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "7b3166a1c172e6f7ba36c9c29eb97b89bad147a4d9585cf1292d4c9c2412ab59",
+      "bytes": 323032,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_bounded_integers.pxd": {
+      "sha256": "487fc5c090e28051089e176589268d1f61f66486685f4db162135003cd60dbe8",
+      "bytes": 1678,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_bounded_integers.pyi": {
+      "sha256": "8eea9df4f6d7b38ca0e39ccc27b04700e3d08dbeec8046d613d22706d19985fa",
+      "bytes": 24,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_common.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "2cfd837e7493c30b1820583134753d2d2939aa1e5cb95e4ba38db7a83ea46fec",
+      "bytes": 258952,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_common.pxd": {
+      "sha256": "ee4180ad890171e9abc49712b6dc2fb4319b8a62eccdd42765d36f3cc80de714",
+      "bytes": 4982,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_common.pyi": {
+      "sha256": "d367500d201f96e9e66501564e10cb1b7eb9d29cbf0cda829b18e692fe7f5e90",
+      "bytes": 421,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/cffi/extending.py": {
+      "sha256": "8e920bd678cc85fd277a19a53079206642319ecd890bd1840d88000a15fcec6f",
+      "bytes": 884,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/cffi/parse.py": {
+      "sha256": "3caf6f754c709af76716f1f7acea609e7a484b09e277bae2e573a606b316a49c",
+      "bytes": 1750,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/cython/extending.pyx": {
+      "sha256": "78f9c70cd7cc41c4d4cc0aa016212aad316bf41a0399baa08f1ceb0cbbd5f1f1",
+      "bytes": 2267,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/cython/extending_distributions.pyx": {
+      "sha256": "6a1bdb752b918f7e4328945a3453f9243b8faaf781069f8cf6615f17759dfcce",
+      "bytes": 3866,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/cython/meson.build": {
+      "sha256": "1b16594ff2eede766c81caa8ffbb1347f21d3096870357f1ca3c2b41372874fb",
+      "bytes": 1694,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/numba/extending.py": {
+      "sha256": "67b67f5e9ec73c4e0ae4167b030a59dbdaafb9fb45024be132d357e77b6530cc",
+      "bytes": 1959,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_examples/numba/extending_distributions.py": {
+      "sha256": "7dd78f5de523e3ac972b430ad5cb33c541d088e4e236e36cadb66a3f0e00746b",
+      "bytes": 2036,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_generator.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "9f24d2839ded5dfdb8a5af8cd47ce377b09a6c3779bd93ab7bf029bb030aa1a0",
+      "bytes": 993232,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_generator.pyi": {
+      "sha256": "6853ea7cec48a4e20e99d635c41714a6594c0afdb4893ab83cdec077f81dec76",
+      "bytes": 24009,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_mt19937.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "be4a9213c5d40462cc37687441674ed2355cbc04b684ea2342b679e471b63f41",
+      "bytes": 133776,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_mt19937.pyi": {
+      "sha256": "6633827ce41bd4a2c3cb0cbc647cbca506f50be0d9bd2b6a60adce381eab113a",
+      "bytes": 775,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_pcg64.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "9161a27881aa3314d93c01a2634e1a7098755267fc861d0cdeb0659db9e65250",
+      "bytes": 148120,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_pcg64.pyi": {
+      "sha256": "6c89462723765f782d284ce1eaac037725d7f3c6a5ff6bd5982cc63696cd89fb",
+      "bytes": 1142,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_philox.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "6280e39a3f82c30d55b5fb9f3f15621fd0026a5200bc3830bee43306ec4e2b05",
+      "bytes": 120760,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_philox.pyi": {
+      "sha256": "c45a2050049f48776f8aa7b121fe1b1a09336ebca2afb4e293bcf45d047dc71e",
+      "bytes": 1005,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_pickle.py": {
+      "sha256": "2ede3b99afef9e72477674257398d9fc3a811ec74a8b442250d68890c7fde6a0",
+      "bytes": 2742,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_pickle.pyi": {
+      "sha256": "e686d063b09944b3038ce811b4d83357f060e4ef44f032bf1bbe23ec9eeaeaaa",
+      "bytes": 1608,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_sfc64.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "27d9da363d2392159086bc3c14811e8bd4407da7c00c4874a6e31ac28e7e9d8d",
+      "bytes": 89496,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/_sfc64.pyi": {
+      "sha256": "c11adb90418b3618d76bbf8bc8636d3b9125f5cf01fe135142a1742a6bfa8503",
+      "bytes": 682,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/bit_generator.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "3f39b18e4885a55ce1e707607fa1b4b9cd857048febfbed2bdb3aff87c032cfc",
+      "bytes": 238960,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/bit_generator.pxd": {
+      "sha256": "940ae92174a04f056724c61ce175f4346c5e817ab787f42c5032baa9e64a6cd7",
+      "bytes": 1007,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/bit_generator.pyi": {
+      "sha256": "b57e655490e9e89e5b3737e5a3ed6b37295c783df4a03058b5b898540d5c58e6",
+      "bytes": 3604,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/c_distributions.pxd": {
+      "sha256": "502b6ac7435ffaf1ee2556aa3e52c55115a7688d6f1febc9444d350590d32fda",
+      "bytes": 6335,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/lib/libnpyrandom.a": {
+      "sha256": "d2160944e3576815be252e70a6d82cfa4bd7b4f860c01961ee7861dc9545c61a",
+      "bytes": 71702,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/mtrand.cpython-313-x86_64-linux-gnu.so": {
+      "sha256": "c332ae229da63cd91485113f562e834f9edb00d3423de752407dca287c053e7e",
+      "bytes": 785736,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/random/mtrand.pyi": {
+      "sha256": "0ecd9df83968c54504db034d300d70ea8aaa3ec8018a591a44c08b8a80538890",
+      "bytes": 22687,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/rec/__init__.py": {
+      "sha256": "90d0186284800348b3a545516fed7cb09c3e88ab45ab6465d94e52387de91d13",
+      "bytes": 83,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/rec/__init__.pyi": {
+      "sha256": "d592f649bbc549aa17c0e2bedfbf104348345e574e8ec931d84dae21eac41942",
+      "bytes": 347,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/strings/__init__.py": {
+      "sha256": "a36ef01d6f2319a51f6c3a294b2126603e918dea37dc0ce4181053816ae5187e",
+      "bytes": 83,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/strings/__init__.pyi": {
+      "sha256": "24ff18411df167f98f31d41ac7b412476719f8df95ed90eabce71620850fff9e",
+      "bytes": 1319,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/__init__.py": {
+      "sha256": "12a7be3b1fb7252aa4e904679cf3c52c25bd224aaff4eb890e19e6dae18cdf37",
+      "bytes": 581,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/__init__.pyi": {
+      "sha256": "d63af61a3f4198276d2b86ea346930500baac02e27d893cecba96a7332bbc690",
+      "bytes": 2045,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/__init__.pyi": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/extbuild.py": {
+      "sha256": "2e0d6ca80f7843be0a8b9bbeb31d0f123eeeaebdd83f8ef4f810a2caf2701314",
+      "bytes": 7716,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/extbuild.pyi": {
+      "sha256": "68d1fa527021878667cbcd56e391ab01c49c075d9bebff38cbc33455db699b62",
+      "bytes": 626,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/utils.py": {
+      "sha256": "3d915b0314d238f150fd55cc6830a03c5052124da47041a1f06462049cbfc898",
+      "bytes": 95707,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/_private/utils.pyi": {
+      "sha256": "f71966ec04308b5caa39937fb76da323f1bd3affb4b735f91f42131d5cf45041",
+      "bytes": 12943,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/overrides.py": {
+      "sha256": "07c63c3e5a6f2bbd48712ba8b9b5d68f82f935598b5529fb58c8352fbc593bc9",
+      "bytes": 2134,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/overrides.pyi": {
+      "sha256": "210bd02f10fe74771b4d039910ee5b9c2b42a7c52fdef8f9d5d974759d21b638",
+      "bytes": 397,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/print_coercion_tables.py": {
+      "sha256": "49ba0d9822dce45c95f9447c80a8c97363c8a233755d04ef1f45b30eaef93363",
+      "bytes": 6286,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/testing/print_coercion_tables.pyi": {
+      "sha256": "1513626cc622d0ec8b233283e11500499ca196c4d8f1e94dd10de37013c47601",
+      "bytes": 821,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/typing/__init__.py": {
+      "sha256": "15d6881f8ee3f2e18403996e4eef839eb38e4c5c3ede77b62551defb29ffedb0",
+      "bytes": 6048,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/typing/mypy_plugin.py": {
+      "sha256": "d6971f2f125a6057423ca4095701ef7586d9495759ed1488720d505c747b9ea3",
+      "bytes": 6541,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/version.py": {
+      "sha256": "0233084674e148830691f5835974dfe10ade1490194794464ec8ee711a115f1f",
+      "bytes": 293,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy/version.pyi": {
+      "sha256": "c77a02ac3a8cfe04218ad74381f80c849f943da6c85e4e5eb6a06af075305289",
+      "bytes": 358,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy-2.3.3.dist-info/LICENSE.txt": {
+      "sha256": "2046a3130e50b11c01659b3a0d963e6ae0b7436ff8e89cbcfd9e87bc6112d595",
+      "bytes": 47768,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy-2.3.3.dist-info/METADATA": {
+      "sha256": "661ed2938131e161a5f723099c7236e709e705dec856d1ef37527d37d0ac4dc6",
+      "bytes": 62117,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy-2.3.3.dist-info/RECORD": {
+      "sha256": "2812642b6c984dd119cb5c20bdf1cf2f9d9ad256895b200994a6a695706567f4",
+      "bytes": 83863,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy-2.3.3.dist-info/WHEEL": {
+      "sha256": "09b1165bcbc456d022ae47f3c03d23e9df29eb2404569f760ab459361755bcaf",
+      "bytes": 138,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy-2.3.3.dist-info/entry_points.txt": {
+      "sha256": "ec26fade0c8bdac211a6c1dd003a65eb16885b925395423e93fcaa115af4052c",
+      "bytes": 220,
+      "mode": 292,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy.libs/libgfortran-040039e1-0352e75f.so.5.0.0": {
+      "sha256": "c6090048eccc763522c12ef016f81da6b627cb3a044f55cf0479a839c41c0980",
+      "bytes": 2833617,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy.libs/libquadmath-96973f99-934c22de.so.0.0.0": {
+      "sha256": "6ed5137f412781ad7863439fb543613f620b43c32b63292a0029246162f5bbc6",
+      "bytes": 250985,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/numpy.libs/libscipy_openblas64_-8fb3d286.so": {
+      "sha256": "37ba6b373a22ff42844e014f5dcbb428183f2325fd993361b41fccf68241333d",
+      "bytes": 25050385,
+      "mode": 365,
+      "package": "numpy"
+    },
+    "opt/bench-python/psutil/__init__.py": {
+      "sha256": "e5204bd147b1e6b180c8a6570502fff0011d60646ee1f4d7f19094b653b38e76",
+      "bytes": 87816,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_common.py": {
+      "sha256": "9033ce324b6cb5d36a07431b1e00af8d1db097c0d09b07c86ae0595ceb182ec2",
+      "bytes": 28584,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psaix.py": {
+      "sha256": "30773429c679f57d1e03d15b765e60f7c7cd9e728c1ad86d686da8896c871dc9",
+      "bytes": 18257,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psbsd.py": {
+      "sha256": "ee8f99d09d1175bbd5578357d78018188fd24fcd7a278a18963942ab13023b1b",
+      "bytes": 30866,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_pslinux.py": {
+      "sha256": "1ab77572b9f770dd8ec175d367921243fd3f1c07101dc4cb0b707f312f231e2c",
+      "bytes": 86531,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psosx.py": {
+      "sha256": "c627c336197fcf31d8274df0eef0e88e033145cec34df647c054bcda43c2fe7e",
+      "bytes": 16682,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psposix.py": {
+      "sha256": "e69044d8c93c2c258bb613a980a339fd2e8024e49a9e4174747ae8cf0b438be6",
+      "bytes": 7141,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_pssunos.py": {
+      "sha256": "311e6a6c2479c18a2f5895ae34980271dbe3ce4d6350332f03661221f323d36f",
+      "bytes": 24925,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psutil_linux.abi3.so": {
+      "sha256": "06b76a5d97401e3ecbdeaeb802b9e992eabb092e57bc82b408aaef040a1e37c2",
+      "bytes": 135464,
+      "mode": 365,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_psutil_posix.abi3.so": {
+      "sha256": "839fdcbafccd2c79c054266bf010855d7f99a67e58b6bc215ccab1999fdef879",
+      "bytes": 93608,
+      "mode": 365,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil/_pswindows.py": {
+      "sha256": "2da68b695e5c0c2fe10aad11e19ba8f167376d764f7a28ab597cd316d6802452",
+      "bytes": 36550,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil-7.1.0.dist-info/LICENSE": {
+      "sha256": "b89c063b3786e28e0c0a38f1931db61fed35e69dd2a2966fbecffee0f46c8d10",
+      "bytes": 1548,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil-7.1.0.dist-info/METADATA": {
+      "sha256": "ac00a0bcd2510cbd355745e1742a41ef2eadd59546c28788d6122a57d329c6b6",
+      "bytes": 23074,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil-7.1.0.dist-info/RECORD": {
+      "sha256": "839d0967e0ea80c7df5944c16e87c6a011527eab13550e2432e8b7b6ce0542ba",
+      "bytes": 2962,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil-7.1.0.dist-info/WHEEL": {
+      "sha256": "c92c2151245ece6baaa943dfff73739c4b6abc2f55a0146eda6ceb16404797c4",
+      "bytes": 220,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/psutil-7.1.0.dist-info/top_level.txt": {
+      "sha256": "8023619f9ef0ce4b038d20084a680c2746a25f342e964d062616f6f81032620c",
+      "bytes": 7,
+      "mode": 292,
+      "package": "psutil"
+    },
+    "opt/bench-python/pyperf/__init__.py": {
+      "sha256": "2f430bfeb98edcb0326807fda104ba5938eee693452b4461fb0159fc980cc319",
+      "bytes": 665,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/__main__.py": {
+      "sha256": "62014a3d7596e14b0743e5c1b990c1b504019c929976c12836f8854c4581e279",
+      "bytes": 26677,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_bench.py": {
+      "sha256": "5e57983222042be62c6481b591db97b9fb75534834e332f8fae67ca0de10bd46",
+      "bytes": 29475,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_cli.py": {
+      "sha256": "af32cc33679a4de82bb3b48b00bb919db70e0056c2d420e66680bb43bb829ab4",
+      "bytes": 20789,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_collect_metadata.py": {
+      "sha256": "e6a886f16324afa058d7118c46881ae14ae135a55c1d19018c8f1b10855b8835",
+      "bytes": 13204,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_command.py": {
+      "sha256": "5a25cf5a564e6e0a85396eee9044f63ba2fd97c7c421fd0c7473a8eda9166a0b",
+      "bytes": 2237,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_compare.py": {
+      "sha256": "7a9effd7914913254871770aa748336444cc9ab85a0a067a333efbe85c96da7d",
+      "bytes": 16000,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_cpu_utils.py": {
+      "sha256": "41eee7b9e4a1a1cd9a4eda14ad361d6c334b907e98858c80081cc719aee6a99c",
+      "bytes": 4415,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_formatter.py": {
+      "sha256": "9ae8364a832c6cb4b6a402e4ab87600b398b3ad3c051af2f5c300962f0961349",
+      "bytes": 2880,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_hooks.py": {
+      "sha256": "0d8622b02b98cb41e028b41a7bf49710422c9d54e79167dd5cdb3eac61406dbb",
+      "bytes": 4692,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_linux_memory.py": {
+      "sha256": "b4c7a499262c64e4324781ddc3f55e586eb1f2493939e95f7c1287e184f9ad86",
+      "bytes": 1662,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_manager.py": {
+      "sha256": "4a65eac2fb65d746385ddc8e90fb7ae5754fc09be426fc0e61f70a24d466b23a",
+      "bytes": 9024,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_metadata.py": {
+      "sha256": "5846b65479d560c224474a4ffa28e2a209ef40644ccc5615c34c32b433783197",
+      "bytes": 4700,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_process_time.py": {
+      "sha256": "6394694ca3feb41d6c6d72dad478425c814057690ea7c74cc112946fa67527d1",
+      "bytes": 5040,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_psutil_memory.py": {
+      "sha256": "a30b7d5a0a8c4008ee75be12b4581cb341bafb5d1e6723488e2e12df0f0b1dff",
+      "bytes": 1122,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_runner.py": {
+      "sha256": "0d35b631fdd876235d8a781530d00850358f41df89c093107e0306bf4d67887c",
+      "bytes": 27988,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_system.py": {
+      "sha256": "8670e8f7a2eab3e18ce8a5a6c48752adb0aa865a4b20f0e8e3f7ea0472e0a69f",
+      "bytes": 35556,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_timeit.py": {
+      "sha256": "f8d89b52039b952827fddd1d77a28115f4045791cf7ee4fd140b9a165ed42271",
+      "bytes": 6731,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_timeit_cli.py": {
+      "sha256": "e468f79f571645baa459d0d083b855ef2cadb8c62d0d094c04752899c4dec3d7",
+      "bytes": 2366,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_utils.py": {
+      "sha256": "51260796ca97191b7d11e11df141f7c6fa31e22ef5ba779a5e67fd09fc399302",
+      "bytes": 12551,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_win_memory.py": {
+      "sha256": "c8191ef45cc99b4b0f754cd1eb3c02069405214c3a78ed0d0637f79f3743c404",
+      "bytes": 1664,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf/_worker.py": {
+      "sha256": "808a54291d8801823c0fd431594a3a86e496b1ff1466e7bc1ec049111f14b444",
+      "bytes": 12805,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/COPYING": {
+      "sha256": "64ccf157f932c37cb42296a7ca86d8bf111d9a7578eada257992290a2f4c165f",
+      "bytes": 1092,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/METADATA": {
+      "sha256": "af6761d797a0dd49e8e6731883750a5cc6e133f2a3f9a5900bc24be9da38fda9",
+      "bytes": 5880,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/RECORD": {
+      "sha256": "c51bc4739913bfbf8c6ffd13dd15bf8b306e07c1f5f1ca2e1f5d006ebfb69c28",
+      "bytes": 3872,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/WHEEL": {
+      "sha256": "8c1ef367737d84833d69d5bbaa54c0cb270b616f67a5a58a2d1cdaa1570b29c3",
+      "bytes": 91,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/entry_points.txt": {
+      "sha256": "9ed1578e76db4072298e093a09ac82c0819ebdef37ff92c5e37bc3dc62a23348",
+      "bytes": 173,
+      "mode": 292,
+      "package": "pyperf"
+    },
+    "opt/bench-python/pyperf-2.9.0.dist-info/top_level.txt": {
+      "sha256": "7f88d9e3dd4a56461f213b3cc1f566e9eb3852dd0e5fa54884f583dcb33bdc2f",
+      "bytes": 7,
+      "mode": 292,
+      "package": "pyperf"
+    },
     "usr/bin/clangd-19": {
       "sha256": "69fa630c2f8c4ef2b59abc2510ecce62f4aa05c85f367121c076a8f5e4bcc599",
       "bytes": 17112128,
@@ -3866,6 +6602,18 @@
     "libtext-charwidth-perl": {
       "path": "usr/share/doc/libtext-charwidth-perl/copyright",
       "sha256": "a8b977da6e759fe80e5669f3624394b989f5693976a44c71d661ff00de081885"
+    },
+    "numpy": {
+      "path": "opt/bench-python/numpy-2.3.3.dist-info/LICENSE.txt",
+      "sha256": "2046a3130e50b11c01659b3a0d963e6ae0b7436ff8e89cbcfd9e87bc6112d595"
+    },
+    "pyperf": {
+      "path": "opt/bench-python/pyperf-2.9.0.dist-info/COPYING",
+      "sha256": "64ccf157f932c37cb42296a7ca86d8bf111d9a7578eada257992290a2f4c165f"
+    },
+    "psutil": {
+      "path": "opt/bench-python/psutil-7.1.0.dist-info/LICENSE",
+      "sha256": "b89c063b3786e28e0c0a38f1931db61fed35e69dd2a2966fbecffee0f46c8d10"
     }
   },
   "normalized_aliases": [
@@ -4511,29 +7259,513 @@
     {
       "name": "development-layer-0.tar.gz",
       "files": [
-        "usr/bin/clangd-19"
+        "opt/bench-python/numpy/__config__.py",
+        "opt/bench-python/numpy/__config__.pyi",
+        "opt/bench-python/numpy/__init__.cython-30.pxd",
+        "opt/bench-python/numpy/__init__.pxd",
+        "opt/bench-python/numpy/__init__.py",
+        "opt/bench-python/numpy/__init__.pyi",
+        "opt/bench-python/numpy/_array_api_info.py",
+        "opt/bench-python/numpy/_array_api_info.pyi",
+        "opt/bench-python/numpy/_configtool.py",
+        "opt/bench-python/numpy/_configtool.pyi",
+        "opt/bench-python/numpy/_core/__init__.py",
+        "opt/bench-python/numpy/_core/__init__.pyi",
+        "opt/bench-python/numpy/_core/_add_newdocs.py",
+        "opt/bench-python/numpy/_core/_add_newdocs.pyi",
+        "opt/bench-python/numpy/_core/_add_newdocs_scalars.py",
+        "opt/bench-python/numpy/_core/_add_newdocs_scalars.pyi",
+        "opt/bench-python/numpy/_core/_asarray.py",
+        "opt/bench-python/numpy/_core/_asarray.pyi",
+        "opt/bench-python/numpy/_core/_dtype.py",
+        "opt/bench-python/numpy/_core/_dtype.pyi",
+        "opt/bench-python/numpy/_core/_dtype_ctypes.py",
+        "opt/bench-python/numpy/_core/_dtype_ctypes.pyi",
+        "opt/bench-python/numpy/_core/_exceptions.py",
+        "opt/bench-python/numpy/_core/_exceptions.pyi",
+        "opt/bench-python/numpy/_core/_internal.py",
+        "opt/bench-python/numpy/_core/_internal.pyi",
+        "opt/bench-python/numpy/_core/_machar.py",
+        "opt/bench-python/numpy/_core/_machar.pyi",
+        "opt/bench-python/numpy/_core/_methods.py",
+        "opt/bench-python/numpy/_core/_methods.pyi",
+        "opt/bench-python/numpy/_core/_multiarray_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_multiarray_umath.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_operand_flag_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_rational_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_simd.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_simd.pyi",
+        "opt/bench-python/numpy/_core/_string_helpers.py",
+        "opt/bench-python/numpy/_core/_string_helpers.pyi",
+        "opt/bench-python/numpy/_core/_struct_ufunc_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/_type_aliases.py",
+        "opt/bench-python/numpy/_core/_type_aliases.pyi",
+        "opt/bench-python/numpy/_core/_ufunc_config.py",
+        "opt/bench-python/numpy/_core/_ufunc_config.pyi",
+        "opt/bench-python/numpy/_core/_umath_tests.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/_core/arrayprint.py",
+        "opt/bench-python/numpy/_core/arrayprint.pyi",
+        "opt/bench-python/numpy/_core/cversions.py",
+        "opt/bench-python/numpy/_core/defchararray.py",
+        "opt/bench-python/numpy/_core/defchararray.pyi",
+        "opt/bench-python/numpy/_core/einsumfunc.py",
+        "opt/bench-python/numpy/_core/einsumfunc.pyi",
+        "opt/bench-python/numpy/_core/fromnumeric.py",
+        "opt/bench-python/numpy/_core/fromnumeric.pyi",
+        "opt/bench-python/numpy/_core/function_base.py",
+        "opt/bench-python/numpy/_core/function_base.pyi",
+        "opt/bench-python/numpy/_core/getlimits.py",
+        "opt/bench-python/numpy/_core/getlimits.pyi",
+        "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.c",
+        "opt/bench-python/numpy/_core/include/numpy/__multiarray_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.c",
+        "opt/bench-python/numpy/_core/include/numpy/__ufunc_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/_neighborhood_iterator_imp.h",
+        "opt/bench-python/numpy/_core/include/numpy/_numpyconfig.h",
+        "opt/bench-python/numpy/_core/include/numpy/_public_dtype_api_table.h",
+        "opt/bench-python/numpy/_core/include/numpy/arrayobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/arrayscalars.h",
+        "opt/bench-python/numpy/_core/include/numpy/dtype_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/halffloat.h",
+        "opt/bench-python/numpy/_core/include/numpy/ndarrayobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/ndarraytypes.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_2_compat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_2_complexcompat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_3kcompat.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_common.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_cpu.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_endian.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_math.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_no_deprecated_api.h",
+        "opt/bench-python/numpy/_core/include/numpy/npy_os.h",
+        "opt/bench-python/numpy/_core/include/numpy/numpyconfig.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/LICENSE.txt",
+        "opt/bench-python/numpy/_core/include/numpy/random/bitgen.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/distributions.h",
+        "opt/bench-python/numpy/_core/include/numpy/random/libdivide.h",
+        "opt/bench-python/numpy/_core/include/numpy/ufuncobject.h",
+        "opt/bench-python/numpy/_core/include/numpy/utils.h",
+        "opt/bench-python/numpy/_core/lib/libnpymath.a",
+        "opt/bench-python/numpy/_core/lib/npy-pkg-config/mlib.ini",
+        "opt/bench-python/numpy/_core/lib/npy-pkg-config/npymath.ini",
+        "opt/bench-python/numpy/_core/lib/pkgconfig/numpy.pc",
+        "opt/bench-python/numpy/_core/memmap.py",
+        "opt/bench-python/numpy/_core/memmap.pyi",
+        "opt/bench-python/numpy/_core/multiarray.py",
+        "opt/bench-python/numpy/_core/multiarray.pyi",
+        "opt/bench-python/numpy/_core/numeric.py",
+        "opt/bench-python/numpy/_core/numeric.pyi",
+        "opt/bench-python/numpy/_core/numerictypes.py",
+        "opt/bench-python/numpy/_core/numerictypes.pyi",
+        "opt/bench-python/numpy/_core/overrides.py",
+        "opt/bench-python/numpy/_core/overrides.pyi",
+        "opt/bench-python/numpy/_core/printoptions.py",
+        "opt/bench-python/numpy/_core/printoptions.pyi",
+        "opt/bench-python/numpy/_core/records.py",
+        "opt/bench-python/numpy/_core/records.pyi",
+        "opt/bench-python/numpy/_core/shape_base.py",
+        "opt/bench-python/numpy/_core/shape_base.pyi",
+        "opt/bench-python/numpy/_core/strings.py",
+        "opt/bench-python/numpy/_core/strings.pyi",
+        "opt/bench-python/numpy/_core/umath.py",
+        "opt/bench-python/numpy/_core/umath.pyi",
+        "opt/bench-python/numpy/_distributor_init.py",
+        "opt/bench-python/numpy/_distributor_init.pyi",
+        "opt/bench-python/numpy/_expired_attrs_2_0.py",
+        "opt/bench-python/numpy/_expired_attrs_2_0.pyi",
+        "opt/bench-python/numpy/_globals.py",
+        "opt/bench-python/numpy/_globals.pyi",
+        "opt/bench-python/numpy/_pyinstaller/__init__.py",
+        "opt/bench-python/numpy/_pyinstaller/__init__.pyi",
+        "opt/bench-python/numpy/_pyinstaller/hook-numpy.py",
+        "opt/bench-python/numpy/_pyinstaller/hook-numpy.pyi",
+        "opt/bench-python/numpy/_pytesttester.py",
+        "opt/bench-python/numpy/_pytesttester.pyi",
+        "opt/bench-python/numpy/_typing/__init__.py",
+        "opt/bench-python/numpy/_typing/_add_docstring.py",
+        "opt/bench-python/numpy/_typing/_array_like.py",
+        "opt/bench-python/numpy/_typing/_callable.pyi",
+        "opt/bench-python/numpy/_typing/_char_codes.py",
+        "opt/bench-python/numpy/_typing/_dtype_like.py",
+        "opt/bench-python/numpy/_typing/_extended_precision.py",
+        "opt/bench-python/numpy/_typing/_nbit.py",
+        "opt/bench-python/numpy/_typing/_nbit_base.py",
+        "opt/bench-python/numpy/_typing/_nbit_base.pyi",
+        "opt/bench-python/numpy/_typing/_nested_sequence.py",
+        "opt/bench-python/numpy/_typing/_scalars.py",
+        "opt/bench-python/numpy/_typing/_shape.py",
+        "opt/bench-python/numpy/_typing/_ufunc.py",
+        "opt/bench-python/numpy/_typing/_ufunc.pyi",
+        "opt/bench-python/numpy/_utils/__init__.py",
+        "opt/bench-python/numpy/_utils/__init__.pyi",
+        "opt/bench-python/numpy/_utils/_convertions.py",
+        "opt/bench-python/numpy/_utils/_convertions.pyi",
+        "opt/bench-python/numpy/_utils/_inspect.py",
+        "opt/bench-python/numpy/_utils/_inspect.pyi",
+        "opt/bench-python/numpy/_utils/_pep440.py",
+        "opt/bench-python/numpy/_utils/_pep440.pyi",
+        "opt/bench-python/numpy/char/__init__.py",
+        "opt/bench-python/numpy/char/__init__.pyi",
+        "opt/bench-python/numpy/conftest.py",
+        "opt/bench-python/numpy/core/__init__.py",
+        "opt/bench-python/numpy/core/__init__.pyi",
+        "opt/bench-python/numpy/core/_dtype.py",
+        "opt/bench-python/numpy/core/_dtype.pyi",
+        "opt/bench-python/numpy/core/_dtype_ctypes.py",
+        "opt/bench-python/numpy/core/_dtype_ctypes.pyi",
+        "opt/bench-python/numpy/core/_internal.py",
+        "opt/bench-python/numpy/core/_multiarray_umath.py",
+        "opt/bench-python/numpy/core/_utils.py",
+        "opt/bench-python/numpy/core/arrayprint.py",
+        "opt/bench-python/numpy/core/defchararray.py",
+        "opt/bench-python/numpy/core/einsumfunc.py",
+        "opt/bench-python/numpy/core/fromnumeric.py",
+        "opt/bench-python/numpy/core/function_base.py",
+        "opt/bench-python/numpy/core/getlimits.py",
+        "opt/bench-python/numpy/core/multiarray.py",
+        "opt/bench-python/numpy/core/numeric.py",
+        "opt/bench-python/numpy/core/numerictypes.py",
+        "opt/bench-python/numpy/core/overrides.py",
+        "opt/bench-python/numpy/core/overrides.pyi",
+        "opt/bench-python/numpy/core/records.py",
+        "opt/bench-python/numpy/core/shape_base.py",
+        "opt/bench-python/numpy/core/umath.py",
+        "opt/bench-python/numpy/ctypeslib/__init__.py",
+        "opt/bench-python/numpy/ctypeslib/__init__.pyi",
+        "opt/bench-python/numpy/ctypeslib/_ctypeslib.py",
+        "opt/bench-python/numpy/ctypeslib/_ctypeslib.pyi",
+        "opt/bench-python/numpy/doc/ufuncs.py",
+        "opt/bench-python/numpy/dtypes.py",
+        "opt/bench-python/numpy/dtypes.pyi",
+        "opt/bench-python/numpy/exceptions.py",
+        "opt/bench-python/numpy/exceptions.pyi",
+        "opt/bench-python/numpy/f2py/__init__.py",
+        "opt/bench-python/numpy/f2py/__init__.pyi",
+        "opt/bench-python/numpy/f2py/__main__.py",
+        "opt/bench-python/numpy/f2py/__version__.py",
+        "opt/bench-python/numpy/f2py/__version__.pyi",
+        "opt/bench-python/numpy/f2py/_backends/__init__.py",
+        "opt/bench-python/numpy/f2py/_backends/__init__.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_backend.py",
+        "opt/bench-python/numpy/f2py/_backends/_backend.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_distutils.py",
+        "opt/bench-python/numpy/f2py/_backends/_distutils.pyi",
+        "opt/bench-python/numpy/f2py/_backends/_meson.py",
+        "opt/bench-python/numpy/f2py/_backends/_meson.pyi",
+        "opt/bench-python/numpy/f2py/_backends/meson.build.template",
+        "opt/bench-python/numpy/f2py/_isocbind.py",
+        "opt/bench-python/numpy/f2py/_isocbind.pyi",
+        "opt/bench-python/numpy/f2py/_src_pyf.py",
+        "opt/bench-python/numpy/f2py/_src_pyf.pyi",
+        "opt/bench-python/numpy/f2py/auxfuncs.py",
+        "opt/bench-python/numpy/f2py/auxfuncs.pyi",
+        "opt/bench-python/numpy/f2py/capi_maps.py",
+        "opt/bench-python/numpy/f2py/capi_maps.pyi",
+        "opt/bench-python/numpy/f2py/cb_rules.py",
+        "opt/bench-python/numpy/f2py/cb_rules.pyi",
+        "opt/bench-python/numpy/f2py/cfuncs.py",
+        "opt/bench-python/numpy/f2py/cfuncs.pyi",
+        "opt/bench-python/numpy/f2py/common_rules.py",
+        "opt/bench-python/numpy/f2py/common_rules.pyi",
+        "opt/bench-python/numpy/f2py/crackfortran.py",
+        "opt/bench-python/numpy/f2py/crackfortran.pyi",
+        "opt/bench-python/numpy/f2py/diagnose.py",
+        "opt/bench-python/numpy/f2py/diagnose.pyi",
+        "opt/bench-python/numpy/f2py/f2py2e.py",
+        "opt/bench-python/numpy/f2py/f2py2e.pyi",
+        "opt/bench-python/numpy/f2py/f90mod_rules.py",
+        "opt/bench-python/numpy/f2py/f90mod_rules.pyi",
+        "opt/bench-python/numpy/f2py/func2subr.py",
+        "opt/bench-python/numpy/f2py/func2subr.pyi",
+        "opt/bench-python/numpy/f2py/rules.py",
+        "opt/bench-python/numpy/f2py/rules.pyi",
+        "opt/bench-python/numpy/f2py/setup.cfg",
+        "opt/bench-python/numpy/f2py/src/fortranobject.c",
+        "opt/bench-python/numpy/f2py/src/fortranobject.h",
+        "opt/bench-python/numpy/f2py/symbolic.py",
+        "opt/bench-python/numpy/f2py/symbolic.pyi",
+        "opt/bench-python/numpy/f2py/use_rules.py",
+        "opt/bench-python/numpy/f2py/use_rules.pyi",
+        "opt/bench-python/numpy/fft/__init__.py",
+        "opt/bench-python/numpy/fft/__init__.pyi",
+        "opt/bench-python/numpy/fft/_helper.py",
+        "opt/bench-python/numpy/fft/_helper.pyi"
       ],
-      "sha256": "7659f28b98d50011e08cd0b932283a5fdc3bcee5d8590c9368e0be9b71c45759",
-      "bytes": 4975688
+      "sha256": "cb8766dcba5c695e6f8220ef2a46054393ae7537ce3c1ce1e55f5dfadec33855",
+      "bytes": 4497859
     },
     {
       "name": "development-layer-1.tar.gz",
       "files": [
-        "usr/bin/gdb"
+        "opt/bench-python/numpy/fft/_pocketfft.py",
+        "opt/bench-python/numpy/fft/_pocketfft.pyi",
+        "opt/bench-python/numpy/fft/_pocketfft_umath.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/fft/helper.py",
+        "opt/bench-python/numpy/fft/helper.pyi",
+        "opt/bench-python/numpy/lib/__init__.py",
+        "opt/bench-python/numpy/lib/__init__.pyi",
+        "opt/bench-python/numpy/lib/_array_utils_impl.py",
+        "opt/bench-python/numpy/lib/_array_utils_impl.pyi",
+        "opt/bench-python/numpy/lib/_arraypad_impl.py",
+        "opt/bench-python/numpy/lib/_arraypad_impl.pyi",
+        "opt/bench-python/numpy/lib/_arraysetops_impl.py",
+        "opt/bench-python/numpy/lib/_arraysetops_impl.pyi",
+        "opt/bench-python/numpy/lib/_arrayterator_impl.py",
+        "opt/bench-python/numpy/lib/_arrayterator_impl.pyi",
+        "opt/bench-python/numpy/lib/_datasource.py",
+        "opt/bench-python/numpy/lib/_datasource.pyi",
+        "opt/bench-python/numpy/lib/_format_impl.py",
+        "opt/bench-python/numpy/lib/_format_impl.pyi",
+        "opt/bench-python/numpy/lib/_function_base_impl.py",
+        "opt/bench-python/numpy/lib/_function_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_histograms_impl.py",
+        "opt/bench-python/numpy/lib/_histograms_impl.pyi",
+        "opt/bench-python/numpy/lib/_index_tricks_impl.py",
+        "opt/bench-python/numpy/lib/_index_tricks_impl.pyi",
+        "opt/bench-python/numpy/lib/_iotools.py",
+        "opt/bench-python/numpy/lib/_iotools.pyi",
+        "opt/bench-python/numpy/lib/_nanfunctions_impl.py",
+        "opt/bench-python/numpy/lib/_nanfunctions_impl.pyi",
+        "opt/bench-python/numpy/lib/_npyio_impl.py",
+        "opt/bench-python/numpy/lib/_npyio_impl.pyi",
+        "opt/bench-python/numpy/lib/_polynomial_impl.py",
+        "opt/bench-python/numpy/lib/_polynomial_impl.pyi",
+        "opt/bench-python/numpy/lib/_scimath_impl.py",
+        "opt/bench-python/numpy/lib/_scimath_impl.pyi",
+        "opt/bench-python/numpy/lib/_shape_base_impl.py",
+        "opt/bench-python/numpy/lib/_shape_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_stride_tricks_impl.py",
+        "opt/bench-python/numpy/lib/_stride_tricks_impl.pyi",
+        "opt/bench-python/numpy/lib/_twodim_base_impl.py",
+        "opt/bench-python/numpy/lib/_twodim_base_impl.pyi",
+        "opt/bench-python/numpy/lib/_type_check_impl.py",
+        "opt/bench-python/numpy/lib/_type_check_impl.pyi",
+        "opt/bench-python/numpy/lib/_ufunclike_impl.py",
+        "opt/bench-python/numpy/lib/_ufunclike_impl.pyi",
+        "opt/bench-python/numpy/lib/_user_array_impl.py",
+        "opt/bench-python/numpy/lib/_user_array_impl.pyi",
+        "opt/bench-python/numpy/lib/_utils_impl.py",
+        "opt/bench-python/numpy/lib/_utils_impl.pyi",
+        "opt/bench-python/numpy/lib/_version.py",
+        "opt/bench-python/numpy/lib/_version.pyi",
+        "opt/bench-python/numpy/lib/array_utils.py",
+        "opt/bench-python/numpy/lib/array_utils.pyi",
+        "opt/bench-python/numpy/lib/format.py",
+        "opt/bench-python/numpy/lib/format.pyi",
+        "opt/bench-python/numpy/lib/introspect.py",
+        "opt/bench-python/numpy/lib/introspect.pyi",
+        "opt/bench-python/numpy/lib/mixins.py",
+        "opt/bench-python/numpy/lib/mixins.pyi",
+        "opt/bench-python/numpy/lib/npyio.py",
+        "opt/bench-python/numpy/lib/npyio.pyi",
+        "opt/bench-python/numpy/lib/recfunctions.py",
+        "opt/bench-python/numpy/lib/recfunctions.pyi",
+        "opt/bench-python/numpy/lib/scimath.py",
+        "opt/bench-python/numpy/lib/scimath.pyi",
+        "opt/bench-python/numpy/lib/stride_tricks.py",
+        "opt/bench-python/numpy/lib/stride_tricks.pyi",
+        "opt/bench-python/numpy/lib/user_array.py",
+        "opt/bench-python/numpy/lib/user_array.pyi",
+        "opt/bench-python/numpy/linalg/__init__.py",
+        "opt/bench-python/numpy/linalg/__init__.pyi",
+        "opt/bench-python/numpy/linalg/_linalg.py",
+        "opt/bench-python/numpy/linalg/_linalg.pyi",
+        "opt/bench-python/numpy/linalg/_umath_linalg.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/linalg/_umath_linalg.pyi",
+        "opt/bench-python/numpy/linalg/lapack_lite.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/linalg/lapack_lite.pyi",
+        "opt/bench-python/numpy/linalg/linalg.py",
+        "opt/bench-python/numpy/linalg/linalg.pyi",
+        "opt/bench-python/numpy/ma/API_CHANGES.txt",
+        "opt/bench-python/numpy/ma/LICENSE",
+        "opt/bench-python/numpy/ma/README.rst",
+        "opt/bench-python/numpy/ma/__init__.py",
+        "opt/bench-python/numpy/ma/__init__.pyi",
+        "opt/bench-python/numpy/ma/core.py",
+        "opt/bench-python/numpy/ma/core.pyi",
+        "opt/bench-python/numpy/ma/extras.py",
+        "opt/bench-python/numpy/ma/extras.pyi",
+        "opt/bench-python/numpy/ma/mrecords.py",
+        "opt/bench-python/numpy/ma/mrecords.pyi",
+        "opt/bench-python/numpy/ma/testutils.py",
+        "opt/bench-python/numpy/matlib.py",
+        "opt/bench-python/numpy/matlib.pyi",
+        "opt/bench-python/numpy/matrixlib/__init__.py",
+        "opt/bench-python/numpy/matrixlib/__init__.pyi",
+        "opt/bench-python/numpy/matrixlib/defmatrix.py",
+        "opt/bench-python/numpy/matrixlib/defmatrix.pyi",
+        "opt/bench-python/numpy/polynomial/__init__.py",
+        "opt/bench-python/numpy/polynomial/__init__.pyi",
+        "opt/bench-python/numpy/polynomial/_polybase.py",
+        "opt/bench-python/numpy/polynomial/_polybase.pyi",
+        "opt/bench-python/numpy/polynomial/_polytypes.pyi",
+        "opt/bench-python/numpy/polynomial/chebyshev.py",
+        "opt/bench-python/numpy/polynomial/chebyshev.pyi",
+        "opt/bench-python/numpy/polynomial/hermite.py",
+        "opt/bench-python/numpy/polynomial/hermite.pyi",
+        "opt/bench-python/numpy/polynomial/hermite_e.py",
+        "opt/bench-python/numpy/polynomial/hermite_e.pyi",
+        "opt/bench-python/numpy/polynomial/laguerre.py",
+        "opt/bench-python/numpy/polynomial/laguerre.pyi",
+        "opt/bench-python/numpy/polynomial/legendre.py",
+        "opt/bench-python/numpy/polynomial/legendre.pyi",
+        "opt/bench-python/numpy/polynomial/polynomial.py",
+        "opt/bench-python/numpy/polynomial/polynomial.pyi",
+        "opt/bench-python/numpy/polynomial/polyutils.py",
+        "opt/bench-python/numpy/polynomial/polyutils.pyi",
+        "opt/bench-python/numpy/py.typed",
+        "opt/bench-python/numpy/random/LICENSE.md",
+        "opt/bench-python/numpy/random/__init__.pxd",
+        "opt/bench-python/numpy/random/__init__.py",
+        "opt/bench-python/numpy/random/__init__.pyi",
+        "opt/bench-python/numpy/random/_bounded_integers.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_bounded_integers.pxd",
+        "opt/bench-python/numpy/random/_bounded_integers.pyi",
+        "opt/bench-python/numpy/random/_common.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_common.pxd",
+        "opt/bench-python/numpy/random/_common.pyi",
+        "opt/bench-python/numpy/random/_examples/cffi/extending.py",
+        "opt/bench-python/numpy/random/_examples/cffi/parse.py",
+        "opt/bench-python/numpy/random/_examples/cython/extending.pyx",
+        "opt/bench-python/numpy/random/_examples/cython/extending_distributions.pyx",
+        "opt/bench-python/numpy/random/_examples/cython/meson.build",
+        "opt/bench-python/numpy/random/_examples/numba/extending.py",
+        "opt/bench-python/numpy/random/_examples/numba/extending_distributions.py",
+        "opt/bench-python/numpy/random/_generator.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_generator.pyi",
+        "opt/bench-python/numpy/random/_mt19937.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_mt19937.pyi",
+        "opt/bench-python/numpy/random/_pcg64.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_pcg64.pyi",
+        "opt/bench-python/numpy/random/_philox.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_philox.pyi",
+        "opt/bench-python/numpy/random/_pickle.py",
+        "opt/bench-python/numpy/random/_pickle.pyi",
+        "opt/bench-python/numpy/random/_sfc64.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/_sfc64.pyi",
+        "opt/bench-python/numpy/random/bit_generator.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/bit_generator.pxd",
+        "opt/bench-python/numpy/random/bit_generator.pyi",
+        "opt/bench-python/numpy/random/c_distributions.pxd",
+        "opt/bench-python/numpy/random/lib/libnpyrandom.a",
+        "opt/bench-python/numpy/random/mtrand.cpython-313-x86_64-linux-gnu.so",
+        "opt/bench-python/numpy/random/mtrand.pyi",
+        "opt/bench-python/numpy/rec/__init__.py",
+        "opt/bench-python/numpy/rec/__init__.pyi",
+        "opt/bench-python/numpy/strings/__init__.py",
+        "opt/bench-python/numpy/strings/__init__.pyi",
+        "opt/bench-python/numpy/testing/__init__.py",
+        "opt/bench-python/numpy/testing/__init__.pyi",
+        "opt/bench-python/numpy/testing/_private/__init__.py",
+        "opt/bench-python/numpy/testing/_private/__init__.pyi",
+        "opt/bench-python/numpy/testing/_private/extbuild.py",
+        "opt/bench-python/numpy/testing/_private/extbuild.pyi",
+        "opt/bench-python/numpy/testing/_private/utils.py",
+        "opt/bench-python/numpy/testing/_private/utils.pyi",
+        "opt/bench-python/numpy/testing/overrides.py",
+        "opt/bench-python/numpy/testing/overrides.pyi",
+        "opt/bench-python/numpy/testing/print_coercion_tables.py",
+        "opt/bench-python/numpy/testing/print_coercion_tables.pyi",
+        "opt/bench-python/numpy/typing/__init__.py",
+        "opt/bench-python/numpy/typing/mypy_plugin.py",
+        "opt/bench-python/numpy/version.py",
+        "opt/bench-python/numpy/version.pyi",
+        "opt/bench-python/numpy-2.3.3.dist-info/LICENSE.txt",
+        "opt/bench-python/numpy-2.3.3.dist-info/METADATA",
+        "opt/bench-python/numpy-2.3.3.dist-info/RECORD",
+        "opt/bench-python/numpy-2.3.3.dist-info/WHEEL",
+        "opt/bench-python/numpy-2.3.3.dist-info/entry_points.txt",
+        "opt/bench-python/numpy.libs/libgfortran-040039e1-0352e75f.so.5.0.0",
+        "opt/bench-python/numpy.libs/libquadmath-96973f99-934c22de.so.0.0.0"
       ],
-      "sha256": "4e8e2cf8055d746cbf24ddbe3db74cead250e7e59bbc7d559a22b033c3ce1773",
-      "bytes": 4505672
+      "sha256": "02fad18302b8e25a24d756cdf43703ee5f9af33aef9a9eb2dc56f177e2ffdd70",
+      "bytes": 3067305
     },
     {
       "name": "development-layer-2.tar.gz",
       "files": [
-        "usr/lib/llvm-19/bin/clangd"
+        "opt/bench-python/numpy.libs/libscipy_openblas64_-8fb3d286.so"
       ],
-      "sha256": "aa4cb1b93db36ea8752fa2e4bbb70cef2898f2008dec6c7c8d148dbdb3e67da0",
-      "bytes": 4975705
+      "sha256": "167b512701b0c5d56bf748c1461cb61c257f796ff8006c00878cd9f58af6ec7e",
+      "bytes": 7261582
     },
     {
       "name": "development-layer-3.tar.gz",
+      "files": [
+        "opt/bench-python/psutil/__init__.py",
+        "opt/bench-python/psutil/_common.py",
+        "opt/bench-python/psutil/_psaix.py",
+        "opt/bench-python/psutil/_psbsd.py",
+        "opt/bench-python/psutil/_pslinux.py",
+        "opt/bench-python/psutil/_psosx.py",
+        "opt/bench-python/psutil/_psposix.py",
+        "opt/bench-python/psutil/_pssunos.py",
+        "opt/bench-python/psutil/_psutil_linux.abi3.so",
+        "opt/bench-python/psutil/_psutil_posix.abi3.so",
+        "opt/bench-python/psutil/_pswindows.py",
+        "opt/bench-python/psutil-7.1.0.dist-info/LICENSE",
+        "opt/bench-python/psutil-7.1.0.dist-info/METADATA",
+        "opt/bench-python/psutil-7.1.0.dist-info/RECORD",
+        "opt/bench-python/psutil-7.1.0.dist-info/WHEEL",
+        "opt/bench-python/psutil-7.1.0.dist-info/top_level.txt",
+        "opt/bench-python/pyperf/__init__.py",
+        "opt/bench-python/pyperf/__main__.py",
+        "opt/bench-python/pyperf/_bench.py",
+        "opt/bench-python/pyperf/_cli.py",
+        "opt/bench-python/pyperf/_collect_metadata.py",
+        "opt/bench-python/pyperf/_command.py",
+        "opt/bench-python/pyperf/_compare.py",
+        "opt/bench-python/pyperf/_cpu_utils.py",
+        "opt/bench-python/pyperf/_formatter.py",
+        "opt/bench-python/pyperf/_hooks.py",
+        "opt/bench-python/pyperf/_linux_memory.py",
+        "opt/bench-python/pyperf/_manager.py",
+        "opt/bench-python/pyperf/_metadata.py",
+        "opt/bench-python/pyperf/_process_time.py",
+        "opt/bench-python/pyperf/_psutil_memory.py",
+        "opt/bench-python/pyperf/_runner.py",
+        "opt/bench-python/pyperf/_system.py",
+        "opt/bench-python/pyperf/_timeit.py",
+        "opt/bench-python/pyperf/_timeit_cli.py",
+        "opt/bench-python/pyperf/_utils.py",
+        "opt/bench-python/pyperf/_win_memory.py",
+        "opt/bench-python/pyperf/_worker.py",
+        "opt/bench-python/pyperf-2.9.0.dist-info/COPYING",
+        "opt/bench-python/pyperf-2.9.0.dist-info/METADATA",
+        "opt/bench-python/pyperf-2.9.0.dist-info/RECORD",
+        "opt/bench-python/pyperf-2.9.0.dist-info/WHEEL",
+        "opt/bench-python/pyperf-2.9.0.dist-info/entry_points.txt",
+        "opt/bench-python/pyperf-2.9.0.dist-info/top_level.txt"
+      ],
+      "sha256": "82b69b8d0d4613e422d67c87540bebb3fd9f761a10e2ccac468f11e821644908",
+      "bytes": 233180
+    },
+    {
+      "name": "development-layer-4.tar.gz",
+      "files": [
+        "usr/bin/clangd-19"
+      ],
+      "sha256": "a7e9b573809acd2bd3c854a1e001d86b8bff23c7e63c5595295ecb6cee049a8e",
+      "bytes": 4975682
+    },
+    {
+      "name": "development-layer-5.tar.gz",
+      "files": [
+        "usr/bin/gdb"
+      ],
+      "sha256": "8d725fc751e55f14c39c49ad5b75801b96c01c4fb3d84ae1a388e54b457b2c1c",
+      "bytes": 4505674
+    },
+    {
+      "name": "development-layer-6.tar.gz",
+      "files": [
+        "usr/lib/llvm-19/bin/clangd"
+      ],
+      "sha256": "b4e1bf8faea9e6eb9ba8fbcb5439be3ac14a5a2d832c648186fd7cf9387f25ea",
+      "bytes": 4975713
+    },
+    {
+      "name": "development-layer-7.tar.gz",
       "files": [
         "usr/lib/mime/packages/sensible-utils",
         "usr/lib/python3.13/config-3.13-x86_64-linux-gnu/libpython3.13.so",
@@ -4743,11 +7975,11 @@
         "usr/lib/x86_64-linux-gnu/libelf-0.192.so",
         "usr/lib/x86_64-linux-gnu/libelf.so.1"
       ],
-      "sha256": "33d13cebfd8afd3adcb7fa858d7c99dae34157119ef71c5a12b22912fe7b2bf8",
-      "bytes": 5266838
+      "sha256": "5c47df9a5ac92f0ac7518e99af601262e930c3200e42752928973759e6eeda25",
+      "bytes": 5266981
     },
     {
-      "name": "development-layer-4.tar.gz",
+      "name": "development-layer-8.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libgio-2.0.so.0",
         "usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8400.4",
@@ -4770,22 +8002,22 @@
         "usr/lib/x86_64-linux-gnu/libgrpc++_unsecure.so.1.51",
         "usr/lib/x86_64-linux-gnu/libgrpc++_unsecure.so.1.51.1"
       ],
-      "sha256": "0b7011adeba14a6532ef1e62c640339c74d7a531dae64efa2ffa496322fc8680",
-      "bytes": 4348218
+      "sha256": "da367074f00bb3bb4c8dc81a28bd224d995794addc5d1df8782d3be17e25bd83",
+      "bytes": 4348219
     },
     {
-      "name": "development-layer-5.tar.gz",
+      "name": "development-layer-9.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libgrpc.so.29",
         "usr/lib/x86_64-linux-gnu/libgrpc.so.29.0.0",
         "usr/lib/x86_64-linux-gnu/libgrpc_plugin_support.so.1.51",
         "usr/lib/x86_64-linux-gnu/libgrpc_plugin_support.so.1.51.1"
       ],
-      "sha256": "28e8f9a0d5766bc4e36f505bb41a98d0206937a36ae2381740cd020b7b4bfabb",
-      "bytes": 5985644
+      "sha256": "fdbc3fcebef8ae016a0f2564e919d5c01a496f5802dda256dc46534c851d5d0b",
+      "bytes": 5985649
     },
     {
-      "name": "development-layer-6.tar.gz",
+      "name": "development-layer-10.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libgrpc_unsecure.so.29",
         "usr/lib/x86_64-linux-gnu/libgrpc_unsecure.so.29.0.0",
@@ -4799,32 +8031,32 @@
         "usr/lib/x86_64-linux-gnu/libjson-c.so.5.4.0",
         "usr/lib/x86_64-linux-gnu/libprotobuf.so.32"
       ],
-      "sha256": "d0c66fd05e21829407828e6985051e9718e09324baf8fd83e4437327925cd8f3",
-      "bytes": 5176670
+      "sha256": "05c9c0c1fd3a9d8d239b585ab45deb70a5eb904fcc70d0b1289ab413f24c0b81",
+      "bytes": 5176709
     },
     {
-      "name": "development-layer-7.tar.gz",
+      "name": "development-layer-11.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libprotobuf.so.32.0.12",
         "usr/lib/x86_64-linux-gnu/libprotoc.so.32",
         "usr/lib/x86_64-linux-gnu/libprotoc.so.32.0.12"
       ],
-      "sha256": "16cd73b78d20b8b7dd241f507cb31038b304db2e3dce5f298af77bba480844b0",
-      "bytes": 3572242
+      "sha256": "83a23236c35ce2a13fef7a2016c588b5bb006d635210cff5cb01d3b5da733da9",
+      "bytes": 3572235
     },
     {
-      "name": "development-layer-8.tar.gz",
+      "name": "development-layer-12.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libpython3.13.so.1",
         "usr/lib/x86_64-linux-gnu/libpython3.13.so.1.0",
         "usr/lib/x86_64-linux-gnu/libre2.so.11",
         "usr/lib/x86_64-linux-gnu/libre2.so.11.0.0"
       ],
-      "sha256": "4fd2e14a52affbd07e557b13c5e05c8068a8dbe1a68c298eb7e5734b5e496122",
-      "bytes": 5882592
+      "sha256": "94b494320a82c1577151df4f968e78ad8c0826656f0863584bcb7e317d4c47a6",
+      "bytes": 5882595
     },
     {
-      "name": "development-layer-9.tar.gz",
+      "name": "development-layer-13.tar.gz",
       "files": [
         "usr/lib/x86_64-linux-gnu/libsource-highlight.so.4",
         "usr/lib/x86_64-linux-gnu/libsource-highlight.so.4.0.1",
@@ -5203,10 +8435,25 @@
         "usr/share/source-highlight/xorg.lang",
         "usr/share/source-highlight/zsh.lang"
       ],
-      "sha256": "4fe2879caa58815c4e6fba56d0f5307a46ed3b179b7179cf3d23991fad12ebd1",
-      "bytes": 2339551
+      "sha256": "864ae977cc9c40d47a46238c358ebd81b176398600e66bbb5a5fd8b1913440d3",
+      "bytes": 2339547
     }
   ],
+  "payload_bytes": {
+    "debian": 134699452,
+    "wheels": 52325937
+  },
+  "payload_files": {
+    "debian": 629,
+    "wheels": 456
+  },
+  "payload_bounds": {
+    "debian_bytes": 268435456,
+    "debian_files": 4096,
+    "wheel_bytes": 201326592,
+    "wheel_files": 1536,
+    "container_file_bytes": 33554432
+  },
   "package_scripts_executed": false,
   "independent_approval": "PENDING"
 }

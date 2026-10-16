@@ -9,11 +9,14 @@ import shutil
 import tempfile
 import uuid
 from evidence import GateError, Runner, atomic_json, environment_gate, file_hash, read_json, passed, bounded
+from evidence import loads_capped
 from policy import C_IDS, P_IDS, inventory_gate, upstream_gate, source_identity, baseline_identity, baseline_gate, validate_fresh_report, gate_accounting
 from qualification import Qualifier, INFRA
 from schema_check import validate
 
 ROOT = Path(__file__).resolve().parent.parent
+
+UNIT_GATE_SECONDS=120      # the unit gate deadline: the build profile wall (safety/container-policy.json build.wall_seconds); the default 30 s left no margin for 1,600+ tests
 
 def gate(name, status='PASS', details=None, evidence=()):
     return {'name':name,'status':status,'details':details or {},'evidence_paths':list(evidence)}
@@ -36,7 +39,7 @@ def initial_report(root, lock):
         'foundation':{'status':'BLOCKED','reason':'not executed'},
         'developer':{'status':'BLOCKED','reason':'developer qualification not executed'},
         'application_release_ready':False,'application_coverage':'NOT_APPLICABLE','blockers':[], 'commands':[],
-        'limitations':['Finite fixtures do not prove arbitrary C safety.','P06 checks a defined decoy, not arbitrary forged native diagnostics.','Agent accounting checks submitted evidence, not comprehension.','No independently protected baseline or remote enforcement was verified.','First-party publication licensing awaits the owner.','Pinned built image is retained locally; APT rebuild recipe is not snapshot-complete.']}
+        'limitations':['Finite fixtures do not prove arbitrary C safety.','P06 checks a defined decoy, not arbitrary forged native diagnostics.','Agent accounting checks submitted evidence, not comprehension.','No independently protected baseline or remote enforcement was verified.',"The framework's own files are under MIT (LICENSE); third-party components keep their own licenses, with the written source offer in SOURCE-OFFER.md; the owner confirmed this on 2026-10-15.",'Pinned built image is retained locally; APT rebuild recipe is not snapshot-complete.']}
 
 def doctor(q, *, probes=True):
     q.runner.start()
@@ -78,7 +81,7 @@ def production_checks(q, full):
             if ok:
                 ctest=q.runner.run(['ctest','--test-dir','/work/'+b['directory'],'--no-tests=error','--output-on-failure'],label=f'{cc}-O{opt}-ctest')
                 discovered=q.runner.run(['ctest','--test-dir','/work/'+b['directory'],'--show-only=json-v1'],label=f'{cc}-O{opt}-discovery')
-                try:ids={x['name'] for x in json.loads(discovered['output'])['tests']}
+                try:ids={x['name'] for x in loads_capped(discovered['output'])['tests']}
                 except (KeyError,ValueError):ids=set()
                 ok=passed(ctest) and passed(discovered) and ids=={'infrastructure.boundaries','infrastructure.hardening'}
                 evidence += [ctest['evidence_path'],discovered['evidence_path']]
@@ -98,7 +101,7 @@ def production_checks(q, full):
             clean=passed(r)
             if name=='csa':clean=clean and 'warning:' not in r['output']
             if name=='ast':
-                clean=clean and json.loads(r['output']).get('status')=='PASS'
+                clean=clean and loads_capped(r['output']).get('status')=='PASS'
             ok=ok and clean
         results.append(gate(name,'PASS' if ok else 'FAIL',{'source_coverage':INFRA},output))
     if full:
@@ -113,7 +116,7 @@ def production_checks(q, full):
                     merged=q.runner.run(['llvm-profdata','merge','-sparse','/work/coverage-infrastructure_demo.profraw','-o','/work/demo.profdata'],label='coverage-merge')
                     cov=q.runner.run(['llvm-cov','export','/work/'+b['directory']+'/infrastructure_demo','-instr-profile=/work/demo.profdata'],label='coverage-export')
                     try:
-                        value=json.loads(cov['output']);summary=value['data'][0]['totals'];covered=summary['lines']['covered'];total=summary['lines']['count'];branches=summary['branches'];ok=ok and passed(merged) and passed(cov) and 0<covered<total and 0<branches['covered']<branches['count']
+                        value=loads_capped(cov['output']);summary=value['data'][0]['totals'];covered=summary['lines']['covered'];total=summary['lines']['count'];branches=summary['branches'];ok=ok and passed(merged) and passed(cov) and 0<covered<total and 0<branches['covered']<branches['count']
                     except (KeyError,ValueError):summary={};ok=False
                     evidence.extend([merged['evidence_path'],cov['evidence_path']])
                 if profile=='hardened':
@@ -167,6 +170,7 @@ def finish(root, report, runner, command):
               '', '| Developer | Status | Control | Observations |', '|---|---|---|---|']
     lines += ['| '+r['id']+' | '+r['status']+' | '+r['control']+' | '+
               '; '.join(s['name']+': '+s['status'] for s in r['subchecks'])+' |' for r in developer.get('cases',[])]
+    lines+=['',__import__('bench_readiness').report_line(report)]
     lines+=['','Blockers:']+[f'- {x}' for x in report['blockers']]
     lines+=['','Limits:']+[f'- {x}' for x in report['limitations']]
     lines+=['','Reproduce: `'+report['commands'][-1]+'`. Complete bounded logs and commands are listed in the JSON evidence paths.','', 'Detailed integration results:', '```json',json.dumps({k:report[k] for k in ['benchmark','starter','reuse','review_protocol','fuzz','containment']},indent=2),'```']
@@ -205,6 +209,9 @@ def main(argv=None):
     dev=subs.add_parser('dev')
     from developer import configure_parser
     configure_parser(dev)
+    bn=subs.add_parser('bench')
+    from bench import configure_parser as bench_parser
+    bench_parser(bn)
     args=parser.parse_args(argv);root=args.candidate.resolve()
     sandbox_doctor=args.command=='sandbox' and args.operation=='doctor'
     if args.command=='sandbox' and args.operation=='selftest':args.command='ci'
@@ -214,6 +221,9 @@ def main(argv=None):
         if args.command=='dev':
             from developer import execute
             return execute(root,args)
+        if args.command=='bench':
+            from bench import execute as bench_execute
+            return bench_execute(root,args)
         if args.command in ('project','framework'):
             from project_model import execute as project_execute
             return project_execute(root,args)
@@ -236,9 +246,10 @@ def main(argv=None):
             print(json.dumps(upstream_gate(root),indent=2));return 0
         lock=read_json(root/'toolchain.lock.json')
         if args.command=='sandbox':
-            from container_policy import policy,make_plan
+            from container_policy import policy,make_plan,choose_envelope,host_topology
             value=policy(root)
-            plan=make_plan(value,lock['image_id'],{},args.profile)
+            envelope=choose_envelope(*host_topology(),wanted=4) if args.profile=='bench' else None
+            plan=make_plan(value,lock['image_id'],{},args.profile,envelope=envelope)
             plan['source_snapshot']='trusted collector supplies a filtered immutable job snapshot'
             print(json.dumps(plan,indent=2));return 0
         report=initial_report(root,lock)
@@ -349,7 +360,7 @@ def main(argv=None):
                             parent['subcases'] += [{k:v for k,v in row.items() if k!='parent'} for row in added if row['parent']==parent['id']]
             if args.command in ['check-fast','check-full','ci','selftest']:
                 runner.refresh()
-                tests=runner.run(['python3','-m','unittest','discover','-s','/src/tests/unit','-v'],label='python-unit-tests')
+                tests=runner.run(['python3','-m','unittest','discover','-s','/src/tests/unit','-v'],timeout=UNIT_GATE_SECONDS,label='python-unit-tests')
                 ok=passed(tests) and __import__('re').search(r'Ran [1-9][0-9]* tests',tests['output']) is not None
                 report['gates'].append(gate('unit','PASS' if ok else 'FAIL',evidence=[tests['evidence_path']]))
                 report['gates'][-1]['details']={'executed_tests':int(__import__('re').search(r'Ran ([1-9][0-9]*) tests',tests['output']).group(1)) if ok else 0}
@@ -383,6 +394,17 @@ def main(argv=None):
                     parent['control']='PASS' if all(s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
                     parent['status']='PASS' if all(s['status']==s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
             if args.command=='ci':
+                # Task 19a: the bench laboratory qualification on the framework controls (own bench containers; the
+                # parent session sits idle meanwhile).
+                runner.refresh(idle=True)
+                from bench import ci_gates
+                bench_gates,bench_additions=ci_gates(root)
+                report['gates']+=bench_gates
+                for parent in report['sabotage']:
+                    parent['subcases']+=[{'name':r['name']+'/'+r['variant'],'status':r['status'],'control':r['control'],'evidence_paths':r['evidence_paths'],'reason':r['reason'] or ''}
+                                         for r in bench_additions if r['parent']==parent['id']]
+                    parent['control']='PASS' if all(s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
+                    parent['status']='PASS' if all(s['status']==s['control']=='PASS' for s in parent['subcases']) else 'FAIL'
                 # Every project gate must reject its seeded defect; serial, one project container at a time.
                 from project_selftest import project_selftest
                 report['gates'].append(project_selftest(root))

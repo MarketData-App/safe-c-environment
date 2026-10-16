@@ -5,6 +5,7 @@ import json
 import re
 import tarfile
 from evidence import GateError, passed, file_hash, atomic_json
+from evidence import loads_capped
 
 def runtime_members():
     return {'demo', 'lib/x86_64-linux-gnu/libc.so.6', 'lib64/ld-linux-x86-64.so.2',
@@ -53,7 +54,7 @@ def runtime_smoke(q, *,hold=False):
     payload=digest(json.dumps({name:file_hash(path) for name,path in members.items()},sort_keys=True).encode())
     tag='safe-c-runtime-demo:'+payload[:24]
     inspection=launcher.docker(['image','inspect',tag])
-    if passed(inspection):image=json.loads(inspection['output'])[0]['Id']
+    if passed(inspection):image=loads_capped(inspection['output'])[0]['Id']
     else:
         listed=launcher.docker(['image','ls','--filter','label=org.safe-c.runtime-demo=1','--format','{{.ID}}'])
         if not passed(listed) or len(set(listed['output'].split()))>=launcher.value['aggregate']['max_owned_images']:raise GateError('owned runtime-image retention budget exhausted; operator must archive/remove only obsolete project images')

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "source_identity": "e8fc8de37cac05a6142dea063fe7486da73e05af61505bb819c7a5addcf08811",
+  "units": {
+    "entry": [
+      "Does fixture_entry refuse NULL pointers and n outside [1, 64] before it reads x or writes out?",
+      "Does fixture_run bound the argument comparison and handle a NULL argv or argument?"
+    ]
+  },
+  "findings": [
+    {
+      "id": "FIXTURE-ENTRY-0001",
+      "origin": "reviewer:framework-fixture",
+      "source_identity": "e8fc8de37cac05a6142dea063fe7486da73e05af61505bb819c7a5addcf08811",
+      "location": "src/entry.c:6",
+      "property": "out-of-bounds read of x when n exceeds the readable x buffer",
+      "severity": "high if real: read past a borrowed caller buffer",
+      "rationale": "Illustrative fixture entry, not a record of a real external review. A caller can pass n larger than the readable values of x; the sum loop would then read past the buffer. source_identity is the sha256 of json.dumps({path: sha256}, sort_keys=True) over the fixture files under src/, include/, tests/project/, fuzz/project/, specs/project/ and review/ (paths relative to tests/fixtures/project-library, review/ledger.json excluded).",
+      "reproducer": "tests/project/test_entry.c test_entry: fixture_entry(x, FIXTURE_ENTRY_MAX + 1, &out) and fixture_entry(x, SIZE_MAX, &out) return 1 and leave out unchanged; fuzz target entry passes every input length with a 64-value buffer",
+      "state": "REJECTED",
+      "attempts": 0,
+      "history": [
+        {
+          "reason": "Not a defect: fixture_entry refuses n > FIXTURE_ENTRY_MAX at src/entry.c:6 before the loop reads any element; the n = 65 and SIZE_MAX tests and the fuzz target cover it. The contract (specs/project/entry.md) requires at least n readable values only for n in [1, 64].",
+          "duplicate_of": null
+        }
+      ],
+      "verification": null
+    }
+  ],
+  "review": [
+    {
+      "unit": "entry",
+      "question": "Does fixture_entry refuse NULL pointers and n outside [1, 64] before it reads x or writes out?",
+      "locations": [
+        6,
+        7,
+        10,
+        11,
+        13
+      ]
+    },
+    {
+      "unit": "entry",
+      "question": "Does fixture_run bound the argument comparison and handle a NULL argv or argument?",
+      "locations": [
+        21,
+        24,
+        25,
+        33
+      ]
+    }
+  ]
+}

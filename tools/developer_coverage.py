@@ -1,6 +1,7 @@
 """Advisory coverage inspection using the existing qualified LLVM tools."""
 from pathlib import Path
 from evidence import GateError, atomic_json, file_hash, read_json, passed
+from evidence import loads_capped
 
 
 def collect(root,runner,result,test):
@@ -14,7 +15,7 @@ def collect(root,runner,result,test):
     if not passed(merged) or not passed(exported):
         raise GateError('matching selected coverage export incomplete')
     rows=[]
-    for package in json.loads(exported['output'])['data']:
+    for package in loads_capped(exported['output'])['data']:
         for item in package['files']:
             filename=item['filename']
             if not filename.startswith(('/src/','/fixture/')):continue

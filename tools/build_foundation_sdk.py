@@ -11,19 +11,20 @@ import re
 import shutil
 import tempfile
 from evidence import Runner, read_json, passed, file_hash, GateError
+from evidence import loads_capped, read_jsonl
 
 ROOT = Path(__file__).resolve().parents[1]
 
 def retain_failure(runner, outcome, directory):
     for line in outcome['output'].splitlines():
         try:
-            row = json.loads(line)
+            row = loads_capped(line)
         except (ValueError, TypeError):
             continue
         if row.get('phase', '').startswith('upstream-') and not row['phase'].startswith('upstream-build-') and row.get('exit_code'):
             relative = 'dependency/' + row['phase'] + '-testlog.json'
             native = runner.fetch(relative, directory / Path(relative).name)
-            for data in [json.loads(x) for x in native.read_text().splitlines() if x.strip()]:
+            for data in read_jsonl(native, 'testlog-jsonl'):     # FR3-19: a container-written log, capped
                 text = data.get('stdout', '') + data.get('stderr', '')
                 print(json.dumps({'case_id': data.get('name'), 'exit_code': data.get('returncode'),
                     'ASAN_FINDING': 'ERROR: AddressSanitizer' in text,

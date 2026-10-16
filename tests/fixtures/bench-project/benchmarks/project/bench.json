@@ -1,0 +1,7 @@
+{"schema_version":1,"name":"bench-fixture","cases":["fixture-case"],
+ "protocol":{"file":"protocol/protocol.json","sha256":"da1eb0eb5a92e551bcad00edd15516292b14e4c9007d4c19d1b2c2f334eb2545"},
+ "checks":[{"name":"fixture-oracle","module":"fixturecase.checks","before_run":true},
+  {"name":"fixture-agreement","module":"fixturecase.checks","before_run":true},
+  {"name":"oracle-generate","module":"fixturecase.checks","before_run":false},
+  {"name":"hang-stub","module":"fixturecase.checks","before_run":false,"selectors":["m4"]},
+  {"name":"overrun-stub","module":"fixturecase.checks","before_run":false,"selectors":["m5"]}]}

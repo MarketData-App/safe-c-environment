@@ -1,0 +1,8 @@
+{
+  "description": "P15 shipped-bench-assets (Task 29): a default project run export (the project-run closure of bench_b18.runtime_inventories) with one planted bench driver; bench_b18.runtime_bench_files must reject it",
+  "files": [
+    "bin/demo",
+    "lib64/ld-linux-x86-64.so.2",
+    "tools/bench.py"
+  ]
+}

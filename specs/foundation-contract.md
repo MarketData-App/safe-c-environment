@@ -62,3 +62,52 @@ The policy gate enforces inventoried boundary APIs, calls/macros/member accesses
 ignored results and unauthorized suppression. It does not prove raw pointer
 validity, ownership semantics or every indirect call. Unsupported application
 indirection is rejected pending a reviewed policy amendment.
+
+## Parallel batch adapter
+
+The public header is `foundation/parallel/sc-parallel.h` (link target `sc_parallel`, spec 6).
+`sc_parallel_run` runs task indices 0..task_count-1 of one batch on an exclusive GThreadPool.
+The shared input is immutable; each task writes only its own output slots, which the caller
+owns until sc_parallel_run returns. No work survives the return; no partial success, no
+nesting, no cancellation. Every task completes before the return; afterwards only idle GLib
+pool workers (`pool-N`) may remain, and they run no caller code.
+
+Limits: worker_count 1..8 (`SC_PARALLEL_MAX_WORKERS`; policy maximum 4,
+`SC_PARALLEL_POLICY_MAX_WORKERS`), max_inflight 1..256 (`SC_PARALLEL_MAX_INFLIGHT`; queued,
+executing and not yet completed), task_count 1..65,536 (`SC_PARALLEL_MAX_TASKS`). A NULL
+configuration or task, a zero or larger value, and a trace with capacity but no storage are
+refused before any pool exists. A nested call from a task is refused.
+
+Errors use `SC_PARALLEL_ERROR` with `ScParallelError`: CONFIG (refused arguments or nesting),
+CREATE (pool creation failed or is incomplete), PUSH (a push failed), TASK (the first task
+failure; later tasks are skipped and counted), ACCOUNTING (executed plus skipped differs from
+submitted). A pending error causes failure without overwriting it. Tasks report a failure
+with `sc_parallel_set_task_error`. The adapter creates every GError it makes, task errors
+included, under one process-wide lock (finding P2-T14-TSAN-01). The lock serializes only the
+GErrors that the adapter creates. A GError that a task or any other thread creates through GLib
+or another API is outside the lock, so the lock gives no guarantee for it. The optional report gives
+submitted, executed, skipped,
+threads observed and the maximum in-flight count; the optional caller-owned trace gives per
+index the thread tag, CLOCK_MONOTONIC start and end and the thread CPU time, or
+`SC_PARALLEL_NO_TAG` and -1 for an index that did not execute.
+
+Grant (Amendment F item 2): `foundation/parallel/sc-parallel.c` alone holds the
+`function_grants` entry of `safety/foundation-api-policy.json`: the GThreadPool, GMutex,
+GCond and `g_thread_self` names, the two error helpers, atomic expressions, and one indirect
+call (`s->task(...)` of type `ScParallelTaskFn`, only in `sc_parallel_worker`). The grant
+is bound to the inventory row (role `parallel-adapter`, target `sc_parallel`, sha256). Every
+other AST rule applies to the file unchanged. No other file gains threading. Own coverage:
+90% line and 85% branch over `sc-parallel.c` and `sc-parallel.h`.
+
+Test boundary (finding S2-02): the standard error capture of the parallel contract test is a
+named reviewed process boundary, "standard error capture". It is `checks_capture_begin`,
+`checks_capture_end`, `checks_wait`, `checks_capture_inject` and the drain child in
+`foundation/parallel/tests/checks.c`, and `whole_with` and `faulted_with` in
+`foundation/parallel/tests/contracts.c` (finding S3-01 added `checks_wait`,
+`checks_capture_inject` and `faulted_with`). Only these use pipe2, fork, dup2, fcntl, waitpid
+and _exit in the foundation tests; `checks_capture_inject` calls none of them itself but sets
+the faults of the next `checks_capture_end`. After a failed restore of standard error,
+`checks_capture_end` also opens /dev/null so that descriptor 2 stays occupied and a later open,
+pipe or dup cannot take it (finding S3-06). The batch S2 and S3 approvers reviewed them. The
+boundary is test code only, it grants no API to any other file, and no other process API belongs in the
+foundation tests.

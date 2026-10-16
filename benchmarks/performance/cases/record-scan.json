@@ -1,0 +1,12 @@
+{"schema_version":1,"case_id":"record-scan","version":1,"kind":"function","adapter":"benchlab.recordscan:RecordScan",
+ "description":"Filter packed records by a whole-day window and a ratio band and sum the record weights exactly",
+ "work_unit":"one packed record scanned",
+ "parameters":{"day_min":{"value":7,"label":"declared"},"day_max":{"value":60,"label":"declared"},"ratio_lo":{"value":0.9,"label":"declared"},"ratio_hi":{"value":1.1,"label":"declared"},"seed":{"value":20261007,"label":"declared"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"py-optimized","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"py-threads","language":"python","workers":[1,2,4],"status":"not-applicable","reason":"spec 9: pool variants are declared not applicable for record-scan"},
+  {"id":"py-processes","language":"python","workers":[1,2,4],"status":"not-applicable","reason":"spec 9: pool variants are declared not applicable for record-scan"},
+  {"id":"c-serial","language":"c","workers":["direct"],"status":"planned-phase-2"}],
+ "scopes":["kernel"],"sizes":["small","medium","large"],
+ "points":[{"name":"scan-medium","scope":"kernel","size":"medium","modes":["direct"],"variants":["py-reference","py-optimized","c-serial"],"class":"exploratory"}],
+ "opportunity_record":null}

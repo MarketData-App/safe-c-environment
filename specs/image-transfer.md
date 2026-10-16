@@ -1,7 +1,7 @@
 # Locked image transfer
 
 This is outer-controller data acquisition, not a candidate build, application,
-runner approval or image upgrade. MarketDataApp owns the transfer adapter. It
+runner approval or image upgrade. MarketData-App owns the transfer adapter. It
 transfers only the exact SDK and development image IDs in the two current locks.
 No container starts, no Docker flags or endpoint come from the caller, and no
 dependency recipe runs. Ordinary safety checks remain offline.
@@ -48,5 +48,11 @@ archive is idempotent and does not prune other Docker resources.
 Tests run through the protected launcher. Transfer verification tests use small
 data archives and prove rejection before the load callback. Actual export/load
 round trips additionally check the two retained image IDs without modifying locks.
-Publishing the payload remains pending owner licensing review and explicit owner
-authorization. The current machine-pinned daemon policy remains unchanged.
+Publishing the payload needs explicit owner authorization. The framework's own files
+are under MIT (LICENSE); third-party components keep their own licenses, with the
+written source offer in SOURCE-OFFER.md; the owner confirmed this on
+2026-10-15. The archive contains only the two locked images, so the source
+directions and written offer for their GPL and LGPL contents (`SOURCE-OFFER.md`
+and the listing `third_party/source-availability.json`) are published as
+separate release assets next to `images.tar.gz`. `ci/image-bundle.json`
+records them in the field `source_offer`. The current machine-pinned daemon policy remains unchanged.

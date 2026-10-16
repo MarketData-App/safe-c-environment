@@ -5,13 +5,19 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import gzip
 import tarfile
 from evidence import GateError, atomic_json, bounded, file_hash, read_json
+from evidence import loads_capped
 from policy import export_inventory, baseline_identity, baseline_gate, source_identity, validate_fresh_report
 
-# The fresh child ci also runs the project-gates self-test (about 7 minutes).
-CHILD_CI_SECONDS = 3000
+# The fresh child ci also runs the project-gates self-test (about 11 minutes)
+# and the bench-doctor and bench-selftest gates (about 17 minutes).
+# Controller ruling D1-R3 (finding P3-T15-CHILD-BUDGET-01): the measured child ci
+# took 5,216 s (starter verify run c41876a5 at 632e697); 8000 s is at least 1.5 x
+# that, and the 80 % line becomes 6,400 s.
+CHILD_CI_SECONDS = 8000
 CHILD_CLEANUP_SECONDS = 120
 
 
@@ -21,7 +27,59 @@ def child_scope(child_root):
     return hashlib.sha256(str(Path(child_root).resolve()).encode()).hexdigest()
 
 
-def child_timeout_cleanup(root,run_dir,lock,child_root,result,what,launcher_factory=None):
+CHILD_SCRATCH_PREFIX='safe-c-child-tmp-'
+
+
+def child_env(child_root,environ=None,tmpdir=None):
+    """The environment of a fresh child command: the caller's environment plus the
+    child's worktree digest in the ancestor scope list, so the containers of the child's
+    nested runs carry the child's ancestor label; with `tmpdir`, TMPDIR names the child's
+    recorded scratch directory, so every temporary directory of the child and its nested
+    runs lies inside it."""
+    from container_policy import ANCESTOR_ENV
+    env=dict(os.environ if environ is None else environ)
+    scopes=[s for s in env.get(ANCESTOR_ENV,'').split(',') if s]
+    env[ANCESTOR_ENV]=','.join(scopes+[child_scope(child_root)])
+    if tmpdir is not None:env['TMPDIR']=str(tmpdir)
+    return env
+
+
+def child_scratch(run_dir):
+    """Create one scratch directory for a child command directly in the system temporary
+    directory and record its exact path in the parent's run directory."""
+    scratch=Path(tempfile.mkdtemp(prefix=CHILD_SCRATCH_PREFIX))
+    record=Path(run_dir)/'starter-child-scratch.json'
+    paths=read_json(record)['paths'] if record.exists() else []
+    atomic_json(record,{'paths':paths+[str(scratch)]})
+    return scratch
+
+
+def remove_child_scratch(path):
+    """Remove a child scratch directory by its exact recorded path. Only a real directory
+    named CHILD_SCRATCH_PREFIX* directly in the system temporary directory is accepted;
+    a killed child cannot run its own cleanup, so its leftovers are removed here."""
+    path=Path(path)
+    if (path.parent!=Path(tempfile.gettempdir()) or not path.name.startswith(CHILD_SCRATCH_PREFIX) or
+            path.is_symlink() or (path.exists() and not path.is_dir())):
+        raise GateError('child scratch path is not a recorded child scratch directory')
+    shutil.rmtree(path,ignore_errors=True)
+    return {'path':str(path),'removed':not path.exists()}
+
+
+def run_child(root,args,timeout,first,run_dir,lock,record_name,what):
+    """Run one fresh child command with its own recorded scratch directory; after a
+    TIMEOUT reap its containers, and in every case remove its scratch directory."""
+    scratch=child_scratch(run_dir)
+    try:
+        result=bounded(args,timeout=timeout,limit=4*1024*1024,env=child_env(first,tmpdir=scratch))
+        atomic_json(Path(run_dir)/record_name,result)
+        child_timeout_cleanup(root,run_dir,lock,first,result,what,scratch=scratch)
+    finally:
+        remove_child_scratch(scratch)
+    return result
+
+
+def child_timeout_cleanup(root,run_dir,lock,child_root,result,what,launcher_factory=None,scratch=None):
     """After a child command TIMEOUT, wait (bounded) for or remove the child's labelled
     containers, so the next admission is not refused, then raise a GateError naming the
     TIMEOUT. Any other result returns None."""
@@ -35,7 +93,8 @@ def child_timeout_cleanup(root,run_dir,lock,child_root,result,what,launcher_fact
         cleanup=launcher.reap_scope(child_scope(child_root),seconds=CHILD_CLEANUP_SECONDS)
     finally:
         launcher.close()
-    atomic_json(Path(run_dir)/'starter-child-timeout-cleanup.json',{'command':what,**cleanup})
+    removed=remove_child_scratch(scratch) if scratch is not None else None
+    atomic_json(Path(run_dir)/'starter-child-timeout-cleanup.json',{'command':what,**cleanup,'scratch':removed})
     left=' (child containers remain: '+str(len(cleanup['remaining']))+')' if cleanup['remaining'] else ''
     raise GateError(what+' TIMEOUT; removed '+str(len(cleanup['removed']))+' child container(s)'+left)
 
@@ -134,7 +193,10 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
         value=baseline_gate(root,baseline,expected)
         origin=read_json(root/'starter-baseline.lock.json')
         if origin['kind']!='project-instance' or origin['origin_digest']!=expected:raise GateError('child origin binding changed')
-        return {'status':'PASS','scope':'project-instance; maintenance export checks belong to starter CI','baseline_binding':value,'origin':origin,'independent_enforcement':'UNSEALED'}
+        # B18 child-instance mode (Task 26): the static checks and local execution only; never an export or a grandchild.
+        import bench_b18
+        b18=bench_b18.static_checks(root)
+        return {'status':'PASS' if b18['status']=='PASS' else 'FAIL','scope':'project-instance; maintenance export checks belong to starter CI','baseline_binding':value,'origin':origin,'independent_enforcement':'UNSEALED','bench_b18':b18}
     identity=baseline_identity(root)
     bundle=package_candidate(root,identity)
     instance_root=root/'artifacts/instances'/run_dir.name
@@ -142,8 +204,10 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     first=instance_root/'first project with space';second=instance_root/'second-project'
     rows=[instantiate(root,first,'first-project',maintenance=True),instantiate(root,second,'second-project',maintenance=True)]
     expected_files=instance_files(root)
+    child_identities={}
     for child in [first,second]:
-        actual=set(source_identity(child)[1])
+        child_identities[child],inventory=source_identity(child)
+        actual=set(inventory)
         if actual!=expected_files:raise GateError('exported child inventory mismatch')
         baseline_gate(child,root,identity)
         if (child/'artifacts/bootstrap-report.json').exists():raise GateError('parent acceptance report inherited')
@@ -156,11 +220,9 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     # Full fresh child qualification uses this exact trusted evaluator and immutable
     # external identity. --instance removes only recursive maintenance export work.
     developer_args=[str(root/'tools/safety'),'--candidate',str(first),'dev','selftest','--format','json']
-    developer_result=bounded(developer_args,timeout=1200,limit=4*1024*1024)
-    atomic_json(run_dir/'starter-child-developer-command.opaque.json',developer_result)
-    child_timeout_cleanup(root,run_dir,lock,first,developer_result,'fresh child developer selftest')
+    developer_result=run_child(root,developer_args,1200,first,run_dir,lock,'starter-child-developer-command.opaque.json','fresh child developer selftest')
     try:
-        developer_feedback=json.loads(developer_result['output'])
+        developer_feedback=loads_capped(developer_result['output'])
         developer_path=first/'artifacts/developer/runs'/developer_feedback['run_id']/'qualification.json'
         from developer_acceptance import load as developer_load
         developer_digest=file_hash(developer_path)
@@ -172,12 +234,18 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     if not developer_ok:raise GateError('fresh child local developer prequalification did not complete')
     args=[str(root/'tools/safety'),'--candidate',str(first),'--baseline',str(root),'--expected-baseline',identity,
           '--instance','--developer-evidence',str(developer_path),'--developer-evidence-sha256',developer_digest,'ci']
-    result=bounded(args,timeout=CHILD_CI_SECONDS,limit=4*1024*1024)
-    atomic_json(run_dir/'starter-child-command.json',result)
-    child_timeout_cleanup(root,run_dir,lock,first,result,'fresh child ci')
+    # B18 (Task 26): the child's bench runs before its ci (no copied parent measurements) and the measured child ci time;
+    # every bench gate runs in the fresh child (no skip, no shrink; above 80 % of CHILD_CI_SECONDS the controller stops).
+    import bench_b18
+    parent_identity=source_identity(root)[0]
+    before_runs=bench_b18.bench_runs(first)
+    t0=time.monotonic()
+    result=run_child(root,args,CHILD_CI_SECONDS,first,run_dir,lock,'starter-child-command.json','fresh child ci')
+    child_seconds=int(time.monotonic()-t0)
     child_report=read_json(first/'artifacts/bootstrap-report.json') if (first/'artifacts/bootstrap-report.json').exists() else None
     full_ok=result['exit_code']==0 and result['failure'] is None and child_report and child_report['local_state']=='PASS'
     no_grandchildren=not list((first/'artifacts/instances').glob('*/*/starter-baseline.lock.json'))
+    b18=bench_b18.child_checks(root,first,instances=[second],before_runs=before_runs,parent_identity=parent_identity,child_identity=child_identities[first])
     # Second child must exercise its actual normal defect/control adapters too.
     from evidence import Runner
     from qualification import Qualifier
@@ -196,5 +264,5 @@ def verify_starter(root,lock,run_dir, *, instance=False, expected=None, baseline
     copied_parent_rejected=False
     try:validate_fresh_report(copied,source_identity(second)[0],lock['image_id'],file_hash(root/'safety/contract.json'))
     except GateError:copied_parent_rejected=True
-    ok=bool(full_ok) and no_grandchildren and pair['status']=='PASS' and tamper_rejected and copied_parent_rejected and unchanged
-    return {'status':'PASS' if ok else 'FAIL','starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'bundle':bundle,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_no_grandchildren':no_grandchildren,'first_child_developer_prequalification':{'path':str(developer_path),'sha256':developer_digest},'first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':'UNSEALED; owner licensing and independent approval pending','evidence_paths':[str(run_dir/'starter-child-command.json'),str(run_dir/'starter-child-developer-command.opaque.json')]}
+    ok=bool(full_ok) and no_grandchildren and pair['status']=='PASS' and tamper_rejected and copied_parent_rejected and unchanged and b18['status']=='PASS'
+    return {'status':'PASS' if ok else 'FAIL','child_ci_seconds':child_seconds,'bench_b18':b18,'starter_version':read_json(root/'starter.json')['version'],'payload_digest':identity,'bundle':bundle,'instances':rows,'first_child_full_qualification':'PASS' if full_ok else 'FAIL','first_child_no_grandchildren':no_grandchildren,'first_child_developer_prequalification':{'path':str(developer_path),'sha256':developer_digest},'first_child_report':str(first/'artifacts/bootstrap-report.json'),'first_child_source_identity':child_report['source_identity'] if child_report else None,'second_child_pair':pair,'nonempty_destination_refused':unchanged,'protected_policy_tampering_rejected':tamper_rejected,'copied_parent_evidence_rejected':copied_parent_rejected,'retained_inputs':'offline: pinned local image and retained files; no acquisition during child qualification','release_authority':"UNSEALED; independent approval pending; the framework's own files are under MIT (LICENSE), with the written source offer for third-party components in SOURCE-OFFER.md, confirmed by the owner on 2026-10-15",'evidence_paths':[str(run_dir/'starter-child-command.json'),str(run_dir/'starter-child-developer-command.opaque.json')]}
