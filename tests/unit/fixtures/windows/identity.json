@@ -1,0 +1,9 @@
+{"bench_profile_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "cpuset_size":4,"smt_siblings":[],
+ "image_id":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+ "policy_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+ "protocol_sha256":"9999999999999999999999999999999999999999999999999999999999999999",
+ "case_version":4,
+ "source_identity":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+ "native":{"bd-kernel":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+ "datasets":{"primary":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}

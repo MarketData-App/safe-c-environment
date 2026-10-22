@@ -348,4 +348,80 @@ class PanelTrialWallTests(unittest.TestCase):
         flags=[x for x in self.diagnostics(obs) if 'trial wall' in x]
         self.assertEqual(len(flags),1);self.assertIn('not recorded',flags[0]);self.assertIn('py-reference xdirect',flags[0]);self.assertIn('1 of 3 trials',flags[0])
 
+# T6-R9 FW-CASES (FW-CASES-B08PROBE-01; B08, G7.1): a single-record (panel) trial reports the caller phases of its interval
+# as every other caller trial does. prepare, work and materialize (and pool_start of a cold pool) are the sums over its
+# 6 x L timed calls; the transport of a C trial is the sum of the codec's transport_ns of each call (benchlab.native_worker
+# LAST_STATS, reset before each call, so a call without the value leaves the transport unknown). The one-row probe points
+# of a smoke plan (T6-R7 wall_probes) are panel trials, so B08 reads their phases as those of every other C caller row.
+class PanelPhaseTests(unittest.TestCase):
+    PANEL={'indices':[0,1],'cells':['a','b'],'reference_status':['OK','OK'],'passes':3}       # 2 panel rows x L = 3: six timed calls
+    def run_trial(self,variant,mode,workers='direct',transport=lambda n:7,route='stdio'):
+        """(caller phases, note) of one panel trial of benchlab.trial.main with a stand-in marker, adapter and pool; the real
+        run_panel times the calls. `transport(n)` is the codec's transport_ns of call n (None: the codec reports none)."""
+        import os, tempfile
+        path=str(ROOT/'benchmarks/performance/python')
+        if path not in sys.path:sys.path.append(path)
+        from benchlab import trial, native_worker as nw
+        seen={'phases':[],'notes':{}};calls=[]
+        class Marker:
+            def __init__(self,*a,**k):self.commands=[{'op':'call','trial':'t0','panel':dict(PanelPhaseTests.PANEL)},{'op':'shutdown'}]
+            def hello(self,client):pass
+            def begin(self,*a):pass
+            def end(self,phase,name,**k):
+                if phase=='caller':seen['phases'].append(k.get('phases'))
+            def note(self,name,**fields):seen['notes'][name]=fields
+            def close(self):pass
+            def command(self):return self.commands.pop(0)
+        class Adapter:
+            route=None;bench_ref=('benchlab.controlcase:Spin',{})
+            def load(self,d):return 'data'
+            def take(self,data,i):return [i]
+            def prepare(self,sub,v,w):return list(sub)
+            def run(self,p,v,w,pool=None):
+                calls.append(p);t=transport(len(calls))
+                if t is not None:nw.LAST_STATS.update(transport_ns=t,copied_bytes=8)
+                return p
+            def materialize(self,raw):return list(raw)
+            def work_units(self,r):return 1
+            def digest(self,r):return '0'*64
+            def row_status(self,r):return 'OK'
+        class Pool:
+            def shutdown(self,wait=True):pass
+        with tempfile.NamedTemporaryFile('w',suffix='.json',delete=False) as f:json.dump({},f)
+        self.addCleanup(os.unlink,f.name);self.addCleanup(nw.LAST_STATS.clear)
+        with mock.patch.object(trial,'Marker',Marker),mock.patch.object(trial,'load_case_adapter',lambda case,selector:Adapter()),\
+             mock.patch.object(trial,'warm_start',lambda *a:Pool()),mock.patch.object(trial.pools,'verify_session_end',lambda:None):
+            code=trial.main(['--client','x','--case-manifest',f.name,'--variant',variant,'--mode',mode,'--workers',str(workers),'--dataset','d',
+                             '--sha256','0'*64,'--reference','none','--panel','--route',route,'--route-label','pipe'])
+        self.assertEqual((code,len(calls),len(seen['phases'])),(0,6,1))
+        return seen['phases'][0],seen['notes']['t0']
+    def test_a_c_panel_trial_reports_the_four_phases_of_its_calls(self):
+        ph,note=self.run_trial('c-serial','warm')
+        for k in ('prepare','transport','work','materialize'):
+            with self.subTest(phase=k):
+                self.assertIs(type(ph.get(k)),int);self.assertGreaterEqual(ph[k],0)
+        self.assertEqual(ph.get('transport'),6*7)             # the codec's transport_ns of each of the six calls
+        self.assertIsNone(ph.get('pool_start'))           # a warm trial starts nothing inside its interval
+        self.assertLessEqual(ph['prepare']+ph['work']+ph['materialize'],sum(sum(w) for w in note['panel_walls'].values()))   # inside the timed calls
+    def test_a_cold_pooled_panel_trial_reports_its_pool_start(self):
+        ph,_=self.run_trial('py-threads','cold',workers=2,transport=lambda n:None,route='none')
+        for k in ('prepare','pool_start','work','materialize'):
+            with self.subTest(phase=k):self.assertIs(type(ph.get(k)),int)
+        self.assertIsNone(ph.get('transport'))            # a Python row reports no transport
+    def test_a_call_without_its_transport_value_leaves_the_transport_unknown(self):
+        ph,_=self.run_trial('c-serial','warm',transport=lambda n:7 if n==1 else None)
+        self.assertIsNone(ph.get('transport'))            # never the stale value of an earlier call
+        self.assertIs(type(ph.get('work')),int)
+    def test_b08_accepts_the_row_of_a_one_row_probe(self):
+        import bench_phase2 as b2
+        ph,note=self.run_trial('c-serial','warm');labels=POL['routes']
+        row={'trial_id':'probe-m1-one-row-s00-b00-00','point':'probe-m1-one-row','scope':'caller','warmup':False,'variant':'c-serial','workers':'direct',
+             'mode':'warm','route':'stdio','route_label':labels['stdio'],'copied_bytes':note['copied_bytes'],'result_sha256':note['result_sha256'],
+             'phases':{k:v for k,v in ph.items() if k in ('prepare','pool_start','work','materialize','transport')}}      # the coordinator's phase keys
+        py={'trial_id':'py','scope':'caller','warmup':False,'variant':'py-reference','workers':'direct','mode':'warm'}
+        start=[{'phase':'pool_start','mode':'warm','variant':'c-serial','workers':'direct','route':'stdio'}]
+        self.assertEqual(b2.check_caller_scope([row,py],start,labels),[])
+        self.assertEqual(b2.check_caller_scope([dict(row,phases=dict(row['phases'],transport=None)),py],start,labels),
+                         ['probe-m1-one-row-s00-b00-00: the interval misses transport'])      # B08 keeps its rule for every C row
+
 if __name__=='__main__':unittest.main()

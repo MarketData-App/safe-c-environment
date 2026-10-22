@@ -1,0 +1,2 @@
+{"schema_version":1,"name":"wheel-fixture","cases":["wheel-case"],
+ "third_party":{"file":"third_party/lock.json","sha256":"59048ce969529de9b6358dc846107837d7934e4e54cf3d8d8bc7281f987d23fd"}}

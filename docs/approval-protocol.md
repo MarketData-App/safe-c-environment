@@ -31,3 +31,27 @@ digests, approver model, head commit and source identity under
 `artifacts/approvals/<round>-<head>/`. That directory is untracked because
 verdicts can contain local paths; the commit that lands approved work names the
 round and its outcome.
+
+Ledger closure classes (rulings R41, T16R1-A01 and T16R1-A02): a finding closes
+VERIFIED in one of two ways.
+
+1. Behavioral repair. The same regression fails before the fix and passes after
+   it, under identical relevant inputs (`Ledger.repair`, `before_failed` true).
+   `Ledger.repair` never verifies a row with `before_failed` false.
+2. Test-strength evidence. The finding is that a test or a specification is too
+   weak, and the fix adds assertions or text only. Three conditions apply:
+   (1) the code under test is unchanged by the fix commits (else the fix is a
+   behavioral repair and needs a failing run); (2) the history entry carries the
+   exact label `TEST-STRENGTH EVIDENCE` (`Ledger.verify_test_strength` writes it
+   in the field `label`, with `before_failed` false); (3) an independent approver
+   verifies the added assertions against the finding. The review-protocol gate of
+   `./tools/safety project check` (`tools/project_check.py`, `review_gate`) fails
+   a VERIFIED row with `before_failed` false that carries no label. A row written
+   before the `label` field holds the exact text in the row.
+
+Order for a HIGH finding: record the row once, after its GREEN run, so that the
+row is VERIFIED when it first enters the ledger. A HIGH row that is OPEN,
+UNRESOLVED or BLOCKED fails the review-protocol gate, so the GREEN run of its
+repair cannot pass the gate while the row is recorded OPEN. Never remove a
+recorded row to make a gate pass. Keep a rejected or duplicate row with its
+reason.

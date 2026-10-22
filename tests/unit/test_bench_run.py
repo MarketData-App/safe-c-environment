@@ -260,8 +260,12 @@ class Task16aChecks(unittest.TestCase):
         """Task 16a re-review residual: an edited calibration never passes, even with a recomputed plan id."""
         from evidence import GateError
         d=self.tmp();run='a'*32;(d/'artifacts/bench'/run).mkdir(parents=True);path=d/'artifacts/bench'/run/'observations.jsonl'
-        row=dict(phase='caller',warmup=False,eligible=True,loops=1,work_units=1000)
+        # T6-R7: timed caller rows of the smoke-caller point, one per planned variant of the control case (its pool variants
+        # on their 1-worker row), so the calibration holds the measured wall of every class that the decision plan holds
+        row=dict(phase='caller',warmup=False,eligible=True,loops=1,work_units=1000,scope='caller',point='smoke-caller',tier='small',selector='all',mode='warm')
         path.write_text(''.join(json.dumps(r)+'\n' for r in [dict(row,trial_id='a',variant='py-optimized',workers='direct',wall_ns=4_000_000_000),
+                                                             dict(row,trial_id='b',variant='py-threads',workers=1,wall_ns=4_000_000_000),
+                                                             dict(row,trial_id='c',variant='py-processes',workers=1,wall_ns=4_000_000_000),
                                                              dict(row,trial_id='e',variant='py-reference',workers='direct',wall_ns=140_000_000_000)]))
         cal,source=bp.calibration_record(d,run,POLICY)
         self.assertEqual(source,{'run_id':run,'observations_sha256':__import__('hashlib').sha256(path.read_bytes()).hexdigest()})

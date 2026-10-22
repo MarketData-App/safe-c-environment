@@ -1,0 +1,1187 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "type": "object",
+ "description": "Summary block of a local aggregate of the option example (FR3 handoff: the old option aggregate blocks status_counts, flag_counts, crosscheck and unit_scale from schemas/bench-local-aggregate.json at 34512cd). Status keys are the lower-case form of the contract STATUSES. The market block is T12 (EX-6). T28 (ruling R84): status_counts, flag_counts.erf_saturated and crosscheck list the five protocol models bsm, bjs, crr, baw and alo as optional properties, so the summary of a per-unit local run (one model) passes; the summary grammar has no conditional, so the schema alone also accepts an all summary without one of bsm, bjs and crr: the example code refuses that summary (OptionChainGreeks.selected).",
+ "additionalProperties": false,
+ "required": [
+  "status_counts",
+  "flag_counts",
+  "crosscheck",
+  "unit_scale"
+ ],
+ "properties": {
+  "status_counts": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "bsm": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "invalid_input": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "expired": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "no_bid": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crossed": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "model_domain": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "below_min": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "above_max": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "not_converged": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "ok": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "invalid_input",
+      "expired",
+      "no_bid",
+      "crossed",
+      "model_domain",
+      "below_min",
+      "above_max",
+      "not_converged",
+      "ok"
+     ]
+    },
+    "bjs": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "invalid_input": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "expired": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "no_bid": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crossed": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "model_domain": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "below_min": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "above_max": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "not_converged": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "ok": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "invalid_input",
+      "expired",
+      "no_bid",
+      "crossed",
+      "model_domain",
+      "below_min",
+      "above_max",
+      "not_converged",
+      "ok"
+     ]
+    },
+    "crr": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "invalid_input": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "expired": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "no_bid": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crossed": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "model_domain": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "below_min": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "above_max": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "not_converged": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "ok": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "invalid_input",
+      "expired",
+      "no_bid",
+      "crossed",
+      "model_domain",
+      "below_min",
+      "above_max",
+      "not_converged",
+      "ok"
+     ]
+    },
+    "baw": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "invalid_input": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "expired": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "no_bid": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crossed": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "model_domain": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "below_min": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "above_max": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "not_converged": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "ok": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "invalid_input",
+      "expired",
+      "no_bid",
+      "crossed",
+      "model_domain",
+      "below_min",
+      "above_max",
+      "not_converged",
+      "ok"
+     ]
+    },
+    "alo": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "invalid_input": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "expired": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "no_bid": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crossed": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "model_domain": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "below_min": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "above_max": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "not_converged": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "ok": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "invalid_input",
+      "expired",
+      "no_bid",
+      "crossed",
+      "model_domain",
+      "below_min",
+      "above_max",
+      "not_converged",
+      "ok"
+     ]
+    }
+   }
+  },
+  "flag_counts": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "multi_root": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "boundary_ambiguous": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "flat_vega": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "provider_mid_differs": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "below_intrinsic": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "erf_saturated": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "bsm": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "bjs": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "crr": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "baw": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "alo": {
+       "type": "integer",
+       "minimum": 0
+      }
+     }
+    }
+   },
+   "required": [
+    "multi_root",
+    "boundary_ambiguous",
+    "flat_vega",
+    "provider_mid_differs",
+    "below_intrinsic",
+    "erf_saturated"
+   ]
+  },
+  "crosscheck": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "bsm": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "iv": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "delta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "gamma": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "theta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "vega": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      }
+     },
+     "required": [
+      "iv",
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
+    },
+    "bjs": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "iv": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "delta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "gamma": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "theta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "vega": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      }
+     },
+     "required": [
+      "iv",
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
+    },
+    "crr": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "iv": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "delta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "gamma": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "theta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "vega": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      }
+     },
+     "required": [
+      "iv",
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
+    },
+    "baw": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "iv": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "delta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "gamma": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "theta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "vega": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      }
+     },
+     "required": [
+      "iv",
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
+    },
+    "alo": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "iv": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "delta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "gamma": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "theta": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      },
+      "vega": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "count": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "median": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "p90": {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "count",
+        "median",
+        "p90"
+       ]
+      }
+     },
+     "required": [
+      "iv",
+      "delta",
+      "gamma",
+      "theta",
+      "vega"
+     ]
+    }
+   }
+  },
+  "unit_scale": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "delta": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "scale": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": 0.0027397260273972603,
+       "maximum": 365.0
+      },
+      "rescaled": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "scale",
+      "rescaled"
+     ]
+    },
+    "gamma": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "scale": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": 0.0027397260273972603,
+       "maximum": 365.0
+      },
+      "rescaled": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "scale",
+      "rescaled"
+     ]
+    },
+    "theta": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "scale": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": 0.0027397260273972603,
+       "maximum": 365.0
+      },
+      "rescaled": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "scale",
+      "rescaled"
+     ]
+    },
+    "vega": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "scale": {
+       "type": [
+        "number",
+        "null"
+       ],
+       "minimum": 0.0027397260273972603,
+       "maximum": 365.0
+      },
+      "rescaled": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "scale",
+      "rescaled"
+     ]
+    }
+   },
+   "required": [
+    "delta",
+    "gamma",
+    "theta",
+    "vega"
+   ]
+  }
+ }
+}

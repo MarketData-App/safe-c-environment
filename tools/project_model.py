@@ -222,6 +222,59 @@ def _exported_framework_list(root):
     return [rel for rel in files if rel not in INSTANCE_FILES]
 
 
+EXAMPLES_DIR = 'examples'
+
+
+def standalone_examples(root):
+    """Rule S (amendment E, section 1.2): the sorted directories examples/<name> that hold project.json while
+    starter-export.json does not list examples/<name>/project.json. A standalone example is no framework file: the
+    framework inventory, the framework manifest and the framework bench scope leave it out, and its own project check
+    (project_inventory) checks its C files. An examples/<name> without project.json stays framework content (fail
+    closed). A symbolic link at examples/, examples/<name> or examples/<name>/project.json is refused (FIX1-A06: a deeper
+    link is a path of its tree); the export list is read only when a candidate exists.
+    FIX1 T3-A06: a standalone tree that holds a path of the export list is a mixed state (the path would stay in the
+    manifest and the export but leave the framework source inventory and the B18 payload); it raises GateError."""
+    root = Path(root)
+    base = root/EXAMPLES_DIR
+    if base.is_symlink():
+        raise GateError(f'symlink input is forbidden: {EXAMPLES_DIR}')
+    if not base.is_dir():
+        return []
+    candidates = []
+    for path in sorted(base.iterdir()):
+        rel = f'{EXAMPLES_DIR}/{path.name}'
+        if path.is_symlink() or (path/PROJECT_FILE).is_symlink():
+            raise GateError(f'symlink input is forbidden: {rel}')
+        if path.is_dir() and (path/PROJECT_FILE).is_file():
+            candidates.append(rel)
+    if not candidates:
+        return []
+    listed = set(_exported_framework_list(root))
+    standalone = [rel for rel in candidates if f'{rel}/{PROJECT_FILE}' not in listed]
+    for rel in standalone:
+        mixed = sorted(path for path in listed if path.startswith(rel + '/'))
+        if mixed:
+            raise GateError(f'{EXPORT_LIST} lists a file of the standalone example {rel}: {mixed[0]}')
+    return standalone
+
+
+def example_scopes(paths, listed):
+    """Rule S over the tracked paths of one commit (FIX1 T3-A01; ci/changed-examples reads a base and a head this way):
+    {examples/<name>: 'framework' | 'standalone' | 'project-less'} for every examples/<name> that holds a path of `paths`.
+    framework: examples/<name>/project.json is a path and `listed` (the export list of the same commit) holds it;
+    standalone: the path exists and is not listed; project-less: no project.json (framework content, fail closed). A path
+    directly under examples/ belongs to no example directory."""
+    paths, listed, scopes = set(paths), set(listed), {}
+    for path in paths:
+        parts = path.split('/')
+        if len(parts) < 3 or parts[0] != EXAMPLES_DIR:
+            continue
+        rel = f'{EXAMPLES_DIR}/{parts[1]}'
+        project = f'{rel}/{PROJECT_FILE}'
+        scopes[rel] = 'project-less' if project not in paths else 'framework' if project in listed else 'standalone'
+    return scopes
+
+
 def _framework_sets(root):
     """(listed, unlisted): exported framework files, and other files under framework directories."""
     root = Path(root)

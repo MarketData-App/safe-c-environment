@@ -16,7 +16,7 @@ def never(*a,**k):raise AssertionError('no stub suite may run')
 
 class StubSuiteTests(unittest.TestCase):
     def test_no_declared_stub_records_not_run_with_the_reason(self):
-        with mock.patch.object(bench,'example_projects',lambda root:[]),mock.patch.object(bd,'_stub_run_selftest',never),\
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[]),mock.patch.object(bd,'_stub_run_selftest',never),\
              mock.patch.object(bd,'_stub_check_selftest',never):
             suites,not_run=bd.stub_suites(ROOT,Path(tempfile.mkdtemp()))
         self.assertEqual(suites,{})
@@ -29,7 +29,7 @@ class StubSuiteTests(unittest.TestCase):
         calls=[]
         def run(root,run_dir,spec,project,case):calls.append(('run',spec['reason'],project,case['case_id']));return {'status':'PASS'}
         def check(root,run_dir,spec,project,case):calls.append(('check',spec['reason'],project,spec['check']));return {'status':'PASS'}
-        with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]),mock.patch.object(bd,'_stub_run_selftest',run),\
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]),mock.patch.object(bd,'_stub_run_selftest',run),\
              mock.patch.object(bd,'_stub_check_selftest',check):
             suites,not_run=bd.stub_suites(ROOT,Path(tempfile.mkdtemp()))
         self.assertEqual(not_run,[])
@@ -38,7 +38,7 @@ class StubSuiteTests(unittest.TestCase):
 
     def test_a_malformed_declaration_is_one_blocked_suite(self):
         def bad(root,project):raise GateError('protocol stub x: no case')
-        with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]),mock.patch.object(bd,'declared_project_stubs',bad):
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]),mock.patch.object(bd,'declared_project_stubs',bad):
             suites,not_run=bd.stub_suites(ROOT,Path(tempfile.mkdtemp()))
         self.assertEqual((list(suites),suites['stubs']['status'],not_run),(['stubs'],'BLOCKED',[]))
 
@@ -52,7 +52,7 @@ class StubSuiteTests(unittest.TestCase):
     def test_selftest_cases_writes_not_run_into_cases_json(self):
         src=(ROOT/'tools/bench.py').read_text();tree=ast.parse(src)
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='selftest_cases');body=ast.get_source_segment(src,fn)
-        self.assertIn('bench_deadline.stub_suites(root,run_dir)',body)
+        self.assertIn('bench_deadline.stub_suites(root,run_dir,project)',body)
         self.assertIn("'not_run':not_run",body)
 
 if __name__=='__main__':unittest.main()

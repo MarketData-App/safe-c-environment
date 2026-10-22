@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "name": "option-pricing-benchmark",
+  "modules": [
+    {
+      "name": "models",
+      "spec": "specs/project/models.md",
+      "sources": [
+        "src/pl_alo.c",
+        "src/pl_alo_cheb.c",
+        "src/pl_alo_edge.c",
+        "src/pl_alo_equation.c",
+        "src/pl_alo_fp.c",
+        "src/pl_alo_greeks.c",
+        "src/pl_alo_node.c",
+        "src/pl_alo_points.c",
+        "src/pl_alo_qdeval.c",
+        "src/pl_alo_qdplus.c",
+        "src/pl_alo_run.c",
+        "src/pl_alo_stencil.c",
+        "src/pl_alo_sweep.c",
+        "src/pl_alo_tables.c",
+        "src/pl_alo_ts.c",
+        "src/pl_alo_ts_ends.c",
+        "src/pl_alo_ts_level.c",
+        "src/pl_alo_ts_row0.c",
+        "src/pl_alo_ts_sum.c",
+        "src/pl_baw.c",
+        "src/pl_baw_admit.c",
+        "src/pl_baw_cert.c",
+        "src/pl_baw_greeks.c",
+        "src/pl_baw_map.c",
+        "src/pl_baw_points.c",
+        "src/pl_baw_stencil.c",
+        "src/pl_bjs.c",
+        "src/pl_bjs_phi.c",
+        "src/pl_black.c",
+        "src/pl_bsm.c",
+        "src/pl_crr.c",
+        "src/pl_crr_lattice.c",
+        "src/pl_evaluate.c",
+        "src/pl_greeks.c",
+        "src/pl_ieee.c",
+        "src/pl_normal.c",
+        "src/pl_objective.c",
+        "src/pl_solver.c"
+      ],
+      "headers": [
+        "include/pl_alo.h",
+        "include/pl_alo_equation.h",
+        "include/pl_alo_step.h",
+        "include/pl_baw.h",
+        "include/pl_baw_step.h",
+        "include/pl_bjs.h",
+        "include/pl_black.h",
+        "include/pl_crr.h",
+        "include/pl_evaluate.h",
+        "include/pl_ieee.h",
+        "include/pl_normal.h",
+        "include/pl_solver.h",
+        "include/pl_test_alo.h",
+        "include/pl_types.h",
+        "include/pl_vec_alo.h",
+        "include/pl_vec_alo_equation.h",
+        "include/pl_vec_alo_greeks.h",
+        "include/pl_vec_alo_tables.h",
+        "include/pl_vec_baw.h",
+        "include/pl_vec_baw_admit.h",
+        "include/pl_vec_baw_cert.h",
+        "include/pl_vec_baw_greeks.h",
+        "include/pl_vec_bjs.h",
+        "include/pl_vec_black.h",
+        "include/pl_vec_crr.h",
+        "include/pl_vec_evaluate.h",
+        "include/pl_vec_evaluate_alo.h",
+        "include/pl_vec_evaluate_baw.h",
+        "include/pl_vec_evaluate_census.h",
+        "include/pl_vec_helpers.h",
+        "include/pl_vec_normal.h",
+        "include/pl_vec_solver.h"
+      ],
+      "tests": [
+        "tests/project/test_alo.c",
+        "tests/project/test_alo_equation.c",
+        "tests/project/test_alo_greeks.c",
+        "tests/project/test_baw.c",
+        "tests/project/test_baw_admit.c",
+        "tests/project/test_baw_cert.c",
+        "tests/project/test_baw_greeks.c",
+        "tests/project/test_bjs.c",
+        "tests/project/test_black.c",
+        "tests/project/test_crr.c",
+        "tests/project/test_evaluate.c",
+        "tests/project/test_evaluate_alo.c",
+        "tests/project/test_evaluate_baw.c",
+        "tests/project/test_evaluate_census.c",
+        "tests/project/test_ieee.c",
+        "tests/project/test_normal.c",
+        "tests/project/test_solver.c"
+      ],
+      "reads_external_input": false,
+      "fuzz": []
+    },
+    {
+      "name": "protocol",
+      "spec": "specs/project/protocol.md",
+      "sources": [
+        "src/pl_canonical.c",
+        "src/pl_io.c",
+        "src/pl_protocol.c",
+        "src/pl_sink.c",
+        "src/pl_sink_format.c",
+        "src/pl_wire.c",
+        "src/pl_wire16.c"
+      ],
+      "headers": [
+        "include/pl_canonical.h",
+        "include/pl_io.h",
+        "include/pl_protocol.h",
+        "include/pl_vec_canonical.h"
+      ],
+      "tests": [
+        "tests/project/test_canonical.c",
+        "tests/project/test_canonical_sink.c",
+        "tests/project/test_io.c",
+        "tests/project/test_protocol.c"
+      ],
+      "uses": [
+        "models"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "protocol",
+          "harness": "fuzz/project/protocol_fuzz.c",
+          "corpus": "fuzz/project/corpus/protocol",
+          "regressions": "fuzz/project/regressions/protocol"
+        }
+      ]
+    },
+    {
+      "name": "batch",
+      "spec": "specs/project/batch.md",
+      "sources": [
+        "src/pl_batch.c",
+        "src/pl_batch_part.c",
+        "src/pl_batch_row.c",
+        "src/pl_kernel_cli.c",
+        "src/pl_kernel_loop.c",
+        "src/pl_kernel_opts.c",
+        "src/pl_kernel_probe.c",
+        "src/pl_kernel_run.c",
+        "src/pl_kernel_self.c",
+        "src/pl_partition.c",
+        "src/pl_partition_arith.c",
+        "src/pl_scan.c",
+        "src/pl_splitmix.c"
+      ],
+      "headers": [
+        "include/pl_batch.h",
+        "include/pl_batch_core.h",
+        "include/pl_kernel_cli.h",
+        "include/pl_kernel_run.h",
+        "include/pl_partition.h",
+        "include/pl_scan.h",
+        "include/pl_test_batch.h",
+        "include/pl_vec_batch_alo.h",
+        "include/pl_vec_batch_rows.h",
+        "include/pl_vec_partition.h"
+      ],
+      "tests": [
+        "tests/project/test_batch.c",
+        "tests/project/test_batch_alo.c",
+        "tests/project/test_batch_alo_kinds.c",
+        "tests/project/test_batch_alo_stats.c",
+        "tests/project/test_batch_baw.c",
+        "tests/project/test_batch_echo.c",
+        "tests/project/test_batch_helpers.c",
+        "tests/project/test_batch_kinds.c",
+        "tests/project/test_batch_limits.c",
+        "tests/project/test_batch_masks.c",
+        "tests/project/test_batch_masks_b.c",
+        "tests/project/test_batch_masks_c.c",
+        "tests/project/test_batch_masks_alo1.c",
+        "tests/project/test_batch_masks_alo2.c",
+        "tests/project/test_batch_masks_alo3.c",
+        "tests/project/test_batch_masks_alo4.c",
+        "tests/project/test_batch_sizes.c",
+        "tests/project/test_batch_small.c",
+        "tests/project/test_batch_stats.c",
+        "tests/project/test_batch_threads.c",
+        "tests/project/test_batch_trap.c",
+        "tests/project/test_batch_wide.c",
+        "tests/project/test_kernel_cli.c",
+        "tests/project/test_kernel_handshake.c",
+        "tests/project/test_kernel_io.c",
+        "tests/project/test_kernel_masks.c",
+        "tests/project/test_kernel_modes.c",
+        "tests/project/test_kernel_run.c",
+        "tests/project/test_partition.c",
+        "tests/project/test_scan.c"
+      ],
+      "uses": [
+        "models",
+        "protocol"
+      ],
+      "foundation": "glib-parallel",
+      "reads_external_input": false,
+      "fuzz": []
+    },
+    {
+      "name": "serve",
+      "spec": "specs/project/serve.md",
+      "sources": [
+        "src/pl_serve.c",
+        "src/pl_serve_run.c",
+        "src/pl_shm.c",
+        "src/pl_worker_cli.c",
+        "src/pl_worker_opts.c"
+      ],
+      "headers": [
+        "include/pl_serve.h",
+        "include/pl_test_serve.h",
+        "include/pl_worker_cli.h"
+      ],
+      "tests": [
+        "tests/project/test_serve.c",
+        "tests/project/test_serve_counters.c",
+        "tests/project/test_serve_cut.c",
+        "tests/project/test_serve_echo.c",
+        "tests/project/test_serve_index.c",
+        "tests/project/test_serve_io.c",
+        "tests/project/test_serve_limits.c",
+        "tests/project/test_serve_masks.c",
+        "tests/project/test_serve_max.c",
+        "tests/project/test_serve_rows.c",
+        "tests/project/test_serve_shutdown.c",
+        "tests/project/test_shm.c",
+        "tests/project/test_shm_access.c",
+        "tests/project/test_shm_hostile.c",
+        "tests/project/test_shm_max.c",
+        "tests/project/test_shm_one.c",
+        "tests/project/test_shm_ping.c",
+        "tests/project/test_shm_snapshot.c",
+        "tests/project/test_shm_type.c",
+        "tests/project/test_worker_cli.c",
+        "tests/project/test_worker_fail.c",
+        "tests/project/test_worker_files.c",
+        "tests/project/test_worker_std.c"
+      ],
+      "uses": [
+        "batch"
+      ],
+      "reads_external_input": false,
+      "fuzz": []
+    },
+    {
+      "name": "inproc",
+      "spec": "specs/project/inproc.md",
+      "sources": [
+        "src/pl_inproc.c",
+        "src/pl_inproc_args.c"
+      ],
+      "headers": [
+        "include/pl_inproc.h",
+        "include/pl_test_inproc.h"
+      ],
+      "tests": [
+        "tests/project/test_inproc.c"
+      ],
+      "uses": [
+        "batch"
+      ],
+      "reads_external_input": true,
+      "fuzz": [
+        {
+          "name": "inproc",
+          "harness": "fuzz/project/inproc_fuzz.c",
+          "corpus": "fuzz/project/corpus/inproc",
+          "regressions": "fuzz/project/regressions/inproc"
+        }
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "name": "pl-kernel",
+      "main": "src/pl_kernel.c",
+      "modules": [
+        "models",
+        "protocol",
+        "batch"
+      ]
+    },
+    {
+      "name": "pl-worker",
+      "main": "src/pl_worker.c",
+      "modules": [
+        "serve"
+      ]
+    }
+  ],
+  "libraries": [
+    {
+      "name": "pl_inproc",
+      "modules": [
+        "inproc"
+      ],
+      "exports": [
+        "pl_inproc_abi_version",
+        "pl_inproc_price"
+      ]
+    }
+  ],
+  "run": {
+    "program": "pl-kernel",
+    "args": [
+      "--self-check"
+    ],
+    "expect_exit": 0
+  }
+}

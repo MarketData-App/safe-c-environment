@@ -173,7 +173,10 @@ The framework sets every flag. `project.json` only selects the rules below
   build-dependent definitions, and applies the allowlist rules (attributes,
   reserved identifiers, builtins, runtime names, the libFuzzer entry and
   run-time lookup) to the Clang AST. A finding names the file, the line and the
-  check.
+  check. The AST job of each translation unit removes its PCH and its AST dump
+  from `/work` once it has parsed the dump, so the 2 GiB `/work` of a check
+  does not grow with the number of units; a blocked job keeps only its
+  compiler logs.
 
 Known limit: a project can still subvert a gate at run time. The name and macro
 rules cannot close this class. Examples:
@@ -189,7 +192,12 @@ CTest test log and the fuzz output) and adversarial review of every change.
 
 The project check first verifies `framework-manifest.json`. A changed framework
 file stops the run and names the file. Use `./tools/safety ci` in the framework
-repository, then `./tools/safety framework manifest`.
+repository, then `./tools/safety framework manifest`. The framework files are
+the files that `starter-export.json` lists and every file under the framework
+directories. A standalone example (an `examples/<name>` with `project.json` that
+`starter-export.json` does not list) holds no framework file. A change only
+under it keeps the manifest check passing, so its project check exits 0 without
+`--development` when the rest of the framework matches the manifest.
 
 `framework-manifest.json` is unsigned. The manifest check is tamper-evident for
 accidental or unreviewed framework edits. It is not tamper-proof against a person

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "row": "scipy",
+  "distribution": "scipy",
+  "version": "1.16.2",
+  "filename": "scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+  "sha256": "c2275ff105e508942f99d4e3bc56b6ef5e4b3c0af970386ca56b777608ce95b7",
+  "bytes": 35681881,
+  "parts": 2,
+  "url": "https://files.pythonhosted.org/packages/da/6a/1a927b14ddc7714111ea51f4e568203b2bb6ed59bdd036d62127c1a360c8/scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+  "index": "https://pypi.org/pypi/scipy/1.16.2/json",
+  "acquired": "2026-10-17",
+  "acquisition": {
+    "approval": "artifacts/approvals/ex-option-T14-online/verdict.md (APPROVE, option A, bounds B1-B9)",
+    "task": "T14 (EX-5) of the benchmark-readiness goal, branch ex-option, run from the worktree root",
+    "command": "python3 -B tools/acquire_bench_wheels.py fetch-project --project examples/option-pricing-benchmark --name scipy --version 1.16.2",
+    "tool": "tools/acquire_bench_wheels.py",
+    "tool_sha256": "4e5239600892cc4f1488a437edc3313ba2d0959cba7b00842336c23858b9d35c",
+    "printed_status": "FETCHED, bytes 35681881, parts 2, exit 0",
+    "checks_of_the_tool": "exactly one compatible, non-yanked bdist_wheel on files.pythonhosted.org; the size and sha256 of the PyPI JSON entry; the wheel is kept as two parts of at most 33554432 bytes"
+  },
+  "perf_lab_equality": {
+    "reference": "perf-lab b8dd615 third_party/developer/provenance/wheel-selection.json (sha256 c124a34298946133d4edd939d53733efbfaf279c5a3bfc681c5c099fa0f7026f) and third_party/developer/wheels/ of the same commit",
+    "result": "EQUAL: the whole sha256 and bytes of part-00 and part-01 joined in order, each part basename, sha256 and bytes, and the filename and URL of the PyPI entry equal the perf-lab files and their wheel-selection.json row (bound B7)"
+  },
+  "modules": ["scipy"],
+  "notice": "scipy-1.16.2.dist-info/LICENSE.txt (found by the dist-info search of the extraction job); it holds the notices of the bundled libraries in scipy.libs",
+  "sanitizer_boundary": "the wheel native code runs only inside bench containers in the project bench image; it is never linked into first-party C, so sanitizer qualification does not apply (EX1-A02)",
+  "license": "BSD-3-Clause (SciPy; OpenBLAS; ARPACK, pocketfft and uarray with their in-wheel license files), BSD-3-Clause-Open-MPI (LAPACK in OpenBLAS), GPL-3.0-or-later WITH GCC-exception-3.1 (scipy.libs/libgfortran-040039e1-0352e75f.so.5.0.0 and scipy.libs/libgfortran-040039e1.so.5.0.0), LGPL-2.1-or-later (scipy.libs/libquadmath-96973f99-934c22de.so.0.0.0 and scipy.libs/libquadmath-96973f99.so.0.0.0), Qhull (scipy/spatial/qhull_src/COPYING_QHULL.txt), MIT (HiGHS; scipy/io/_idl.py, scipy/optimize/_lbfgsb_py.py, scipy/optimize/_tnc.py), BSL-1.0 (Boost.Math in scipy/special/_ufuncs_cxx). BSD-3-Clause-Open-MPI and Qhull are not on the tag list of schemas/project-third-party.json, so the lock row does not tag them. The wheel also compiles in SuperLU, PROPACK, UNU.RAN, Cephes/xsf, Faddeeva, fast_matrix_market, MINPACK, trlib and biasedurn, and it vendors array_api_compat, array_api_extra, cobyqa and pyprima; the wheel carries no notice for them (upstream gap). Source offer for the four GCC runtime files: examples/option-pricing-benchmark/SOURCE-OFFER.md (LR-EX 2026-10-18)",
+  "license_review": "agent engineering license review LR-EX performed 2026-10-18 (not legal advice): no license conflict with the first-party MIT license; the notices of this row and examples/option-pricing-benchmark/SOURCE-OFFER.md (the four GCC runtime files) meet the license conditions; no separate legal-team statement for SciPy (the legal-team confirmation of 2026-10-19 names QuantLib only); review_status PENDING",
+  "owner": "option example (examples/option-pricing-benchmark); license: legal team",
+  "notice_files": [
+    {
+      "path": "third_party/notices/scipy/ARPACK-COPYING",
+      "source_member": "scipy/sparse/linalg/_eigen/arpack/COPYING",
+      "source": "wheel member of scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+    },
+    {
+      "path": "third_party/notices/scipy/COPYING_QHULL.txt",
+      "source_member": "scipy/spatial/qhull_src/COPYING_QHULL.txt",
+      "source": "wheel member of scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+    },
+    {
+      "path": "third_party/notices/scipy/pocketfft-LICENSE.md",
+      "source_member": "scipy/fft/_pocketfft/LICENSE.md",
+      "source": "wheel member of scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+    },
+    {
+      "path": "third_party/notices/scipy/uarray-LICENSE",
+      "source_member": "scipy/_lib/_uarray/LICENSE",
+      "source": "wheel member of scipy-1.16.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+    },
+    {
+      "path": "third_party/notices/scipy/LGPL-2.1.txt",
+      "source_repository_file": "third_party/foundation-notices/glib-LGPL-2.1-or-later.txt",
+      "source": "a repository file, not a member of the SciPy wheel (byte equal, sha256 5749785c8bdefafcb5d798270ed0a967036fe2ca63dcedade1627565dfef81d2, 26001 bytes); it carries the LGPL-2.1 text for the libquadmath files of scipy.libs (T25b-A03)"
+    }
+  ]
+}

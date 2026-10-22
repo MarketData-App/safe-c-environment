@@ -173,6 +173,8 @@ class SubcaseTests(unittest.TestCase):
         produced|={('P01','bench-metric-or-runner-unavailable',v) for v,_ in bench.DOCTOR_MUTATIONS}|{('P01','bench-metric-or-runner-unavailable','cpuset-unrecorded')}
         import bench_phase3            # ruling T29-C1: the P10 and P15 variants come from bench_phase3.phase3_cases
         produced|={(p,bench_phase3.NAMES[p],v) for p,v in bench_phase3.ALL_VARIANTS}
+        import bench_phase2            # EX-13: the P02, P04 and P16 variants come from bench_phase2.phase2_cases
+        produced|={(p,bench_phase2.NAMES[p],v) for p,v in bench_phase2.ALL_VARIANTS}
         self.assertEqual(produced,fixtures)
 
 class NoChangeControlTests(unittest.TestCase):
@@ -285,7 +287,7 @@ class SelftestAggregateTests(unittest.TestCase):
              mock.patch.object(bench.bm,'unit_groups',lambda root,project:[[f'm{k}'] for k in range(len(groups or []))]),\
              mock.patch.object(bench,'_unit_job',lambda root,rd,policy,project,g:{'status':next(unit)}),\
              mock.patch.object(bench,'run_controls',lambda root,rd:{'cpu':{'status':controls[0]},'memory':{'status':controls[1]}}),\
-             mock.patch.object(bench,'selftest_cases',lambda root,rd:(cases,[{'status':'PASS'}])):
+             mock.patch.object(bench,'selftest_cases',lambda root,rd,scope=None:(cases,[{'status':'PASS'}])):
             rc=bench.selftest(ROOT,argparse.Namespace(suite=suite,project=None,format='json'))
         result=json.loads((run_dir/'selftest.json').read_text());return result['status'],rc,result['suites']
     def test_a_failing_case_suite_wins_over_a_blocked_b13(self):
@@ -339,13 +341,35 @@ class ProjectSuiteTests(unittest.TestCase):
     DECL={'schema_version':1,'name':'demo','cases':['demo-case'],
           'checks':[{'name':'gen','module':'demo.checks','before_run':False}]+[{'name':f'acc-{i}','module':'demo.checks','before_run':True} for i in range(4)]}
     def test_projects_are_discovered_generically(self):
-        # The framework names no example (test_bench_framework_imports): the expected list comes from the layout itself.
-        layout=sorted(p.parents[2].relative_to(ROOT).as_posix() for p in ROOT.glob('examples/*/benchmarks/project/bench.json'))
+        # The framework names no example (test_bench_framework_imports): the expected list comes from the layout itself, minus
+        # the standalone examples (amendment E rule S; FIX1 T3-A02: rule S changes the expectation, a standalone example is
+        # no framework project).
+        standalone=set(project_model.standalone_examples(ROOT))
+        layout=sorted(rel for rel in (p.parents[2].relative_to(ROOT).as_posix() for p in ROOT.glob('examples/*/benchmarks/project/bench.json'))
+                      if rel not in standalone)
         self.assertTrue(layout);self.assertEqual(bench.registered_projects(ROOT),layout)
         d=Path(tempfile.mkdtemp());self.assertEqual(bench.registered_projects(d),[])
         (d/'benchmarks/project').mkdir(parents=True);(d/'benchmarks/project/bench.json').write_text('{}');self.assertEqual(bench.registered_projects(d),['.'])
         (d/'examples/demo/benchmarks/project').mkdir(parents=True);(d/'examples/demo/benchmarks/project/bench.json').write_text('{}')
         (d/'examples/plain').mkdir();self.assertEqual(bench.registered_projects(d),['.','examples/demo'])
+    def test_a_standalone_example_is_not_registered_in_a_copy_of_the_tree(self):
+        """FIX1 T3-A02: the real-tree expectation with a standalone example present. A copy of the export list and of the
+        project.json and bench.json files of every example, plus one synthetic standalone example with bench.json."""
+        with tempfile.TemporaryDirectory() as t:
+            d=Path(t);(d/'starter-export.json').write_bytes((ROOT/'starter-export.json').read_bytes())
+            for p in [*ROOT.glob('examples/*/project.json'),*ROOT.glob('examples/*/benchmarks/project/bench.json')]:
+                q=d/p.relative_to(ROOT);q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes(p.read_bytes())
+            solo=d/'examples/solo-demo';(solo/'benchmarks/project').mkdir(parents=True)
+            (solo/'project.json').write_text('{}\n');(solo/'benchmarks/project/bench.json').write_text('{}\n')
+            everything=sorted(p.parents[2].relative_to(d).as_posix() for p in d.glob('examples/*/benchmarks/project/bench.json'))
+            standalone=set(project_model.standalone_examples(d));self.assertIn('examples/solo-demo',standalone)
+            expected=[rel for rel in everything if rel not in standalone]
+            self.assertEqual(bench.registered_projects(d),expected)
+            self.assertNotIn('examples/solo-demo',expected);self.assertNotEqual(everything,expected)   # the expectation before rule S fails here
+            real=set(project_model.standalone_examples(ROOT))
+            self.assertEqual(expected,sorted(rel for rel in (p.parents[2].relative_to(ROOT).as_posix() for p in ROOT.glob('examples/*/benchmarks/project/bench.json'))
+                                              if rel not in real))      # the framework examples of the real tree
+            self.assertEqual(bench.registered_projects(d,'examples/solo-demo'),['examples/solo-demo'])
     def test_selftest_has_privacy_and_project_suites(self):
         import argparse
         p=argparse.ArgumentParser();bench.configure_parser(p)
@@ -359,8 +383,9 @@ class ProjectSuiteTests(unittest.TestCase):
             calls.append(('check',project,name,deadline_key));st=check_status(name)
             if st=='RAISE':raise bench.GateError('launcher refused')
             return st,f'{name}.json',{'status':st}
-        with mock.patch.object(bench,'registered_projects',lambda root:['examples/demo']),mock.patch.object(bench,'_quiet',quiet),\
-             mock.patch.object(bench,'run_check',check),mock.patch.object(bench.bm,'project_bench',lambda root,project:self.DECL):
+        with mock.patch.object(bench,'registered_projects',lambda root,scope=None:['examples/demo']),mock.patch.object(bench,'_quiet',quiet),\
+             mock.patch.object(bench,'run_check',check),mock.patch.object(bench.bm,'project_bench',lambda root,project:self.DECL),\
+             mock.patch.object(bench,'project_image_suites',lambda root,run_dir:{}):      # EX-1: the image control has its own test (test_project_image)
             return bench.project_suites(ROOT,Path(tempfile.mkdtemp())),calls
     def test_every_before_run_check_is_one_suite(self):
         suites,calls=self.suites()
@@ -383,8 +408,8 @@ class ProjectSuiteTests(unittest.TestCase):
             def __init__(self,*a,**k):raise bench.GateError('no launcher in the unit test')
         with mock.patch.object(bench,'new_run_dir',lambda root,kind:run_dir),mock.patch.object(bench,'BenchSession',NoSession),\
              mock.patch.object(bench,'_privacy_suite',lambda root,rd:seen.append('privacy') or {'status':'PASS','evidence_paths':[]}),\
-             mock.patch.object(bench,'project_suites',lambda root,rd:seen.append('project') or {'project:examples/demo:unit':{'status':'PASS'}}),\
-             mock.patch.object(bench,'selftest_cases',lambda root,rd:seen.append('cases') or ({'B01':{'status':'PASS'}},[])),\
+             mock.patch.object(bench,'project_suites',lambda root,rd,scope=None:seen.append('project') or {'project:examples/demo:unit':{'status':'PASS'}}),\
+             mock.patch.object(bench,'selftest_cases',lambda root,rd,scope=None:seen.append('cases') or ({'B01':{'status':'PASS'}},[])),\
              mock.patch.object(bench,'emit',lambda args,result,text:None):
             bench.selftest(ROOT,argparse.Namespace(suite=suite,project=None,format='json'))
         return json.loads((run_dir/'selftest.json').read_text())['suites'],seen
@@ -410,7 +435,7 @@ class SecondStubSuiteTests(unittest.TestCase):
         import bench_deadline as bd
         from unittest import mock
         seen=[]
-        with mock.patch.object(bench,'example_projects',lambda root:['tests/fixtures/bench-project']),\
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:['tests/fixtures/bench-project']),\
              mock.patch.object(bd,'_stub_run_selftest',lambda r,d,s,p,c:seen.append(('run',s['reason'])) or {'status':'PASS'}),\
              mock.patch.object(bd,'_stub_check_selftest',lambda r,d,s,p,c:seen.append(('check',s['reason'])) or {'status':'PASS'}):
             suites,_=bd.stub_suites(ROOT,Path('/nonexistent'))
@@ -422,7 +447,7 @@ class SecondStubSuiteTests(unittest.TestCase):
         from unittest import mock
         # FR1 (FS1 F3): found by declaration over the synthetic unit-test project only; the framework tree holds no
         # project that declares a test stub
-        with mock.patch.object(bench,'example_projects',lambda root:['tests/fixtures/bench-project']):
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:['tests/fixtures/bench-project']):
             project,case,spec=bd.stub_project(ROOT,'stub-overrun');_,_,first=bd.stub_project(ROOT,'stub-hang')
         policy=bm.load_policy(ROOT,project);identity=bm.project_identity(ROOT,project,case)
         plan=bd.stub_plan(ROOT,case,policy,ENV,7,spec,project,identity)
@@ -494,9 +519,10 @@ class SharedCheckFileTests(unittest.TestCase):
     def test_project_suites_hand_shared_files_forward_within_one_project(self):
         from unittest import mock
         run_dir=self.tmp();calls=[]
-        with mock.patch.object(bench,'registered_projects',lambda root:['examples/demo']),\
+        with mock.patch.object(bench,'registered_projects',lambda root,scope=None:['examples/demo']),\
              mock.patch.object(bench,'_quiet',lambda fn,root,args:(0,{'suites':{'unit':{'status':'PASS','evidence_paths':[]}}})),\
-             mock.patch.object(bench,'run_check',self.fake_check(run_dir,calls)),mock.patch.object(bench.bm,'project_bench',lambda root,project:self.DECL):
+             mock.patch.object(bench,'run_check',self.fake_check(run_dir,calls)),mock.patch.object(bench.bm,'project_bench',lambda root,project:self.DECL),\
+             mock.patch.object(bench,'project_image_suites',lambda root,run_dir:{}):      # EX-1: the image control has its own test (test_project_image)
             suites=bench.project_suites(ROOT,run_dir)
         self.assertEqual(calls,self.expected(run_dir))
         self.assertEqual({k.split(':')[-1]:v['status'] for k,v in suites.items()},{'unit':'PASS','acc-0':'PASS','acc-1':'FAIL','acc-2':'PASS'})

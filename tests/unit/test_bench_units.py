@@ -327,4 +327,24 @@ class SensitivityConfirmationTests(unittest.TestCase):            # base Task 18
             self.assertTrue(bu.coverage_record_ok(ROOT,'x',POL));self.assertTrue(bu.coverage_record_ok(ROOT,'x'))
             self.assertFalse(bu.coverage_record_ok(ROOT,'x',dict(POL,threshold_ns_per_request=T-1)))
 
+class WindowOutcomeTests(unittest.TestCase):                    # Phase 3 addendum Task A9 (H15.2) with EX-18b
+    def test_decide_on_an_exhausted_window(self):
+        rows=PY(T*2)+GUARD_ROWS
+        r=one('m3/full-dataset',uev(rows,window_pressure=['m3/full-dataset']))
+        self.assertEqual((r['verdict'],r['reason'],r['detail']),('INVALID_EXPERIMENT','run-invalid','window-pressure'))
+        self.assertEqual(one('m5/full-dataset',uev([dict(x,unit='m5/full-dataset') for x in rows],window_pressure=['m3/full-dataset']))['detail'],None)
+        straddle=row('py-optimized','python',T);straddle['wall']={b:T*(0.9 if b%2 else 1.1) for b in range(12)}
+        r=one('m3/full-dataset',uev([straddle],extension_exhausted=['m3/full-dataset']))
+        self.assertEqual((r['verdict'],r['reason'],r['extension']['note'],r['detail'],r['default_action']),
+                         ('INCONCLUSIVE','python-near-threshold','extension-not-run','extension-exhausted','KEEP_PYTHON'))
+        self.assertFalse(r['extension']['trigger'])
+    def test_a_failed_window_run_and_a_refused_chain(self):
+        rows=PY(T*2)+GUARD_ROWS
+        r=one('m3/full-dataset',uev(rows,window_invalid=['m3/full-dataset']))
+        self.assertEqual((r['verdict'],r['reason'],r['detail']),('INVALID_EXPERIMENT','run-invalid','window-run-invalid'))
+        r=one('m3/full-dataset',uev(rows,window_chain=['window 1b: missing (no attempt)']))
+        self.assertEqual((r['verdict'],r['reason'],r['detail'],r['verdict_safe_route']),('INVALID_EXPERIMENT','run-invalid','window-chain','INVALID_EXPERIMENT'))
+        self.assertEqual(one('m3/full-dataset',uev(rows))['detail'],None)
+        units_validator().validate({'units':bu.decide_units(uev(rows,window_chain=['x']),POL,ST)})
+
 if __name__=='__main__':unittest.main()

@@ -65,6 +65,54 @@
       "name": "starter-child-and-normal-workflow-integration",
       "phase": 3,
       "property": "bench payload in both starter instances, path with spaces, designated child qualification with real measurement; scaffolding, replay, docs, concurrency policy, metric profiles and runtime exclusion verified; no copied parent measurements or grandchildren"
+    },
+    {
+      "id": "B04",
+      "name": "actual-c-concurrency",
+      "phase": 2,
+      "property": "run the real pool with one and at least two workers under an approved multicore envelope; verify task IDs and results, separate worker identities that spent CPU, overlapping execution, bounded concurrency and completion; a serial-dispatch or one-CPU-affinity masquerade fails; no speedup is required"
+    },
+    {
+      "id": "B06",
+      "name": "equal-work-and-correctness-oracle",
+      "phase": 2,
+      "property": "a skipped chunk, wrong order or result, missing output, hardcoded answer, or unapproved precision or range change is rejected before it becomes an eligible row; C equals the Python reference on every route; a project adds its own agreement mutations in its protocol"
+    },
+    {
+      "id": "B07",
+      "name": "fair-build-and-resource-context",
+      "phase": 2,
+      "property": "reject a comparison with mismatched input or scope, an unannounced algorithm change, a different CPU or memory envelope, instrumented or debug C, a stale library, or different selectors, panels or dataset identities; same-envelope release rows stay comparable"
+    },
+    {
+      "id": "B08",
+      "name": "caller-boundary-and-cold-warm-separation",
+      "phase": 2,
+      "property": "execute the stdio, persistent-worker, shared-memory and in-process routes with real framing, copied bytes and caller plus worker accounting under each route label; a scope mutant that omits transport or startup or ends before result receipt is rejected; no route falls back"
+    },
+    {
+      "id": "B11",
+      "name": "c-pool-ownership-and-lifecycle",
+      "phase": 2,
+      "property": "admission bounds, completion, drain and teardown, per-task cleanup and error paths through controlled tests labeled simulated; real runs are ASan, UBSan, TSan and MSan clean; seeded race and lifetime mutants fail their checks; no callback outlives its owner"
+    },
+    {
+      "id": "B16",
+      "name": "failure-cancellation-and-cleanup",
+      "phase": 2,
+      "property": "bound and classify a worker error, EOF or protocol error, partial response, timeout, a finite crash fixture and a crash in the caller child; reap the whole job; no process or shared-memory segment is left; no incomplete result counts; a normal shutdown keeps results"
+    },
+    {
+      "id": "B13-echo",
+      "name": "measurement-perturbation-and-cache-policy-echo-control",
+      "phase": 2,
+      "property": "echo-control rows (every declared C variant, worker count, mode and route) measure the caller boundary with an empty kernel; labeled overhead calibration; the project names its echo case in the protocol"
+    },
+    {
+      "id": "B17",
+      "name": "real-complete-demo-matrix",
+      "phase": 3,
+      "property": "execute the Python/C one/multiple-worker matrix, all three scope demonstrations, cold/warm caller paths and independent memory trials through public commands; publish actual numbers even if C loses; synthetic decision tests cannot substitute"
     }
   ],
   "decision_cases": {
@@ -784,6 +832,43 @@
         "recommendation-deploys",
         "owner-threshold-altered",
         "verdict-from-cold-row"
+      ]
+    },
+    {
+      "name": "bench-build-or-scope-mismatch",
+      "parent": "P02",
+      "variants": [
+        "sanitized-or-debug-artifact",
+        "wrong-dependency",
+        "hidden-algorithm-or-precision-change",
+        "incomplete-workload-inventory",
+        "different-cpu-envelope",
+        "different-selector-panel-or-dataset"
+      ]
+    },
+    {
+      "name": "bench-concurrency-or-launch-bypass",
+      "parent": "P04",
+      "variants": [
+        "unlimited-pool-or-queue",
+        "unauthorized-thread-api",
+        "unsafe-native-loading",
+        "host-execution",
+        "changed-affinity",
+        "unmanaged-subprocess",
+        "profiler-privilege"
+      ]
+    },
+    {
+      "name": "bench-no-op-or-gamed-optimizer",
+      "parent": "P16",
+      "variants": [
+        "skip-useful-work",
+        "reuse-answer",
+        "no-op-native-kernel",
+        "removed-result-consumption",
+        "selector-overcompute",
+        "selector-no-op"
       ]
     }
   ],

@@ -1,0 +1,33 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "title":"bench tolerance spread file",
+ "description":"Project data for ./tools/safety bench tolerance (tools/bench_tolerance.py): per tolerance field (the dotted path of a number in the project protocol `tolerances`), the oracle error bound and, per variant, the largest absolute spread against the reference and its sample count. A project check writes it; the framework names no field and no variant. The tool repeats every rule in check_spread.",
+ "type":"object",
+ "additionalProperties":false,
+ "required":["schema_version","fields"],
+ "properties":{
+  "schema_version":{"const":1},
+  "source":{"type":"string","pattern":"^[A-Za-z0-9._/-]{8,160}$","description":"Optional provenance (for example the run id of the check that wrote the file)."},
+  "fields":{
+   "type":"object","minProperties":1,"maxProperties":256,
+   "propertyNames":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,40}(\\.[a-z][a-z0-9_-]{0,40}){0,2}$"},
+   "additionalProperties":{
+    "type":"object","additionalProperties":false,"required":["oracle_error","variants"],
+    "properties":{
+     "oracle_error":{"type":"number","minimum":0},
+     "variants":{
+      "type":"object","minProperties":1,"maxProperties":32,
+      "propertyNames":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,40}$"},
+      "additionalProperties":{
+       "type":"object","additionalProperties":false,"required":["max_abs","samples"],
+       "properties":{
+        "max_abs":{"type":"number","minimum":0},
+        "samples":{"type":"integer","minimum":1,"maximum":9007199254740992}
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

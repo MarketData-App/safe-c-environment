@@ -1222,11 +1222,14 @@
       ]
     },
     "examples/bench-demo/src/bd_spread.c": {
-      "sha256": "6c51fa14c03013ccb9071cd66f929bf1eb39c3fcd19fe59b22d19a4d0daa6fd8",
+      "sha256": "40b1dfa283583629b9f0c87f15a61f293e87477c4c92d30ca35a2d722348526a",
       "role": "example",
       "targets": [
+        "bd-spread",
         "project.bd_spread.test_bd_spread",
-        "project.bd_spread.test_bd_spread_threads"
+        "project.bd_spread.test_bd_spread_threads",
+        "project.bd_spread.test_bd_spread_trace",
+        "project.bd_spread.test_bd_spread_cli"
       ]
     },
     "examples/bench-demo/tests/project/test_bd_spread.c": {
@@ -1241,6 +1244,38 @@
       "role": "example",
       "targets": [
         "project.bd_spread.test_bd_spread_threads"
+      ]
+    },
+    "examples/bench-demo/src/bd_spread_cli.c": {
+      "sha256": "afeccc67dc42a511faac2bdc13f7275ba95d0c3f2a0053307b75eea9b55279eb",
+      "role": "example",
+      "targets": [
+        "bd-spread",
+        "project.bd_spread.test_bd_spread",
+        "project.bd_spread.test_bd_spread_threads",
+        "project.bd_spread.test_bd_spread_trace",
+        "project.bd_spread.test_bd_spread_cli"
+      ]
+    },
+    "examples/bench-demo/src/spread_main.c": {
+      "sha256": "650fa0fa7ee196a892cf737ea88b8f907fd89062af8a8f701c8c6f2e6b69906d",
+      "role": "example",
+      "targets": [
+        "bd-spread"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_spread_trace.c": {
+      "sha256": "0ba2a8e1c6218c8289365661d9c578eef63eccefd40e0566c2ce78ddfe8b53d6",
+      "role": "example",
+      "targets": [
+        "project.bd_spread.test_bd_spread_trace"
+      ]
+    },
+    "examples/bench-demo/tests/project/test_bd_spread_cli.c": {
+      "sha256": "b8368ff44da8f93056ee0a8c674d01f6954cdb4642c3e442c132b23e2110cfc8",
+      "role": "example",
+      "targets": [
+        "project.bd_spread.test_bd_spread_cli"
       ]
     }
   },
@@ -1399,6 +1434,10 @@
     "examples/bench-demo/include/bd_spread.h",
     "examples/bench-demo/src/bd_spread.c",
     "examples/bench-demo/tests/project/test_bd_spread.c",
-    "examples/bench-demo/tests/project/test_bd_spread_threads.c"
+    "examples/bench-demo/tests/project/test_bd_spread_threads.c",
+    "examples/bench-demo/src/bd_spread_cli.c",
+    "examples/bench-demo/src/spread_main.c",
+    "examples/bench-demo/tests/project/test_bd_spread_trace.c",
+    "examples/bench-demo/tests/project/test_bd_spread_cli.c"
   ]
 }

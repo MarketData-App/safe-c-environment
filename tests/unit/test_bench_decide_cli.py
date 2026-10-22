@@ -231,3 +231,92 @@ def decide(d,policy):
          mock.patch('policy.source_identity',return_value=('a'*64,{})),mock.patch('bench_decide._current_identity',return_value='a'*64),contextlib.redirect_stdout(out):
         rc=cli.decide_cmd(ROOT,argparse.Namespace(run_id='0'*32,policy=policy,format='json',ci_run_id=None,approval=[]))
     return rc,json.loads(out.getvalue().strip().splitlines()[-1])
+
+# EX-18b (Phase 3 addendum Task A9, PB-06): decide_owner over a window chain (bench_windows.chain_for_decide mocked). The
+# window policy is the synthetic engine test policy with a windows declaration (project data; the framework names none).
+WINDOWS={'window_seconds':86400,'cap_headroom':1.2,'cap_step_seconds':600,
+         'controls':{'base':{'point':'baseline','variant':'py-optimized'},'candidate':{'point':'baseline','variant':'c-serial','route':'stdio'}}}
+WNAME='fixture-window-units'
+
+class OwnerChainOutcomeTests(unittest.TestCase):
+    LOADED=({'run_id':'0'*32,'status':'VALID','mode':'decision','case':'fixture-case','dataset':{'kind':'synthetic'},'source_identity':'a'*64,
+             'image_id':'sha256:'+'1'*64,'plan':{'project_dir':'tests/fixtures/bench-project'}},
+            {'policy':WNAME,'window':{'id':'1a','look':1,'plan_id':'0'*32}},{'case_id':'fixture-case','variants':[]},{})
+    def policy(self):
+        return dict(bm.engine_unit_policy(ROOT),name=WNAME,case='fixture-case',windows=WINDOWS,origin='project',protocol_approved=True)
+    def ns(self,final=False):
+        return argparse.Namespace(run_id='0'*32,policy=WNAME,format='json',ci_run_id=None,approval=[],sensitivity_confirmation='c.json',cgroup_unrecorded=False,final=final)
+    def run_with(self,state,final=False,refusal=None):
+        import bench_windows as bw
+        with mock.patch('bench_phase3_cli._load_run',return_value=self.LOADED),mock.patch('bench_phase3_cli._sensitivity',return_value={'owner_confirmation':{'ledger_id':'P3-OWNER-SENS-01','coverage_sha256':'0'*64}}),\
+             mock.patch('bench_windows.chain_for_decide',return_value=state,side_effect=refusal),mock.patch('bench_phase3_cli._write_records') as w,\
+             mock.patch('bench_units.unit_evidence_from_run',side_effect=lambda *a,**k:dict(copy.deepcopy(bw.UEV_FIXTURE),**state.get('uev',{}))),\
+             mock.patch('bench_model.load_decision_policy',return_value=self.policy()),mock.patch('bench_decide._current_identity',return_value='a'*64),\
+             contextlib.redirect_stdout(io.StringIO()):
+            code=cli.decide_owner(ROOT,self.ns(final),WNAME)
+        return code,w
+    def test_window_control_fail_refuses_without_a_record(self):
+        import bench_windows as bw
+        code,w=self.run_with(dict(bw.CHAIN_FIXTURE_STATE,state=dict(bw.CHAIN_FIXTURE_STATE['state'],control_fail=True)))
+        self.assertEqual(code,1);w.assert_not_called()
+    def test_window_chain_problems_give_order_1_records(self):
+        import bench_windows as bw
+        code,w=self.run_with(dict(bw.CHAIN_FIXTURE_STATE,problems=['extends names a BLOCKED attempt']))
+        self.assertEqual(code,1);recs=w.call_args[0][1]
+        self.assertTrue(all(u['verdict']=='INVALID_EXPERIMENT' and u['detail']=='window-chain' for r in recs for u in r['units']))
+        self.assertEqual(len(recs[0]['units']),len(self.policy()['units']))
+    def test_mismatched_envelope_invalidates_only_the_pooled_unit(self):
+        import bench_windows as bw
+        ID=bw.CHAIN_FIXTURE_IDENTITY
+        pooled=[{'unit':'m3/full-dataset','windows':['1a','1b'],'identities':[ID,dict(ID,image_id='sha256:'+'9'*64)]},
+                {'unit':'m1/full-dataset','windows':['1a','2a'],'identities':[ID,dict(ID)]}]
+        code,w=self.run_with(dict(bw.CHAIN_FIXTURE_STATE,pooled=pooled))          # decide_owner applies windows_match to each pooled pair
+        units={u['unit']:u for u in w.call_args[0][1][0]['units']}
+        self.assertEqual((units['m3/full-dataset']['verdict'],units['m3/full-dataset']['detail']),('INVALID_EXPERIMENT','window-envelope-mismatch'))
+        self.assertNotEqual(units['m1/full-dataset'].get('detail'),'window-envelope-mismatch')
+    def test_the_record_holds_the_window_chain(self):
+        import bench_windows as bw
+        code,w=self.run_with(bw.CHAIN_FIXTURE_STATE)
+        rec=w.call_args[0][1][0];self.assertEqual(rec['windows'],bw.windows_record(bw.CHAIN_FIXTURE_STATE,'0'*32));self.assertTrue(rec['policy']['windows'])
+        validate(ROOT,'bench-decision',rec)
+    def test_the_evidence_of_the_chain_decides_the_units(self):
+        import bench_windows as bw
+        ev={'observations':[],'plan':{},'looks':{'m3/full-dataset':2},'window_pressure':['m1/full-dataset'],'extension_exhausted':['m2/full-dataset'],
+            'window_invalid':['m4/full-dataset']}
+        code,w=self.run_with(dict(bw.CHAIN_FIXTURE_STATE,evidence=ev))
+        units={u['unit']:u for u in w.call_args[0][1][0]['units']}
+        self.assertEqual((units['m1/full-dataset']['verdict'],units['m1/full-dataset']['detail']),('INVALID_EXPERIMENT','window-pressure'))
+        self.assertEqual((units['m4/full-dataset']['verdict'],units['m4/full-dataset']['detail']),('INVALID_EXPERIMENT','window-run-invalid'))
+        self.assertEqual(units['m3/full-dataset']['look'],2)
+    def test_final_records_the_extension_that_did_not_run(self):
+        import bench_windows as bw
+        ev={'observations':[],'plan':{},'looks':{'m5/full-dataset':2},'window_pressure':[],'extension_exhausted':['m2/full-dataset'],'window_invalid':[]}
+        seen={}
+        def evidence(*a,**k):
+            out=dict(copy.deepcopy(bw.UEV_FIXTURE));seen['uev']=out;return out
+        with mock.patch('bench_phase3_cli._load_run',return_value=self.LOADED),mock.patch('bench_phase3_cli._sensitivity',return_value={'owner_confirmation':{'ledger_id':'P3-OWNER-SENS-01','coverage_sha256':'0'*64}}),\
+             mock.patch('bench_windows.chain_for_decide',return_value=dict(bw.CHAIN_FIXTURE_STATE,evidence=ev)),mock.patch('bench_phase3_cli._write_records'),\
+             mock.patch('bench_units.unit_evidence_from_run',side_effect=evidence),mock.patch('bench_model.load_decision_policy',return_value=self.policy()),\
+             mock.patch('bench_decide._current_identity',return_value='a'*64),contextlib.redirect_stdout(io.StringIO()):
+            cli.decide_owner(ROOT,self.ns(final=True),WNAME)
+            # --final: every unit at look 1 whose extension window is not exhausted (the note applies to a unit near the threshold only)
+            self.assertEqual(sorted(seen['uev']['extension_not_run']),sorted(u for u in self.policy()['units'] if u not in ('m5/full-dataset','m2/full-dataset')))
+            cli.decide_owner(ROOT,self.ns(final=False),WNAME)
+            self.assertEqual(seen['uev']['extension_not_run'],[])
+    def test_a_run_that_is_not_a_window_run_is_refused(self):
+        import bench_windows as bw
+        code,w=self.run_with(bw.CHAIN_FIXTURE_STATE,refusal=bw.NotAWindowRun('the run is not a window attempt'))
+        self.assertEqual(code,1);w.assert_not_called()
+    def test_a_window_run_decides_only_under_its_own_policy(self):
+        import bench_windows as bw
+        other=dict(self.policy(),name='another-policy')
+        with mock.patch('bench_phase3_cli._load_run',return_value=self.LOADED),mock.patch('bench_phase3_cli._sensitivity',return_value={'owner_confirmation':{'ledger_id':'P3-OWNER-SENS-01','coverage_sha256':'0'*64}}),\
+             mock.patch('bench_windows.chain_for_decide',return_value=bw.CHAIN_FIXTURE_STATE),mock.patch('bench_phase3_cli._write_records') as w,\
+             mock.patch('bench_model.load_decision_policy',return_value=other),contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.decide_owner(ROOT,self.ns(),'another-policy'),1);w.assert_not_called()
+        plain={k:v for k,v in self.policy().items() if k!='windows'}
+        with mock.patch('bench_phase3_cli._load_run',return_value=self.LOADED),mock.patch('bench_phase3_cli._sensitivity',return_value={'owner_confirmation':{'ledger_id':'P3-OWNER-SENS-01','coverage_sha256':'0'*64}}),\
+             mock.patch('bench_phase3_cli._write_records') as w,mock.patch('bench_model.load_decision_policy',return_value=plain),contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.decide_owner(ROOT,self.ns(),WNAME),1);w.assert_not_called()
+    def test_decide_takes_the_final_option(self):
+        self.assertEqual(dict(bench.ARGUMENTS['decide'])['--final'],{'action':'store_true'})

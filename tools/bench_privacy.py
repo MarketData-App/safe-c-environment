@@ -211,11 +211,17 @@ def small_quantiles(doc):
             for v in node:walk(v,depth+1)
     walk(doc.get('summary'))
 
-def run_local(root,args,plan,case,policy,envelope=None):
-    """One local: smoke run in a single redacted container (spec 12). The fixture path leaves the plan before it is written."""
+def run_local(root,args,plan,case,policy,envelope=None,window=None):
+    """One local: smoke run in a single redacted container (spec 12). The fixture path leaves the plan before it is written.
+    EX-19 (Task 31): a decision plan, and every window attempt (H15.2), is a local decision run
+    (bench_local_decision.run_local_decision: one redacted container per timing session, merged closed aggregates)."""
     from bench import BenchSession, new_run_dir, emit, before_run_checks, lock_held, active_before, doctor_probe, guardrail_gate
     from policy import source_identity
-    if plan['mode']!='smoke':raise GateError('decision runs on the owner fixture belong to Phase 3')
+    if plan['mode']=='decision':
+        path=plan['dataset'].pop('path')
+        from bench_local_decision import run_local_decision
+        return run_local_decision(root,args,plan,case,policy,path,envelope=envelope,window=window)
+    if plan['mode']!='smoke' or window is not None:raise GateError('a local run is a smoke run or a decision run; a window attempt is a decision run')
     root=Path(root);path=plan['dataset'].pop('path');protocol_sha256=bm.protocol_digest(root,plan.get('project_dir'))   # FR3
     # FR3: the summary block is validated with the project's protocol aggregate schema (no schema: a non-null summary is
     # rejected); read once here so a protocol change during the run cannot switch the schema
@@ -266,6 +272,10 @@ def run_local(root,args,plan,case,policy,envelope=None):
         if _withheld(exc,path):raise GateError('local run failed; the error named the fixture and is withheld') from None
         raise
     status,reasons=local_run_status(doc,reason,job_exit)
+    if doc is not None:          # T5-A11: every timing row of a smoke aggregate is a planned row of the run (the decision jobs' host check)
+        from bench_local_decision import row_problems
+        codes=sorted({c for c,_ in row_problems(doc,job['trials'])})      # the codes only: a row text names a value of the container
+        if codes:status='INVALID_EXPERIMENT';reasons=list(reasons)+[f'local rows: {c}' for c in codes]
     run={'schema_version':1,'run_id':run_dir.name,'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'case':case['case_id'],
          'case_version':case['version'],'mode':'smoke','dataset':dict(plan['dataset'],rows=doc['rows'] if doc else None),
          'plan':{'plan_id':plan['plan_id'],'plan_version':plan['plan_version']},

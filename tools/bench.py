@@ -26,21 +26,44 @@ def new_run_dir(root,kind):
 def expected_versions(root):
     return dict(read_json(Path(root)/'developer.lock.json').get('bench_python',{}))
 
+NATIVE_BUILD_JOBS=('native-build',)      # EX1-A02: the coordinator jobs that compile first-party C
+
 class BenchSession:
     """One bench container (developer image) through the protected launcher."""
     def __init__(self,root,run_dir,*,fixture=None,redacted=False):
         from developer import inputs as developer_inputs
         _,dev_lock,toolchain=developer_inputs(root)
-        self.root=Path(root);self.redacted=redacted
+        self.root=Path(root);self.redacted=redacted;self.run_dir=Path(run_dir)
         self.lock=dict(toolchain,image_id=dev_lock['image_id'])
+        self.developer_image=dev_lock['image_id'];self.project_image=None     # EX-1: select_image may switch to a project image
         self.scratch=Path(tempfile.mkdtemp(prefix='safe-c-bench-'));self.evidence_paths=[]
         try:
             self.runner=Runner(self.root,run_dir,self.lock,self.scratch,build_profile='bench',purpose='bench',
                                file_mounts={'/data/dataset.json':fixture} if fixture else None,redacted=redacted)
         except BaseException:
             shutil.rmtree(self.scratch,ignore_errors=True);raise
+    def select_image(self,plan,ensure=None):
+        """EX-1: the plan the coordinator gets. A job of a project that binds a third-party lock with wheels runs in that
+        project's bench image (tools/project_image.py, built or reused before the session starts); the plan then carries
+        `project_wheels`. Any other job runs in the developer image. The image is fixed once the session has started: a later
+        job that needs another image is refused (GateError), and so is a project lock that changed during the session.
+        The shared lock dict makes the launcher image gate admit exactly the selected image."""
+        import project_image
+        # EX1-A02: a first-party C build never sees the project wheels: the native build job keeps the developer image.
+        sel=None if plan.get('job') in NATIVE_BUILD_JOBS else project_image.selection(self.root,plan.get('project_dir'))
+        alive=getattr(self.runner,'alive',False)
+        if sel is None:image,out=self.developer_image,plan
+        else:
+            if self.project_image is None or self.project_image['key']!=sel['key']:
+                if alive:raise GateError('a bench session runs in one image; this job needs another image')
+                self.project_image=(ensure or project_image.ensure_selected)(self.root,sel,self.run_dir)
+            image,out=self.project_image['image_id'],dict(plan,project_wheels=sel['plan'])
+        if alive and self.lock['image_id']!=image:raise GateError('a bench session runs in one image; this job needs another image')
+        self.lock['image_id']=image
+        return out
     def job(self,plan,label,timeout,restore=()):
         """Run one coordinator job. Every evidence record it writes goes to evidence_paths."""
+        plan=self.select_image(plan)
         path=self.scratch/'plan.json';atomic_json(path,plan)
         self.runner.start()
         scratch=self.runner.run(['mkdir','-p','/work/bench/out','/work/bench/data','/work/bench/private'],label='bench-scratch')
@@ -236,8 +259,17 @@ def selftest_status(statuses):
     if statuses and all(s=='PASS' for s in statuses):return 'PASS'
     return 'BLOCKED' if all(s in ('PASS','BLOCKED') for s in statuses) and 'BLOCKED' in statuses else 'FAIL'
 
+def _selftest_identity(root):
+    """FIX1 T3-A07: the source identity (policy.source_identity) of the tree that a bench selftest checks, or None when it
+    cannot be computed."""
+    from policy import source_identity
+    try:return source_identity(Path(root))[0]
+    except (GateError,OSError):return None
+
 def selftest(root,args):
     policy=bm.load_policy(root);project=project_arg(root,args);run_dir=new_run_dir(root,'selftest');result={'status':'BLOCKED','suites':{}}   # a project replaces the unit suite's tests; controls stay framework
+    scope=getattr(args,'project',None)          # amendment E 1.2 item 3: only an explicit --project (validated by project_arg) scopes the cases and project suites
+    identity=_selftest_identity(root)           # FIX1 T3-A07: the record names its scope and the tree it checked (bench_decide._suite_status)
     if args.suite in ('unit','all'):
         groups=bm.unit_groups(root,project) if project is not None else None      # ruling A6-C3: one container command per declared group
         if groups is None:result['suites']['unit']=_unit_job(root,run_dir,policy,project,None)
@@ -262,14 +294,16 @@ def selftest(root,args):
         result['suites']['privacy']=_privacy_suite(root,run_dir)
     if args.suite in ('cases','all'):
         try:
-            suites,additions=selftest_cases(root,run_dir);result['suites'].update(suites)
+            suites,additions=selftest_cases(root,run_dir,scope);result['suites'].update(suites)
             result['suites']['subcases']={'status':'PASS' if additions and all(a['status']=='PASS' for a in additions) else 'FAIL',
                                           'passed':sum(a['status']=='PASS' for a in additions),'total':len(additions),'report':str(run_dir/'cases.json')}
         except GateError as exc:
             result['suites']['cases']={'status':'BLOCKED','reason':str(exc)}
-    if args.suite in ('project','all'):result['suites'].update(project_suites(root,run_dir))     # Task 19b (Amendment A)
+    if args.suite in ('project','all'):result['suites'].update(project_suites(root,run_dir,scope))     # Task 19b (Amendment A); EX-1: with the image layer control
     statuses=[s['status'] for s in result['suites'].values()]
     result['status']=selftest_status(statuses)
+    result['scope']=scope                       # None: the framework scope; else the --project directory
+    result['source_identity']=identity if identity is not None and _selftest_identity(root)==identity else None    # None: the tree changed during the run
     atomic_json(run_dir/'selftest.json',result)
     emit(args,result,'bench selftest: '+result['status']+' '+json.dumps({k:v['status'] for k,v in result['suites'].items()}));return EXIT[result['status']]
 
@@ -281,11 +315,26 @@ def plan_cmd(root,args):
     import bench_plan as bp
     from container_policy import choose_envelope, host_topology
     project=project_arg(root,args);policy=bm.load_policy(root,project);case=bm.load_case(root,args.case,project);bm.case_rules(root,case,project_dir=project);dataset=bp.parse_dataset(root,args.dataset,policy)
-    calibration,source=bp.calibration_record(root,args.calibrate,policy) if args.calibrate else (None,None)
+    unit_policy,refusal=window_policy_arg(root,args,project,case)        # EX-18b: --policy NAME (a unit policy that declares windows)
+    if refusal:return refusal
+    calibration,source,rows=bp.calibration_inputs(root,args.calibrate,policy,bp.calibration_families(case)) if args.calibrate else (None,None,None)
     envelope=choose_envelope(*host_topology(),wanted=policy['envelope']['cpus']);seed=int(uuid.uuid4().int%2**31)   # recorded as plan['seed']
     identity=bm.project_identity(root,project,case) if project is not None and case['case_id'] in bm.project_bench(root,project)['cases'] else None
-    plan=bp.build_plan(case,policy,mode=args.mode,dataset=dataset,seed=seed,envelope=envelope,calibration=calibration,project_dir=project,project_identity=identity,
-                       calibration_source=source)
+    import bench_windows as bwin
+    repair=None;observations=None
+    if unit_policy is not None and args.mode=='decision':
+        failed=bwin.control_fail_versions(root,bwin.previous_versions(root,case['case_id'],unit_policy['name'],dataset))
+        if failed and not getattr(args,'repair',None):
+            emit(args,{'status':'FAIL','reason':'control-fail-unrepaired','plan_ids':failed[:8]},
+                 f"bench plan refused: control-fail-unrepaired (plan version {failed[0]} ended window-control-fail; name the closed ledger finding and its repair with --repair LEDGER_ID:COMMIT)")
+            return 1
+        if failed:
+            try:repair=bwin.repair_record(root,project,args.repair,failed)
+            except bwin.PlanRefusal as exc:return plan_refused(args,exc,'bench plan')      # EX-18c (EX18b-A02): exit 1, no container
+        observations=rows                         # EX-18c: the rows of the same read as the calibration (measured walls, report)
+    try:plan=bp.build_plan(case,policy,mode=args.mode,dataset=dataset,seed=seed,envelope=envelope,calibration=calibration,project_dir=project,project_identity=identity,
+                           calibration_source=source,matrix=matrix_arg(args),unit_policy=unit_policy,repair=repair,calibration_observations=observations)
+    except bwin.PlanRefusal as exc:return plan_refused(args,exc,'bench plan')
     import bench_guardrails            # B12 (Task 12): plan-time guardrails with the last recorded doctor row; no container runs here
     cp=read_json(Path(root)/'safety/container-policy.json');doctor_row,source=last_doctor_record(root)
     guard=dict(bench_guardrails.check(plan,policy,envelope,cp,doctor_row),doctor_row=source)   # T12-APP-04: the row's path and age
@@ -296,6 +345,45 @@ def plan_cmd(root,args):
     emit(args,{'status':'PASS','plan':str(run_dir/'plan.json'),'plan_version':plan['plan_version'],'estimate_seconds':plan['estimate_seconds'],'blocked_rows':plan['blocked_rows'],
                'guardrails':guard},
          f"plan {plan['plan_version']}: {plan['estimate_seconds']} s estimated -> {run_dir/'plan.json'}");return 0
+
+def window_policy_arg(root,args,project,case):
+    """EX-18b: (unit policy, None) for `--policy NAME`, (None, None) without it, or (None, exit code 1) after a refusal: a
+    policy that is not a unit-threshold policy that declares windows, a policy of another case, or a decision plan without
+    --calibrate (H15.3)."""
+    name=getattr(args,'policy',None)
+    if name is None:return None,None
+    pol=bm.load_decision_policy(root,name,project)
+    def refuse(text):
+        emit(args,{'status':'FAIL','reasons':[text]},f'refused: {text}');return None,1
+    if pol.get('kind')!='unit-threshold' or not isinstance(pol.get('windows'),dict):return refuse(f'--policy {name}: a window plan needs a unit-threshold policy that declares windows')
+    if pol.get('case')!=case['case_id']:return refuse(f"policy-case-mismatch: policy {name} is for case {str(pol.get('case'))[:41]}")
+    if getattr(args,'mode',None)=='decision' and not getattr(args,'calibrate',None):return refuse('a window plan needs a calibration (--calibrate SMOKE_RUN_ID, H15.3)')
+    return pol,None
+
+def plan_refused(args,exc,what):
+    """A refused window plan (bench_windows.PlanRefusal): exit 1 with the reason, the detail and the estimates; no container."""
+    emit(args,{'status':'FAIL','reason':exc.reason,'detail':str(exc.detail)[:300],'estimates':list(exc.estimates)[:32]},f'{what} refused: {exc.reason} ({str(exc.detail)[:200]})')
+    return 1
+
+def unit_policy_name(value):
+    """--policy of bench plan and bench run: the name of a project unit-threshold policy (never all)."""
+    if value=='all' or not re.fullmatch(r'[a-z][a-z0-9-]{2,40}',value):raise argparse.ArgumentTypeError('--policy: the name of a unit-threshold policy')
+    return value
+
+def window_id_arg(value):
+    """--window of bench run: a look-1 window id (1a ... 1p)."""
+    if not re.fullmatch(r'1[a-p]',value):raise argparse.ArgumentTypeError('--window: a look-1 window id, 1a to 1p (an extension runs with --extend RUN_ID)')
+    return value
+
+def matrix_arg(args,plan=None):
+    """Task 30 (brief section 14): the matrix of bench plan and bench run, `--matrix python|full` (absent: full). A written
+    plan (`bench run --plan`, bench replay) keeps the matrix it was built with; an explicit --matrix that differs from it
+    is refused (GateError), never applied silently."""
+    value=getattr(args,'matrix',None)
+    if plan is None:return value or 'full'
+    recorded=plan.get('matrix','full') if isinstance(plan,dict) else 'full'
+    if value is not None and value!=recorded:raise GateError(f'the written plan was built with --matrix {recorded}, not {value}')
+    return recorded
 
 def last_doctor_record(root):
     """B12: the newest readable recorded `bench doctor` result (artifacts/bench/<id>/doctor.json) and its source
@@ -546,10 +634,31 @@ HANDLERS.update(new=new,validate=validate_case,check=check_cmd)
 PROJECT=('--project',{})
 ARGUMENTS.update(new=[('--case',{'required':True}),PROJECT],validate=[('--case',{'required':True}),PROJECT],check=[('--check',{'required':True}),PROJECT,('--long',{'action':'store_true'}),('--arg',{'action':'append','default':[]})])
 ARGUMENTS['plan']=[('--case',{'required':True})]+[a for a in ARGUMENTS['plan'] if a[0]!='--case']+[PROJECT]
+ARGUMENTS['plan'].append(('--matrix',{'choices':['python','full'],'default':None}))     # Task 30 (bench_plan.MATRICES): absent means full (matrix_arg); bench run inherits it
+ARGUMENTS['plan']+=[('--policy',{'default':None,'type':unit_policy_name}),('--repair',{'default':None})]      # EX-18b: the window policy and its H15.2 repair; bench run inherits them
 ARGUMENTS['selftest']=ARGUMENTS['selftest']+[PROJECT];ARGUMENTS['list']=ARGUMENTS.get('list',[])+[PROJECT]
 # Task 17 (FR6 N2): the operation native-build and the --native flag of check. After the check arguments above, which the
 # source anchor (the HANDLERS.update line) precedes; at that line ARGUMENTS['check'] does not exist yet.
 import bench_native;bench_native.register_cli(HANDLERS,ARGUMENTS)
+
+def image_cmd(root,args):
+    """EX-1: `bench image --project DIR` builds (offline, from the project's pinned local files) or reuses the project bench
+    image of a project whose third-party lock declares wheels (tools/project_image.py). PASS with the image id; BLOCKED on
+    any refused step; FAIL for a project without wheels."""
+    import project_image
+    project=project_arg(root,args)
+    if project is None:raise GateError('bench image needs --project DIR')
+    run_dir=new_run_dir(root,'image')
+    record=project_image.ensure(root,project,run_dir)
+    if record is None:
+        result={'status':'FAIL','reason':'the project declares no third-party wheels'}
+    else:
+        result={'status':'PASS',**{k:record[k] for k in ('image_id','tag','key','reused','lock_sha256')},
+                **{k:record[k] for k in ('payload_bytes','payload_files','cache_images_before','added_bytes') if k in record}}
+    atomic_json(run_dir/'image.json',result)
+    emit(args,result,'bench image: '+result['status']+(' '+result['image_id'][:19] if 'image_id' in result else ''));return EXIT[result['status']]
+
+HANDLERS['image']=image_cmd;ARGUMENTS['image']=[PROJECT]
 
 # ---- Task 16a: bench run, compare and report (workload-generic; qualified on the framework controls) ----
 POOLED=('py-threads','py-processes')
@@ -558,13 +667,16 @@ def read_jsonl(path):
     p=Path(path);return evidence_read_jsonl(p,'container-jsonl') if p.is_file() else []    # FR3-19: fetched rows, capped
 
 def check_completeness(plan,observations,policy):
-    """P07: every planned non-warmup row is observed with its full work and no dropped result rows."""
+    """P07: every planned non-warmup row is observed with its full work and no dropped result rows. The full work is the
+    planned work of the trial (bench_plan.planned_work_units, T5R1-A01): the rows of its tier, or for a single-record
+    (panel) trial len(panel) x panel_passes one-row calls."""
+    import bench_plan as bp
     problems=[];by={}
     for o in observations:by.setdefault(o['trial_id'],[]).append(o)
     for t in [t for s in plan['sessions'] for t in s['trials'] if not t['warmup']]+plan['memory']:
         got=by.get(t['trial_id'])
         if not got:problems.append(f"{t['trial_id']}: planned row missing");continue
-        n=policy['sizes'][t['tier']]
+        n=bp.planned_work_units(t,policy['sizes'])
         for o in got:
             if not o['work_units']:problems.append(f"{t['trial_id']}: zero work units")
             elif o['work_units']!=n:problems.append(f"{t['trial_id']}: {o['work_units']} of {n} units completed")
@@ -582,7 +694,8 @@ def check_caller_semantics(plan,observations,phases):
         if o['mode']=='warm' and (o['variant'],o['workers']) not in starts:problems.append(f"{o['trial_id']}: warm pool start not observed separately")
     return problems
 
-HOST_TUNING_KEYS=('host_tuning','drop_caches','cpu_governor','disable_aslr','isolcpus','turbo','nice','perf_event_paranoid','irq_affinity')
+HOST_TUNING_KEYS=('host_tuning','drop_caches','cpu_governor','disable_aslr','isolcpus','turbo','nice','perf_event_paranoid','irq_affinity',
+                  'capabilities','privileged','ptrace')      # EX-13 (P04 profiler-privilege): bench_phase2.PRIVILEGE_KEYS
 
 def reject_host_tuning(plan):
     """B13: the laboratory never tunes the host (no cache flush, governor, ASLR, isolation or priority changes)."""
@@ -616,12 +729,14 @@ PY_POOL_KEYS=('max_pending','window','pids_distinct','caller_pid_included','star
 def check_concurrency_identity(observations,plan,policy):
     """B10: a thread row ran in the caller process; a process row ran only in spawned workers, at most `workers` of them, with the
     resource tracker started at session setup; the submission window held. Amendment E item 6: every pooled row records the
-    one-per-worker chunk rule and exactly the chunk sizes of that rule for its row count (bench_plan.b10_row_count) and workers."""
+    one-per-worker chunk rule and exactly the chunk sizes of that rule for its row count (bench_plan.b10_row_count of the
+    plan's trial; T5R1-A01: one row for each call of a single-record trial) and workers."""
     import bench_plan as bp
     problems=[];limit=policy['pools']['request_limit']
+    planned={t.get('trial_id'):t for s in plan.get('sessions') or [] for t in s.get('trials') or []}     # T5R1-A01: the plan's trial decides the rows
     for o in observations:
         if o.get('scope')=='caller' and o.get('variant')=='c-threads' and not o.get('warmup') and o.get('eligible') is True:   # Task 19: per route
-            problems+=_c_threads_identity(plan,o,policy,limit);continue
+            problems+=_c_threads_identity(plan,o,policy,limit,planned.get(o.get('trial_id')));continue
         if o.get('scope') not in ('caller','kernel') or o.get('variant') not in POOLED or o.get('warmup') or o.get('eligible') is not True:continue
         p=o.get('pool')
         if not p:problems.append(f"{o['trial_id']}: pool identity not recorded");continue
@@ -631,7 +746,7 @@ def check_concurrency_identity(observations,plan,policy):
         rows=None          # Task 19b: a chunk-rule or row-count problem no longer skips the identity checks below; every reason is reported
         if p.get('chunk_rule')!=bp.CHUNK_RULE:problems.append(f"{o['trial_id']}: chunk rule is not one-per-worker")
         else:
-            try:rows=bp.b10_row_count(plan,o,policy)
+            try:rows=bp.b10_row_count(plan,planned.get(o['trial_id'],o),policy)
             except GateError as exc:problems.append(f"{o['trial_id']}: no B10 row count ({str(exc)[:80]})")
         if rows is None:pass
         elif p.get('chunk_sizes')!=bp.expected_chunk_sizes(rows,o['workers'],limit) or p.get('chunks')!=len(p['chunk_sizes']):
@@ -643,14 +758,15 @@ def check_concurrency_identity(observations,plan,policy):
         if o['variant']=='py-processes' and p.get('tracker_session_setup') is not True:problems.append(f"{o['trial_id']}: resource tracker not started at session setup")
     return problems
 
-def _c_threads_identity(plan,o,policy,limit):
+def _c_threads_identity(plan,o,policy,limit,trial=None):
     """B10 for a c-threads caller row (Task 19): the native pool evidence records the one-per-worker chunk rule and exactly
-    the Amendment E chunk sizes for its row count and workers, on every route."""
+    the Amendment E chunk sizes for its row count and workers, on every route. `trial`: the plan's trial of the row
+    (T5R1-A01: a single-record trial calls one-row requests); the row itself when the plan has none."""
     import bench_plan as bp
     p=o.get('pool');tid=f"{o['trial_id']} [{o.get('route')}]"
     if not isinstance(p,dict):return [f'{tid}: native pool evidence not recorded']
     if p.get('chunk_rule')!=bp.CHUNK_RULE:return [f'{tid}: chunk rule is not one-per-worker']
-    try:rows=bp.b10_row_count(plan,o,policy)
+    try:rows=bp.b10_row_count(plan,trial if trial is not None else o,policy)
     except GateError as exc:return [f'{tid}: no B10 row count ({str(exc)[:80]})']
     if p.get('chunk_sizes')!=bp.expected_chunk_sizes(rows,o['workers'],limit) or p.get('chunks')!=len(p.get('chunk_sizes') or []):return [f'{tid}: chunk sizes differ from the one-per-worker rule']
     if not isinstance(p.get('chunk_wall_ns'),list) or len(p['chunk_wall_ns'])!=p['chunks']:return [f'{tid}: chunk time count differs from the chunk count']
@@ -701,13 +817,26 @@ def route_summary(rows,policy):
         if r.get('route'):count[r['route']]=count.get(r['route'],0)+1
     return [f"route {route}: {policy['routes'].get(route,'unknown route')} (compare rows: {n})" for route,n in sorted(count.items())]
 
+def planned_points(case,plan,policy=None):
+    """R48 (T6-R6): the points that the plan holds: for each point name of a planned session trial, the point of that name
+    among the plan mode's points (bench_plan._points; T6-R7: with `policy`, the probe points of a smoke plan too), else
+    among the case points (the unit and diagnostic points that a window plan or a unit smoke job adds to a smoke plan). The
+    first point of a name wins; a name without a point adds none."""
+    import bench_plan as bp
+    names={t.get('point') for s in plan.get('sessions') or [] for t in s.get('trials') or []};out=[];seen=set()
+    for p in bp._points(case,plan.get('mode'),policy)+list(case.get('points') or []):
+        if p.get('name') in names and p['name'] not in seen:seen.add(p['name']);out.append(p)
+    return out
+
 def dataset_identity_reasons(case,policy,plan):
     """G6.6 (Task 19 start check): the named dataset of each planned trial's dataset_ref is in plan.datasets with exactly
     the identity that the case's dataset_ref points give (bench_plan.plan_datasets: kind, size, seed, rows, indices). A
     difference is a run-invalid reason; bench run stops before any container. A named dataset that no trial uses is only
-    recorded (T16-APP-03)."""
+    recorded (T16-APP-03). R48 (T6-R6): the case derivation comes from the points that the plan holds (planned_points), so
+    the dataset_ref of a unit point of a window smoke plan or a unit smoke job passes; a dataset that no planned point
+    declares stays run-invalid."""
     import bench_plan as bp
-    want=bp.plan_datasets(bp._points(case,plan.get('mode')),policy);got=plan.get('datasets') or {}
+    want=bp.plan_datasets(planned_points(case,plan,policy),policy);got=plan.get('datasets') or {}
     refs=sorted({t['dataset_ref'] for s in plan.get('sessions',[]) for t in s['trials'] if isinstance(t.get('dataset_ref'),str)})
     keys=('kind','size','seed','rows','indices')
     bad=[n for n in refs if n not in want or n not in got or any(want[n].get(k)!=got[n].get(k) for k in keys)]
@@ -758,7 +887,9 @@ def _memory_eligibility(observations):
             o['eligible']=row in ok_rows and row not in bad_rows and digests.get(k,o['result_sha256'])==o['result_sha256']
 
 def plan_digest(plan):
-    """plan_id of a plan body (bench_plan.build_plan): sha256 over every key except plan_id and the project locator."""
+    """plan_id of a plan body (bench_plan.build_plan): sha256 over every key except plan_id and the project locator. EX-18c
+    (EX18b-A06): the calibration report of a window plan is part of it, so an edit of the report in plan.json or in a
+    run's window-plan.json is detected."""
     import hashlib
     body={k:v for k,v in without_guardrail_rows(plan).items() if k not in ('plan_id','project_dir')}
     return hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()[:32]
@@ -780,11 +911,15 @@ def plan_request_limit_reason(plan,policy):
         return f'run-invalid: plan request_limit {value!r} differs from the policy pools.request_limit {want}'
     return None
 
-def verify_written_plan(case,policy,plan,envelope,project,identity,root=None):
+def verify_written_plan(case,policy,plan,envelope,project,identity,root=None,unit_policy=None):
     """`bench run --plan`: the written plan must be exactly the plan that case, policy, mode, dataset, seed, calibration and
     this host's envelope produce. An edited plan (fewer blocks, other variants, other pyperf values, another seed) is refused.
     Task 19a: a calibration is never taken from the plan. It is re-derived from the recorded calibration run that the plan
-    names, whose observation bytes must still have the recorded sha256; an edited calibration fails even with a recomputed id."""
+    names, whose observation bytes must still have the recorded sha256; an edited calibration fails even with a recomputed id.
+    EX-18b: a plan that names a unit policy is rebuilt with that policy (`unit_policy`, loaded by the caller from the
+    project protocol), its smoke job and its repair. EX-18c: a window decision plan is rebuilt with the observation rows
+    of the same read of its bound calibration run, so its measured reference walls and its calibration report are
+    re-derived and compared (EX18b-A03, A06)."""
     import bench_plan as bp
     if not isinstance(plan,dict):raise GateError('the written plan is not an object')
     if plan.get('plan_id')!=plan_digest(plan):raise GateError('the written plan was edited: plan_id differs from its content')
@@ -792,16 +927,20 @@ def verify_written_plan(case,policy,plan,envelope,project,identity,root=None):
     import bench_deadline                         # P3P-07 (Task 6): the selftest mode and its keys never come from a written plan
     if plan.get('mode')=='selftest':raise GateError('a written plan never has the selftest mode')
     bench_deadline.check_test_floor(plan)
-    calibration=source=None
+    if (plan.get('policy') is not None)!=(unit_policy is not None) or (unit_policy is not None and unit_policy.get('name')!=plan.get('policy')):
+        raise GateError(f"the written plan names the policy {plan.get('policy')}: it is verified only with that policy")
+    calibration=source=rows=None
     if plan.get('calibration') is not None or 'calibration_source' in plan:
         source=plan.get('calibration_source')
         if root is None or not isinstance(source,dict) or set(source)!={'run_id','observations_sha256'}:
             raise GateError('the written plan calibration is not bound to a recorded calibration run')
-        calibration,fresh=bp.calibration_record(root,source['run_id'],policy)
+        calibration,fresh,rows=bp.calibration_inputs(root,source['run_id'],policy,bp.calibration_families(case))
         if fresh!=source:raise GateError('the calibration run changed after the plan was written')
         if plan.get('calibration')!=calibration:raise GateError('the written plan calibration differs from its recorded calibration run')
     try:rebuilt=bp.build_plan(case,policy,mode=plan['mode'],dataset=plan['dataset'],seed=plan['seed'],envelope=envelope,calibration=calibration,
-                              project_dir=project,project_identity=identity,calibration_source=source)
+                              project_dir=project,project_identity=identity,calibration_source=source,matrix=plan.get('matrix','full'),   # Task 30
+                              unit_policy=unit_policy,smoke_job=plan.get('smoke_job'),repair=plan.get('repair'),     # EX-18b
+                              calibration_observations=rows if unit_policy is not None and plan.get('mode')=='decision' else None)     # EX-18c
     except (KeyError,TypeError,ValueError):raise GateError('the written plan is malformed') from None
     strip=lambda p:{k:v for k,v in without_guardrail_rows(p).items() if k!='project_dir'}
     if strip(rebuilt)!=strip(plan):raise GateError('the written plan differs from the plan its case, policy, mode, dataset and seed produce')
@@ -827,6 +966,19 @@ def reference_evals_of(row):
     return None,'reference job evaluation counts are malformed'
 
 ADMIT_KEYS=('row','brent','bump')
+
+def reference_selectors(plan):
+    """R48 (T6-R6, ruling R48): the `reference_selectors` of the run's reference job: the sorted selectors (opaque strings)
+    of every planned trial that validates against the run reference (the session trials; a capacity trial uses `all`).
+    [] when each of them is `all`: the reference job plan then holds no key, so such a plan keeps its reference job."""
+    sels={t.get('selector','all') for s in plan.get('sessions') or [] for t in s['trials']}|({'all'} if plan.get('capacity') else set())
+    return sorted(sels) if sels-{'all'} else []
+
+def reference_cover_ok(row,requested):
+    """R48: the reference job row reports `reference_selectors` only when the adapter's reference_cover hook covered the
+    requested list; then it must equal that list. A row without the key (no request, or an adapter without the hook) is
+    unchanged behavior."""
+    return 'reference_selectors' not in row or (bool(requested) and row['reference_selectors']==requested)
 
 def copy_reference_counts(row,run):
     """Amendment G3.7 and G2.3 (P3R2-04): copy the reference job's `reference_evals` (validated by reference_evals_of) and
@@ -896,6 +1048,40 @@ def undeclared_counts(root,project,observations):
            for k in o['verdict']['verdict_counts']}
     return sorted(str(k) for k in names-declared)
 
+def extension_attempt(root,args,case,policy,project,identity,envelope):
+    """EX-18b (A9, G10.3): ((run plan, window), None) of `bench run --extend RUN_ID`, or (None, reason) for a refusal. The
+    base run is the bound, unchanged final PASS attempt of a look-1 window; its plan version (window-plan.json) is verified
+    like a written plan; the triggered units come only from its bound look-1 decision record (decision_digests).
+    EX-18c (EX18b-A07): the first extension attempt of the plan version pins the look-1 record (its copy is the record of
+    every later attempt, bench_windows.look1_for_extension), and the chain digests leave out the decision digests
+    (bench_windows.record_digest), so a decide on the base run never refuses or redirects a later attempt."""
+    import bench_windows as bwin, bench_evidence as be
+    base_dir=_run_dir(root,args.extend);base=read_json(base_dir/'run.json')
+    if be.RECORD_KEY not in base or be.verify_record(base):return None,'the base run record is not bound (run_record_sha256)'
+    changed=be.verify(base_dir,base)
+    if changed:return None,'the base run evidence changed: '+changed[0]
+    wid=base.get('window')
+    if not (isinstance(wid,str) and bwin.WINDOW_ID.match(wid) and wid[0]=='1'):return None,'the base run is no look-1 window attempt'
+    if (base.get('attempt_outcome') or {}).get('status')!='PASS':return None,'the base run is no PASS window attempt'
+    version=bwin.version_of(base_dir,base.get('window_plan_id'))
+    if version.get('case')!=case['case_id']:return None,f"the base run is of case {version.get('case')}, not {case['case_id']}"
+    unit_policy=bm.load_decision_policy(root,version['policy'],project)
+    verify_written_plan(case,policy,version,envelope,project,identity,root=root,unit_policy=unit_policy)
+    ch=bwin.chain(root,version['plan_id']);digest=bwin.record_digest(base)
+    if ch['positions'].get(wid)!=digest:return None,f'the base run is not the final position of window {wid}'
+    try:rec,sha,data=bwin.look1_for_extension(root,ch,args.extend,version['policy'])
+    except (GateError,ValueError) as exc:return None,str(exc)[:300]
+    units_rec=rec.get('units') if isinstance(rec,dict) else None
+    if not isinstance(units_rec,list) or (rec.get('windows') or {}).get('plan_id')!=version['plan_id'] or any(u.get('look')!=1 for u in units_rec if isinstance(u,dict)):
+        return None,'the decision record of the base run is no look-1 record of this plan version'
+    trig=bwin._triggered(rec);win=bwin._window(version,wid);units=[u for u in win['units'] if u in trig]
+    if not units:return None,f'no unit of window {wid} triggered an extension'
+    xid='2'+wid[1:];why=bwin.window_refusal(ch,version,xid,[w['id'] for w in version['windows'] if set(trig)&set(w['units'])])
+    if why:return None,why
+    plan=bwin.extension_run_plan(version,wid,units,case,unit_policy,policy)
+    return (plan,{'window':xid,'attempt':bwin.next_attempt(ch,xid),'window_plan_id':version['plan_id'],'extends':bwin.extends_of(ch,version,xid),'version':version,
+                  'extension_of':{'run_id':args.extend,'window':wid,'record_sha256':digest,'decision_sha256':sha,'units':units},'look1':data}),None
+
 def run_cmd(root,args):
     import bench_plan as bp
     import bench_accounting
@@ -908,16 +1094,48 @@ def run_cmd(root,args):
     identity=bm.project_identity(root,project,case) if project is not None and case['case_id'] in bm.project_bench(root,project)['cases'] else None
     from container_policy import choose_envelope, host_topology
     envelope=choose_envelope(*host_topology(),wanted=policy['envelope']['cpus'])
-    if args.plan:                                 # G-ALO-CO: the limit is compared first, so a mismatch is run-invalid, not BLOCKED
-        plan=read_json(Path(args.plan))
-        if plan_request_limit_reason(plan,policy) is None:verify_written_plan(case,policy,plan,envelope,project,identity,root=root)
+    import bench_windows as bwin
+    def refuse(text):
+        emit(args,{'status':'FAIL','reasons':[str(text)[:300]]},f'bench run refused: {str(text)[:300]}');return 1
+    window=None                                   # EX-18b: the window attempt of this run (bench_windows; H15.2)
+    if getattr(args,'extend',None):
+        if args.plan or getattr(args,'policy',None) or getattr(args,'window',None):return refuse('--extend RUN_ID takes no --plan, --policy or --window')
+        try:out,why=extension_attempt(root,args,case,policy,project,identity,envelope)
+        except bwin.PlanRefusal as exc:return plan_refused(args,exc,'bench run')
+        if why:return refuse(why)
+        plan,window=out
+    elif args.plan:                               # G-ALO-CO: the limit is compared first, so a mismatch is run-invalid, not BLOCKED
+        plan=read_json(Path(args.plan));matrix_arg(args,plan)      # Task 30: an explicit --matrix must equal the written plan's matrix
+        named=plan.get('policy') if isinstance(plan,dict) else None
+        if getattr(args,'policy',None) is not None and args.policy!=named:return refuse(f'the written plan names the policy {named}, not {args.policy}')
+        unit_policy=bm.load_decision_policy(root,named,project) if named is not None else None
+        if plan_request_limit_reason(plan,policy) is None:
+            try:verify_written_plan(case,policy,plan,envelope,project,identity,root=root,unit_policy=unit_policy)
+            except bwin.PlanRefusal as exc:return plan_refused(args,exc,'bench run')    # H15.4: a later plan version above its cap
+        if isinstance(plan.get('windows'),list):  # A9: one attempt of one look-1 window of the plan version
+            wid=getattr(args,'window',None)
+            if wid is None:return refuse('a window plan runs one window at a time: --window ID')
+            ch=bwin.chain(root,plan['plan_id']);why=bwin.window_refusal(ch,plan,wid)
+            if why:return refuse(why)
+            window={'window':wid,'attempt':bwin.next_attempt(ch,wid),'window_plan_id':plan['plan_id'],'extends':bwin.extends_of(ch,plan,wid),'version':plan,
+                    'extension_of':None,'look1':None}
+            plan=bwin.window_run_plan(plan,wid,case,unit_policy,policy)
+        elif getattr(args,'window',None):return refuse('--window needs a window plan (bench plan --policy NAME --mode decision)')
     elif getattr(args,'selftest_plan',None) is not None:     # G2.6 call-deadline suite only; never from the command line
         import bench_deadline
         plan=bench_deadline.check_selftest_plan(args.selftest_plan,case,policy,envelope,plan_digest(args.selftest_plan),project=project,identity=identity,root=root)
     else:
-        calibration,source=bp.calibration_record(root,args.calibrate,policy) if args.calibrate else (None,None)
+        if getattr(args,'window',None):return refuse('--window needs a written window plan (--plan PATH)')
+        unit_policy,refused=window_policy_arg(root,args,project,case)      # EX-18b: --policy NAME --mode smoke is the window smoke plan
+        if refused:return refused
+        if unit_policy is not None and args.mode=='decision':
+            return refuse('a window plan runs one window of a written plan: bench plan --policy NAME --mode decision, then bench run --plan PATH --window ID')
+        if unit_policy is not None and str(args.dataset).startswith('local:'):     # EX-19: its observations never leave a local run
+            return refuse('a window smoke calibration (--policy NAME --mode smoke) measures a synthetic dataset; a local run records no observations')
+        calibration,source=bp.calibration_record(root,args.calibrate,policy,bp.calibration_families(case)) if args.calibrate else (None,None)
         plan=bp.build_plan(case,policy,mode=args.mode,dataset=bp.parse_dataset(root,args.dataset,policy),seed=int(uuid.uuid4().int%2**31),
-                           envelope=envelope,calibration=calibration,project_dir=project,project_identity=identity,calibration_source=source)
+                           envelope=envelope,calibration=calibration,project_dir=project,project_identity=identity,calibration_source=source,
+                           matrix=matrix_arg(args),unit_policy=unit_policy)       # Task 30: --matrix python|full (absent: full)
     limit_reason=plan_request_limit_reason(plan,policy)
     if limit_reason is not None:                  # G-ALO-CO (Amendment I item I13.1): before any container
         emit(args,{'status':'INVALID_EXPERIMENT','reason':limit_reason,'observations':0,'reasons':1},f'bench run: INVALID_EXPERIMENT ({limit_reason})');return 1
@@ -929,19 +1147,23 @@ def run_cmd(root,args):
     bm.require_locked_selectors(policy,sorted({t.get('selector','all') for x in plan.get('sessions',[]) for t in x.get('trials',[])}))   # A6P-05, also for a written plan
     selftest=plan['mode']=='selftest'      # Task 6 / A5: a stub plan (bench_deadline.stub_plan), checked above; never decision evidence
     plan['pyperf']=plan.get('pyperf') or ({'values':1,'warmups':0} if plan['mode'] in ('smoke','selftest') else {'values':3,'warmups':1})
-    if plan['dataset']['kind']=='local':
+    if plan['dataset']['kind']=='local':          # EX-19 (Task 31): a decision plan and every window attempt run through the local decision runner
         if 'path' not in plan['dataset']:           # a written plan lost its path (F-11); --dataset local:PATH must give the same digest
             fresh=bp.parse_dataset(root,args.dataset,policy)
             if fresh['kind']!='local' or fresh['sha256']!=plan['dataset']['sha256']:raise GateError('local dataset differs from the planned digest')
             plan['dataset']['path']=fresh['path']
         from bench_privacy import run_local
-        return run_local(root,args,plan,case,policy,envelope=envelope)
+        return run_local(root,args,plan,case,policy,envelope=envelope,window=window)
     run_dir=new_run_dir(root,'run');atomic_json(run_dir/'plan.json',plan);held=[]
+    if window is not None:                        # EX-18b: the plan version and (an extension) the look-1 decision record, as evidence files of the run
+        atomic_json(run_dir/bwin.PLAN_VERSION,window['version'])
+        if window['look1'] is not None:(run_dir/bwin.LOOK1_RECORD).write_bytes(window['look1'])
     args.created_run_id=run_dir.name             # Task 20 (T20-C2): bench replay uses the run id that this run created
     probe=doctor_probe(root,run_dir);held.append(probe.pop('lock_held_ns',0) or 0);reasons=[] if probe['status']=='PASS' else ['bench doctor: '+probe['status']]
     import bench_guardrails            # B12 (Task 12): after the doctor probe, before any trial container
     more,state=guardrail_gate(root,run_dir,plan,policy,envelope,probe);reasons+=more;probe=dict(probe,status=state)
-    sizes=policy['sizes'];tiers=[s['tier'] for s in plan['sessions']]+[m['tier'] for m in plan['memory']]+[c['tier'] for c in plan.get('capacity') or []];rows=max(sizes[t] for t in tiers) if tiers else 0   # Task 22: the reference covers the capacity tier
+    import bench_deadline        # G2.6: the reference rows and its call deadline take the same tiers (FW-CASES-STUBREF-01)
+    sizes=policy['sizes'];tiers=bench_deadline.reference_tiers(plan);rows=max(sizes[t] for t in tiers) if tiers else 0   # Task 22: the reference covers the capacity tier
     if probe['status']=='PASS' and selftest:       # Task 6: a selftest plan measures no row; its run is never VALID
         reasons.append('selftest plan: test-only stub run, never decision evidence (before-run checks not run)')
     elif probe['status']=='PASS':                    # Amendment A: correctness gates of the project before any timing
@@ -966,18 +1188,25 @@ def run_cmd(root,args):
     # G2.3 (P3R2-04, Task 6): the planned selectors other than `all` (opaque strings) reach the reference job, which asks each
     # selector's adapter for its reference_overhead (outside every timed interval); absent when every trial is `all`.
     overhead={'overhead_selectors':sel} if (sel:=sorted({t.get('selector','all') for s in plan['sessions'] for t in s['trials']}-{'all'})) else {}
+    # R48 (T6-R6): the planned selectors reach the reference job; an adapter with the optional reference_cover hook computes
+    # one reference (one digest) for all of them, and the timing and capacity jobs refuse a trial outside the covered list
+    cover=reference_selectors(plan);cover_plan={'reference_selectors':cover} if cover else {}
+    project_images=set()          # EX-1: the project bench images that the sessions of this run used
     def finish(s):
         s.close();held.append(lock_held(s));admission.append(active_before(s))
+        used=getattr(s,'project_image',None)
+        if used is not None:project_images.add((used['image_id'],used['key']))
     if probe['status']=='PASS':                      # spec 4: one reference per run, outside timing; restored by digest into each session
         s=BenchSession(root,run_dir)
         try:
-            r=s.job({**base,'job':'reference','deadline_seconds':policy['job_deadlines']['session'],**ref_deadline,**overhead},'reference',policy['job_deadlines']['session']);evidence.append(r['evidence_path']);row=last_json(r['output'])
+            r=s.job({**base,'job':'reference','deadline_seconds':policy['job_deadlines']['session'],**ref_deadline,**overhead,**cover_plan},'reference',policy['job_deadlines']['session']);evidence.append(r['evidence_path']);row=last_json(r['output'])
             killed+=[x for x in [bench_deadline.job_reason(row)] if x]
-            if passed(r) and row.get('status')=='PASS':
+            if passed(r) and row.get('status')=='PASS' and reference_cover_ok(row,cover):
                 s.fetch('bench/out/reference.json',run_dir/'reference.json')
                 if file_hash(run_dir/'reference.json')!=row.get('reference_sha256'):raise GateError('fetched reference digest differs')
                 # S3-04: restored with the digest checked at fetch, so a later host edit is refused (DD-01)
                 base['reference_sha256']=row['reference_sha256'];restore=[('bench/private/reference.json',run_dir/'reference.json',row['reference_sha256'])]
+                if 'reference_selectors' in row:base['reference_selectors']=list(row['reference_selectors'])    # R48: bound beside the digest
                 reasons+=copy_reference_counts(row,ref_counts)
             else:reasons.append('reference job failed')
         finally:finish(s)
@@ -1054,16 +1283,33 @@ def run_cmd(root,args):
     run.update(ref_counts)          # G3.7 and G2.3: aggregate engine evaluations and admit exclusions of the run reference
     if native_record is not None:run['native']=native_record        # Task 19: the run build and its agreement check
     if 'datasets' in recorded_datasets:run['datasets']=recorded_datasets['datasets']    # T16-APP-03: the named datasets of the run
+    if project_images:              # EX-1: the image that ran the project's jobs (image_id stays the developer image it extends)
+        import project_image as pimg
+        sel=pimg.selection(root,project)
+        run['project_image']={'image_ids':sorted(i for i,_ in project_images),'key':sorted(k for _,k in project_images)[0],
+                              'lock_sha256':sel['lock_sha256'] if sel else None}
+        if len(project_images)!=1 or sel is None or sel['key']!=run['project_image']['key']:
+            run['reasons']=(['project bench image changed during the run']+run['reasons'])[:200]
+            if status=='VALID':status=run['status']='INVALID_EXPERIMENT'
     try:run['evidence_digests']=bench_evidence.digest_files(run_dir)     # H8
     except (GateError,OSError) as exc:        # T16-APP-06 (b), T17-APP-03: the run is never lost; unbound evidence decides nothing (a real failure keeps its status)
         why=str(exc) if isinstance(exc,GateError) else type(exc).__name__
         run['reasons']=([f'{bench_evidence.UNBINDABLE}: {why}'[:300]]+run['reasons'])[:200]
         if status=='VALID':status=run['status']='BLOCKED'
     run['bench_profile_sha256']=bench_evidence.bench_profile_sha256(root)
+    extra={}
+    if window is not None:                        # EX-18b (H15.2, G10.3): the window, the attempt, its chain link, outcome and envelope identity
+        outcome=bwin.run_attempt_outcome(status,observations,policy)
+        run.update(window=window['window'],attempt=window['attempt'],window_plan_id=window['window_plan_id'],extends=window['extends'],attempt_outcome=outcome,
+                   envelope_identity=bwin.envelope_identity(run),extension_of=window['extension_of'])
+        extra={'window':window['window'],'attempt':window['attempt'],'attempt_outcome':outcome}
     run[bench_evidence.RECORD_KEY]=bench_evidence.run_record_sha256(run)      # T17-APP-01: the last key; binds run.json itself
     validate(root,'bench-run',run);atomic_json(run_dir/'run.json',run)
-    emit(args,{'status':status,'run_id':run_dir.name,'observations':len(observations),'reasons':len(reasons)},f"bench run {run_dir.name}: {status} ({len(observations)} observations, {len(reasons)} reasons)")
-    return {'VALID':0,'INVALID_EXPERIMENT':1,'BLOCKED':2}[status]
+    tail=f"; window {window['window']} attempt {window['attempt']}: {extra['attempt_outcome']['status']}"+(f" ({extra['attempt_outcome']['reason']})" if extra['attempt_outcome']['reason'] else '') if window is not None else ''
+    emit(args,{'status':status,'run_id':run_dir.name,'observations':len(observations),'reasons':len(reasons),**extra},f"bench run {run_dir.name}: {status} ({len(observations)} observations, {len(reasons)} reasons){tail}")
+    code={'VALID':0,'INVALID_EXPERIMENT':1,'BLOCKED':2}[status]
+    if window is not None and extra['attempt_outcome']['status']=='BLOCKED':return 2      # an environmental attempt: run the window again (at most 3 attempts)
+    return code
 
 def per_trial(observations,field):
     """F-07/B09: per-unit value = field / (loops x units); the correlated inner samples (pyperf values) of one trial collapse to
@@ -1153,7 +1399,7 @@ def _compare_locked(root,args):
     causes=(['recorded before evidence digests'] if bench_evidence.is_unbound(ev_problems) else [])+(['run.json not bound'] if record else [])+(['cgroup identity unrecorded'] if acc else [])
     unbound=f"unbound ({'; '.join(causes)})" if causes else None
     if run['mode']=='profile':raise GateError('profiled runs never enter a comparison')
-    pol=bm.load_policy(root);stat=pol['statistics'];pa=pol['pyperf'];eff=pol['effects'];obs=read_jsonl(run_dir/'observations.jsonl');phases=read_jsonl(run_dir/'phases.jsonl')
+    pol=bm.load_policy(root);stat=pol['statistics'];eff=pol['effects'];obs=read_jsonl(run_dir/'observations.jsonl');phases=read_jsonl(run_dir/'phases.jsonl')
     try:plan=read_json(run_dir/'plan.json')
     except FileNotFoundError:            # T16-APP-06 (a): a structured refusal
         emit(args,{'status':'FAIL','reasons':['missing: plan.json']},'compare refused: missing: plan.json');return 1
@@ -1188,7 +1434,7 @@ def _compare_locked(root,args):
                      'group_peak_bytes':bs.summarize([m['group_peak_bytes'] for m in mem if m.get('group_peak_bytes') is not None]),
                      'ready_state_bytes':bs.summarize([m['ready_current'] for m in mem if m.get('ready_current') is not None]),
                      'sampled_rss_uss_pss':'not sampled (diagnostic runs only)','relative_wall_vs_py_reference':rel,
-                     'pyperf_disagreements':sum(1 for o in os_ if o.get('pyperf_wall_ns') is not None and abs(o['pyperf_wall_ns']-o['wall_ns'])>max(pa['agreement_abs_ns'],pa['agreement_rel']*o['wall_ns'])),
+                     'pyperf_disagreements':sum(1 for o in os_ if bench_evidence.self_timing_forged(o,pol)),     # T6 item 5: the one-sided rule
                      'chunk_imbalance':chunk_imbalance(os_) if variant in POOLED else None,
                      'correctness':f'{len(good)}/{len(trials)} eligible','evidence_quality':'exploratory (smoke)' if run['mode']=='smoke' else 'decision','decision':'not evaluated in Phase 1'})
         if rows[-1]['pyperf_disagreements']:rows[-1]['evidence_quality']='pyperf-disagreement'
@@ -1290,12 +1536,17 @@ def _report_locked(root,args):
          *((bench_capacity.report_lines(data['capacity'])+['']) if 'capacity' in data else []),      # Task 22: capacity section (exploratory; absent in an older compare.json)
          *(route_report_lines(data) or []),                                                        # Task 19 (C3): routes and C rows against the strongest Python row
          'An INCONCLUSIVE outcome is final for this run; no measurement is repeated to change it (B09).']
+    import bench_decide            # Task 25 (spec 13): the investigation links of the failed rows; the agreement check name comes from the project's bench.json
+    project_dir=(run.get('plan') or {}).get('project_dir') if isinstance(run.get('plan'),dict) else None
+    links=bench_decide.investigation_lines(data['rows'],project_dir,(run.get('dataset') or {}).get('kind')=='local',bench_decide.native_agreement_name(root,project_dir))
+    md+=(['']+links) if links else []
     (run_dir/'summary.md').write_text('\n'.join(md)+'\n')
     ok=data['status']=='VALID'
     emit(args,{'status':'PASS' if ok else 'FAIL','summary':str(run_dir/'summary.md')},str(run_dir/'summary.md'));return 0 if ok else 1
 
 HANDLERS.update(run=run_cmd,compare=compare_cmd,report=report_cmd)
 ARGUMENTS.update(run=ARGUMENTS['plan']+[('--plan',{})],compare=[('--run-id',{'required':True})],report=[('--run-id',{'required':True})])
+ARGUMENTS['run']+=[('--window',{'default':None,'type':window_id_arg}),('--extend',{'default':None})]      # EX-18b: one attempt of one window of a window plan
 
 # ---- Task 17: bench profile (cProfile on synthetic data; diagnostic only, never compared) ----
 PROFILE_SIZES=('tiny','small','medium','large');PROFILE_DEFAULT=('py-reference','py-optimized')
@@ -1521,9 +1772,30 @@ def run_subcases(root,plan,observations,phases,ctl,policy,evidence):
     rows.append(_sub('P11',name,'summed-rss-peak',rejected,ctl['memory']['status']=='PASS',ctl_ev,'summed RSS is never a group peak'))
     return rows
 
-def selftest_cases(root,run_dir):
-    """B01, B02, B03, B05, B09, B10 and B13 on the framework controls, plus every P01/P07/P11 bench subcase.
-    Framework code only: the control cases and benchlab; never a project workload or project code."""
+WINDOW_FIXTURES='tests/unit/fixtures/windows'
+
+def b09_extension_checks(root):
+    """A9 (G12 B09 row, P3P-20): the three extension refusals of bench_windows.check_extension on recorded fixtures (an
+    extension of a look-1 record without trigger, an extension with 11 of its 12 blocks, a pair of mismatching envelope
+    identities). Each must be refused, and the valid control (a triggered record, 12 blocks, equal identities) passes."""
+    import bench_windows
+    d=Path(root)/WINDOW_FIXTURES;names=('look1-no-trigger','look1-trigger','extension','extension-11-blocks','identity','identity-other-image')
+    try:f={n:read_json(d/f'{n}.json') for n in names}
+    except (OSError,ValueError,GateError) as exc:return {'status':'FAIL','reason':f'window fixtures unreadable ({type(exc).__name__})','checks':[],'control':'FAIL'}
+    cases=[('extension-without-trigger','extension without trigger',bench_windows.check_extension(f['look1-no-trigger'],f['extension'],f['identity'],f['identity'])),
+           ('discarded-blocks','discarded blocks',bench_windows.check_extension(f['look1-trigger'],f['extension-11-blocks'],f['identity'],f['identity'])),
+           ('window-envelope-mismatch','window envelope mismatch',bench_windows.check_extension(f['look1-trigger'],f['extension'],f['identity'],f['identity-other-image']))]
+    checks=[{'name':n,'rejected':want in got,'problems':list(got)[:4]} for n,want,got in cases]
+    control='PASS' if bench_windows.check_extension(f['look1-trigger'],f['extension'],f['identity'],f['identity'])==[] else 'FAIL'
+    return {'status':'PASS' if control=='PASS' and all(c['rejected'] for c in checks) else 'FAIL','checks':checks,'control':control,'fixtures':WINDOW_FIXTURES}
+
+def selftest_cases(root,run_dir,project=None):
+    """B01, B02, B03, B05, B09, B10 and B13 on the framework controls, plus every P01/P07/P11 bench subcase; the Phase 2
+    cases (bench_phase2) and the Phase 3 cases (bench_phase3) join them.
+    The Phase 1 suites use framework code only (the control cases and benchlab). EX-13 ruling EX13-R1: the Phase 2 controls
+    run on the framework example projects (found by layout), always in bench containers; never a user project. Amendment E
+    (1.2 item 3): an explicit `project` (bench selftest --suite cases --project DIR) replaces the framework examples in the
+    example parts (stub suites, Phase 2 and Phase 3 example targets); the framework ci passes none."""
     from policy import verify_bench_wheels
     import bench_plan
     root=Path(root);policy=bm.load_policy(root);suites={};additions=[]
@@ -1566,34 +1838,48 @@ def selftest_cases(root,run_dir):
     additions.append(_sub('P01',name,'cpuset-unrecorded',doctor_status({'status':'PASS'},None)=='BLOCKED',control_doctor,[],'no envelope, no PASS'))
     evidence={'run':[str(latest/n) for n in ('plan.json','observations.jsonl','phases.jsonl')] if latest is not None else [],'controls':[str(run_dir/'controls.json')]}
     additions+=run_subcases(root,plan,obs,phases,ctl,policy,evidence) if latest is not None else [_sub(p,n,v,False,False,[],'no smoke run evidence') for r in bm.load_fixtures(root)['pipeline_subcases']
-                                                                                         for p,n in [(r['parent'],r['name'])] for v in r['variants'] if p!='P01']
+                                                                                         for p,n in [(r['parent'],r['name'])] for v in r['variants'] if p in ('P07','P11')]   # EX-13: the run_subcases parents only (Phase 2 and 3 add their own)
     import bench_deadline;suites['call-deadline']=bench_deadline.selftest_suite(root,run_dir)    # Amendment G2.6 framework control
     # FR1 (FS1 F2), FR3: a stub run and a stub check per test stub of a project protocol (G2.3, I9.4); the framework control
     # suite `call-deadline` above always runs. FR1-01: suites that do not run are recorded in cases.json `not_run` with the
     # reason; a malformed declaration gives a BLOCKED suite, never a silent skip.
-    stub,not_run=bench_deadline.stub_suites(root,run_dir);suites.update(stub)
+    stub,not_run=bench_deadline.stub_suites(root,run_dir,project);suites.update(stub)
     import bench_units;suites['B09']=bench_units.coverage_suite(root,run_dir,suites['B09'])     # Amendment G8.4: B09 also requires the coverage job PASS
-    import bench_phase3;s3,a3=bench_phase3.phase3_cases(root,run_dir,latest);suites.update(s3);additions+=a3     # Task 29: B12, B14, B15, B18, P10, P15
+    ext=b09_extension_checks(root);b09=dict(suites['B09'],extension=ext)        # A9 (P3P-20): the extension refusals on recorded fixtures
+    if b09.get('status')=='PASS' and ext['status']!='PASS':b09['status']='FAIL'
+    suites['B09']=b09
+    import bench_phase3;s3,a3,n3=bench_phase3.phase3_cases(root,run_dir,latest,project);suites.update(s3);additions+=a3;not_run+=n3     # Task 29: B12, B14, B15, B18, P10, P15; Task 30: B17 (its not-run dimensions in not_run)
+    import bench_phase2;s2,a2,n2=bench_phase2.phase2_cases(root,run_dir,project);suites.update(s2);additions+=a2;not_run+=n2     # EX-13 (Phase 2 Task 23): B04-B16, B13-echo, P02, P04, P16; parts without a real path in not_run (EX13-R4)
     atomic_json(run_dir/'cases.json',{'suites':suites,'additions':additions,'not_run':not_run});return suites,additions
 
-def example_projects(root):
-    """Controller ruling (Task 11a review): every directory examples/<name> with benchmarks/project/bench.json is a framework
-    example project, qualified with the framework. Found by layout; the framework names no example."""
+def example_projects(root,project=None):
+    """The example scope of the bench cases. Default (project None): the framework examples, every directory
+    examples/<name> with benchmarks/project/bench.json that is no standalone example (Controller ruling, Task 11a review;
+    amendment E rule S: project_model.standalone_examples), qualified with the framework. Found by layout; the framework
+    names no example. With an explicit `project` (bench selftest --project DIR, dev readiness --project DIR) the scope is
+    [project]: a standalone example's suites run only there, never in the framework ci."""
+    if project is not None:return [project]
     base=Path(root)/'examples'
     if not base.is_dir() or base.is_symlink():return []
-    return sorted(f'examples/{p.name}' for p in base.iterdir() if p.is_dir() and not p.is_symlink() and (p/bm.PROJECT_AREA/'bench.json').is_file())
+    from project_model import standalone_examples
+    standalone=set(standalone_examples(root))
+    return sorted(f'examples/{p.name}' for p in base.iterdir() if p.is_dir() and not p.is_symlink() and (p/bm.PROJECT_AREA/'bench.json').is_file()
+                  and f'examples/{p.name}' not in standalone)
 
-def registered_projects(root):
+def registered_projects(root,project=None):
     """Task 19b: the registered projects of this repository, found by layout: `.` when the root itself declares
-    benchmarks/project/bench.json, then every example project (example_projects). The framework names none of them."""
+    benchmarks/project/bench.json, then every framework example project (example_projects). The framework names none of
+    them. With an explicit `project` the scope is [project] (amendment E 1.2 item 3)."""
+    if project is not None:return [project]
     return (['.'] if (Path(root)/bm.PROJECT_AREA/'bench.json').is_file() else [])+example_projects(root)
 
-def project_suites(root,run_dir):
+def project_suites(root,run_dir,scope=None):
     """Amendment A (Task 19b): each registered project runs its bench unit suite and every declared `before_run` check through
     the framework, one suite each: project:<dir>:unit and project:<dir>:<check>. A generation tool is declared
-    `before_run: false` and is not run. A refused check is BLOCKED with its reason; the later checks still run."""
+    `before_run: false` and is not run. A refused check is BLOCKED with its reason; the later checks still run. `scope`
+    (bench selftest --suite project --project DIR) replaces the registered projects with that one project."""
     suites={}
-    for project in registered_projects(root):
+    for project in registered_projects(root,scope):
         key=f'project:{project}:'
         try:
             rc,out=_quiet(selftest,root,argparse.Namespace(suite='unit',project=project,format='json'))
@@ -1609,12 +1895,31 @@ def project_suites(root,run_dir):
                 shared+=shared_outputs(run_dir,name,status,row)
                 suites[key+name]={'status':status,'evidence_paths':[evidence],'property':'declared project check'}
             except GateError as exc:suites[key+name]={'status':'BLOCKED','reason':str(exc)[:200],'evidence_paths':[],'property':'declared project check'}
+    suites.update(project_image_suites(root,run_dir))      # EX-1: the project image layer control (no example project)
     return suites
+
+PROJECT_IMAGE_FIXTURE='tests/fixtures/wheel-project'
+
+def project_image_suites(root,run_dir):
+    """EX-1: the framework control of the project image layer. The fixture project declares one first-party wheel built from
+    tracked source; its bench unit suite runs in its project bench image (built offline or reused) and proves the import
+    path and the exact dist-info set. One suite: project-image:<fixture>."""
+    key='project-image:'+PROJECT_IMAGE_FIXTURE
+    if not (Path(root)/'tools/project_image.py').is_file():return {}      # not a framework tree (a unit-test root); a framework tree needs the fixture
+    try:
+        rc,out=_quiet(selftest,root,argparse.Namespace(suite='unit',project=PROJECT_IMAGE_FIXTURE,format='json'))
+        unit=(out.get('suites') or {}).get('unit') or {}
+        row={'status':'PASS' if rc==0 else 'BLOCKED' if rc==2 else 'FAIL','property':'project bench image layer (fixture wheel)',
+             'tests':unit.get('tests',0),'evidence_paths':list(unit.get('evidence_paths',[]))}
+        if unit.get('reason'):row['reason']=str(unit['reason'])[:200]
+    except GateError as exc:row={'status':'BLOCKED','reason':str(exc)[:200],'evidence_paths':[],'property':'project bench image layer (fixture wheel)'}
+    return {key:row}
 
 def _example_rows(suites):
     """The ci detail per project ({dir: {'unit': status, 'checks': {name: status}}}) from the project suites."""
     rows={}
     for key,value in suites.items():
+        if not key.startswith('project:'):continue          # EX-1: the project-image control is no example row
         project,name=key[len('project:'):].rsplit(':',1);row=rows.setdefault(project,{'unit':'BLOCKED','checks':{}})
         if name=='unit':row['unit']=value['status']
         else:row['checks'][name]=value['status']
@@ -1627,10 +1932,21 @@ def _privacy_suite(root,run_dir):
         return privacy_probe(root,run_dir)
     except GateError as exc:return {'status':'BLOCKED','reason':str(exc)[:200],'evidence_paths':[]}
 
+def cases_not_run(run_dir):
+    """EX17-A02: the suite names of the cases.json `not_run` entries that selftest_cases wrote in run_dir (at most 64, each
+    at most 120 characters), or None when the file is missing or malformed (unknown; dev readiness never reads it as
+    complete)."""
+    try:doc=read_json(Path(run_dir)/'cases.json')
+    except (OSError,ValueError,GateError):return None
+    rows=doc.get('not_run') if isinstance(doc,dict) else None
+    if not isinstance(rows,list) or not all(isinstance(r,dict) and isinstance(r.get('suite'),str) for r in rows):return None
+    return [r['suite'][:120] for r in rows][:64]
+
 def ci_gates(root):
     """`./tools/safety ci`: the bench-doctor and bench-selftest gates and the bench subcase additions. The bench-selftest
     gate also holds the privacy suite and the project suites (project_suites: every registered project's bench unit suite
-    and `before_run` checks)."""
+    and `before_run` checks). Framework scope only: it passes no project, so a standalone example (amendment E rule S)
+    never runs here."""
     run_dir=new_run_dir(root,'ci');probe=doctor_probe(root,run_dir);probe.pop('lock_held_ns',None)
     gates=[{'name':'bench-doctor','status':probe['status'],'details':{k:probe.get(k) for k in ('envelope','libraries','missing_counters','reason') if k in probe},
             'evidence_paths':list(probe.get('evidence_paths',[]))}]
@@ -1647,7 +1963,8 @@ def ci_gates(root):
     status='PASS' if all(s=='PASS' for s in statuses) else 'BLOCKED' if 'BLOCKED' in statuses and 'FAIL' not in statuses else 'FAIL'
     paths=[p for v in suites.values() for p in v.get('evidence_paths',[])]+[p for a in additions for p in a['evidence_paths']]
     gates.append({'name':'bench-selftest','status':status,'details':{**{k:v['status'] for k,v in suites.items()},'unit':unit,'report':str(run_dir/'ci-gates.json'),
-                                                                     'no_change':(suites.get('B13') or {}).get('no_change'),'examples':examples},
+                                                                     'no_change':(suites.get('B13') or {}).get('no_change'),'examples':examples,
+                                                                     'not_run':cases_not_run(run_dir)},
                   'evidence_paths':list(dict.fromkeys(paths))})
     atomic_json(run_dir/'ci-gates.json',{'gates':gates,'additions':additions,'suites':suites});return gates,additions
 
@@ -1659,6 +1976,8 @@ def privacy_suite_jobs():
     return ['stderr-probe']
 
 import bench_phase3_cli;bench_phase3_cli.register(HANDLERS,ARGUMENTS)
+import bench_phase2;bench_phase2.register_cli(HANDLERS,ARGUMENTS)     # EX13-A08: bench sanitizer-evidence
+import bench_tolerance;bench_tolerance.register(HANDLERS,ARGUMENTS)      # tolerance calibration from recorded spreads
 
 def configure_parser(parser):
     operations=parser.add_subparsers(dest='operation',required=True)

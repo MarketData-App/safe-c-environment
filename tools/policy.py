@@ -76,11 +76,25 @@ def project_source_gate(root):
         project_inventory(root, '.', load_project(root))
 
 def first_party_sources(root):
+    # Rule S (amendment E 1.2): a standalone example tree is no framework content; its own project check inventories it.
     root = Path(root)
-    from project_model import PROJECT_PATHS
+    from project_model import PROJECT_PATHS, standalone_examples
     skip = PROJECT_PATHS if project_mode(root) else ()
+    standalone = tuple(rel+'/' for rel in standalone_examples(root))
     return {rel for rel in (str(p.relative_to(root)) for p in root.rglob('*.c') if not any(x in p.relative_to(root).parts for x in ['third_party','.git','.cache','artifacts','build']))
-            if not (skip and rel.startswith(skip))}
+            if not (skip and rel.startswith(skip)) and not (standalone and rel.startswith(standalone))}
+
+def source_inventory_gate(root, declared):
+    """The first-party source part of inventory_gate: the root project's own inventory, then the C files of the tree
+    (first_party_sources) must equal the declared safety/source-inventory.json files with their fingerprints."""
+    project_source_gate(root)
+    actual = first_party_sources(root)
+    if actual != set(declared):
+        raise GateError('first-party source/target inventory mismatch: ' + str(sorted(actual ^ set(declared))))
+    for p in actual:
+        if file_hash(root/p) != declared[p]['sha256']:
+            raise GateError('source fingerprint changed: ' + p)
+    return actual
 
 def inventory_gate(root, expected_contract=None):
     contract = read_json(root/'safety/contract.json')
@@ -117,13 +131,7 @@ def inventory_gate(root, expected_contract=None):
             if not (root/record['trigger_input']).is_file():
                 raise GateError('missing regression input')
     declared = read_json(root/'safety/source-inventory.json')['files']
-    project_source_gate(root)
-    actual = first_party_sources(root)
-    if actual != set(declared):
-        raise GateError('first-party source/target inventory mismatch: ' + str(sorted(actual ^ set(declared))))
-    for p in actual:
-        if file_hash(root/p) != declared[p]['sha256']:
-            raise GateError('source fingerprint changed: ' + p)
+    actual = source_inventory_gate(root, declared)
     from foundation import input_gate, fixture_inventory as foundation_fixtures, boundary_inventory
     input_gate(root, artifacts=False);foundation_fixtures(root);boundary_inventory(root)
     from developer import inputs as developer_inputs

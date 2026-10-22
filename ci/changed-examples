@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Select the jobs of .github/workflows/example.yml from the paths that a push or a pull request changed.
+
+Rule S (tools/project_model.py standalone_examples): a directory examples/<name> is a standalone example when it holds
+project.json and starter-export.json does not list examples/<name>/project.json. A changed path inside a standalone
+example tree selects that example. Every other changed path is a framework change. The script prints two GitHub step
+output lines:
+
+  framework=true|false   true when a changed path is outside every standalone example tree
+  examples=[...]         the standalone example directories to check (JSON): the changed ones, or every standalone
+                         example when framework is true
+
+An absent or all-zero --base (a new branch or tag) selects every standalone example and framework=true. So does a base
+that git cannot compare (for example a commit that a force push removed).
+
+A pull request that changes only examples/ skips safety.yml (paths-ignore), so the framework inventory and B18 do not
+run for it. FIX1 T3-A01: before it prints, the script therefore fails (exit 1) for framework content under examples/:
+- at --head, starter-export.json must list every file under a framework example tree and under an examples/<name>
+  without project.json (and every file directly under examples/), and it must list no missing file under examples/;
+- an examples/<name> that exists at --base and at --head keeps its scope (framework, standalone or project-less), unless
+  the change also changes starter-export.json (a pull request that changes it runs safety.yml).
+FIX1 T3-A03: GitHub evaluates the path filters of a pull request workflow over at most 300 changed files, so with
+--event pull_request a framework change with 300 or more changed paths (or an unknown count) fails (exit 1): split the
+pull request. A push is not affected (safety.yml has no push trigger). T6 (FIX1-A03): --pr-files N is GitHub's own count
+of the pull request's changed files (github.event.pull_request.changed_files, the three-dot diff, which can be larger than
+the merge diff); the larger of the two counts decides, and an empty value of a pull request is an unknown count.
+T6 (FIX1-A07): safety.yml also ignores the project paths (project.json, src/, include/, tests/project/, fuzz/project/,
+specs/project/, review/). In framework mode (no root project.json at --head) a tracked file under a project path fails
+(exit 1), and so does a root project.json that --head adds to a framework repository (none at --base).
+
+Exit 2 refuses a malformed commit id or --pr-files value, an unreadable export list, a symbolic link at examples/,
+examples/<name> or examples/<name>/project.json (the checkout's standalone examples), a file of the export list inside
+a standalone example tree, an example directory name outside [A-Za-z0-9._-], a head that git cannot read and a checkout
+whose standalone examples differ from those of --head. A deeper link follows the listing rule: it is a tracked path like
+any other (exit 1 when it is unlisted outside a standalone example tree; a standalone tree may hold it). The script names
+no example and runs no build or test."""
+import argparse
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/'tools'))
+from evidence import GateError, loads_capped
+from project_model import EXAMPLES_DIR, EXPORT_LIST, PROJECT_FILE, PROJECT_PATHS, example_scopes, standalone_examples
+
+COMMIT = re.compile(r'[0-9a-f]{40}|[0-9a-f]{64}')
+EXAMPLE = re.compile(r'examples/[A-Za-z0-9][A-Za-z0-9._-]{0,63}')
+GIT_SECONDS = 120
+GIT_OUTPUT_LIMIT = 64*1024*1024
+PATH_FILTER_LIMIT = 300
+PROBLEMS_SHOWN = 20
+PR_FILES = re.compile(r'[0-9]{1,12}')
+UNKNOWN_COUNT = 'unknown'
+
+
+def changed_paths(root, base, head):
+    """The paths that differ between the commits `base` and `head` (git diff --name-only; a rename gives both paths),
+    or None (unknown: every path may have changed) when base is absent or all zeros or git cannot compare the commits."""
+    if not base or set(base) == {'0'}:
+        return None
+    try:
+        result = subprocess.run(['git', '-C', str(root), 'diff', '--name-only', '--no-renames', '-z', base, head, '--'],
+                                capture_output=True, timeout=GIT_SECONDS)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return [path for path in result.stdout.decode('utf-8', 'surrogateescape').split('\0') if path]
+
+
+def select(examples, changed):
+    """(framework, selected) for the standalone example directories `examples` and the changed paths `changed` (None:
+    unknown). framework is true when a changed path is outside every standalone example tree; selected holds the
+    changed standalone examples, or every standalone example when framework is true."""
+    if changed is None:
+        return True, sorted(examples)
+    framework, hit = False, set()
+    for path in changed:
+        owner = next((example for example in examples if path.startswith(example + '/')), None)
+        if owner is None:
+            framework = True
+        else:
+            hit.add(owner)
+    return framework, sorted(examples) if framework else sorted(hit)
+
+
+def _git(root, *argv):
+    """The stdout bytes of a read-only git command in `root`; GateError when git fails, times out or writes too much."""
+    try:
+        result = subprocess.run(['git', '-C', str(root), '-c', 'core.quotePath=false', *argv], capture_output=True,
+                                timeout=GIT_SECONDS)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise GateError(f'git {argv[0]} could not run') from error
+    if result.returncode != 0 or len(result.stdout) > GIT_OUTPUT_LIMIT:
+        raise GateError(f'git {argv[0]} failed')
+    return result.stdout
+
+
+def commit_view(root, commit):
+    """(paths, listed) of the commit: its tracked paths under examples/ (git ls-tree) and the file list of its
+    starter-export.json. GateError when git cannot read them or the list is malformed."""
+    tree = _git(root, 'ls-tree', '-r', '-z', '--name-only', commit, '--', EXAMPLES_DIR).decode('utf-8', 'surrogateescape')
+    paths = {path for path in tree.split('\0') if path}
+    try:
+        files = loads_capped(_git(root, 'cat-file', 'blob', f'{commit}:{EXPORT_LIST}'), 'json-text', label=EXPORT_LIST)['files']
+    except (GateError, ValueError, KeyError, TypeError) as error:
+        raise GateError(f'the export list of {commit[:12]} is unreadable') from error
+    if not isinstance(files, list) or not all(isinstance(path, str) for path in files):
+        raise GateError(f'the export list of {commit[:12]} is invalid')
+    return paths, set(files)
+
+
+def head_problems(paths, listed):
+    """FIX1 T3-A01 head rules over one tree (`paths`: its tracked paths under examples/; `listed`: its export list):
+    (problems, standalone examples). Every path under examples/ outside a standalone tree is listed, every listed path under
+    examples/ exists, and no listed path lies inside a standalone tree. FIX1-A02: tests/unit/test_example_scope.py applies
+    this rule to the tracked tree too, so check-fast reports what select would refuse."""
+    paths, listed = set(paths), set(listed)
+    scopes = example_scopes(paths, listed)
+    standalone = sorted(rel for rel, scope in scopes.items() if scope == 'standalone')
+    trees = tuple(rel + '/' for rel in standalone)
+    problems = [f'unlisted file under examples/: {path}' for path in sorted(paths) if not path.startswith(trees) and path not in listed]
+    problems += [f'{EXPORT_LIST} lists a missing file: {path}' for path in sorted(listed)
+                 if path.startswith(EXAMPLES_DIR + '/') and not path.startswith(trees) and path not in paths]
+    problems += [f'{EXPORT_LIST} lists a file of the standalone example tree: {path}' for path in sorted(listed) if path.startswith(trees)]
+    return problems, standalone
+
+
+def scope_problems(root, base, head, changed):
+    """FIX1 T3-A01: (problems, standalone examples of the head commit). The head rules (head_problems) on the head commit.
+    The step rule, when `changed` is known: an examples/<name> of both commits keeps its scope unless starter-export.json
+    changed."""
+    paths, listed = commit_view(root, head)
+    scopes = example_scopes(paths, listed)
+    problems, standalone = head_problems(paths, listed)
+    if changed is not None and EXPORT_LIST not in changed:
+        before = example_scopes(*commit_view(root, base))
+        problems += [f'{rel} changes its scope from {before[rel]} to {scopes[rel]} without a change of {EXPORT_LIST}'
+                     for rel in sorted(set(before) & set(scopes)) if before[rel] != scopes[rel]]
+    return problems, standalone
+
+
+def path_filter_problem(event, changed, framework, pr_files=None):
+    """FIX1 T3-A03: the problem text for a pull request with a framework change whose changed-path count reaches the
+    300-file limit of GitHub's path filters (or is unknown), else None. safety.yml could skip such a pull request.
+    T6 (FIX1-A03): pr_files is GitHub's own count of the pull request's changed files (an int), UNKNOWN_COUNT for an empty
+    value, or None when not given; the larger of it and the merge-diff count decides."""
+    if event != 'pull_request' or not framework:
+        return None
+    if changed is None or pr_files == UNKNOWN_COUNT:
+        return f'the changed paths of the pull request are unknown; GitHub path filters read at most {PATH_FILTER_LIMIT} files'
+    count = max(len(changed), pr_files or 0)
+    if count >= PATH_FILTER_LIMIT:
+        return (f'{count} changed paths with a framework change reach the {PATH_FILTER_LIMIT}-file limit of GitHub path '
+                'filters, so safety.yml could skip the pull request; split it')
+    return None
+
+
+def _tracked(root, commit, tops):
+    """The tracked paths of `commit` under the root-relative paths `tops` (git ls-tree)."""
+    tree = _git(root, 'ls-tree', '-r', '-z', '--name-only', commit, '--', *tops).decode('utf-8', 'surrogateescape')
+    return {path for path in tree.split('\0') if path}
+
+
+def framework_mode_problems(root, base, head, changed):
+    """T6 (FIX1-A07): safety.yml ignores the project paths, so in framework mode (no root project.json at the head commit)
+    every tracked file under a project path is a problem (src/ and include/ stay empty in the framework repository), and
+    a root project.json that the head adds to a framework repository (none at the base) is a problem too. A project
+    repository (a root project.json at the head, and at the base when the base is known) keeps its project paths."""
+    at_head = _tracked(root, head, [PROJECT_FILE, *(top.rstrip('/') for top in PROJECT_PATHS)])
+    if PROJECT_FILE not in at_head:
+        return [f'a project path in the framework repository: {path} (safety.yml ignores project paths; src/ and include/ '
+                'stay empty)' for path in sorted(at_head) if path.startswith(PROJECT_PATHS)]
+    if changed is not None and PROJECT_FILE in changed and PROJECT_FILE not in _tracked(root, base, [PROJECT_FILE]):
+        return [f'a root {PROJECT_FILE} added to the framework repository (safety.yml ignores it)']
+    return []
+
+
+def main(argv=None, root=ROOT):
+    parser = argparse.ArgumentParser(description='Select the example jobs from the changed paths.')
+    parser.add_argument('--base', default='')
+    parser.add_argument('--head', required=True)
+    parser.add_argument('--event', choices=('push', 'pull_request'), default='push')
+    parser.add_argument('--pr-files', default=None, help="GitHub's count of the pull request's changed files (empty: unknown)")
+    args = parser.parse_args(argv)
+    if (args.base and not COMMIT.fullmatch(args.base)) or not COMMIT.fullmatch(args.head):
+        print('changed-examples: --base and --head must be full lowercase commit ids', file=sys.stderr)
+        return 2
+    if args.pr_files not in (None, '') and not PR_FILES.fullmatch(args.pr_files):
+        print('changed-examples: --pr-files must be empty or a count of 1 to 12 digits', file=sys.stderr)
+        return 2
+    pr_files = None if args.pr_files is None else UNKNOWN_COUNT if args.pr_files == '' else int(args.pr_files)
+    try:
+        examples = standalone_examples(root)
+    except GateError as error:
+        print(f'changed-examples: {error}', file=sys.stderr)
+        return 2
+    bad = [example for example in examples if not EXAMPLE.fullmatch(example)]
+    if bad:
+        print('changed-examples: example directory name refused: ' + ', '.join(bad)[:400], file=sys.stderr)
+        return 2
+    changed = changed_paths(root, args.base, args.head)
+    try:
+        problems, at_head = scope_problems(root, args.base, args.head, changed)
+        problems += framework_mode_problems(root, args.base, args.head, changed)
+    except GateError as error:
+        print(f'changed-examples: {error}', file=sys.stderr)
+        return 2
+    if at_head != examples:
+        print('changed-examples: the checkout and --head disagree on the standalone examples', file=sys.stderr)
+        return 2
+    framework, selected = select(examples, changed)
+    limit = path_filter_problem(args.event, changed, framework, pr_files)
+    problems += [limit] if limit else []
+    if problems:
+        for problem in problems[:PROBLEMS_SHOWN]:
+            print(f'changed-examples: {problem}'[:400], file=sys.stderr)
+        print(f'changed-examples: FAIL, {len(problems)} problem(s)', file=sys.stderr)
+        return 1
+    print('framework=' + ('true' if framework else 'false'))
+    print('examples=' + json.dumps(selected, separators=(',', ':')))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

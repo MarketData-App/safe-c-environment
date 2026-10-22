@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "EX-13 fix round 2 (EX13-A08): the sanitizer evidence of bench case B11 for one native example project (tools/project_check.py run_sanitizer_evidence). The four sanitizer gate builds of the project check, bound to the source identity of an immutable snapshot. It is no project check report.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "run_id", "project", "project_dir", "started_at", "finished_at", "elapsed_seconds",
+               "project_identity", "source_identity", "image_id", "gates", "verdict", "stopped_after", "blockers", "evidence_directory"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "sanitizer-evidence"},
+    "run_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "project": {"type": ["string", "null"], "maxLength": 200},
+    "project_dir": {"type": "string", "maxLength": 400},
+    "started_at": {"type": "string", "maxLength": 64},
+    "finished_at": {"type": "string", "maxLength": 64},
+    "elapsed_seconds": {"type": "number", "minimum": 0},
+    "project_identity": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "source_identity": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "image_id": {"type": ["string", "null"], "maxLength": 200},
+    "gates": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status"],
+        "properties": {
+          "name": {"enum": ["ubsan", "asan", "msan", "tsan"]},
+          "status": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+          "details": {"type": "object"},
+          "evidence_paths": {"type": "array", "items": {"type": "string", "maxLength": 1000}}
+        }
+      }
+    },
+    "verdict": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+    "stopped_after": {"type": ["string", "null"], "maxLength": 64},
+    "blockers": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 1000}},
+    "evidence_directory": {"type": "string", "maxLength": 1000}
+  }
+}

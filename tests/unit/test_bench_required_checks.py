@@ -6,7 +6,7 @@ FR1 (FS1 F3): the project is the synthetic unit-test project tests/fixtures/benc
 protected protocol file names the required checks of the fixture case (REQUIRED); bench_model.load_policy(root, project)
 takes them from there. The framework policy names no required check. The assertion that the example project's protocol
 names every before_run check of its case moves with the example (FR1 report, FR3 handoff list)."""
-import argparse, contextlib, copy, io, json, sys, unittest
+import argparse, contextlib, copy, io, json, sys, tempfile, unittest
 from pathlib import Path
 from unittest import mock
 ROOT=Path(__file__).resolve().parents[2]
@@ -97,5 +97,53 @@ class RequiredBeforeRunTests(unittest.TestCase):
         self.assertTrue(validate(ROOT,'bench-protocol',proto))
         with self.assertRaises(GateError):validate(ROOT,'bench-protocol',dict(proto,before_run_required={'x':['Bad Name']}))
         with self.assertRaises(GateError):validate(ROOT,'bench-protocol',dict(proto,before_run_required={'fixture-case':[]}))
+
+
+class ProbeDeclarationTests(unittest.TestCase):
+    """T14-A01 (ruling R37): the P15 control removed-safety-check copies each project's bench.json into a probe project
+    (bench_phase3._declared) and reads only its case list and checks (bm.dropped_before_run_checks). The probe holds no file
+    of the project, so it carries no binding to one: neither `protocol` (FR3) nor `third_party` (the lock). Before the fix,
+    a project that binds a lock made the probe refuse itself ('third-party lock is missing')."""
+    def locked(self):
+        """The fixture declaration (with its protocol binding) plus a third-party lock binding, as a project with wheels has."""
+        decl=copy.deepcopy(bm.project_bench(ROOT,FIXTURE));decl['third_party']={'file':'third_party/lock.json','sha256':'0'*64};return decl
+
+    def test_the_probe_of_a_declaration_with_a_lock_binding_holds_the_checks_and_no_binding(self):
+        import bench_phase3 as b3
+        decl=self.locked();self.assertIn('protocol',decl)
+        with tempfile.TemporaryDirectory() as t:got=b3._declared(ROOT,Path(t),decl)
+        self.assertEqual(got,{k:v for k,v in decl.items() if k not in ('protocol','third_party')})
+        self.assertEqual(bm.dropped_before_run_checks(policy(),decl['cases'][0],got),[])
+
+    def test_the_removed_safety_check_passes_on_a_project_that_binds_a_lock(self):
+        import bench_phase3 as b3
+        real=bm.project_bench;decl=self.locked()
+        with tempfile.TemporaryDirectory() as t,mock.patch.object(bm,'project_bench',lambda root,p:copy.deepcopy(decl) if p==FIXTURE else real(root,p)):
+            self.assertEqual(b3._removed_safety_check(ROOT,Path(t),FIXTURE),(True,True))     # (mutations refused, control passes)
+        with tempfile.TemporaryDirectory() as t:                                             # control: the fixture as it is
+            self.assertEqual(b3._removed_safety_check(ROOT,Path(t),FIXTURE),(True,True))
+
+class ProbeNativeTests(unittest.TestCase):
+    """T6R4-A02 (T6-R5): a project whose bench.json holds a `native` block and whose protocol requires the native agreement
+    check in before_run_required. The P15 mutation _without drops that check; the probe must not keep `native`, which the
+    control does not read (it keeps schema_version, name, cases, checks), else the mutation raises 'bench.json native:
+    agreement names no declared check' and P15 fails on a false reason."""
+    def native(self):
+        decl=copy.deepcopy(bm.project_bench(ROOT,FIXTURE))
+        decl['native']={'kernel':{'program':'kernel','args':['{input}','{records}','{loops}','{output}']},'agreement':'fixture-agreement'}
+        return decl
+
+    def test_the_probe_of_a_declaration_without_its_agreement_check_holds_no_native_block(self):
+        import bench_phase3 as b3
+        decl=self.native();mutated=b3._without(decl,'fixture-agreement')
+        with tempfile.TemporaryDirectory() as t:got=b3._declared(ROOT,Path(t),mutated)
+        self.assertEqual(sorted(got),['cases','checks','name','schema_version'])
+        self.assertTrue(bm.dropped_before_run_checks(policy(),decl['cases'][0],got))
+
+    def test_the_removed_safety_check_passes_on_a_project_with_a_native_agreement_check(self):
+        import bench_phase3 as b3
+        real=bm.project_bench;decl=self.native()
+        with tempfile.TemporaryDirectory() as t,mock.patch.object(bm,'project_bench',lambda root,p:copy.deepcopy(decl) if p==FIXTURE else real(root,p)):
+            self.assertEqual(b3._removed_safety_check(ROOT,Path(t),FIXTURE),(True,True))
 
 if __name__=='__main__':unittest.main()

@@ -97,7 +97,12 @@ committer, who can bypass client hooks. An archive crafted on purpose so that
 standard tools parse it differently from Python's zipfile and tarfile is a
 documented residual. Known limits: a commit or
 tag that adds a vendored or upstream-archive file together with a lock entry for
-it exempts that file's content, locally and in CI; altered local
+it exempts that file's content, locally and in CI; the same holds for a file
+under the `benchmarks/project/third_party/` directory of a project root (the
+repository root or `examples/<name>/`, with a `project.json`) and its entry in
+the protected project lock (exact path, sha256, size and an origin URL on the
+upstream allowlist; the hook does not download the file to prove that origin,
+and a path that the lock binds to other bytes is a finding); altered local
 remote-tracking refs can shorten a push range; a stored zip member whose own
 bytes hold a local-header signature (for example a stored nested zip) is also
 reported as an unlisted local entry (fail closed); a tar whose first header does

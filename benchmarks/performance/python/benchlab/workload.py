@@ -11,6 +11,13 @@ workload has three obligations:
     order equals the input order. The parts arrive in chunk order, but chunk order is not row order.
 `run_chunk(chunk)` runs in the worker. It must return what `combine` needs to scatter, usually the chunk's `index`.
 
+The run reference (spec 4; R48, rulings R48 and R51). `reference(data)` is the reference of the adapter's own selector. An
+adapter may also declare the optional hook `reference_cover(data, selectors)`: `selectors` is the sorted list of the
+selectors that a run (or a local job of more than one selector) plans, each declared by the case manifest; the hook returns
+one reference from which the adapter of each listed selector validates its results (`slice_result`, `validate`). The
+coordinator calls it on the adapter of the reference selector, only when the job plan holds `reference_selectors`; the
+reference keeps one digest. Without the hook the coordinator calls `reference(data)`, as before.
+
 One construction path (G-ALO-CO, Amendment I item I13.1): `construct_adapter` is the only code that calls an adapter
 factory. A pooled adapter gets the keyword `request_limit` (the records per request, 14,336 under the current policy),
 read by `request_limit()` from SAFE_C_BENCH_REQUEST_LIMIT (set by the coordinator from the plan or the protected policy)

@@ -41,6 +41,29 @@ def expected_seconds(policy,trial,rows,calls,calibration):
     share=sum(shares.get(s,1.0) for s in selectors)
     return rate(policy,family(trial['variant']),calibration)*share*rows*calls
 
+def measured_seconds(policy,trial,rows,calls,calibration):
+    """T6-R7 (design I9.3: after calibration the input is the calibrated per-call wall of the row): the expected wall of
+    `calls` calls of `rows` rows each of a caller-scope timing trial (a session trial, a window control trial, a memory
+    trial). A calibration that holds measured walls (bench_plan.has_walls: every calibration that bench_plan.calibration_inputs
+    reads from a run) gives rows x calls x the measured wall of the trial's variant, selector (a mask: the sum over its
+    selectors) and call class (bench_plan.call_class of rows), never rate x share; a missing wall refuses
+    (bench_windows.PlanRefusal wall-not-measured, exit 1: the smoke plan of the case measures every class, so no value
+    is extrapolated from another class, selector or variant). The approved-share rule of expected_seconds applies first.
+    Without a calibration (a smoke plan: the planning estimate) or with a rate table without walls: expected_seconds."""
+    import bench_plan as bp
+    if not bp.has_walls(calibration):return expected_seconds(policy,trial,rows,calls,calibration)
+    selectors=_selectors(trial);missing=unapproved_shares(policy,selectors)
+    if missing:raise GateError(f'{missing[0]}: planning share not approved (budgets.share_required)')
+    cls=bp.call_class(rows);by=(calibration['walls'].get(trial['variant']) or {});total=0.0
+    for s in selectors:
+        wall=(by.get(s) or {}).get(cls)
+        if isinstance(wall,bool) or not isinstance(wall,(int,float)) or not wall>0:
+            import bench_windows
+            raise bench_windows.PlanRefusal('wall-not-measured',f"variant {trial['variant']}, selector {s}, {cls} calls: the calibration run holds no measured wall above 0 "
+                                            '(the smoke run of the case measures every class of its plans)',[{'variant':trial['variant'],'selector':s,'class':cls}])
+        total+=wall
+    return total*rows*calls
+
 def entries(case):
     """The call-deadline entries of a case in declaration order: [call_deadline] (when present) + call_deadlines."""
     return ([case['call_deadline']] if case.get('call_deadline') else [])+list(case.get('call_deadlines') or [])
@@ -49,24 +72,26 @@ def entry_for(case,selector):
     """The entry that covers `selector`, or None (entries never overlap: bench_model.check_call_deadlines)."""
     return next((e for e in entries(case) if selector in e['selectors']),None)
 
-def covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=None):
+def covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=None,measured=False):
     """None when no entry covers a selector of the trial; else (seconds, reason). Per covering entry the deadline is
     min(max(floor, factor x e), session_remaining) with the entry's floor_seconds (only a plan of mode `selftest`, built by
     bench selftest code, P3P-07, replaces it by its test_floor_seconds; every other mode ignores the key here, and
     bench_plan refuses it: check_test_floor) and factor. The job takes the largest value and that entry's reason; ties
-    follow the declaration order (controller ruling R-A8)."""
+    follow the declaration order (controller ruling R-A8). e is expected_seconds; with `measured` (a caller-scope timing
+    trial, deadline_fields; T6-R7) it is measured_seconds, the measured wall of the trial's calls after calibration."""
     selectors=_selectors(trial);best=None
     for cd in entries(case):
         if not any(s in cd['selectors'] for s in selectors):continue
         floor=float(cd['floor_seconds'])
         if isinstance(plan,dict) and plan.get('mode')=='selftest' and 'test_floor_seconds' in plan:floor=float(plan['test_floor_seconds'])
-        d=min(max(floor,float(cd['factor'])*expected_seconds(policy,trial,rows,calls,calibration)),float(session_remaining))
+        e=(measured_seconds if measured else expected_seconds)(policy,trial,rows,calls,calibration)
+        d=min(max(floor,float(cd['factor'])*e),float(session_remaining))
         if best is None or d>best[0]:best=(d,cd['reason'])
     return best
 
-def trial_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=None):
+def trial_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=None,measured=False):
     """None for a selector the case does not cover; else the seconds of covering_deadline."""
-    c=covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=plan)
+    c=covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=plan,measured=measured)
     return None if c is None else c[0]
 
 TEST_FLOOR_MAX=60.0        # a test floor only lowers the floor of a selftest plan: 0 < test_floor_seconds <= 60
@@ -87,8 +112,18 @@ def check_test_floor(plan):
         if not isinstance(env,dict) or not env or any(k not in TEST_ENV or not isinstance(v,str) or not TEST_ENV[k].fullmatch(v) for k,v in env.items()):raise GateError('test_env holds a variable or value outside the test-stub allowlist')
     return None
 
+def reference_tiers(plan):
+    """The tiers of every trial that the once-per-run reference of a run of `plan` covers: its session, memory and capacity
+    trials. bench.run_cmd computes the reference over the largest of them (Task 22: the capacity tier too), and the call
+    deadline of the reference job takes the rows of the same tier (_planned_rows; FW-CASES-STUBREF-01: a stub plan keeps
+    the capacity trials of the case's smoke plan, above its tiny session tier)."""
+    return ([s['tier'] for s in plan.get('sessions') or []]+[m['tier'] for m in plan.get('memory') or []]
+            +[c['tier'] for c in plan.get('capacity') or []])
+
 def _planned_rows(plan):
-    sizes=plan['sizes'];tiers=[s['tier'] for s in plan.get('sessions',[])]+[m['tier'] for m in plan.get('memory',[])]
+    """The rows of the deadline estimate of the reference job: the largest tier of reference_tiers, the large tier when the
+    plan holds no trial (an upper bound)."""
+    sizes=plan['sizes'];tiers=reference_tiers(plan)
     return max(sizes[t] for t in tiers) if tiers else sizes['large']
 
 def job_inputs(job,plan,trial):
@@ -96,8 +131,10 @@ def job_inputs(job,plan,trial):
     sizes=plan['sizes']
     if job=='timing':
         if 'panel' in trial:return 1,(6 if trial.get('mode')=='cold' else 6*trial['panel_passes'])
-        rows=plan['dataset']['rows'] if plan['dataset']['kind']=='local' else sizes[trial['tier']]
-        return rows,trial.get('loops',1)
+        rows=plan['dataset'].get('rows') if plan['dataset']['kind']=='local' else None
+        # EX-19: a local plan records no row count of the private dataset (F-11: rows null), so its trials take the rows of
+        # their tier, the rows that the coordinator slices for each trial of a local job; a recorded count still wins
+        return (rows if type(rows) is int else sizes[trial['tier']]),trial.get('loops',1)
     if job=='memory':return sizes[trial['tier']],1
     if job=='reference':return _planned_rows(plan),1
     if job=='validate':return sizes['small']+int(trial.get('oracle_edge_rows',0)),1
@@ -107,9 +144,11 @@ def job_inputs(job,plan,trial):
 
 def deadline_fields(case,policy,job,plan,trial,calibration,session_remaining):
     """The plan keys of one trial or job: {} for an uncovered selector, else call_deadline_seconds and call_deadline_reason.
-    `plan` also selects the floor (trial_deadline: a selftest plan's test_floor_seconds)."""
+    `plan` also selects the floor (trial_deadline: a selftest plan's test_floor_seconds). T6-R7: the input of a timing trial
+    outside the kernel scope is its measured wall after calibration (measured_seconds); a job (reference, panel, check,
+    validate, memory, selftest-suite) and a kernel trial keep expected_seconds (job table, G2.6)."""
     rows,calls=job_inputs(job,plan,trial)
-    c=covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=plan)
+    c=covering_deadline(case,policy,trial,rows,calls,calibration,session_remaining,plan=plan,measured=job=='timing' and trial.get('scope')!='kernel')
     return {} if c is None else {'call_deadline_seconds':c[0],'call_deadline_reason':c[1]}
 
 def job_reason(row):
@@ -273,10 +312,11 @@ def declared_project_stubs(root,project):
         out.append((project,case,spec))
     return out
 
-def declared_stubs(root):
-    """declared_project_stubs of every example project (found by layout; the framework names no example)."""
+def declared_stubs(root,project=None):
+    """declared_project_stubs of every example project of the scope (bench.example_projects: the framework examples, found
+    by layout, or the explicit `project`; the framework names no example)."""
     import bench
-    return [x for p in bench.example_projects(root) for x in declared_project_stubs(root,p)]
+    return [x for p in bench.example_projects(root,project) for x in declared_project_stubs(root,p)]
 
 def declared_stub_reasons(root):
     """The reasons of declared_stubs, in declaration order (GateError as there)."""
@@ -288,12 +328,12 @@ def stub_project(root,reason):
     if hit is None:raise GateError(f'no example project declares the {reason} test stub')
     return hit
 
-def stub_suites(root,run_dir):
+def stub_suites(root,run_dir,project=None):
     """(suites, not_run) of `bench selftest`: a stub run `stub-run-<reason>` and a stub check `stub-check-<reason>` per
     declared stub. FR1-01: when no example project declares a stub, no suite runs and not_run records both suite kinds
     with the reason (cases.json `not_run`, as B15 records its stub part). A malformed declaration gives one BLOCKED suite
-    `stubs` with the reason, never a silent skip."""
-    try:stubs=declared_stubs(root)
+    `stubs` with the reason, never a silent skip. `project`: the example scope (declared_stubs)."""
+    try:stubs=declared_stubs(root,project)
     except GateError as exc:
         return {'stubs':{'status':'BLOCKED','reason':str(exc)[:200],'property':'project test stubs: declaration readable'}},[]
     if not stubs:return {},[{'suite':'stub-run','reason':NOT_DECLARED},{'suite':'stub-check','reason':NOT_DECLARED}]
@@ -318,7 +358,7 @@ def _stub_plan(root,case,policy,envelope,seed,project,identity,spec):
            'tier':'tiny','loops':1,'warmup':False,'selector':selector}
     sess={'session':'selftest-s00','group':point['name'],'point':point['name'],'scope':'caller','tier':'tiny','class':'exploratory','deadline_seconds':cap,
           'estimate_seconds':0.0,'trials':[trial]}
-    plan={k:v for k,v in base.items() if k not in ('plan_id','project_dir')}
+    plan={k:v for k,v in base.items() if k not in ('plan_id','project_dir','datasets')}     # T6-R7: no named dataset of a smoke probe point
     plan.update(mode='selftest',sessions=[sess],memory=[],test_floor_seconds=TEST_FLOOR,test_env=dict(spec['env']))
     trial.update(deadline_fields(case,policy,'timing',dict(plan,sizes=policy['sizes']),trial,None,cap))
     plan['plan_id']=plan_digest(plan)
@@ -409,10 +449,10 @@ def _stub_check_selftest(root,run_dir,spec,project=None,case=None):
     except GateError as exc:out.update(status='BLOCKED',reason=str(exc)[:200])
     out['duration_seconds']=round(time.monotonic()-started,1);return out
 
-def first_stub_selftests(root,run_dir):
-    """B15 (Task 29): the stub run and the stub check of the first declared stub, or None when no project declares one
-    (GateError as declared_stubs)."""
-    stubs=declared_stubs(root)
+def first_stub_selftests(root,run_dir,project=None):
+    """B15 (Task 29): the stub run and the stub check of the first declared stub of the example scope `project`
+    (declared_stubs), or None when no project declares one (GateError as declared_stubs)."""
+    stubs=declared_stubs(root,project)
     if not stubs:return None
     project,case,spec=stubs[0]
     return {'reason':spec['reason'],'run':_stub_run_selftest(root,run_dir,spec,project,case),'check':_stub_check_selftest(root,run_dir,spec,project,case)}

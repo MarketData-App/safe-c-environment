@@ -26,8 +26,9 @@
     "prompts/application-c.md"
   ],
   "project_protected": [
-    "benchmarks/project/protocol/"
+    "benchmarks/project/protocol/",
+    "benchmarks/project/third_party/"
   ],
-  "project_protected_note": "FR3 (design Task 32): inside every project directory (the root of a project instance, and every examples/<name>/ project), the protocol directory is protected like the paths above: a change needs the approver. bench.json binds the protocol file by sha256 and bench_model refuses an unbound or edited file. FR3-04: an APPROVED protocol also needs protocol/approval.json (schemas/bench-protocol-approval.json) with the sha256 of the protocol file and its approval reference; a mismatch BLOCKS every plan, run, check and decide of the project. The binding is tamper-evident, not tamper-proof: the record is unsigned, and review of this protected directory is the control.",
+  "project_protected_note": "FR3 (design Task 32): inside every project directory (the root of a project instance, and every examples/<name>/ project), the protocol directory is protected like the paths above: a change needs the approver. bench.json binds the protocol file by sha256 and bench_model refuses an unbound or edited file. FR3-04: an APPROVED protocol also needs protocol/approval.json (schemas/bench-protocol-approval.json) with the sha256 of the protocol file and its approval reference; a mismatch BLOCKS every plan, run, check and decide of the project. The binding is tamper-evident, not tamper-proof: the record is unsigned, and review of this protected directory is the control. EX-1: the third-party directory (lock.json, wheels, source archives, notices, provenance records) is protected the same way; bench.json binds lock.json by sha256 and the lock binds every file by sha256 (tools/project_third_party.py).",
   "exceptions": "safety/exceptions.json; independent authorization only"
 }

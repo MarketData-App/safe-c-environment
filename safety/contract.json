@@ -394,6 +394,138 @@
       "name": "bench-policy-or-runtime-downgrade",
       "mutation": "Lower practical thresholds to force C, remove safety checks, exceed approved resource budgets, ship benchmark/profiler/unsafe-demo assets by default, alter the owner threshold, or build a unit verdict on cold values",
       "outcome": "Independent policy/launch/package enforcement rejects the change; recommendations cannot deploy code."
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch",
+      "mutation": "Compare rows with an instrumented or debug build, another dependency, a hidden algorithm or precision change, an incomplete workload inventory, another CPU envelope, or other selectors, panels or dataset identities",
+      "outcome": "The comparison context check refuses the comparison; same-envelope release rows stay comparable."
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass",
+      "mutation": "Ask for an unlimited pool or queue, use a thread API outside the foundation grant, load native code outside a caller child or the run build, execute on the host, change the CPU affinity, leave an unmanaged subprocess, or request profiler privileges",
+      "outcome": "The pool, AST, native identity, launch, affinity, cleanup and host tuning checks refuse it before it counts."
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer",
+      "mutation": "Skip useful work, reuse an answer for another input, run a no-op kernel, remove the result consumption, or present a per-selector row that evaluates unselected parts or nothing",
+      "outcome": "The row is ineligible or the agreement controls reject it; no timing counts."
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/sanitized-or-debug-artifact",
+      "mutation": "Present a C row built with a sanitizer or a debug optimization level as a release row",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/wrong-dependency",
+      "mutation": "Present a C row whose loaded GLib differs from the GLib of the build",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/hidden-algorithm-or-precision-change",
+      "mutation": "Compare a row whose case version or algorithm identity changed without an announcement",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/incomplete-workload-inventory",
+      "mutation": "Compare rows of a run that misses a planned row",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/different-cpu-envelope",
+      "mutation": "Compare rows measured under another CPU envelope",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P02",
+      "name": "bench-build-or-scope-mismatch/different-selector-panel-or-dataset",
+      "mutation": "Compare rows of different selectors, panels or dataset identities",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/unlimited-pool-or-queue",
+      "mutation": "Ask for a worker count outside the policy or the envelope, or an unbounded queue window",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/unauthorized-thread-api",
+      "mutation": "Call a thread API outside the foundation grant in first-party C",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/unsafe-native-loading",
+      "mutation": "Load the in-process library in the coordinator, or plan a binary that is not of the run build",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/host-execution",
+      "mutation": "Record a row that ran outside the framework runners",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/changed-affinity",
+      "mutation": "Run under a CPU set or job affinity other than the planned envelope",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/unmanaged-subprocess",
+      "mutation": "Leave a worker process after its teardown",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P04",
+      "name": "bench-concurrency-or-launch-bypass/profiler-privilege",
+      "mutation": "Ask for capabilities, a privileged container, ptrace or a perf_event_paranoid change",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/skip-useful-work",
+      "mutation": "Present a row that processed fewer records than planned as eligible",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/reuse-answer",
+      "mutation": "Return the stored result of one input for another input",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/no-op-native-kernel",
+      "mutation": "Present a kernel result that differs from the reference as eligible",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/removed-result-consumption",
+      "mutation": "Present a row whose self-reduction does not match as eligible",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/selector-overcompute",
+      "mutation": "Present a per-selector row that evaluated unselected parts as eligible",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
+    },
+    {
+      "parent": "P16",
+      "name": "bench-no-op-or-gamed-optimizer/selector-no-op",
+      "mutation": "Present a per-selector row with no selected evaluation or no agreement on fresh inputs as eligible",
+      "outcome": "the Phase 2 bench check rejects it with its permitted-operation control"
     }
   ],
   "budgets": {

@@ -1,0 +1,11 @@
+{"schema_version":1,"case_id":"echo-control","version":1,"kind":"function","adapter":"optionlab.echo_adapter:EchoControl",
+ "description":"overhead calibration: an empty kernel (echo) on the option request records of the synthetic chain; py-reference returns the echo result in process, c-serial runs pl-worker --echo on stdio and shm. libpl_inproc.so has no echo mode, so no inproc echo row exists (the C ABI is unchanged).",
+ "work_unit":"one echoed contract (status ECHO for bsm, bjs and crr)",
+ "parameters":{"seed":{"value":20261007,"label":"declared","note":"the seed of the option chain; the chain uses the parameters of option-chain-greeks"}},
+ "variants":[{"id":"py-reference","language":"python","workers":["direct"],"status":"implemented"},
+  {"id":"c-serial","language":"c","workers":["direct"],"status":"implemented","routes":["stdio","shm"]}],
+ "scopes":["caller"],"sizes":["small","large"],
+ "points":[
+  {"name":"echo-small","scope":"caller","size":"small","modes":["warm","cold"],"variants":["py-reference","c-serial"],"class":"exploratory","routes":["stdio","shm"]},
+  {"name":"echo-large","scope":"caller","size":"large","modes":["warm","cold"],"variants":["py-reference","c-serial"],"class":"exploratory","routes":["stdio","shm"]}],
+ "opportunity_record":"benchmarks/project/cases/echo-control.opportunity.json"}

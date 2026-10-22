@@ -93,7 +93,10 @@ def readiness(root,context,fields,selected,identity):
         if value.get('context_namespace')==context and value.get('source_identity')==identity:
             results.append((path.stat().st_mtime,value))
     results=sorted(results,key=lambda item:item[0],reverse=True)[:8]
-    from bench_readiness import performance_axes, performance_details;axes['performance']=performance_axes(root,identity,axes);axes['performance_details']=performance_details(root,identity)
+    project=selected.get('project')      # amendment E 1.2 item 3: dev readiness --project DIR scopes the demo axes to that project
+    if project is not None:
+        import bench_model;bench_model.project_bench(root,project)
+    from bench_readiness import performance_axes, performance_details;axes['performance']=performance_axes(root,identity,axes,project);axes['performance_details']=performance_details(root,identity)
     return dict(axes,worktree=fields['worktree'],configuration=fields,index_freshness=freshness,
         debugger_recipes=read_json(root/'safety/developer-policy.json')['debugger']['recipes'],
         last_results=[{'run_id':v['run_id'],'operation':v['operation'],'status':v['status']} for _,v in results],

@@ -1,5 +1,6 @@
 """Phase 3 bench selftest cases (owner brief sections 15 and 16; spec Amendment H1; Task 29): the suites B12, B14, B15 and
-B18 and the P10 (bench-stale-or-rewritten-evidence) and P15 (bench-policy-or-runtime-downgrade) subcases. B17 is Task 30.
+B18 and the P10 (bench-stale-or-rewritten-evidence) and P15 (bench-policy-or-runtime-downgrade) subcases. B17 (Task 30,
+the real complete demo matrix) runs its own smoke runs through the public commands (b17_suite, section B17 below).
 
 `phase3_cases(root, run_dir, smoke_dir)` runs from bench.selftest_cases (one hook line) on the real bench-control-spin smoke
 run of that selftest (`smoke_dir`). `host_additions(root)` gives the P10 and P15 variants that need no container
@@ -7,15 +8,16 @@ run of that selftest (`smoke_dir`). `host_additions(root)` gives the P10 and P15
 control: the same check must pass on the unmutated input, so a broken check or a broken control never gives PASS
 (bench._sub). A check that raises gives FAIL with the exception type, never PASS or BLOCKED.
 
-Framework code: it names no example. The example project is found by layout (bench.example_projects); mutated inputs
+Framework code: it names no example. The example project is found by layout (bench.example_projects) or named by an
+explicit `bench selftest --project DIR` (amendment E: a standalone example runs only there); mutated inputs
 live in temporary directories or in memory, never in the tree. The host variants run each enforcement function that the
 real command calls (decide: bench_evidence.stale, policy_runtime_problems, check_integrity; run --plan:
 bench.verify_written_plan; validate and run: bm.dropped_before_run_checks through bench.refuse_dropped_checks; plan: bench_plan.build_plan; launch: container_policy.make_plan; package:
 bench_b18.runtime_bench_files and runtime.inventory_gate; decision record: schemas/bench-decision.json; unit-threshold
 policy: schemas/bench-protocol.json and the protocol digest binding (FR3); unit verdicts: bench_units.decide_unit)."""
-import copy, json, shutil, tempfile
+import copy, json, re, shutil, tempfile
 from pathlib import Path
-from evidence import GateError, file_hash, loads_capped, read_json
+from evidence import GateError, atomic_json, file_hash, loads_capped, read_json
 import bench_model as bm
 
 NAMES={'P10':'bench-stale-or-rewritten-evidence','P15':'bench-policy-or-runtime-downgrade'}
@@ -170,14 +172,20 @@ def _lowered_threshold(root,t):
     _edit_policy(m,lower)
     return _post_hoc(be.policy_runtime_problems(m,ok)) and protected_entry(root,'safety/performance-policy.json') is not None,control
 
+PROBE_KEPT=('schema_version','name','cases','checks')     # the keys that the control reads (T6R4-A02): bm.dropped_before_run_checks reads cases and checks
+
 def _declared(root,t,decl):
     """bm.project_bench of a temporary project 'probe' whose bench.json is `decl` (one empty manifest per declared case):
-    the validated declaration that bench validate and bench run read."""
+    the validated declaration that bench validate and bench run read. The probe holds no project file, so `decl` loses its
+    every key but PROBE_KEPT: FR3 the protocol file (the required checks come from the caller's policy), T14-A01 the
+    third-party lock, T6R4-A02 the native block (its agreement check must name a declared check, which the mutations
+    _without and _switched_off remove). The probe only feeds bm.dropped_before_run_checks (the case list and the checks); it
+    never builds or runs the project image or project code, which the lock serves."""
     base=t/'project-root'
     if not (base/'schemas/bench-project.json').is_file():
         (base/'schemas').mkdir(parents=True);shutil.copyfile(Path(root)/'schemas/bench-project.json',base/'schemas/bench-project.json')
     area=base/'probe'/bm.PROJECT_AREA;shutil.rmtree(area,ignore_errors=True);(area/'cases').mkdir(parents=True)
-    decl={k:v for k,v in decl.items() if k!='protocol'}       # FR3: the probe has no protocol file; the required checks come from the caller's policy
+    decl={k:v for k,v in decl.items() if k in PROBE_KEPT}       # FR3, T14-A01, T6R4-A02: the probe has no protocol file, no lock and no native block
     for c in decl['cases']:(area/'cases'/f'{c}.json').write_text('{}\n')
     (area/'bench.json').write_text(json.dumps(decl));return bm.project_bench(base,'probe')
 
@@ -189,11 +197,12 @@ def _switched_off(decl,name):
         if c['name']==name:c['before_run']=False
     return d
 
-def _removed_safety_check(root,t):
+def _removed_safety_check(root,t,project=None):
     """T29-APP-01: bench validate and bench run (bench.refuse_dropped_checks -> bm.dropped_before_run_checks on the
     validated bench.json) refuse a case whose declaration drops or switches off a before_run check that the key
     before_run_required of the project's protected protocol file names (FR3): a probe case in a policy copy, and the real
-    entry of every example project case (each required check dropped, its agreement check switched off). run --plan (bench.verify_written_plan) refuses a
+    entry of every example project case of the scope `project` (bench.example_projects; each required check dropped, its
+    agreement check switched off). run --plan (bench.verify_written_plan) refuses a
     written plan in the selftest mode, the mode that runs no before-run check. Controls: the unmutated declarations give no
     reason; the unmutated written plan is accepted."""
     import bench, bench_plan as bp
@@ -203,8 +212,8 @@ def _removed_safety_check(root,t):
     control=reasons(pol,'probe-case',_declared(root,t,probe))==[]
     named=lambda n,got:any(f'check {n};' in r for r in got)
     rejected=all(named('probe-agreement',reasons(pol,'probe-case',_declared(root,t,d))) for d in (_without(probe,'probe-agreement'),_switched_off(probe,'probe-agreement')))
-    for project in bench.example_projects(root):
-        decl=bm.project_bench(root,project);ppol=bm.load_policy(root,project)     # FR3: the entries come from the project's protocol
+    for example in bench.example_projects(root,project):
+        decl=bm.project_bench(root,example);ppol=bm.load_policy(root,example)     # FR3: the entries come from the project's protocol
         for case_id in decl['cases']:
             required=ppol['before_run_required'].get(case_id,[])
             if not required:continue
@@ -223,7 +232,8 @@ def _exceeded_resource_budget(root,t):
     """Refused before launch: a decision plan above the 8 h decision cap, a block above the 10,800 s session cap (both
     bench_plan.build_plan; the plan grows through a larger per-trial overhead), and an envelope above the container
     policy (container_policy.make_plan). Control: the unmutated decision plan is within the cap; the policy envelope is
-    accepted. The owner-policy window caps (budgets.owner_policy_decision_cap_seconds) come with Task A8."""
+    accepted. EX-18b (Task A8, E-T29-2): the window plan refusals of bench_windows (a part above the window limit, a session
+    above the session cap) with a split within the day as their control."""
     import bench_plan as bp, container_policy as cpol
     policy=bm.load_policy(root);case=bm.load_case(root,CONTROL_CASE);ds=bp.parse_dataset(root,'synthetic:small',policy)
     # the control case without its capacity block: a larger per-trial overhead would first hit the 120 s capacity-trial
@@ -244,7 +254,18 @@ def _exceeded_resource_budget(root,t):
     env=lambda k:{'cpus':k,'cpuset':list(range(k)),'smt_siblings':[],'reduced':False,'multicore':'PASS'}
     wide=_refused(cpol.make_plan,value,image,{'/src':src},'bench',envelope=env(cpus+1))
     control=control and not _refused(cpol.make_plan,value,image,{'/src':src},'bench',envelope=env(cpus))
-    return cap and session and wide,control
+    # EX-18b (E-T29-2): a window plan with an indivisible part above the window limit (window-cap-infeasible) and a session
+    # above the 10,800 s session cap (session-cap-infeasible) are refused before launch; a split within the day is accepted
+    import bench_windows as bw
+    grp=lambda secs,ref=0.0:{'id':'unit','order':0,'sessions':[{'id':f's{i}','seconds':x} for i,x in enumerate(secs)],'reference':ref}
+    def reason(fn,*a):
+        try:fn(*a)
+        except bw.PlanRefusal as exc:return exc.reason
+        return None
+    window=reason(bw.split_windows,[grp([1000.0],ref=float(bw.DAY))],1800.0)=='window-cap-infeasible'
+    window=window and reason(bw.check_sessions,[grp([10800.5])])=='session-cap-infeasible'
+    control=control and reason(bw.split_windows,[grp([10000.0]*3,ref=1852.0)],1800.0) is None
+    return cap and session and wide and window,control
 
 def _shipped_bench_assets(root,t):
     import bench_b18, runtime
@@ -354,8 +375,11 @@ HOST_CHECKS={('P10','reused-source-report'):(_reused_source_report,'decide refus
 INTEGRITY={'reused-dataset-report':(lambda p,r,o:r['dataset'].update(seed=SEED+1),'dataset mismatch','decide refuses another dataset identity (check_integrity)'),
            'reused-scope-report':(lambda p,r,o:o[0].update(scope='kernel'),'scope mismatch','decide refuses rows of another scope (check_integrity)')}
 
-def host_additions(root):
-    """The P10 and P15 variants that need no container (HOST_VARIANTS), one row each with its control."""
+SCOPED_HOST_CHECKS=(('P15','removed-safety-check'),)      # amendment E 1.2 item 3: the host checks that read the example scope
+
+def host_additions(root,project=None):
+    """The P10 and P15 variants that need no container (HOST_VARIANTS), one row each with its control. The checks of
+    SCOPED_HOST_CHECKS read the example scope `project` (bench.example_projects)."""
     root=Path(root);rows=[];policy=bm.load_policy(root)
     with tempfile.TemporaryDirectory(prefix='safe-c-p3-') as tmp:
         for k,(parent,variant) in enumerate(HOST_VARIANTS):
@@ -365,7 +389,8 @@ def host_additions(root):
                 rows.append(_row(parent,variant,lambda:_integrity_variant(root,policy,mutate,want),reason))
             else:
                 fn,reason=HOST_CHECKS[(parent,variant)]
-                rows.append(_row(parent,variant,lambda:fn(root,t),reason,[str(root/P15_FIXTURES)] if variant=='shipped-bench-assets' else []))
+                call=(lambda:fn(root,t,project)) if (parent,variant) in SCOPED_HOST_CHECKS else (lambda:fn(root,t))
+                rows.append(_row(parent,variant,call,reason,[str(root/P15_FIXTURES)] if variant=='shipped-bench-assets' else []))
     return rows
 
 # ---- the real smoke run: P10 rewritten-raw-samples, B12, B15 ----
@@ -455,13 +480,15 @@ def h7_checks(policy,a0,rows,run):
             'host-total-below-trial-deltas':control and 0<=low<total and reconciled(low,'exceeds the host total'),
             'changed-run-record':be.verify_record(run)==[] and be.verify_record(changed)==[be.RECORD_CHANGED]}
 
-def b15_suite(root,run_dir,smoke_dir):
+def b15_suite(root,run_dir,smoke_dir,project=None):
     """B15 on the real smoke run (brief section 15): its accounting rows PASS, check_integrity is empty and its digests
     bind; copies with an inflated trial delta, a wrong cgroup identity, a foreign run_id, an edited observation, a removed
-    trial, a forged pyperf wall, a duplicated row or a wrong work count are rejected; the H7 directions (h7_checks: a
+    trial, a forged pyperf wall (above its bracket, and far below it: T6-A07), a duplicated row or a wrong work count are
+    rejected; the H7 directions (h7_checks: a
     missing host total, a host total below the trial deltas, a changed run.json record) are rejected. The stub run and check of the
     first test stub of a project protocol (Task 6; FR3) are part of B15 when a project declares one: a hang is a failed
-    attempt that stays visible; without a declaration B15 records why (`stub`)."""
+    attempt that stays visible; without a declaration B15 records why (`stub`). `project`: the example scope of the stub
+    (bench_deadline.first_stub_selftests)."""
     out={'status':'FAIL','property':PROPERTY['B15'],'checks':{}}
     if smoke_dir is None:return dict(out,reason='no smoke run evidence')
     import bench, bench_accounting as ba, bench_evidence as be
@@ -488,6 +515,10 @@ def b15_suite(root,run_dir,smoke_dir):
         tid=obs[first]['trial_id']
         checks['removed-failed-trial']=integrity(lambda o:o.__setitem__(slice(None),[x for x in o if x.get('trial_id')!=tid]),'missing failed attempt: '+tid)
         checks['forged-pyperf-wall']=integrity(lambda o:o[first].update(pyperf_wall_ns=2*o[first]['wall_ns']+10**9),'forged self-timing')
+        # T6-A07: the other direction of the one-sided rule: a bracket of 2 x wall + 10^9 ns around a self-timing of the
+        # measured wall (the self-timing far below its bracket, beyond max(agreement_abs_ns, agreement_rel x wall))
+        checks['forged-pyperf-wall-below']=integrity(lambda o:o[first].update(pyperf_wall_ns=o[first]['wall_ns'],wall_ns=2*o[first]['wall_ns']+10**9),
+                                                     'forged self-timing')
         checks['duplicated-row']=integrity(lambda o:o.append(copy.deepcopy(o[first])),'duplicate rows')
         checks['wrong-work-count']=integrity(lambda o:o[first].update(work_units=o[first]['work_units']+1),'wrong work count')
         with tempfile.TemporaryDirectory(prefix='safe-c-b15-') as t:
@@ -497,7 +528,7 @@ def b15_suite(root,run_dir,smoke_dir):
         return dict(out,reason=f'B15 check failed: {type(exc).__name__}: {str(exc)[:200]}')
     statuses=list(checks.values())
     import bench_deadline
-    try:first=bench_deadline.first_stub_selftests(root,run_dir)
+    try:first=bench_deadline.first_stub_selftests(root,run_dir,project)
     except GateError as exc:first={'reason':None,'run':{'status':'BLOCKED','reason':str(exc)[:200]},'check':{'status':'BLOCKED'}}   # never a silent pass
     except Exception:first={'reason':None,'run':{'status':'FAIL'},'check':{'status':'FAIL'}}
     if first is not None:
@@ -633,10 +664,330 @@ def b18_suite(root):
             'problems':{k:v['problems'][:5] for k,v in r['checks'].items() if v['problems']},
             'child_checks':'starter-maintenance mode: starter.verify_starter runs bench_b18.child_checks after the fresh child ci (Task 40 reads them)'}
 
-def phase3_cases(root,run_dir,smoke_dir):
-    """(suites, additions) of Phase 3 for bench.selftest_cases: B12, B14, B15, B18 and every P10 and P15 variant."""
+# ---- B17: the real complete demo matrix (Task 30; brief section 15; Amendment H1) ----
+# The matrix of a case is the set of cells that its complete smoke run must observe (matrix_cells). B17 runs the public
+# commands bench run (smoke, synthetic small, --matrix full), bench compare and bench report on the framework control case
+# and on the first C case of every native example project (b17_targets; found by layout, the framework names no example),
+# and checks each run (b17_check). The suite also needs every dimension of the brief's property (B17_DIMENSIONS) in at
+# least one passing run; a dimension that no framework control declares is in cases.json not_run with its ledger row
+# (B17_NOT_RUN, ruling EX13-R4), and any other missing dimension is a FAIL.
+B17_DATASET='synthetic:small';B17_LEDGER='EX17-B17-CMULTI-01';MATRIX_MODES=('warm','cold')
+B17_DIMENSIONS=(('python-one-worker','a Python caller row with one worker (direct or 1)'),
+                ('python-multiple-workers','a Python caller row with 2 or more workers'),
+                ('c-one-worker','a C caller row with one worker (direct or 1)'),
+                ('c-multiple-workers','a C caller row with 2 or more workers'),
+                ('kernel-scope','a kernel row'),('caller-scope','a caller row'),('capacity-scope','a capacity row'),
+                ('caller-warm','a warm caller row'),('caller-cold','a cold caller row'),
+                ('memory-trials','an independent memory trial with its group peak'),
+                ('route-stdio','a C caller row on the stdio route'),('route-shm','a C caller row on the shm route'),
+                ('route-inproc','a C caller row on the inproc route'))
+B17_NOT_RUN={'c-multiple-workers':B17_LEDGER}      # no framework control declares a C variant with 2 or more workers
+PROPERTY['B17']=('execute the Python/C one/multiple-worker matrix, all three scope demonstrations, cold/warm caller paths and independent '
+                 'memory trials through public commands; publish actual numbers even if C loses; synthetic decision tests cannot substitute')
+
+def _workers_label(w):return 'direct' if w=='direct' else f'x{w}'
+
+def _cell(scope,mode,variant,language,workers,route):
+    name=(f'{scope} {mode} ' if scope=='caller' else f'{scope} ')+f'{variant} {_workers_label(workers)}'+(f' [{route}]' if route else '')
+    return {'cell':name,'scope':scope,'mode':mode,'variant':variant,'language':language,'workers':workers,'route':route}
+
+def matrix_cells(case):
+    """(cells, not_applicable) of the complete smoke matrix of `case` (brief section 15, B17). For every implemented variant,
+    each declared worker count and each route (a C variant: its routes, default stdio; a Python variant: none): a warm and
+    a cold caller cell and one memory cell when the case declares the caller scope (the inproc cold cell is
+    not-applicable: the library load is the startup phase); one kernel cell for each implemented direct variant of the
+    language python or c (a library-backed Python variant has no kernel row) when it declares the kernel scope; one
+    capacity cell per capacity configuration of an implemented variant when it declares the capacity scope. A cell is a
+    dict: cell (its name), scope, mode, variant, language (python or c), workers, route (and configuration)."""
+    import bench_plan as bp
+    cells=[];na=[];scopes=case.get('scopes') or [];variants=[v for v in case.get('variants') or [] if v.get('status')=='implemented']
+    lang={v['id']:('c' if v.get('language')=='c' else 'python') for v in variants}
+    for v in variants:
+        routes=list(v.get('routes') or bp.DEFAULT_ROUTES) if lang[v['id']]=='c' else [None]
+        for w in v.get('workers') or []:
+            for route in routes:
+                if 'caller' not in scopes:continue
+                for mode in MATRIX_MODES:
+                    c=_cell('caller',mode,v['id'],lang[v['id']],w,route)
+                    if route=='inproc' and mode=='cold':na.append(dict(c,reason=bp.INPROC_COLD))
+                    else:cells.append(c)
+                cells.append(_cell('memory','warm',v['id'],lang[v['id']],w,route))
+            if 'kernel' in scopes and w=='direct' and v.get('language') in ('python','c'):cells.append(_cell('kernel','direct',v['id'],lang[v['id']],'direct',None))
+    if 'capacity' in scopes:
+        for c in ((case.get('capacity') or {}).get('configurations') or []):
+            if c.get('variant') not in lang:continue
+            cells.append({'cell':f"capacity {c.get('name')} {c['variant']}"+(f" [{c['route']}]" if c.get('route') else ''),'scope':'capacity','mode':'warm',
+                          'variant':c['variant'],'language':lang[c['variant']],'workers':None,'route':c.get('route'),'configuration':c.get('name')})
+    return cells,na
+
+def _blocked_reason(c,plan):
+    """The plan's reason for a cell it did not plan: a blocked row (variant, workers, route; and mode when the row names one)
+    or a blocked capacity configuration; None without one."""
+    if c['scope']=='capacity':
+        rows=[b for b in plan.get('capacity_blocked') or [] if isinstance(b,dict) and (b.get('configuration'),b.get('variant'))==(c['configuration'],c['variant'])]
+    else:
+        rows=[b for b in plan.get('blocked_rows') or [] if isinstance(b,dict) and (b.get('variant'),b.get('workers'),b.get('route'))==(c['variant'],c['workers'],c['route'])
+              and b.get('mode') in (None,c['mode'])]
+    return f"blocked: {str(rows[0].get('reason'))[:200]}" if rows else None
+
+def matrix_state(plan,observations,case):
+    """{'cells', 'not_applicable', 'problems'}: every cell of matrix_cells(case) with its state `observed` (at least one
+    non-warmup row of the cell, every one eligible; a caller or kernel row with work, a memory trial with its group peak, a
+    capacity trial of the configuration) or `missing` with its reason: ineligible, the plan's blocked reason, excluded by
+    --matrix python (a C cell of a python plan), or not observed. Problems: a plan of another case, and a case that declares
+    the capacity scope without a capacity configuration of an implemented variant."""
+    cells,na=matrix_cells(case);plan=plan if isinstance(plan,dict) else {};problems=[]
+    if plan.get('case')!=case.get('case_id'):problems.append(f"the plan is of case {str(plan.get('case'))[:60]}, not {case.get('case_id')}")
+    if 'capacity' in (case.get('scopes') or []) and not any(c['scope']=='capacity' for c in cells):
+        problems.append('capacity scope: the case declares no capacity configuration of an implemented variant')
+    rows=[o for o in observations or [] if isinstance(o,dict) and not o.get('warmup')]
+    python_only=plan.get('matrix')=='python';out=[]
+    for c in cells:
+        if c['scope']=='capacity':
+            got=[o for o in rows if o.get('scope')=='capacity' and isinstance(o.get('capacity'),dict) and o['capacity'].get('configuration')==c['configuration']
+                 and o.get('variant')==c['variant'] and o.get('route',o['capacity'].get('route'))==c['route']]
+            ok=all(o.get('eligible') is True for o in got)
+        elif c['scope']=='memory':
+            got=[o for o in rows if (o.get('scope'),o.get('variant'),o.get('workers'),o.get('route'))==('memory',c['variant'],c['workers'],c['route'])]
+            ok=all(o.get('eligible') is True and isinstance(o.get('memory'),dict) and o['memory'].get('group_peak_bytes') is not None for o in got)
+        else:
+            got=[o for o in rows if (o.get('scope'),o.get('mode'),o.get('variant'),o.get('workers'),o.get('route'))==(c['scope'],c['mode'],c['variant'],c['workers'],c['route'])]
+            ok=all(o.get('eligible') is True and o.get('work_units') for o in got)
+        if got and ok:out.append(dict(c,state='observed'));continue
+        reason=('ineligible'+(' or without its group peak' if c['scope']=='memory' else '') if got else _blocked_reason(c,plan)
+                or ('excluded by --matrix python' if python_only and c['language']=='c' else 'not observed'))
+        out.append(dict(c,state='missing',reason=reason))
+    return {'cells':out,'not_applicable':na,'problems':problems}
+
+def matrix_complete(plan,observations,case):
+    """Task 30: [] when every cell of the complete matrix of `case` is observed in the run (matrix_state); else one reason per
+    missing cell (and per problem). dev readiness (bench_readiness.matrix_missing) reads it for the demo decision run."""
+    state=matrix_state(plan,observations,case)
+    return state['problems']+[f"{c['cell']}: {c['reason']}" for c in state['cells'] if c['state']=='missing']
+
+def cell_dimensions(c):
+    """The B17_DIMENSIONS that one cell shows."""
+    if c['scope'] in ('kernel','capacity'):return {f"{c['scope']}-scope"}
+    if c['scope']=='memory':return {'memory-trials'}
+    one=c['workers'] in ('direct',1)
+    out={'caller-scope',f"caller-{c['mode']}",f"{c['language']}-{'one-worker' if one else 'multiple-workers'}"}
+    if c['language']=='c' and c['route']:out.add(f"route-{c['route']}")
+    return out
+
+def matrix_dimensions(cells):
+    """The dimensions of the observed cells."""
+    return set().union(*[cell_dimensions(c) for c in cells if c.get('state')=='observed'])
+
+def _number(x):
+    import math
+    try:v=float(x)
+    except (TypeError,ValueError):return False
+    return math.isfinite(v)
+
+def report_problems(run_dir):
+    """`a report with every row` (B17): bench report's summary.csv holds exactly the compare rows, each with its wall and CPU
+    numbers; every C row with its comparison against the best Python row whatever the outcome (actual numbers even if C
+    loses); every warm caller row with its memory number (group peak); summary.md holds one table row per compare row and
+    one line per capacity row."""
+    import csv, io
+    d=Path(run_dir)
+    if not all((d/n).is_file() for n in ('compare.json','summary.csv','summary.md')):return ['bench report wrote no summary (compare.json, summary.csv, summary.md)']
+    data=read_json(d/'compare.json');rows=[r for r in data.get('rows') or [] if isinstance(r,dict)]
+    table=list(csv.DictReader(io.StringIO((d/'summary.csv').read_text())))
+    key=lambda r:tuple('' if r.get(k) is None else str(r.get(k)) for k in ('point','scope','mode','variant','workers','route'))
+    problems=[] if rows else ['compare holds no row']
+    if sorted(key(r) for r in rows)!=sorted(key(r) for r in table):problems.append(f'summary.csv holds {len(table)} rows, not exactly the {len(rows)} compare rows')
+    by={key(r):r for r in table}
+    for r in rows:
+        t=by.get(key(r));name=' '.join(x for x in key(r) if x)
+        if t is None:continue
+        if not _number(t.get('wall_ns_per_unit_median')):problems.append(f'{name}: no wall number in summary.csv')
+        if not _number(t.get('cpu_ns_per_unit_median')):problems.append(f'{name}: no CPU number in summary.csv')
+        if str(r.get('variant','')).startswith('c-') and not (t.get('best_python') and t.get('outcome_vs_best_python')):
+            problems.append(f'{name}: no comparison against the best Python row in summary.csv')
+        if (r.get('scope'),r.get('mode'))==('caller','warm') and not _number(t.get('group_peak_bytes_median')):problems.append(f'{name}: no memory number (group peak) in summary.csv')
+    md=(d/'summary.md').read_text();lines=[x for x in md.splitlines() if x.startswith('| ') and not x.startswith('| point ')]
+    if len(lines)!=len(rows):problems.append(f'summary.md holds {len(lines)} table rows for {len(rows)} compare rows')
+    for c in data.get('capacity') or []:
+        if isinstance(c,dict) and f"- {c.get('configuration')}, {c.get('clients')} clients, {c.get('variant')}, route {c.get('route') or 'none'}:" not in md:
+            problems.append(f"capacity row {c.get('configuration')} x{c.get('clients')} {c.get('variant')}: not in summary.md")
+    return problems
+
+def b17_check(run_dir,case,current,codes):
+    """(problems, matrix state) of one recorded B17 run. `codes` are the exit codes of bench run, bench compare and bench
+    report. The run must be VALID, a smoke run on synthetic data of the current source with the full matrix; every cell of
+    its case's matrix observed (matrix_state); and the report must hold every row with its numbers (report_problems). A
+    synthetic decision_cases result is no run directory, so it never satisfies this check."""
+    import bench
+    d=Path(run_dir);problems=[];rc_run,rc_cmp,rc_rep=codes
+    run=read_json(d/'run.json');plan=read_json(d/'plan.json');obs=bench.read_jsonl(d/'observations.jsonl')
+    if rc_run!=0 or run.get('status')!='VALID':problems.append(f"bench run: run status {run.get('status')} (exit {rc_run}); B17 needs a VALID run")
+    if rc_cmp!=0:problems.append(f'bench compare exited {rc_cmp}')
+    if rc_rep!=0:problems.append(f'bench report exited {rc_rep}')
+    if run.get('mode')!='smoke' or (run.get('dataset') or {}).get('kind')!='synthetic':problems.append('not a real smoke run on synthetic data')
+    if not current or run.get('source_identity')!=current:problems.append('the run is not of the current source identity')
+    if plan.get('matrix','full')!='full':problems.append(f"the plan is not the full matrix (--matrix {str(plan.get('matrix'))[:16]})")
+    state=matrix_state(plan,obs,case);state['envelope_blocked']=envelope_cells(state,plan)
+    problems+=state['problems']+[f"{c['cell']}: {c['reason']}" for c in state['cells'] if c['state']=='missing']
+    return problems+report_problems(d),state
+
+ENVELOPE_BLOCK=re.compile(r'beyond the \d+-CPU envelope')
+
+def envelope_cells(state,plan):
+    """EX17-A03: the missing cells (each as b17_check names it) that the plan blocked only because its envelope is the
+    reduced one that the policy allows (container_policy.choose_envelope `reduced`: fewer usable CPUs than the policy
+    envelope); [] on the policy envelope, where a cell beyond it is a case problem (FAIL)."""
+    env=plan.get('envelope') if isinstance(plan,dict) else None
+    if not (isinstance(env,dict) and env.get('reduced') is True):return []
+    return [f"{c['cell']}: {c['reason']}" for c in state['cells'] if c['state']=='missing' and str(c.get('reason','')).startswith('blocked: ')
+            and ENVELOPE_BLOCK.search(str(c.get('reason')))]
+
+def _current_identity(root):
+    from policy import source_identity
+    return source_identity(root)[0]
+
+def b17_targets(root,project=None):
+    """[(project dir or None, case id)]: the framework control case and the first C case of every native example project
+    of the scope `project` (bench_phase2.native_projects: found by layout, or the explicit project)."""
+    import bench_phase2
+    return [(None,CONTROL_CASE)]+[(p,cid) for p,_,cid,_ in bench_phase2.native_projects(root,project)]
+
+def b17_target(root,project,case_id):
+    """One B17 run through the public commands: bench run --case ID [--project DIR] --mode smoke --dataset synthetic:small
+    --matrix full (bench.run_cmd), then bench compare and bench report on that run, then b17_check. A refused run is
+    BLOCKED; an exception is FAIL with its type, never PASS."""
+    import argparse, re, time, bench
+    t0=time.monotonic();row={'project':project,'case':case_id,'status':'FAIL'};rc=None
+    def done(**k):return dict(row,seconds=round(time.monotonic()-t0,1),**k)
+    try:
+        case=bm.load_case(root,case_id,project)
+        # EX18a-A05: the dimensions that the case matrix declares (every applicable cell, whether it is observed or not)
+        row['declared']=sorted(set().union(*[cell_dimensions(c) for c in matrix_cells(case)[0]]))
+        args=argparse.Namespace(case=case_id,project=project,mode='smoke',dataset=B17_DATASET,matrix='full',calibrate=None,plan=None,format='json')
+        try:rc,res=bench._quiet(bench.run_cmd,root,args)
+        except GateError as exc:return done(status='BLOCKED',reason=f'bench run refused: {str(exc)[:200]}')
+        run_id=res.get('run_id') if isinstance(res,dict) else None
+        if not isinstance(run_id,str) or not re.fullmatch(r'[0-9a-f]{32}',run_id):return done(status='BLOCKED' if rc==2 else 'FAIL',reason=f'bench run exited {rc} without a run')
+        d=Path(root)/'artifacts/bench'/run_id;codes=[rc]
+        for fn in (bench.compare_cmd,bench.report_cmd):
+            try:codes.append(bench._quiet(fn,root,argparse.Namespace(run_id=run_id,format='json'))[0])
+            except GateError:codes.append(2)
+        problems,state=b17_check(d,case,_current_identity(root),tuple(codes))
+    except Exception as exc:          # the suite could not prove its property: FAIL, never PASS or BLOCKED
+        return done(reason=f'B17 check failed: {type(exc).__name__}: {str(exc)[:200]}')
+    cells=state['cells'];env=state.get('envelope_blocked') or [];other=[p for p in problems if p not in set(env)]
+    # EX17-A03: a policy-allowed reduced envelope that cannot run every cell is BLOCKED with the reason; any other problem
+    # is a real failure and wins
+    reduced=bool(env) and not other
+    extra={'reason':('the reduced envelope cannot run every cell of the matrix: '+'; '.join(env))[:300]} if reduced else {}
+    return done(status='PASS' if not problems else 'BLOCKED' if rc==2 or reduced else 'FAIL',**extra,run_id=run_id,report=str(d/'summary.md'),cells=len(cells),
+                observed=sum(c['state']=='observed' for c in cells),missing=[f"{c['cell']}: {c['reason']}"[:200] for c in cells if c['state']=='missing'][:40],
+                not_applicable=[c['cell'] for c in state['not_applicable']][:40],dimensions=sorted(matrix_dimensions(cells)),
+                problems=[str(p)[:300] for p in problems[:20]])
+
+def b17_suite(root,run_dir,project=None):
+    """(suite, not_run) of B17: one b17_target per b17_targets entry. PASS needs every target PASS and every dimension of
+    B17_DIMENSIONS in a passing target, except the B17_NOT_RUN dimensions, which go to cases.json not_run with their ledger
+    row when no passing target shows them (never a PASS by construction, ruling EX13-R4). `seconds` records the time.
+    `project`: the example scope (b17_targets)."""
+    out={'status':'FAIL','property':PROPERTY['B17']}
+    try:
+        rows=[b17_target(root,p,c) for p,c in b17_targets(root,project)];covered=set()
+        for r in rows:
+            if r.get('status')=='PASS':covered|=set(r.get('dimensions') or [])
+        lost=[d for d,_ in B17_DIMENSIONS if d not in covered and d not in B17_NOT_RUN]
+        not_run=[{'suite':f'B17 {d}','reason':f'{text}: no framework control declares it; an example project with such a variant runs it in this suite '
+                                                f'(ledger {B17_NOT_RUN[d]})'} for d,text in B17_DIMENSIONS if d not in covered and d in B17_NOT_RUN]
+        # EX17-A03 with EX18a-A05: the suite is BLOCKED only for a lost dimension that a BLOCKED target declares (a cell of
+        # its case matrix: the blocked target could show it). A lost dimension that no BLOCKED target declares is a real
+        # loss and FAIL, also when every other target passed.
+        blocked_declares=set().union(*[set(r.get('declared') or []) for r in rows if r.get('status')=='BLOCKED'])
+        lost_status=True if not lost else 'BLOCKED' if all(d in blocked_declares for d in lost) else False
+        suite=dict(out,status=_status(([r.get('status') for r in rows] if rows else [False])+[lost_status]),targets=rows,dimensions=sorted(covered),not_run_dimensions=[n['suite'][len('B17 '):] for n in not_run],
+                   seconds=round(sum(r.get('seconds') or 0 for r in rows),1),evidence_paths=[r['report'] for r in rows if r.get('report')])
+        reasons=(['no B17 target'] if not rows else [])+[f'dimension {d} is shown by no passing target' for d in lost]
+        reasons+=[f"{r.get('project') or 'framework'} {r.get('case')}: {r.get('reason') or '; '.join(r.get('problems') or [])}"[:300] for r in rows if r.get('status')!='PASS']
+        if reasons:suite['reason']='; '.join(reasons)[:600]
+        return suite,not_run
+    except Exception as exc:          # the suite could not prove its property: FAIL, never PASS or BLOCKED
+        return dict(out,reason=f'B17 check failed: {type(exc).__name__}: {str(exc)[:200]}'),[]
+
+# ---- G10.4 (P3R2-06, I10.8; EX17-A04, task EX-18b): the unit smoke jobs ----
+UNIT_SMOKE_PROPERTY=('G10.4: the unit points of every unit-threshold policy of every example project (the full-dataset points at the small '
+                     'tier, the single-record points on the panel), 2 blocks, mode smoke, label smoke, as smoke jobs within the 600 s smoke '
+                     'deadline, each in its own session containers through bench run; every run VALID; no verdict (no decision record, and '
+                     'bench decide refuses the smoke run)')
+
+def unit_smoke_plan(case,policy,envelope,policy_doc,dataset=None,seed=SEED,project_dir=None,project_identity=None):
+    """G10.4 with I10.8: one smoke plan per unit smoke job of `policy` (bench_windows.unit_smoke_jobs: the unit points packed
+    in policy unit order, each job within the smoke deadline; a point alone above it refuses): build_plan with the policy
+    and the job index (so bench run --plan verifies it); no smoke-caller, diagnostic, control, memory or capacity trial."""
+    import bench_plan as bp, bench_windows as bw
+    ds=dataset or {'kind':'synthetic','size':'small','seed':20261007,'sha256':None,'rows':policy_doc['sizes']['small']}
+    jobs=bw.unit_smoke_jobs(case,policy,policy_doc,envelope)
+    return [bp.build_plan(case,policy_doc,mode='smoke',dataset=ds,seed=seed,envelope=envelope,project_dir=project_dir,project_identity=project_identity,
+                          unit_policy=policy,smoke_job=k) for k in range(len(jobs))]
+
+def unit_smoke_targets(root,project=None):
+    """(project, policy name) of every unit-threshold policy of every example project of the scope (bench.example_projects:
+    found by layout, or the explicit `project`)."""
+    import bench
+    return [(p,n) for p in bench.example_projects(root,project) for n in bm.unit_policy_names(root,p)]
+
+def unit_smoke_suite(root,run_dir,scope=None):
+    """(suite, not_run) of the unit smoke jobs: each job plan is written to the suite directory and run through bench.run_cmd
+    (--plan); PASS needs every run VALID, no decision record in its run directory and bench decide refusing it (smoke runs
+    give no unit verdict). Without a project unit-threshold policy the suite is in not_run with the reason. `scope`: the
+    example scope (unit_smoke_targets)."""
+    import argparse, re, time, bench, bench_phase3_cli as cli
+    from container_policy import choose_envelope, host_topology
+    root=Path(root);t0=time.monotonic();out={'status':'FAIL','property':UNIT_SMOKE_PROPERTY,'jobs':[]}
+    try:
+        targets=unit_smoke_targets(root,scope)
+        if not targets:
+            return dict(out,status='BLOCKED',reason='no example project declares a unit-threshold policy'),[{'suite':'unit-smoke','reason':'no example project declares a unit-threshold policy'}]
+        rows=[]
+        for project,name in targets:
+            pol=bm.load_decision_policy(root,name,project);case=bm.load_case(root,pol['case'],project);doc=bm.load_policy(root,project)
+            envelope=choose_envelope(*host_topology(),wanted=doc['envelope']['cpus']);identity=bm.project_identity(root,project,case)
+            for k,plan in enumerate(unit_smoke_plan(case,pol,envelope,doc,project_dir=project,project_identity=identity)):
+                path=Path(run_dir)/'unit-smoke'/f'{name}-{k}.json';path.parent.mkdir(parents=True,exist_ok=True);atomic_json(path,plan)
+                row={'project':project,'policy':name,'job':k,'units':sorted({t['unit'] for s in plan['sessions'] for t in s['trials'] if t.get('unit')}),'status':'FAIL'}
+                ns=argparse.Namespace(case=case['case_id'],project=project,mode='smoke',dataset='synthetic:small',calibrate=None,plan=str(path),format='json',
+                                      matrix=None,policy=None,repair=None,window=None,extend=None)
+                try:rc,res=bench._quiet(bench.run_cmd,root,ns)
+                except GateError as exc:rows.append(dict(row,status='BLOCKED',reason=f'bench run refused: {str(exc)[:200]}'));continue
+                run_id=res.get('run_id') if isinstance(res,dict) else None
+                if not isinstance(run_id,str) or not re.fullmatch(r'[0-9a-f]{32}',run_id):
+                    rows.append(dict(row,status='BLOCKED' if rc==2 else 'FAIL',reason=f'bench run exited {rc} without a run'));continue
+                d=root/'artifacts/bench'/run_id;row['run_id']=run_id
+                if rc!=0 or res.get('status')!='VALID':rows.append(dict(row,status='BLOCKED' if rc==2 else 'FAIL',reason=f"run {res.get('status')}"));continue
+                dns=argparse.Namespace(run_id=run_id,policy=name,format='json',ci_run_id=None,approval=[],sensitivity_confirmation=None,final=False)
+                try:drc,dres=bench._quiet(cli.decide_cmd,root,dns)
+                except GateError as exc:drc,dres=2,{'reason':str(exc)[:200]}
+                refused=drc==1 and 'smoke runs give no unit verdict' in json.dumps(dres)
+                records=sorted(p.name for p in d.glob('decision*'))
+                ok=refused and not records
+                rows.append(dict(row,status='PASS' if ok else 'FAIL',decide_exit=drc,decision_files=records[:8],
+                                 **({} if ok else {'reason':'the smoke run gave a decision record' if records else 'bench decide did not refuse the smoke run'})))
+        statuses=[r['status'] for r in rows]
+        status='PASS' if rows and all(s=='PASS' for s in statuses) else 'BLOCKED' if 'BLOCKED' in statuses and 'FAIL' not in statuses else 'FAIL'
+        suite=dict(out,status=status,jobs=rows,seconds=round(time.monotonic()-t0,1))
+        bad=[f"{r['project']} {r['policy']} job {r['job']}: {r.get('reason')}" for r in rows if r['status']!='PASS']
+        if bad:suite['reason']='; '.join(bad)[:600]
+        return suite,[]
+    except Exception as exc:          # the suite could not prove its property: FAIL, never PASS or BLOCKED
+        return dict(out,reason=f'unit smoke check failed: {type(exc).__name__}: {str(exc)[:200]}',seconds=round(time.monotonic()-t0,1)),[]
+
+def phase3_cases(root,run_dir,smoke_dir,project=None):
+    """(suites, additions, not_run) of Phase 3 for bench.selftest_cases: B12, B14, B15, B17, B18 and every P10 and P15
+    variant; not_run holds the B17 dimensions that no framework control declares (b17_suite). `project`: the example
+    scope of B15, B17, the unit smoke jobs and the P15 removed-safety-check variant (amendment E 1.2 item 3); B18 is
+    framework scope always."""
     root=Path(root);run_dir=Path(run_dir);smoke_dir=Path(smoke_dir) if smoke_dir is not None else None
-    suites={'B12':b12_suite(root,run_dir,smoke_dir),'B14':b14_suite(root),'B15':b15_suite(root,run_dir,smoke_dir),'B18':b18_suite(root)}
-    additions=host_additions(root)+[rewritten_raw_samples(root,smoke_dir)]
+    suites={'B12':b12_suite(root,run_dir,smoke_dir),'B14':b14_suite(root),'B15':b15_suite(root,run_dir,smoke_dir,project),'B18':b18_suite(root)}
+    suites['B17'],not_run=b17_suite(root,run_dir,project)       # Task 30: real runs through the public commands (about one smoke run per target)
+    suites['unit-smoke'],nr=unit_smoke_suite(root,run_dir,project);not_run+=nr      # EX-18b (G10.4, EX17-A04): the unit smoke jobs of the project unit policies
+    additions=host_additions(root,project)+[rewritten_raw_samples(root,smoke_dir)]
     order={x:i for i,x in enumerate(ALL_VARIANTS)};additions.sort(key=lambda a:order[(a['parent'],a['variant'])])
-    return suites,additions
+    return suites,additions,not_run

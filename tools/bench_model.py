@@ -4,6 +4,11 @@ from pathlib import Path
 import copy, hashlib, math, os, re, sys
 from evidence import GateError, file_hash, read_json, load_project_json, PROJECT_JSON_MAX_BYTES
 from schema_check import validate
+try:import project_third_party as ptp
+except ImportError:          # EX-1: a container test loads this module by path; load the sibling file the same way
+    import importlib.util as _iu
+    _spec=_iu.spec_from_file_location('project_third_party',Path(__file__).with_name('project_third_party.py'))
+    ptp=_iu.module_from_spec(_spec);_spec.loader.exec_module(ptp)
 
 VARIANTS=('py-reference','py-optimized','py-library','py-threads','py-processes','c-serial','c-threads')
 POOL_VARIANTS=('py-threads','py-processes','c-threads')
@@ -158,6 +163,14 @@ def _check_protocol(root,project_dir,decl,path,raw,value):
     if named:raise GateError('protocol before_run_required names cases outside the protocol: '+', '.join(named))
     outside=sorted(n for n,p in (value.get('decision_policies') or {}).items() if p.get('case') not in value['cases'])
     if outside:raise GateError('protocol decision policies name a case outside the protocol: '+', '.join(outside))   # FR3-08
+    for name,pol in sorted((value.get('decision_policies') or {}).items()):
+        if isinstance(pol.get('margin_rule'),dict) or isinstance(pol.get('windows'),dict):
+            case=load_case(root,pol['case'],project_dir)
+            problems=margin_base_problems(case,pol,name)       # EX18a-A04: the declared base family against the policy's case
+            import bench_windows
+            problems+=[f'policy {name}: {p}' for p in bench_windows.declaration_problems(case,pol)]     # EX-18b: the declared control pairs
+            if problems:raise GateError('; '.join(problems[:3])[:600])
+    if 'echo_case' in value and value['echo_case'] not in value['cases']:raise GateError('protocol echo_case is not a case of the protocol')   # EX-13
     models=set(value.get('models',[]))
     used=set((value.get('panel') or {}).get('models',[]))|set((value.get('library_report') or {}).get('selectors',[]))
     used|=set((value.get('budgets') or {}).get('estimate_share_per_selector',{}))|set((value.get('budgets') or {}).get('share_required',[]))
@@ -175,6 +188,28 @@ def _check_protocol(root,project_dir,decl,path,raw,value):
         if key=='aggregate_schema':
             load_project_json(data,'aggregate-schema',PROTOCOL_DATA_MAX_BYTES,label='protocol aggregate schema file',check=_check_summary_schema)
     return value
+
+MARGIN_BASE_NOT_PLANNED='margin-base-not-planned'
+
+def margin_base_problems(case,policy,name='policy'):
+    """EX18a-A04: one problem per case point of a policy unit and declared base variant of the policy's margin_rule that
+    no plan of the case measures and no plan blocks with a reason. A base variant is accepted at a unit point when it is
+    implemented and the point lists it, or when it is planned-phase-2 (every plan blocks it with its reason). The plan
+    never measures py-reference at the large size (the G8.2 guard estimates it there), so an implemented py-reference may
+    be absent from a large unit point. Each problem starts with the stable reason MARGIN_BASE_NOT_PLANNED; [] without the
+    rule."""
+    rule=policy.get('margin_rule') if isinstance(policy,dict) else None
+    if not isinstance(rule,dict):return []
+    units=set(policy.get('units') or []);declared={v.get('id'):v for v in case.get('variants') or [] if isinstance(v,dict)};out=[]
+    for p in case.get('points') or []:
+        if not isinstance(p,dict) or p.get('unit') not in units:continue
+        for v in rule.get('base_variants') or []:
+            status=(declared.get(v) or {}).get('status')
+            if status=='planned-phase-2':continue
+            if status=='implemented' and (v in (p.get('variants') or []) or (v=='py-reference' and p.get('size')=='large')):continue
+            out.append(f"{MARGIN_BASE_NOT_PLANNED}: policy {name} unit {p['unit']} point {p.get('name')}: base variant {v} is neither planned "
+                       f"nor a blocked row with a reason (status {status})")
+    return out
 
 def _check_cell_rule(rule):
     """FR5 (ruling FR5-R1 item 1): the cross-field rules of a panel cell rule that the schema cannot state. The category,
@@ -369,6 +404,8 @@ def _check_bench(root,project_dir,base,decl):
     clash=sorted(t for t in tops if t in RESERVED_MODULES)
     if clash:raise GateError('project module names collide with stdlib, startup hooks, bench wheels or framework packages: '+', '.join(clash))
     _protocol_binding(root,project_dir,base,decl)
+    clash=sorted(tops&ptp.wheel_modules(_third_party_binding(root,project_dir,base,decl)))      # EX-1: a project package never shadows its own wheels
+    if clash:raise GateError('project module names collide with project wheel modules: '+', '.join(clash))
     native_problem=native_declaration_problem(decl)
     if native_problem:raise GateError('bench.json native: '+native_problem)
     return decl
@@ -385,6 +422,8 @@ def native_declaration_problem(decl):
     if native['agreement'] not in [c['name'] for c in decl.get('checks',[])]:return 'agreement names no declared check'
     args=native['kernel']['args']
     if any(args.count(p)!=1 for p in KERNEL_PLACEHOLDERS) or args.count('{threads}')>1:return 'kernel arguments need {input}, {records}, {loops} and {output} once each'
+    trace=native.get('trace')
+    if trace is not None and trace['program']==native['kernel']['program']:return 'the trace program must not be the kernel program'   # EX-13: two roles, two programs
     return None
 
 
@@ -399,6 +438,26 @@ def _protocol_binding(root,project_dir,base,decl):
         return None
     _read_bound(root,project_dir,base/PROTOCOL_FILE,bind['sha256'],'protocol file',PROTOCOL_MAX_BYTES)
     return None
+
+def _third_party_binding(root,project_dir,base,decl):
+    """EX-1: the checked third-party lock of a project, or None. A third_party directory needs the bench.json binding
+    {file: third_party/lock.json, sha256}; a binding needs the file, and the file's sha256 must equal the bound digest (an
+    unbound or edited lock is refused, as for the protocol file). The lock passes project_third_party.check_lock (schema,
+    names, paths inside the project, wheel tags and modules); file contents are checked where the image is built."""
+    tp=base/ptp.LOCK_DIR;bind=decl.get('third_party')
+    if tp.is_symlink():raise GateError('benchmarks/project paths must not be symbolic links')
+    if bind is None:
+        if tp.exists():raise GateError('third-party lock is not bound: bench.json has no third_party binding (file and sha256)')
+        return None
+    data=_read_bound(root,project_dir,base/ptp.LOCK_FILE,bind['sha256'],'third-party lock',ptp.LOCK_MAX_BYTES)
+    return load_project_json(data,'third-party-lock',ptp.LOCK_MAX_BYTES,label='third-party lock',
+                             check=lambda value:ptp.check_lock(root,base,value,RESERVED_MODULES,project_dir))
+
+def third_party_lock(root,project_dir):
+    """EX-1: the checked third-party lock of a project, or None (no project, or no binding and no third_party directory)."""
+    if project_dir is None:return None
+    decl=project_bench(root,project_dir)
+    return _third_party_binding(root,project_dir,_project_base(root,project_dir),decl)
 
 def unit_groups(root,project_dir):
     """Ruling A6-C3 (Task A6 lock follow-up): the project's optional `unit_groups`, a fixed partition of its
@@ -545,7 +604,8 @@ def check_baseline_variant(case,opportunity):
     return True
 
 def selector_rules(case):
-    """Amendment G4.1, G2.6: selectors and units are opaque strings; only their declaration and consistency are checked."""
+    """Amendment G4.1, G2.6: selectors and units are opaque strings; only their declaration and consistency are checked.
+    T6R1-A02: a point with a panel and a unit names a '/single-record' unit, and a '/single-record' unit point has a panel."""
     declared=case.get('selectors',['all'])
     for p in case['points']:
         name=p.get('name','?');selector=p.get('selector','all')
@@ -553,6 +613,12 @@ def selector_rules(case):
         if selector!='all' and p['scope']=='kernel':raise GateError(f'{name}: a selector point is a caller or capacity point (kernel rows never enter a unit, G6.5)')
         if 'panel' in p and p['size']!='tiny':raise GateError(f'{name}: a panel needs the size tiny')
         if 'unit' in p and p['unit'].partition('/')[0]!=selector:raise GateError(f'{name}: the unit names another selector than the point')
+        # T6R1-A02: a unit is '<selector>/<kind>'; a '/single-record' unit has one row per request (bench_units), so it binds a
+        # panel point both ways, and a full-dataset verdict never rests on the one-row calls of a panel point.
+        if 'panel' in p and 'unit' in p and p['unit'].partition('/')[2]!='single-record':
+            raise GateError(f"{name}: a panel point needs a '/single-record' unit, not {p['unit']}")
+        if 'unit' in p and p['unit'].partition('/')[2]=='single-record' and 'panel' not in p:
+            raise GateError(f"{name}: a '/single-record' unit needs a panel point")
     import bench_deadline
     undeclared=[s for e in bench_deadline.entries(case) for s in e['selectors'] if s not in declared]
     if undeclared:raise GateError('call_deadline names undeclared selectors: '+', '.join(undeclared))

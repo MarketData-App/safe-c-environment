@@ -13,7 +13,7 @@ def fixture_stub_project(reason='stub-hang'):
     """(project, case) of the protocol stub `reason`, found by declaration over the synthetic unit-test project only (FR1,
     FS1 F3; FR3): the framework tree holds no project that declares a test stub."""
     from unittest import mock
-    with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]):return bd.stub_project(ROOT,reason)[:2]
+    with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]):return bd.stub_project(ROOT,reason)[:2]
 
 class SchemaTests(unittest.TestCase):
     def test_control_case_declares_the_test_selector(self):
@@ -27,6 +27,31 @@ class SchemaTests(unittest.TestCase):
     def test_unit_selector_must_match(self):
         c=copy.deepcopy(CASE);c['points'][0]['selector']='all';c['points'][0]['unit']='hang/full-dataset'
         with self.assertRaises(GateError):bm.case_rules(ROOT,c)
+    def test_a_panel_point_and_a_single_record_unit_bind_each_other(self):
+        """T6R1-A02: a unit is '<selector>/<kind>' (schemas/bench-case.json; tools/bench_units.py gives a '/single-record' unit
+        one row per request and a '/full-dataset' unit its whole request). A point with a panel and a unit names a
+        '/single-record' unit, and a point with a '/single-record' unit has a panel; otherwise a full-dataset verdict could rest
+        on one-row calls. A single-record panel point, a full-dataset point and a panel point without a unit stay valid."""
+        def case(**point):
+            c=copy.deepcopy(CASE);c['points'][0].update(point);return c
+        panel=[1,2,3,4,5,6]
+        for point in ({'size':'tiny','panel':panel,'unit':'all/single-record'},{'selector':'hang','size':'tiny','panel':panel,'unit':'hang/single-record'},
+                      {'unit':'all/full-dataset'},{'size':'tiny','unit':'all/full-dataset'},{'size':'tiny','panel':panel}):
+            with self.subTest(valid=point):
+                self.assertTrue(bm.case_rules(ROOT,case(**point)));self.assertTrue(validate(ROOT,'bench-case',case(**point)))
+        for point,text in (({'size':'tiny','panel':panel,'unit':'all/full-dataset'},"qual-caller: a panel point needs a '/single-record' unit, not all/full-dataset"),
+                           ({'selector':'hang','size':'tiny','panel':panel,'unit':'hang/full-dataset'},
+                            "qual-caller: a panel point needs a '/single-record' unit, not hang/full-dataset"),
+                           ({'unit':'all/single-record'},"qual-caller: a '/single-record' unit needs a panel point"),
+                           ({'size':'tiny','unit':'all/single-record'},"qual-caller: a '/single-record' unit needs a panel point")):
+            with self.subTest(refused=point):
+                with self.assertRaises(GateError) as caught:bm.case_rules(ROOT,case(**point))
+                self.assertEqual(str(caught.exception),text)
+        for project in (None,'examples/bench-demo'):        # the framework control cases and the demo project stay valid
+            ids=sorted(p.stem for p in (ROOT/bm.CASES).glob('*.json')) if project is None else bm.project_bench(ROOT,project)['cases']
+            self.assertTrue(ids)
+            for case_id in ids:
+                with self.subTest(project=project,case=case_id):self.assertTrue(bm.case_rules(ROOT,bm.load_case(ROOT,case_id,project),project))
     def test_observation_and_run_accept_the_new_fields(self):
         o=json.loads((ROOT/'schemas/bench-observation.json').read_text())['properties'];r=json.loads((ROOT/'schemas/bench-run.json').read_text())['properties']
         self.assertIn('selector',o);self.assertIn('dataset_ref',o);self.assertIn('failure_reasons',r)

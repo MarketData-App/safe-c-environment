@@ -44,13 +44,17 @@ def _decide_locked(root,args):
     facts=be.plan_fact_problems(run,plan)        # T17-APP-01 (d): case, mode, project_dir and envelope come from plan.json
     if facts:return _refuse(bench,args,facts,'; '.join(facts))
     run=dict(run,case=plan.get('case'),mode=plan.get('mode'),envelope=plan.get('envelope'),plan=dict(run.get('plan') or {},project_dir=plan.get('project_dir')))
-    # the digest-bound plan says whether the run is local; a run.json dataset that differs from it is a dataset mismatch below
-    if (plan.get('dataset') or {}).get('kind')=='local':raise GateError('a local run decides only from its merged aggregate (Task 31)')
-    policy_doc=bm.load_policy(root);obs=bench.read_jsonl(run_dir/'observations.jsonl');phases=bench.read_jsonl(run_dir/'phases.jsonl')
-    blocked=run.get('status')=='BLOCKED' and not be.has_timed_rows(obs)
-    integrity=[] if blocked else be.check_integrity(plan,run,obs+phases,policy_doc)     # B15, P10 on the recorded files (Task 16 hook)
-    if integrity:return _refuse(bench,args,integrity,'; '.join(integrity[:5]))
-    status,reasons=be.recorded_status(plan,run,obs,phases,policy_doc)     # T16-APP-01: never the status field of run.json
+    # the digest-bound plan says whether the run is local (EX-19: a local run decides only from its merged document)
+    policy_doc=bm.load_policy(root)
+    if _local(plan):
+        import bench_local_decision as bl
+        status,reasons=bl.recorded_status(root,run_dir,run,plan,policy_doc)     # the merged document, re-derived from its aggregates
+    else:
+        obs=bench.read_jsonl(run_dir/'observations.jsonl');phases=bench.read_jsonl(run_dir/'phases.jsonl')
+        blocked=run.get('status')=='BLOCKED' and not be.has_timed_rows(obs)
+        integrity=[] if blocked else be.check_integrity(plan,run,obs+phases,policy_doc)     # B15, P10 on the recorded files (Task 16 hook)
+        if integrity:return _refuse(bench,args,integrity,'; '.join(integrity[:5]))
+        status,reasons=be.recorded_status(plan,run,obs,phases,policy_doc)     # T16-APP-01: never the status field of run.json
     if status=='BLOCKED':
         bench.emit(args,{'status':'BLOCKED','reasons':reasons[:20]},'BLOCKED: the run measured nothing; nothing decided');return 2
     names=policies_for(plan,args.policy);project=plan.get('project_dir')
@@ -59,7 +63,7 @@ def _decide_locked(root,args):
         if names!=owner or len(owner)!=1:raise GateError('a unit-threshold decision is never mixed with another policy')
         return decide_owner(root,args,owner[0])
     run,plan,case,opp=_load_run(root,args.run_id)
-    ev=bd.evidence_from_run(root,run_dir,run,plan,case);stats=bd.stats_of(policy_doc);records=[]
+    ev=bd.evidence_from_run(root,run_dir,run,plan,case,observations=_observations(root,run_dir,plan));stats=bd.stats_of(policy_doc);records=[]
     for n in names:
         pol=bm.load_decision_policy(root,n)
         records.append(bd.decision_record(root,run,plan,case,n,bd.decide(ev,pol,opp,stats),ev,opp,cgroup_unrecorded=args.cgroup_unrecorded,stats=stats))
@@ -69,15 +73,31 @@ def _decide_locked(root,args):
                '; '.join(f"{r['policy']['name']}: rule {r['rule']} {r['outcome']} / adoption {r['adoption_outcome']}" for r in records))
     return 0 if worst=='PASS' else 1
 
+def _local(plan):return ((plan if isinstance(plan,dict) else {}).get('dataset') or {}).get('kind')=='local'
+
+def _observations(root,run_dir,plan):
+    """EX-19: None for a synthetic run (the decision code reads observations.jsonl); for a local run the per-block rows of
+    its merged document (bench_local_decision.run_observations)."""
+    if not _local(plan):return None
+    import bench_local_decision as bl
+    return bl.run_observations(run_dir,plan,root)
+
 def _load_run(root,run_id):
     """(run, plan, case, opportunity) of a run that decide_cmd has checked: run.json with case, mode, envelope and project_dir
     from the digest-bound plan.json (T17-APP-01 (d)) and the status and reasons re-derived from the recorded files
-    (T16-APP-01, bench_evidence.recorded_status; never the status field of run.json). Shared by both decide branches."""
+    (T16-APP-01, bench_evidence.recorded_status; never the status field of run.json; EX-19: a local run's merged document,
+    bench_local_decision.recorded_status). Shared by both decide branches."""
     import bench, bench_evidence as be, bench_model as bm
     run_dir=bench._run_dir(root,run_id);run=bench.read_json(run_dir/'run.json');plan=read_json(run_dir/'plan.json')
     run=dict(run,case=plan.get('case'),mode=plan.get('mode'),envelope=plan.get('envelope'),plan=dict(run.get('plan') or {},project_dir=plan.get('project_dir')))
-    policy_doc=bm.load_policy(root);obs=bench.read_jsonl(run_dir/'observations.jsonl');phases=bench.read_jsonl(run_dir/'phases.jsonl')
-    status,reasons=be.recorded_status(plan,run,obs,phases,policy_doc);run=dict(run,status=status,reasons=reasons)
+    policy_doc=bm.load_policy(root)
+    if _local(plan):
+        import bench_local_decision as bl
+        status,reasons=bl.recorded_status(root,run_dir,run,plan,policy_doc)
+    else:
+        obs=bench.read_jsonl(run_dir/'observations.jsonl');phases=bench.read_jsonl(run_dir/'phases.jsonl')
+        status,reasons=be.recorded_status(plan,run,obs,phases,policy_doc)
+    run=dict(run,status=status,reasons=reasons)
     project=run['plan'].get('project_dir');case=bm.load_case(root,run['case'],project)
     return run,plan,case,bm.load_opportunity(root,case,project) or {}
 
@@ -137,17 +157,88 @@ def decide_owner(root,args,name):
     pol=bm.load_decision_policy(root,name,(run.get('plan') or {}).get('project_dir'))
     if pol.get('case')!=run.get('case'):         # FR3-08: a unit-threshold policy decides only its own protocol case
         return _refuse(bench,args,[f'policy-case-mismatch: policy {name} is for case {str(pol.get("case"))[:41]}, the run is of case {str(run.get("case"))[:41]}'],'policy-case-mismatch')
+    windowed=isinstance(plan.get('window'),dict)          # EX-18b (A9): a window attempt decides over the chain of its plan version
+    if windowed and (plan.get('policy')!=name or not isinstance(pol.get('windows'),dict)):
+        return _refuse(bench,args,[f"a window attempt decides only under its window policy {str(plan.get('policy'))[:41]}"],'window-policy-mismatch')
     sensitivity=_sensitivity(root,args,pol)
     if sensitivity is None:return 1
-    run_dir=Path(root)/'artifacts/bench'/args.run_id
-    uev=bu.unit_evidence_from_run(root,run_dir,run,plan,case,pol,args)
+    run_dir=Path(root)/'artifacts/bench'/args.run_id;windows=None
+    if isinstance(pol.get('windows'),dict):
+        import bench_windows as bw
+        try:cfd=bw.chain_for_decide(root,args.run_id)
+        except bw.NotAWindowRun as exc:return _refuse(bench,args,[f'not-a-window-run: {str(exc)[:200]}'],'not-a-window-run')
+        if cfd['state']['control_fail']:          # H15.2: FAIL window-control-fail; no record
+            return _refuse(bench,args,['window-control-fail: a window of the plan version ended with three window-control-noise attempts'],'window-control-fail')
+        ev=cfd.get('evidence')
+        uev=bu.unit_evidence_from_run(root,run_dir,dict(run,status='VALID') if ev else run,(ev or {}).get('plan',plan),case,pol,args,
+                                      **({'observations':ev['observations']} if ev else {}))
+        _window_outcomes(uev,cfd,ev,pol,args,bw)
+        windows=bw.windows_record(cfd,cfd.get('plan_id') or (plan.get('window') or {}).get('plan_id'))
+    else:
+        local=_observations(root,run_dir,plan)       # EX-19: a local run decides from the per-block rows of its merged document
+        uev=bu.unit_evidence_from_run(root,run_dir,run,plan,case,pol,args,**({'observations':local} if local is not None else {}))
     units=bu.decide_units(uev,pol,bd.stats_of(bm.load_policy(root)))
-    rec=bu.unit_decision_record(root,run,plan,case,pol,units,uev,opp,sensitivity=sensitivity,windows=None)   # windows: Task A9
+    rec=bu.unit_decision_record(root,run,plan,case,pol,units,uev,opp,sensitivity=sensitivity,windows=windows)
     _write_records(run_dir,[rec])
     got=rec.get('units') or [];invalid=any(u.get('verdict')=='INVALID_EXPERIMENT' for u in got)
     bench.emit(args,{'status':'FAIL' if invalid else 'PASS','decisions':{name:[[u.get('unit'),u.get('verdict'),u.get('reason')] for u in got]},'report':str(run_dir/'decision.md')},
                '; '.join(f"{u.get('unit')}: {u.get('verdict')} ({u.get('reason')})" for u in got) or f'{name}: no unit records')
     return 1 if invalid else 0
+
+def _window_outcomes(uev,cfd,ev,pol,args,bw):
+    """A9: the window outcomes of the units: a chain problem gives every unit order 1 (detail window-chain); the units of an
+    exhausted look-1 window order 1 (window-pressure), of a FAIL position order 1 (window-run-invalid); a pooled unit whose
+    windows' envelope identities differ order 1 (window-envelope-mismatch); look 2 for a unit whose every look-1 window has
+    a PASS extension; an exhausted extension keeps the look-1 verdict (extension-exhausted); with --final, every other unit
+    at look 1 gets the note extension-not-run."""
+    if cfd.get('problems'):uev['window_chain']=[str(p)[:300] for p in cfd['problems']][:20]
+    ev=ev or {}
+    for key in ('window_pressure','extension_exhausted','window_invalid'):uev[key]=list(uev.get(key) or [])+[u for u in ev.get(key) or [] if u not in (uev.get(key) or [])]
+    uev['looks']={**(uev.get('looks') or {}),**(ev.get('looks') or {})}
+    mismatch=[p['unit'] for p in cfd.get('pooled') or [] if any(bw.windows_match(p['identities'][0],x) for x in p['identities'][1:])]
+    uev['window_mismatch']=list(uev.get('window_mismatch') or [])+[u for u in mismatch if u not in (uev.get('window_mismatch') or [])]
+    uev['extension_not_run']=([u for u in pol['units'] if uev['looks'].get(u,1)==1 and u not in uev['extension_exhausted']]
+                              if getattr(args,'final',False) else list(uev.get('extension_not_run') or []))
+
+def recorded_problems(root,run_id):
+    """EX-18b: the shared checks of decide (_decide_locked, in its order) on another run of a window chain, as problem
+    texts ([] when the run passes them): the run record digest, the evidence digests, the current source identity, the
+    policy, protocol and runner binding, the cgroup identity, the plan facts, the recorded integrity, and the status that
+    the recorded files give against the attempt outcome (PASS needs VALID; FAIL needs INVALID_EXPERIMENT)."""
+    import bench, bench_evidence as be, bench_model as bm, bench_accounting
+    from policy import source_identity
+    try:run_dir=bench._run_dir(root,run_id);run=bench.read_json(run_dir/'run.json')
+    except (GateError,OSError,ValueError) as exc:return [f'the run record is unreadable ({type(exc).__name__})']
+    p=be.verify_record(run)
+    if p:return p
+    if run.get('mode')=='profile':return ['profiled runs never decide']
+    p=be.verify(run_dir,run)
+    if p:return p[:5]
+    if be.stale(run,source_identity(root)[0]):return ['reused-source-report: the run belongs to another source identity']
+    p=be.policy_runtime_problems(root,run)
+    if p:return p[:5]
+    p=bench_accounting.recheck(run,run_dir)
+    if p:return p[:3]
+    try:plan=read_json(run_dir/'plan.json')
+    except FileNotFoundError:return ['missing: plan.json']
+    p=be.plan_fact_problems(run,plan)
+    if p:return p
+    run=dict(run,case=plan.get('case'),mode=plan.get('mode'),envelope=plan.get('envelope'),plan=dict(run.get('plan') or {},project_dir=plan.get('project_dir')))
+    doc=bm.load_policy(root)
+    if _local(plan):                              # EX-19: a local window attempt: its merged document and its recorded outcome
+        import bench_local_decision as bl
+        status,_=bl.recorded_status(root,run_dir,run,plan,doc)
+        p=bl.outcome_problems(root,run_dir,run,plan,doc)
+        if p:return p
+    else:
+        obs=bench.read_jsonl(run_dir/'observations.jsonl');phases=bench.read_jsonl(run_dir/'phases.jsonl')
+        if not (run.get('status')=='BLOCKED' and not be.has_timed_rows(obs)):
+            p=be.check_integrity(plan,run,obs+phases,doc)
+            if p:return p[:5]
+        status,_=be.recorded_status(plan,run,obs,phases,doc)
+    want={'PASS':'VALID','FAIL':'INVALID_EXPERIMENT'}.get((run.get('attempt_outcome') or {}).get('status'))
+    if want is not None and status!=want:return [f'the recorded files give the run status {status}, the attempt outcome needs {want}']
+    return []
 
 RULE_POLICIES=['owner','demo-latency-2x','demo-cpu-40']
 
@@ -191,4 +282,5 @@ def register(handlers,arguments):
     handlers['decide']=decide_cmd
     arguments['decide']=[('--run-id',{'required':True}),('--policy',{'type':policy_name,'default':'all'}),
                          ('--ci-run-id',{}),('--approval',{'action':'append','default':[],'type':approval_path}),
-                         ('--sensitivity-confirmation',{'default':None,'type':approval_path})]     # Task 18 (H16.1): owner-sensitivity.json
+                         ('--sensitivity-confirmation',{'default':None,'type':approval_path}),     # Task 18 (H16.1): owner-sensitivity.json
+                         ('--final',{'action':'store_true'})]      # A9: a triggered unit without its extension window keeps the note extension-not-run

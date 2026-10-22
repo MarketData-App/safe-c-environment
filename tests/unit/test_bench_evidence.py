@@ -47,7 +47,7 @@ class EvidenceTests(unittest.TestCase):
         plan={'run_id':'r','dataset':{'sha256':'a'*64},'sessions':[{'trials':[{'trial_id':'t0','scope':'caller','point':'p','warmup':False,'tier':'small'}]}],'memory':[]}
         run={'run_id':'r','dataset':{'sha256':'a'*64}}
         ok=[{'run_id':'r','trial_id':'t0','scope':'caller','point':'p','warmup':False,'work_units':256,'eligible':True,'verdict':{'failures':{}}}]
-        pol={'sizes':{'small':256},'pyperf':{'agreement_abs_ns':1000000,'agreement_rel':0.02}}
+        pol={'sizes':{'small':256},'pyperf':{'agreement_abs_ns':1000000,'agreement_rel':0.02,'clock_tolerance_ns':1000}}
         self.assertEqual(be.check_integrity(plan,run,ok,pol),[])
         for mut,expect in ((ok+ok,'duplicate rows'),([dict(ok[0],run_id='x')],'cross-run metrics'),([],'missing failed attempt'),
                            ([dict(ok[0],work_units=255)],'wrong work count'),([dict(ok[0],scope='kernel')],'scope mismatch'),
@@ -84,7 +84,7 @@ FIXTURE=ROOT/'tests/unit/fixtures/decide/run'
 PLAN1={'run_id':'r','dataset':{'kind':'synthetic','size':'small','seed':20261007,'sha256':None,'rows':256},
        'sessions':[{'trials':[{'trial_id':'t0','scope':'caller','point':'p','warmup':False,'tier':'small'}]}],'memory':[]}
 ROW1={'run_id':'r','trial_id':'t0','scope':'caller','point':'p','warmup':False,'work_units':256,'eligible':True,'verdict':{'failures':{}}}
-POL1={'sizes':{'small':256},'pyperf':{'agreement_abs_ns':1000000,'agreement_rel':0.02}}
+POL1={'sizes':{'small':256},'pyperf':{'agreement_abs_ns':1000000,'agreement_rel':0.02,'clock_tolerance_ns':1000}}
 NAMED='synthetic:large#panel'
 NAMED1={'kind':'synthetic','size':'large','seed':20261007,'sha256':None,'rows':6,'indices':[1,2,3,4,5,6]}
 
@@ -292,3 +292,56 @@ class DecisionBindingTests(unittest.TestCase):                       # S4-01: bi
             body=be.bind_decisions(d,be.bindable_run(d),['demo'])
             self.assertEqual(json.loads((d/'run.json').read_text()),body);self.assertEqual(body['decision_digests'],{'demo':file_hash(d/'decision-demo.json')})
             self.assertEqual(be.verify_record(body),[])
+
+# T6 item 5 (finding T5-A05): the pyperf self-timing rule (B15 `forged self-timing`) is one-sided. Spec 8.2: the bracket
+# nests the timed loops (the coordinator takes the begin sample before it acknowledges the begin marker, the worker starts
+# its clock only after that acknowledgement and stops it before it sends the end marker; both read CLOCK_MONOTONIC in one
+# container). So an honest self-timing never exceeds its bracket by more than the clock tolerance, and the bracket exceeds
+# it only by the handshake overhead. The inputs are the real policy file, so the RED and GREEN runs read the same tests.
+POLICY=json.loads((ROOT/'safety/performance-policy.json').read_text())
+KPLAN={'run_id':'r','dataset':{'kind':'synthetic','size':'small','seed':20261007,'sha256':None,'rows':256},'memory':[],
+       'sessions':[{'trials':[{'trial_id':'k0','scope':'kernel','point':'p','warmup':False,'tier':'small'}]}],'pyperf':{'values':1,'warmups':0}}
+
+def kernel_row(wall,pyperf):
+    return {'run_id':'r','trial_id':'k0','scope':'kernel','point':'p','warmup':False,'work_units':256,'eligible':True,
+            'verdict':{'failures':{}},'wall_ns':wall,'pyperf_wall_ns':pyperf}
+
+def forged(wall,pyperf):
+    return 'forged self-timing: k0' in be.check_integrity(KPLAN,{'run_id':'r','dataset':KPLAN['dataset']},[kernel_row(wall,pyperf)],POLICY)
+
+class SelfTimingTests(unittest.TestCase):
+    def test_the_policy_declares_the_one_sided_bounds(self):
+        self.assertEqual(POLICY['pyperf'],{'agreement_abs_ns':5000000,'agreement_rel':0.02,'clock_tolerance_ns':1000})
+    def test_honest_bracket_overhead_passes(self):
+        # Recorded honest pairs: the T5 foundation child smoke trial (bracket 31,650,646 ns, self-timing 30,580,927 ns,
+        # overhead 1,069,719 ns) and the largest honest overhead of the 212 distinct trials (424 recorded rows: each kernel
+        # row is stored twice; 1,661,031 ns, recorded on a 274.8 ms wall; T6-A01) applied to the shortest recorded wall
+        # (29,392,881 ns); then zero, one, the exact bounds and the representable maximum.
+        for wall,pyperf in ((31650646,30580927),(29392881,29392881-1661031),(30000000,30000000),(30000000,29999999),
+                            (30000000,25000000),(10**9,10**9-20000000),(0,0),(2**63-1,2**63-1)):
+            with self.subTest(wall=wall,pyperf=pyperf):self.assertFalse(forged(wall,pyperf))
+    def test_a_self_timing_above_its_bracket_is_forged(self):
+        for wall,pyperf in ((30000000,30001001),(31650646,31650646+2000000),(1,10**9),(30000000,2*30000000+10**9),(0,1001),
+                            (2**63-1-1001,2**63-1)):
+            with self.subTest(wall=wall,pyperf=pyperf):self.assertTrue(forged(wall,pyperf))
+        self.assertFalse(forged(30000000,30001000))                         # exactly the clock tolerance
+    def test_a_self_timing_far_below_its_bracket_is_forged(self):
+        for wall,pyperf in ((30000000,24999999),(30000000,15000000),(30000000,0),(10**9,10**9-20000001),(10**9,0)):
+            with self.subTest(wall=wall,pyperf=pyperf):self.assertTrue(forged(wall,pyperf))
+    def test_a_malformed_self_timing_or_bracket_is_forged(self):
+        for wall,pyperf in ((0,-1),(30000000,-1),(30000000,True),(30000000,1.5e7),(30000000,'30000000'),(-1,0),(True,1),(3e7,30000000)):
+            with self.subTest(wall=wall,pyperf=pyperf):self.assertTrue(forged(wall,pyperf))
+    def test_a_row_without_a_self_timing_or_a_bracket_is_not_judged_here(self):
+        self.assertFalse(forged(30000000,None));self.assertFalse(forged(None,30000000))
+    def test_compare_takes_honest_overhead_and_refuses_a_self_timing_above_its_bracket(self):
+        import bench
+        at_bound=lambda rows:[dict(r,pyperf_wall_ns=r['wall_ns']-5000000) if k==1 else r for k,r in enumerate(rows)]   # the 121 ms row
+        with tempfile.TemporaryDirectory() as tmp:
+            d=fixture_copy(tmp,observations=at_bound);rc,out=command(bench.compare_cmd,d)
+            self.assertEqual(rc,0,out);rows=json.loads((d/'compare.json').read_text())['rows']
+            self.assertEqual(sum(r['pyperf_disagreements'] for r in rows),0)
+            self.assertFalse(any(r['evidence_quality']=='pyperf-disagreement' for r in rows))
+        above=lambda rows:[dict(r,pyperf_wall_ns=r['wall_ns']+1001) if k==1 else r for k,r in enumerate(rows)]
+        with tempfile.TemporaryDirectory() as tmp:
+            d=fixture_copy(tmp,observations=above);rc,out=command(bench.compare_cmd,d)
+            self.assertEqual((rc,out['status']),(1,'FAIL'));self.assertTrue(any(x.startswith('forged self-timing') for x in out['reasons']),out)

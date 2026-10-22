@@ -4,7 +4,7 @@
  "properties":{
   "schema_version":{"const":1},
   "b_cases":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["id","name","phase","property"],
-   "properties":{"id":{"type":"string","pattern":"^B(0[1-9]|1[0-8])$"},"name":{"type":"string","pattern":"^[a-z0-9-]{3,60}$"},"phase":{"enum":[1,2,3]},"property":{"type":"string","maxLength":300}}}},
+   "properties":{"id":{"type":"string","pattern":"^(B(0[1-9]|1[0-8])|B13-echo)$"},"name":{"type":"string","pattern":"^[a-z0-9-]{3,60}$"},"phase":{"enum":[1,2,3]},"property":{"type":"string","maxLength":300}}}},
   "pipeline_subcases":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["parent","name","variants"],
    "properties":{"parent":{"enum":["P01","P02","P04","P07","P10","P11","P15","P16"]},"name":{"type":"string","pattern":"^bench-[a-z0-9-]{3,60}$"},
     "variants":{"type":"array","minItems":1,"items":{"type":"string","pattern":"^[a-z0-9-]{3,60}$"}}}}},

@@ -9,7 +9,7 @@ DEV={'combined_local_checks':'PASSED','independent_enforcement':'PENDING'}
 def report(identity,suites,doctor='PASS',multicore='PASS'):
     return {'source_identity':identity,'commands':['./tools/safety ci'],'gates':[{'name':'bench-doctor','status':doctor,'details':{'envelope':{'multicore':multicore}}},
             {'name':'bench-selftest','status':'PASS','details':suites}]}
-ALL={k:'PASS' for k in ('B01','B02','B03','B04','B05','B09','B10','B11','B12','B13','B15','B17')}
+ALL={**{k:'PASS' for k in ('B01','B02','B03','B04','B05','B09','B10','B11','B12','B13','B15','B17')},'not_run':[]}   # EX17-A02: the ci gate records not_run
 
 class ReadinessTests(unittest.TestCase):
     def root(self,t,rep=None):
@@ -196,6 +196,35 @@ class B17MappingTests(unittest.TestCase):                # Fix round 1, T24-APP-
             with self.subTest(b17=b17),tempfile.TemporaryDirectory() as t:
                 suites=dict(ALL,B17=b17) if b17 else {k:v for k,v in ALL.items() if k!='B17'}
                 r=DemoAxisTests.root(self,t,report(ID,suites));self.assertEqual(br.performance_axes(r,ID,DEV)['demo_experiment_execution'],'NOT_EXECUTED')
+
+class NotRunTests(unittest.TestCase):                    # EX17-A02: a B17 dimension in cases.json not_run is never COMPLETE
+    def test_a_not_run_b17_dimension_is_never_complete(self):
+        for not_run,want in ((['B17 c-multiple-workers'],'PARTIAL'),(['stub-run','B17 c-multiple-workers'],'PARTIAL'),(None,'PARTIAL'),('B17',None),
+                             ([],'COMPLETE'),(['stub-run','P16 bench-selector-evaluations/selector-no-op'],'COMPLETE')):
+            details={k:v for k,v in ALL.items() if k!='not_run'}
+            if not_run is not None:details['not_run']=not_run
+            with self.subTest(not_run=not_run),tempfile.TemporaryDirectory() as t,mock.patch.object(br,'validate'),mock.patch.object(br,'matrix_missing',return_value=[]):
+                r=DemoAxisTests.root(self,t,report(ID,details));demo_run(r)
+                self.assertEqual(br.performance_axes(r,ID,DEV)['demo_experiment_execution'],want or 'PARTIAL')
+    def test_the_open_b17_entries(self):
+        self.assertEqual(br.b17_not_run(report(ID,dict(ALL,not_run=['stub-run','B17 c-multiple-workers']))),['B17 c-multiple-workers'])
+        self.assertEqual(br.b17_not_run(report(ID,ALL)),[])
+        for bad in ({k:v for k,v in ALL.items() if k!='not_run'},dict(ALL,not_run='B17 x'),dict(ALL,not_run=[1])):
+            with self.subTest(details=bad):self.assertIsNone(br.b17_not_run(report(ID,bad)))
+        self.assertIsNone(br.b17_not_run(None))
+    def test_ci_records_the_not_run_entries_in_the_gate_details(self):
+        import bench
+        def cases(root,run_dir):
+            (Path(run_dir)/'cases.json').write_text(json.dumps({'suites':{},'additions':[],'not_run':[{'suite':'B17 c-multiple-workers','reason':'r'},{'suite':'stub-run','reason':'r'}]}))
+            return {'B17':{'status':'PASS','evidence_paths':[]}},[]
+        def gate(fn):
+            with tempfile.TemporaryDirectory() as t,mock.patch.object(bench,'doctor_probe',lambda root,run_dir:{'status':'PASS','evidence_paths':[]}),\
+                 mock.patch.object(bench,'selftest_cases',fn),mock.patch.object(bench,'_quiet',lambda fn,root,args:(0,{'status':'PASS'})),\
+                 mock.patch.object(bench,'project_suites',lambda root,run_dir:{}),mock.patch.object(bench,'_privacy_suite',lambda root,run_dir:{'status':'PASS','evidence_paths':[]}):
+                (Path(t)/'artifacts').mkdir();gates,_=bench.ci_gates(Path(t))
+            return next(g for g in gates if g['name']=='bench-selftest')['details']
+        self.assertEqual(gate(cases)['not_run'],['B17 c-multiple-workers','stub-run'])
+        self.assertIsNone(gate(lambda root,run_dir:({'B17':{'status':'PASS','evidence_paths':[]}},[]))['not_run'])      # no cases.json: unknown
 
 class QualificationAxisTests(unittest.TestCase):
     def axes(self,t,rep):return br.performance_axes(ReadinessTests.root(self,t,rep),ID,DEV)

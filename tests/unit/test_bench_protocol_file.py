@@ -227,7 +227,7 @@ class ProtocolPolicyTests(unittest.TestCase):
 class ProtocolProtectionTests(unittest.TestCase):
     def test_protocol_paths_are_protected(self):
         import bench_phase3
-        self.assertEqual(read_json(ROOT/'safety/protected-paths.json')['project_protected'],['benchmarks/project/protocol/'])
+        self.assertEqual(read_json(ROOT/'safety/protected-paths.json')['project_protected'],['benchmarks/project/protocol/','benchmarks/project/third_party/'])   # EX-1 adds the third-party lock directory
         for project in (FIXTURE,DEMO):
             with self.subTest(project=project):
                 self.assertEqual(bench_phase3.protected_entry(ROOT,f'{project}/benchmarks/project/protocol/protocol.json'),'benchmarks/project/protocol/')

@@ -4,6 +4,11 @@ Run inside the qualified builder. Native compiler output and the complete AST
 stay opaque on disk; stdout contains only rule IDs, identifiers and file paths.
 The exact SDK public/generated headers are imported through an actual Clang PCH
 so unrelated GLib header declarations are not treated as application API uses.
+
+T17 (ruling R38): one check runs this job once per translation unit in one session,
+whose /work is bounded. Nothing reads the PCH or the AST dump after the job (the
+host reads only the printed result), so the job removes both once the dump is
+parsed or the job stops; a BLOCKED job keeps only its compiler logs (file_path).
 """
 from pathlib import Path
 import hashlib as source_hashlib
@@ -38,6 +43,17 @@ def parse_arguments(arguments):
         includes.extend(['-idirafter', directory_argument])
         extra = extra[2:]
     return source, profile, label, includes, project_rules
+
+
+OUTPUTS = ('public.pch', 'native-0.json', 'native-1.json')
+LOGS = ('native-0.log', 'native-1.log')
+
+
+def remove_outputs(directory, logs):
+    """T17 (ruling R38): removes the PCH and the compiler outputs of this job from /work, and its compiler logs when
+    `logs` (a BLOCKED job prints the path of a log, so it keeps them)."""
+    for name in OUTPUTS + (LOGS if logs else ()):
+        (directory / name).unlink(missing_ok=True)
 
 
 def main():
@@ -84,16 +100,20 @@ def main():
         ['clang', *flags, '-include-pch', str(pch), '-Xclang', '-ast-dump=json',
          '-fsyntax-only', str(primary)],
     ]
-    for index, command in enumerate(commands):
-        output = directory / ('native-' + str(index) + '.json')
-        errors = directory / ('native-' + str(index) + '.log')
-        with output.open('wb') as stream, errors.open('wb') as diagnostics:
-            result = subprocess.run(command, stdout=stream, stderr=diagnostics, timeout=45)
-        if result.returncode or output.stat().st_size > 32 * 1024 * 1024:
-            print(json.dumps({'status': 'BLOCKED', 'source': source,
-                              'exit_code': result.returncode, 'file_path': str(errors)}))
-            return 2
-    tree = json.loads(output.read_text())
+    try:
+        for index, command in enumerate(commands):
+            output = directory / ('native-' + str(index) + '.json')
+            errors = directory / ('native-' + str(index) + '.log')
+            with output.open('wb') as stream, errors.open('wb') as diagnostics:
+                result = subprocess.run(command, stdout=stream, stderr=diagnostics, timeout=45)
+            if result.returncode or output.stat().st_size > 32 * 1024 * 1024:
+                print(json.dumps({'status': 'BLOCKED', 'source': source,
+                                  'exit_code': result.returncode, 'file_path': str(errors)}))
+                return 2
+        tree = json.loads(output.read_text())
+    finally:
+        remove_outputs(directory, logs=False)
+    remove_outputs(directory, logs=True)           # the dump is parsed: no later step reads a file of this job
     policy = json.loads(Path('/src/safety/foundation-api-policy.json').read_text())
     inventory = json.loads(Path('/src/safety/source-inventory.json').read_text())['files']
     findings = ast_foundation_uses(tree, policy, policy_source, inventory,
@@ -108,8 +128,7 @@ def main():
         for rule, name in ast_project_findings(tree, prefixes):
             findings.append({'rule': rule, 'name': name, 'source': source})
     print(json.dumps({'status': 'FAIL' if findings else 'PASS', 'source': source,
-                      'profile': profile, 'findings': findings,
-                      'ast_path': str(output), 'pch_path': str(pch)}))
+                      'profile': profile, 'findings': findings}))
     return 1 if findings else 0
 
 

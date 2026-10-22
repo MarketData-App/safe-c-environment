@@ -100,21 +100,32 @@ def run_panel(adapter,data,variant,workers,pool,cold,idx,cells,ref,passes,model)
     """G7.3: L passes over the one-row panel requests in cell order, one call per request (a warm pool or worker is reused;
     a cold pool starts inside its call). Each call is timed (perf_counter_ns) inside the caller interval. H21.4: the status
     of each result must equal the panel reference status of its row; no band acceptance. Returns the note fields:
-    panel_walls {cell: [L walls in ns]}, work_units, result_sha256, panel_status_diff (at most 6 items), detail, eligible."""
+    panel_walls {cell: [L walls in ns]}, work_units, result_sha256, panel_status_diff (at most 6 items), detail, eligible,
+    and `phases`, the caller phases of the trial's interval (FW-CASES-B08PROBE-01; B08, G7.1): prepare, work and materialize
+    (pool_start of a cold pool) are the sums of phase_split over the timed calls; a C variant's transport is the sum of the
+    codec's transport_ns of each call (native_worker.LAST_STATS, reset before each call, outside its wall), None when a
+    call reports none. main() passes `phases` with the end of the interval and keeps it out of the note."""
     import hashlib
     walls={c:[] for c in cells};units=0;digests={};diff={}
+    phases={'prepare':0,'pool_start':0 if cold else None,'work':0,'materialize':0,'transport':0 if variant.startswith('c-') else None}
     status=getattr(adapter,'row_status',None);band=getattr(adapter,'band_difference',None)
     for _ in range(passes):
         for i,cell in zip(idx,cells):
-            sub=adapter.take(data,i);fresh=None
+            sub=adapter.take(data,i);fresh=None;native_worker.LAST_STATS.clear()      # benchlab.native_worker: reset before every timed call
             t0=time.perf_counter_ns()
-            prepared=adapter.prepare(sub,variant,workers)
+            prepared=adapter.prepare(sub,variant,workers);t1=time.perf_counter_ns()
             if cold:fresh=warm_start(variant,workers,adapter.bench_ref)
-            try:result=adapter.materialize(adapter.run(prepared,variant,workers,pool=pool or fresh))
+            t2=time.perf_counter_ns()
+            try:raw=adapter.run(prepared,variant,workers,pool=pool or fresh);t3=time.perf_counter_ns();result=adapter.materialize(raw)
             finally:
-                t1=time.perf_counter_ns()
+                t4=time.perf_counter_ns()
                 if fresh is not None:fresh.shutdown(wait=True)       # outside the call wall, inside the caller interval
-            walls[cell].append(t1-t0);units+=adapter.work_units(result);digests[cell]=adapter.digest(result)
+            walls[cell].append(t4-t0);units+=adapter.work_units(result);digests[cell]=adapter.digest(result)
+            for k,v in phase_split(t0,t1,t2,t3,t4,cold).items():
+                if phases[k] is not None:phases[k]+=v
+            if phases['transport'] is not None:
+                got=native_worker.LAST_STATS.get('transport_ns')
+                phases['transport']=phases['transport']+got if type(got) is int and got>=0 else None
             got=status(result) if callable(status) else None
             if got!=ref[cells.index(cell)] and cell not in diff:
                 diff[cell]={'cell':cell,'model':model,'status':got if isinstance(got,str) else None,'reference_status':ref[cells.index(cell)],
@@ -122,7 +133,7 @@ def run_panel(adapter,data,variant,workers,pool,cold,idx,cells,ref,passes,model)
     items=[diff[c] for c in cells if c in diff][:PANEL_MAX_CELLS]
     digest=hashlib.sha256(json.dumps([digests[c] for c in cells],separators=(',',':')).encode()).hexdigest()
     return {'panel_walls':walls,'work_units':units,'result_sha256':digest,'panel_status_diff':items,'detail':'panel-status' if items else None,
-            'eligible':not items,'failures':{'panel-status':len(items)} if items else {},'reduction':'NOT_RUN'}
+            'eligible':not items,'failures':{'panel-status':len(items)} if items else {},'reduction':'NOT_RUN','phases':phases}
 
 def main(argv=None):
     p=argparse.ArgumentParser()
@@ -161,7 +172,8 @@ def main(argv=None):
                 idx,cells,ref,passes=panel_command(cmd);m.begin('caller',trial)
                 try:note=run_panel(adapter,data,a.variant,workers,pool,a.variant in POOLED and pool is None,idx,cells,ref,passes,a.selector)
                 except Exception as error:failed=type(error).__name__
-                m.end('caller',trial,phases=phase_split(None,None,None,None,None,False))
+                spans=note.pop('phases',None) if isinstance(note,dict) else None      # FW-CASES-B08PROBE-01: the phases of the interval
+                m.end('caller',trial,phases=spans if isinstance(spans,dict) else phase_split(None,None,None,None,None,False))
             except ValueError as error:      # a malformed command: no interval was opened
                 m.begin('caller',trial);m.end('caller',trial,phases=phase_split(None,None,None,None,None,False));failed=type(error).__name__
             native=native_fields(a.variant,adapter.route,a.route_label)      # N3-A03: the native keys, as in the non-panel path

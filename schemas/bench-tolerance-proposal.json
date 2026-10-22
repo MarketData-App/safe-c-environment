@@ -1,0 +1,41 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "title":"bench tolerance proposal",
+ "description":"The record of ./tools/safety bench tolerance (artifacts/bench/<run>/tolerance-proposal.json, tools/bench_tolerance.py calibrate). Per field: measured (the largest spread over every variant), the oracle error bound, the current protocol value, whether an earlier lock fixed it, proposed (the current value, or null with a reason: a wider value is never proposed automatically) and the margins. status PASS only when every field has a proposed value. The record never changes the protocol; a project locks the values through its protected protocol with an approval reference.",
+ "type":"object",
+ "additionalProperties":false,
+ "required":["schema_version","status","unproposed","fields"],
+ "$defs":{
+  "num":{"type":["number","null"]},
+  "field":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,40}(\\.[a-z][a-z0-9_-]{0,40}){0,2}$"}
+ },
+ "properties":{
+  "schema_version":{"const":1},
+  "status":{"enum":["PASS","FAIL"]},
+  "unproposed":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/field"}},
+  "project":{"type":"string","maxLength":512},
+  "protocol_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "spread_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+  "source":{"type":["string","null"],"pattern":"^[A-Za-z0-9._/-]{8,160}$"},
+  "fields":{
+   "type":"object","maxProperties":256,
+   "propertyNames":{"$ref":"#/$defs/field"},
+   "additionalProperties":{
+    "type":"object","additionalProperties":false,
+    "required":["measured","worst_variant","oracle_error","current","locked","proposed","reason","margin_low","margin_high","samples"],
+    "properties":{
+     "measured":{"$ref":"#/$defs/num"},
+     "worst_variant":{"type":["string","null"],"pattern":"^[a-z][a-z0-9_-]{0,40}$"},
+     "oracle_error":{"$ref":"#/$defs/num"},
+     "current":{"$ref":"#/$defs/num"},
+     "locked":{"type":"boolean"},
+     "proposed":{"$ref":"#/$defs/num"},
+     "reason":{"type":["string","null"],"maxLength":200},
+     "margin_low":{"$ref":"#/$defs/num"},
+     "margin_high":{"$ref":"#/$defs/num"},
+     "samples":{"type":"integer","minimum":0}
+    }
+   }
+  }
+ }
+}

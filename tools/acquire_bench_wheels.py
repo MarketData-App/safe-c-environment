@@ -3,7 +3,12 @@
 fetch:   resolve each pinned version on PyPI, download over HTTPS, verify sha256, retain under
          third_party/developer/wheels/ (pieces of at most 32 MiB) and write provenance.
 extract: confined offline extraction job (developer-package.py) with /inputs = retained inputs.
-promote: copy a qualified candidate lock and payload into developer.lock.json and third_party/."""
+promote: copy a qualified candidate lock and payload into developer.lock.json and third_party/.
+fetch-project (EX-1): the explicit, owner-approved online step of a project wheel. It resolves one pinned version on
+         PyPI, downloads it over HTTPS, verifies sha256 and size, keeps it as parts under
+         <project>/benchmarks/project/third_party/wheels/ and writes a candidate lock row under artifacts/third-party/.
+         The owner completes modules, provenance, notice and license record and binds the lock (a protected change);
+         tools/project_image.py then builds offline. Never run by checks."""
 from pathlib import Path
 import argparse, hashlib, json, os, shutil, sys, tempfile
 from evidence import GateError, Runner, atomic_json, bounded, file_hash, passed, read_json
@@ -127,13 +132,35 @@ def promote(root,candidate_path,extraction):
     atomic_json(root/'developer.lock.json',lock)
     print(json.dumps({'status':'PROMOTED','image_id':candidate['image_id'],'inputs':len(inputs)}))
 
+def fetch_project(root,project_dir,name,version,*,get=curl):
+    """EX-1: fetch one project wheel (see the module text). `get(url, output=None)` is the download function (curl)."""
+    import bench_model as bm, project_third_party as ptp
+    base=bm._project_base(root,project_dir);wheels=base/'third_party/wheels'
+    row=choose(loads_capped(get(f'https://pypi.org/pypi/{name}/{version}/json')),name,version)
+    if row['bytes']>ptp.ITEM_MAX_BYTES:raise GateError(name+': wheel exceeds the project item bound')
+    wheels.mkdir(parents=True,exist_ok=True);target=wheels/row['filename']
+    if target.exists():raise GateError(name+': the wheel file exists already')
+    get(row['url'],target)
+    if target.stat().st_size!=row['bytes'] or file_hash(target)!=row['sha256']:
+        target.unlink();raise GateError(name+': downloaded wheel digest mismatch')
+    parts=split_parts(target,base=Path('third_party/wheels'))
+    candidate={'name':name,'version':version,'filename':row['filename'],'tag':'-'.join(row['filename'][:-4].split('-')[-3:]),
+               'modules':None,'sha256':row['sha256'],'bytes':row['bytes'],'parts':parts,'origin':{'kind':'pypi','url':row['url']},
+               'provenance':None,'notice':None,'license':None,
+               'to_complete':'modules, provenance (a record of this acquisition), notice (the license file of the wheel, saved by bench image), license (tags, owner, review_status)'}
+    out=Path(root)/'artifacts/third-party'/(row['filename']+'.candidate.json');atomic_json(out,candidate)
+    print(json.dumps({'status':'FETCHED','name':name,'bytes':row['bytes'],'parts':len(parts),'candidate':str(out)}))
+    return candidate
+
 def main(argv=None):
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='op',required=True)
     sub.add_parser('fetch');e=sub.add_parser('extract');e.add_argument('--work',type=Path,required=True)
     m=sub.add_parser('promote');m.add_argument('--candidate',type=Path,required=True);m.add_argument('--extraction',type=Path,required=True)
+    f=sub.add_parser('fetch-project');f.add_argument('--project',required=True);f.add_argument('--name',required=True);f.add_argument('--version',required=True)
     a=p.parse_args(argv)
     try:
         if a.op=='fetch':fetch(ROOT)
+        elif a.op=='fetch-project':fetch_project(ROOT,a.project,a.name,a.version)
         elif a.op=='extract':
             if not a.work.resolve().is_relative_to(ROOT/'artifacts') or a.work.exists():raise GateError('work directory must be new and under artifacts/')
             extract(ROOT,a.work.resolve())

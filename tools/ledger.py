@@ -1,6 +1,8 @@
 """Provider-neutral deterministic review/repair accounting; no model calls."""
 from evidence import GateError
 
+TEST_STRENGTH_LABEL = 'TEST-STRENGTH EVIDENCE'      # R41: the one label of a VERIFIED row whose verification has before_failed false
+
 class Ledger:
     def __init__(self, source_identity, units, budget=5):
         self.source_identity = source_identity
@@ -33,6 +35,22 @@ class Ledger:
             row['state']='BLOCKED'
         else:
             row['state']='UNRESOLVED'
+        return row['state']
+
+    def verify_test_strength(self, identifier, *, label, regression_identity, source_identity):
+        """R41: closes a row VERIFIED with before_failed false, for a fix that adds assertions and leaves the code under test
+        unchanged. The history entry records the exact label TEST_STRENGTH_LABEL; any other label is refused. repair() never
+        verifies a row with before_failed false."""
+        row = self.findings[identifier]
+        if row['state'] in {'VERIFIED','REJECTED','DUPLICATE','BLOCKED'}:
+            raise GateError('terminal finding cannot be silently reopened')
+        if label != TEST_STRENGTH_LABEL or type(label) is not str:
+            raise GateError('test-strength closure needs the exact label '+TEST_STRENGTH_LABEL)
+        if not isinstance(regression_identity, str) or not isinstance(source_identity, str) or not regression_identity or not source_identity:
+            raise GateError('invalid test-strength verification evidence')
+        row['attempts'] += 1
+        row['history'].append({'attempt':row['attempts'],'before_failed':False,'after_passed':True,'regression_identity':regression_identity,'source_identity':source_identity,'label':label})
+        row['state'] = 'VERIFIED'; row['verification'] = row['history'][-1]
         return row['state']
 
     def reject(self, identifier, reason, *, duplicate_of=None):

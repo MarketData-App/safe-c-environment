@@ -110,6 +110,25 @@ class ReviewTests(unittest.TestCase):
         for state in ['OPEN','UNRESOLVED','BLOCKED']:
             for severity in ['high','High: buffer overrun','critical']:
                 with self.subTest(state=state,severity=severity):self.assertEqual(self.check(ledger(finding(state,severity)))['status'],'FAIL')
+    def verified(self, before_failed, label=None, severity='high', extra=None):
+        """A VERIFIED row whose verification has before_failed `before_failed`; `label` is the history label field, `extra` text for regression_identity."""
+        entry={'attempt':1,'before_failed':before_failed,'after_passed':True,'regression_identity':'added assertions'+(extra or ''),'source_identity':'s'}
+        if label is not None:entry['label']=label
+        row=finding('VERIFIED',severity);row.update(attempts=1,history=[entry],verification=entry)
+        return row
+    def test_a_verified_row_without_a_failing_run_needs_the_test_strength_label(self):
+        """R41 (T6-R5): before_failed false closes VERIFIED only with the label TEST-STRENGTH EVIDENCE."""
+        for severity in ('high','low'):
+            with self.subTest(severity=severity):
+                row=self.check(ledger(self.verified(False,severity=severity)))
+                self.assertEqual(row['status'],'FAIL');self.assertIn('TEST-STRENGTH EVIDENCE',row['details']['reason']);self.assertEqual(row['details']['unlabeled_test_strength'],['F-1'])
+    def test_a_labeled_or_behavioral_verified_row_passes(self):
+        self.assertEqual(self.check(ledger(self.verified(False,label='TEST-STRENGTH EVIDENCE')))['status'],'PASS')
+        self.assertEqual(self.check(ledger(self.verified(True)))['status'],'PASS')
+        legacy=self.verified(False,extra=' (TEST-STRENGTH EVIDENCE: code under test unchanged)')    # rows written before the label field
+        self.assertEqual(self.check(ledger(legacy))['status'],'PASS')
+    def test_a_wrong_label_fails(self):
+        self.assertEqual(self.check(ledger(self.verified(False,label='test-strength evidence')))['status'],'FAIL')
     def test_open_low_passes(self):
         self.assertEqual(self.check(ledger(finding('OPEN','low')))['status'],'PASS')
     def test_invalid_or_missing_ledger_fails(self):
@@ -257,6 +276,37 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(c.rows['gcc-O0']['status'],'FAIL');self.assertEqual(c.rows['gcc-O0']['details']['stage'],'audit')
     def test_lifetime_exhaustion_is_infrastructure(self):
         with self.assertRaises(pc.InfrastructureError):pc.capped_timeout(300,1500,1000,2000,reserve=60)
+
+class WheelPathAuditTests(unittest.TestCase):
+    """EX1-A02 (b): a gate build whose compile database or final link command names the project wheel layer
+    (/opt/project-python) or the project's third-party tree fails at the audit stage with the stable reason
+    project-wheel-path (every gate build: the warning, sanitizer, coverage and hardened profiles)."""
+    FLAGS=['-std=c17','-Wall','-Wextra','-Wpedantic','-Werror','-Wconversion','-Wsign-conversion','-Wshadow','-Wformat=2','-Wformat-security',
+           '-Wundef','-Wstrict-prototypes','-Wmissing-prototypes','-Wvla','-Wcast-qual','-Wwrite-strings',
+           '-Werror=implicit-function-declaration','-Werror=incompatible-pointer-types']
+    def check(self,extra=(),link_output=''):
+        c=object.__new__(pc.ProjectCheck)
+        c.project_dir,c.project,c.rows,c.tests,c.builds='app',PROJECT,{},{'unit':[],'integration':[]},{}
+        def step(label,argv,**kw):
+            return {'exit_code':0,'failure':None,'output':link_output if label.endswith('-link-audit') else '','evidence_path':'e/'+label}
+        c.step=step
+        database=[{'file':'/src/'+f,'directory':'/work/gcc-O0','arguments':['cc',*self.FLAGS,*extra,'-c','/src/'+f]}
+                  for f in pc.audit_sources('app',PROJECT)]
+        c.read_text=lambda label,path:(json.dumps(database),'e')
+        return c
+    def reason(self,c):
+        build=pc.build_plan('app')[0]
+        with self.assertRaises(pc.Stop):c.build(build)
+        details=c.rows[build['gate']]['details'];self.assertEqual(details['stage'],'audit')
+        return details['reason']
+    def test_a_compile_command_that_names_the_layer_or_the_third_party_tree_fails(self):
+        for extra in (['-I/opt/project-python/scextra/include'],['-isystem','/opt/project-python'],['-I/src/app/benchmarks/project/third_party/h'],
+                      ['-I../../opt/project-python']):
+            with self.subTest(extra=extra):
+                self.assertTrue(self.reason(self.check(extra)).startswith('project-wheel-path: gcc-O0 compile command names '))
+    def test_a_link_command_that_names_the_layer_fails(self):
+        c=self.check(link_output='cc -o /work/gcc-O0/app main.o /opt/project-python/scextra.libs/libx.so\n')
+        self.assertTrue(self.reason(c).startswith('project-wheel-path: gcc-O0 link command names '))
 
 class VerdictTests(unittest.TestCase):
     def rows(self,*statuses):return [{'name':str(i),'status':s} for i,s in enumerate(statuses)]

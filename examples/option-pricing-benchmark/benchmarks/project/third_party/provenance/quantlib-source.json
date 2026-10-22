@@ -1,0 +1,278 @@
+{
+  "attribution": "every ported or transcribed file carries a QuantLib attribution header naming the release (1.43) and the source file names (Amendment B item 9)",
+  "bytes": 9520978,
+  "checksum_source": "https://api.github.com/repos/lballabio/QuantLib/releases/tags/v1.43 (asset digest)",
+  "derived_from": "perf-lab b8dd615 third_party/developer/provenance/quantlib-source.json (sha256 157c316c62407b9c4feaebb6ac0fe15fd189630df64d65b6aabe502b7f0f399d). FR4 removed it from the framework (FR4-REPORT section 3); T14 (EX-5) keeps it here with the paths of this project: parts, notice, lock, wheel, native_boundary and owner changed, derived_from added, every other value unchanged.",
+  "filename": "QuantLib-1.43.tar.gz",
+  "files_used": [
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/blackcalculator.cpp",
+      "role": "BSM value and greeks (Task 7a, spec 3.4/3.6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/analyticeuropeanengine.cpp",
+      "role": "BSM engine results (spec 3.6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/bjerksundstenslandengine.hpp",
+      "role": "BjS version: 1993 (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/bjerksundstenslandengine.cpp",
+      "role": "BjS price, branches and analytic greeks (spec 3.4/3.6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/distributions/normaldistribution.hpp",
+      "role": "normal density and cutoff (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/distributions/normaldistribution.cpp",
+      "role": "cumulative normal and asymptotic series (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/errorfunction.cpp",
+      "role": "erf used by N(x) (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/methods/lattices/binomialtree.hpp",
+      "role": "binomial tree nodes and drift (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/methods/lattices/binomialtree.cpp",
+      "role": "CRR probability and negative-probability check (spec 3.3/3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/methods/lattices/bsmlattice.hpp",
+      "role": "lattice discount and rollback (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/binomialengine.hpp",
+      "role": "CRR engine, lattice greeks, theta (spec 3.4/3.6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/discretizedvanillaoption.cpp",
+      "role": "American exercise on the lattice (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/greeks.cpp",
+      "role": "blackScholesTheta (spec 3.6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/processes/blackscholesprocess.cpp",
+      "role": "process drift, variance, local vol (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructures/yieldtermstructure.cpp",
+      "role": "zero and forward rates (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructures/yield/flatforward.hpp",
+      "role": "flat discount (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/interestrate.hpp",
+      "role": "discount factor (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/interestrate.cpp",
+      "role": "compound factor and implied rate (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp",
+      "role": "Black variance (spec 3.4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/solvers1d/brent.hpp",
+      "role": "Brent solveImpl, stop rule, max-evaluations error (spec 3.3/3.5/3.7)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/solver1d.hpp",
+      "role": "Solver1D::solve, bracket error, evaluation count (spec 3.3/3.5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/comparison.hpp",
+      "role": "close() (spec 3.3/3.5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/qldefines.hpp",
+      "role": "QL_EPSILON (spec 3.5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/errors.cpp",
+      "role": "error text format (spec 3.3)"
+    },
+    {
+      "path": "QuantLib-1.43/CMakeLists.txt",
+      "role": "QL_ERROR_LINES / QL_ERROR_FUNCTIONS defaults (spec 3.3)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/baroneadesiwhaleyengine.hpp",
+      "role": "BAW criticalPrice declaration and default tolerance (G-BAW1, Appendix G-BAW R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/baroneadesiwhaleyengine.cpp",
+      "role": "BAW branch gate, critical-price iteration and value (G-BAW1, Appendix G-BAW R2-R4)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/blackformula.hpp",
+      "role": "blackFormula default discount and displacement (G-BAW1, Appendix G-BAW R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/blackformula.cpp",
+      "role": "blackFormula arithmetic and checks used by criticalPrice (G-BAW1, Appendix G-BAW R2/R8)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/instruments/oneassetoption.cpp",
+      "role": "greek 'not provided' errors (G-BAW1, Appendix G-BAW R6)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructures/yieldtermstructure.hpp",
+      "role": "discount by date (G-BAW1, Appendix G-BAW R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructure.hpp",
+      "role": "timeFromReference (G-BAW1, Appendix G-BAW R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/time/daycounters/actual365fixed.hpp",
+      "role": "Actual/365 (Fixed) year fraction (G-BAW1, Appendix G-BAW R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/qdfpamericanengine.hpp",
+      "role": "ALO schemes, FixedPointEquation and defaults (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/qdfpamericanengine.cpp",
+      "role": "ALO accurateScheme, FP-A/FP-B, sweeps, add-on and value (G-ALO1, Appendix I-ALO R2-R7)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/qdplusamericanengine.hpp",
+      "role": "QdPutCallParityEngine, QdPlusAddOnValue declarations (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/pricingengines/vanilla/qdplusamericanengine.cpp",
+      "role": "ALO calculate, edge cases, xMax, QD+ boundary, Halley and Brent fallback, add-on integrand (G-ALO1, Appendix I-ALO R2-R8)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/interpolations/chebyshevinterpolation.hpp",
+      "role": "Chebyshev interpolation declaration (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/interpolations/chebyshevinterpolation.cpp",
+      "role": "second-kind Chebyshev nodes and updateY (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/interpolations/lagrangeinterpolation.hpp",
+      "role": "barycentric Lagrange weights and value with the exact-node branch (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/interpolation.hpp",
+      "role": "operator()(x, allowExtrapolation) range check (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gaussianquadratures.hpp",
+      "role": "GaussLegendreIntegration and GaussLegendreIntegrator (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gaussianquadratures.cpp",
+      "role": "GaussianQuadrature nodes and weights through TQR (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gaussianorthogonalpolynomial.hpp",
+      "role": "GaussJacobiPolynomial declaration (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gaussianorthogonalpolynomial.cpp",
+      "role": "Jacobi recurrence coefficients (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/matrixutilities/tqreigendecomposition.hpp",
+      "role": "TQR declaration (G-ALO1, Appendix I-ALO R3, R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/matrixutilities/tqreigendecomposition.cpp",
+      "role": "TQR loop without a cap (G-ALO1, Appendix I-ALO R3)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/tanhsinhintegral.hpp",
+      "role": "TanhSinhIntegral wrapper of Boost tanh_sinh, BOOST_VERSION gate (G-ALO1, Appendix I-ALO R1a, R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/integral.hpp",
+      "role": "Integrator declaration (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/integral.cpp",
+      "role": "Integrator::operator() (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gausslobattointegral.hpp",
+      "role": "Gauss-Lobatto fallback, not compiled in the wheel (G-ALO1, Appendix I-ALO R1a)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/integrals/gausslobattointegral.cpp",
+      "role": "Gauss-Lobatto fallback, not compiled in the wheel (G-ALO1, Appendix I-ALO R1a)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/functional.hpp",
+      "role": "squared (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/math/array.hpp",
+      "role": "scalar Array operators of the node times (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/processes/blackscholesprocess.hpp",
+      "role": "process time and x0 declarations (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/termstructures/volatility/equityfx/blackconstantvol.hpp",
+      "role": "blackVolImpl returns the quote (G-ALO1, Appendix I-ALO R2)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/mathconstants.hpp",
+      "role": "M_PI, M_SQRT2, M_SQRTPI, M_1_SQRTPI, M_SQRT_2 (G-ALO1, Appendix I-ALO R5)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/version.hpp",
+      "role": "compiledBoostVersion declaration (G-ALO1, Appendix I-ALO R1a)"
+    },
+    {
+      "path": "QuantLib-1.43/ql/version.cpp",
+      "role": "compiledBoostVersion returns BOOST_VERSION (G-ALO1, Appendix I-ALO R1a)"
+    }
+  ],
+  "license_review": "agent engineering license review LR-EX performed 2026-10-18 (not legal advice): no license conflict with the first-party MIT license; the notices of this row meet the license conditions; legal-team confirmation received 2026-10-19 for QuantLib: BSD-3-Clause, permissive, commercial and proprietary use permitted; review_status APPROVED",
+  "lock": "benchmarks/project/third_party/lock.json sources row QuantLib-source binds the retained path to its sha256 and size; bench.json binds the lock by sha256",
+  "name": "QuantLib",
+  "native_boundary": "the source is read for transcription and verification only; it is never built here and never linked into first-party C, so sanitizer qualification does not apply. The wheel native code runs only in bench containers, in the project bench image (F-18, EX1-A02).",
+  "notice": {
+    "path": "third_party/notices/QuantLib-source/LICENSE.TXT",
+    "sha256": "85c8dd19077a479f7591a7dcc25194cd58c6f5d98690d2f865d0fe870b9d0eb2",
+    "source_member": "QuantLib-1.43/LICENSE.TXT"
+  },
+  "owner": "option example (examples/option-pricing-benchmark); license: legal team",
+  "parts": [
+    {
+      "bytes": 9520978,
+      "path": "third_party/sources/QuantLib-1.43.tar.gz",
+      "sha256": "b41206ccc4ba39b5e86bdc940d51138222b352f79d2c6fc68649f9c9bbe58701"
+    }
+  ],
+  "revision": "6b57206e04598f092efee66e3b367efc84771995",
+  "role": "transcription and verification reference; not built",
+  "schema_version": 1,
+  "sha256": "b41206ccc4ba39b5e86bdc940d51138222b352f79d2c6fc68649f9c9bbe58701",
+  "tag": "v1.43",
+  "url": "https://github.com/lballabio/QuantLib/releases/download/v1.43/QuantLib-1.43.tar.gz",
+  "version": "1.43",
+  "wheel": "QuantLib 1.43 wheel quantlib-1.43-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (20376095 B, sha256 35cd2c178aa9a30c3b7a9ca050536037c3185afd6728e6a1cf2085adef54464e), retained and bound in benchmarks/project/third_party/lock.json (wheel row quantlib); it enters the project bench image under /opt/project-python",
+  "notice_files": [
+    {
+      "path": "third_party/notices/QuantLib-source/MINPACK-NOTICE.txt",
+      "source_member": "QuantLib-1.43/ql/math/optimization/lmdif.cpp",
+      "source_byte_range": "58..2401 (zero-based offset 58 inclusive to 2401 exclusive; 2343 bytes)",
+      "sha256": "0578ed9ab718d1026177fb2627c27c6e395dd487e34d8bedf663219b9aa1f094"
+    }
+  ]
+}

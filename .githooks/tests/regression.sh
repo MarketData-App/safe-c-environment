@@ -3,7 +3,11 @@
 # Usage: .githooks/tests/regression.sh [HOOKDIR]; exits 1 when any case has the wrong outcome.
 # A "bad" case must be BLOCKED; an "ok" case must be ALLOWED. Synthetic values are built
 # at run time so this file passes its own hooks.
+# Keep mode (T4-A03, ruling R9): with HOOKREG_KEEP=1 the suite runs no rm at all. fresh() refuses an existing
+# path instead of deleting it, the final cleanup is skipped, and the last line names the one kept directory.
+# The default mode (the privacy workflow on its runner) removes its directories as before.
 set -u
+KEEP=${HOOKREG_KEEP:-}
 HOOKS=$(cd "${1:-$(dirname "$0")/..}" && pwd)
 BASE=$(mktemp -d "${TMPDIR:-/tmp}/hookreg.XXXX")
 export PYTHONDONTWRITEBYTECODE=1 GIT_CONFIG_NOSYSTEM=1 HOME="$BASE/hh-qzx"
@@ -11,7 +15,10 @@ mkdir -p "$HOME"; : > "$BASE/err"
 AT=$(printf '\100'); HM=/ho; BAD="dev${AT}acme-corp.io"
 NR=1+bot@users.noreply.github.com
 fresh() {
-  R="$BASE/$1"; rm -rf "$R" "$R.git"; git init -q --bare "$R.git"; git init -q "$R"; cd "$R"
+  R="$BASE/$1"
+  if [ "$KEEP" = 1 ] && { [ -e "$R" ] || [ -e "$R.git" ]; }; then echo "fresh: $1 exists (HOOKREG_KEEP=1 removes nothing)" >&2; exit 2; fi
+  [ "$KEEP" = 1 ] || rm -rf "$R" "$R.git"
+  git init -q --bare "$R.git"; git init -q "$R"; cd "$R"
   git config user.email "$NR"; git config user.name bot; git config commit.gpgsign false
   mkdir .githooks && find "$HOOKS" -maxdepth 1 -type f -exec cp -t .githooks/ {} + && git config core.hooksPath .githooks
   [ -x .githooks/pre-commit ] || { echo "hook setup failed" >&2; exit 2; }
@@ -303,7 +310,7 @@ elif kind=='depth-prefixed-zip':
 open(out,'wb').write(data)
 PY
 }
-fresh sparse-tar;    truncate -s 100M ../sparse.bin && tar --sparse --format=gnu --owner=root --group=root -cf a.tar -C .. sparse.bin && rm -f ../sparse.bin; rc sparse-tar-budget bad "$(reach)" archive-budget-exceeded
+fresh sparse-tar;    truncate -s 100M ../sparse.bin && tar --sparse --format=gnu --owner=root --group=root -cf a.tar -C .. sparse.bin && { [ "$KEEP" = 1 ] || rm -f ../sparse.bin; }; rc sparse-tar-budget bad "$(reach)" archive-budget-exceeded
 fresh gzip-crc;      mkbad gzip-crc a.gz "$BAD";                         rc corrupt-gzip-crc bad "$(reach)" undecodable-archive email-address
 fresh xz-mid;        mkbad xz-mid a.xz "$BAD";                           rc corrupt-xz-stream bad "$(reach)" undecodable-archive
 fresh bz2-crc;       mkbad bz2-crc a.bz2 "$BAD";                         rc corrupt-bzip2-crc bad "$(reach)" undecodable-archive
@@ -330,5 +337,93 @@ fresh ok-pinned-tar;  mkdir -p container/foundation-inputs; mkarc ok-tar contain
 fresh path-pattern;  printf '%s\n' '^secret-dataset\.json$' > .git/info/personal-path-patterns; echo '{}' > secret-dataset.json; git add -A
                      if git commit -q -m pp >/dev/null 2>"$BASE/out"; then o=ALLOWED; elif grep -q -F 'secret-dataset' "$BASE/out"; then o=LEAKED; elif grep -q -F ': private-path-pattern' "$BASE/out"; then o=BLOCKED; else o=NO:private-path-pattern; fi; r private-path-pattern bad $o
 fresh ok-path-text;  printf '%s\n' '^secret-dataset\.json$' > .git/info/personal-path-patterns; echo 'secret-dataset.json' > notes.txt; r ok-path-pattern-in-content ok "$(reach)"
-rm -rf "$BASE"
+# FW-HOOK (fact F14): a file under a project's third_party area is exempt from the content rules only when the project
+# lock of the same revision binds its exact path, sha256 and size in a row whose origin URL is on the upstream allowlist.
+# Names, the lock itself and every unbound file get every rule; a bound path with other bytes is project-lock-mismatch.
+PJ=examples/demo/benchmarks/project; UP="maintainer${AT}upstream-project.org"
+GHURL=https://github.com/upstream-org/up/releases/download/v1.0/up-1.0.tar.gz
+# upfiles [nopj]: the upstream notice and provenance record of the project area $PJ, and (without nopj) the project.json
+# of its project directory (T4-A02: a lock counts only in a project root that holds project.json).
+upfiles() { mkdir -p $PJ/third_party/notices/up $PJ/third_party/sources $PJ/third_party/provenance
+            printf 'Copyright upstream authors <%s>\n' "$UP" > $PJ/third_party/notices/up/LICENSE
+            printf '{"origin": "upstream"}\n' > $PJ/third_party/provenance/up.json
+            [ "${1:-}" = nopj ] || printf '{"schema_version": 1}\n' > ${PJ%benchmarks/project}project.json; }
+uptar() { python3 - "$1" "$UP" <<'PY'
+import io,sys,tarfile
+body=('upstream authors: '+sys.argv[2]+'\n').encode()
+with tarfile.open(sys.argv[1],'w:gz') as t:
+    i=tarfile.TarInfo('up-1.0/AUTHORS'); i.size=len(body); t.addfile(i,io.BytesIO(body))
+PY
+}
+# plock URL ROLE:PATH...: write the lock of the project area $PJ with one row of origin URL; each PATH (relative to the
+# project area) is bound by sha256 and size (of the link text for a symbolic link) as a source part (part), a retained
+# file (file) or the notice (notice, required).
+plock() { python3 - "$PJ" "$@" <<'PY'
+import hashlib,json,os,sys
+from pathlib import Path
+base=Path(sys.argv[1]); roles={}
+def ref(p):
+    d=os.readlink(base/p).encode() if (base/p).is_symlink() else (base/p).read_bytes()
+    return {'path':p,'sha256':hashlib.sha256(d).hexdigest(),'bytes':len(d)}
+for spec in sys.argv[3:]:
+    role,_,p=spec.partition(':'); roles.setdefault(role,[]).append(ref(p))
+row={'name':'up','version':'1.0','origin':{'kind':'upstream-archive','url':sys.argv[2]},'files':roles.get('file',[]),
+     'provenance':ref('third_party/provenance/up.json'),'notice':roles['notice'][0],
+     'license':{'tags':['MIT'],'owner':'upstream-fixture','review_status':'PENDING'}}
+lock={'schema_version':1,'owner':'upstream-fixture','sanitizer_boundary':'none','wheels':[],'sources':[],'retained':[]}
+if 'part' in roles:
+    whole=b''.join((base/r['path']).read_bytes() for r in roles['part'])
+    row.update(filename='up-1.0.tar.gz',sha256=hashlib.sha256(whole).hexdigest(),bytes=len(whole),parts=roles['part'])
+    lock['sources'].append(row)
+else: lock['retained'].append(row)
+(base/'third_party/lock.json').write_text(json.dumps(lock,indent=1)+'\n')
+PY
+}
+NL=third_party/notices/up/LICENSE
+fresh ok-pj-notice;  upfiles; plock "$GHURL" notice:$NL;          r ok-project-bound-notice ok "$(reach)"
+fresh pj-byte;       upfiles; plock "$GHURL" notice:$NL; sed -i '1s/C/c/' $PJ/$NL
+                     rc project-notice-changed-byte bad "$(reach)" project-lock-mismatch email-address
+fresh pj-unbound;    upfiles; printf 'clean notice\n' > $PJ/third_party/notices/up/COPYING; plock "$GHURL" notice:third_party/notices/up/COPYING
+                     rc project-unbound-notice bad "$(reach)" email-address '!project-lock-mismatch'
+fresh ok-pj-archive; upfiles; uptar $PJ/third_party/sources/up-1.0.tar.gz; plock "$GHURL" part:third_party/sources/up-1.0.tar.gz notice:$NL
+                     r ok-project-bound-archive ok "$(reach)"
+fresh pj-host;       upfiles; uptar $PJ/third_party/sources/up-1.0.tar.gz
+                     plock https://downloads.example.net/up/up-1.0.tar.gz part:third_party/sources/up-1.0.tar.gz notice:$NL
+                     rc project-archive-other-host bad "$(reach)" unpinned-archive email-address
+fresh ok-pj-retain;  upfiles; mkdir -p $PJ/third_party/sources/up-1.0/include; printf '// Copyright %s\n' "$UP" > $PJ/third_party/sources/up-1.0/include/up.hpp
+                     plock https://archives.boost.io/release/1.0.0/source/up_1_0_0.tar.bz2 file:third_party/sources/up-1.0/include/up.hpp notice:$NL
+                     r ok-project-retained-file ok "$(reach)"
+fresh pj-lockmail;   upfiles; plock "$GHURL" notice:$NL; sed -i "s/upstream-fixture/$UP/" $PJ/third_party/lock.json
+                     rc project-lock-first-party bad "$(reach)" email-address
+# A bound file whose name holds a private term: the name is a finding, the bound content (an upstream email) is not.
+# The lock names the file too, so it is a private-pattern finding of the lock content as well (the lock gets every rule).
+fresh pj-name;       echo 'acmesecret' > .git/info/personal-patterns; upfiles; mv $PJ/$NL $PJ/third_party/notices/up/AcmeSecret.txt
+                     plock "$GHURL" notice:third_party/notices/up/AcmeSecret.txt
+                     rc project-bound-file-name bad "$(reach)" file-name '!email-address'
+# The lock of the same revision decides: a lock edit in the same commit rebinds the file to its new bytes (allowed); a
+# lock edit in a later commit leaves the earlier commit judged against its own lock (blocked at push; -n skips pre-commit).
+fresh ok-pj-rebind;  upfiles; plock "$GHURL" notice:$NL; commit bound; push
+                     printf 'Copyright other author <%s>\n' "$UP" >> $PJ/$NL; plock "$GHURL" notice:$NL
+                     r ok-project-rebind-same-commit ok "$(reach)"
+fresh pj-rebind-late; upfiles; plock "$GHURL" notice:$NL; commit bound; push
+                     printf 'Copyright other author <%s>\n' "$UP" >> $PJ/$NL; git add -A; git commit -q -n -m edit >/dev/null 2>>"$BASE/err"
+                     plock "$GHURL" notice:$NL; commit lock
+                     rc project-rebind-later-commit bad "$(pushok)" project-lock-mismatch email-address
+# T4-A02: a look-alike lock outside a project root (docs/, tests/unit/, src/x/, each with a project.json), or a project
+# root without project.json, exempts nothing; every content rule applies.
+fresh pj-docs;       PJ=docs/benchmarks/project; upfiles; plock "$GHURL" notice:$NL
+                     rc project-lock-in-docs bad "$(reach)" email-address '!project-lock-mismatch'
+fresh pj-tests-unit; PJ=tests/unit/benchmarks/project; upfiles; plock "$GHURL" notice:$NL
+                     rc project-lock-in-tests-unit bad "$(reach)" email-address
+fresh pj-src;        PJ=src/x/benchmarks/project; upfiles; plock "$GHURL" notice:$NL
+                     rc project-lock-in-src bad "$(reach)" email-address
+PJ=examples/demo/benchmarks/project
+fresh pj-nopj;       upfiles nopj; plock "$GHURL" notice:$NL
+                     rc project-root-without-project-json bad "$(reach)" email-address
+# T4-A04: a symlink entry under a project third_party area is a finding, also when the lock binds its link text.
+fresh pj-link;       upfiles; ln -s LICENSE $PJ/third_party/notices/up/COPYING
+                     plock "$GHURL" notice:$NL file:third_party/notices/up/COPYING
+                     rc project-symlink-entry bad "$(reach)" project-third-party-symlink
+[ "$KEEP" = 1 ] && echo "HOOKREG_KEEP=1: kept $BASE"
+[ "$KEEP" = 1 ] || rm -rf "$BASE"
 exit $FAIL

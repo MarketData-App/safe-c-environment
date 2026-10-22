@@ -6,6 +6,8 @@ import gc
 import importlib.util
 import io
 import json
+import os
+import shutil
 import sys
 import tempfile
 import threading
@@ -548,6 +550,157 @@ class AstRowTests(unittest.TestCase):
         self.assertEqual((clean, checks), (False, {'reserved-identifier', 'fuzzer-entry', 'banned-call'}))
         self.assertEqual(self.row(None, 2)[2], {'ast-scan'})
         self.assertEqual(self.row({'status': 'BLOCKED'}, 2)[2], {'ast-scan'})
+
+
+def policy_job():
+    spec = importlib.util.spec_from_file_location('foundation_policy_job', ROOT/'container/foundation-policy.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def fake_clang(dump=b'{"kind": "TranslationUnitDecl", "inner": []}', fail_ast=False):
+    """A stand-in for the two compiler runs of the AST policy job: the PCH build writes its -o file (as clang does); the AST
+    dump writes `dump` to stdout, or fails with a diagnostic."""
+    import subprocess
+
+    def run(command, stdout=None, stderr=None, timeout=None):
+        if '-o' in command:
+            Path(command[command.index('-o')+1]).write_bytes(b'pch' * 4096)
+            return subprocess.CompletedProcess(command, 0)
+        if fail_ast:
+            stderr.write(b'error: synthetic\n')
+            return subprocess.CompletedProcess(command, 1)
+        stdout.write(dump)
+        return subprocess.CompletedProcess(command, 0)
+    return run
+
+
+class AstWorkCapacityTests(unittest.TestCase):
+    """T17 (ruling R38): a project check runs one AST policy job (container/foundation-policy.py) per translation unit in
+    one session, whose /work is a 2 GiB tmpfs. Each job wrote a PCH and an AST dump of up to 32 MiB under
+    /work/foundation-policy/<label>/ and nothing removed them, so a project of about 140 units filled /work. No step reads
+    them after the job: the host reads only the printed result. The job now removes them once its findings are known; a
+    BLOCKED job keeps only its compiler logs (the printed file_path). The jobs run here with the real job code and a
+    stand-in compiler (the real compilers run only in the live checks)."""
+    SOURCE = 'tests/integration/demo.c'
+
+    def run_job(self, label, source=None, **fake):
+        module = policy_job()
+        base = Path('/work/foundation-policy')/label
+        self.addCleanup(shutil.rmtree, base, True)
+        out = io.StringIO()
+        with mock.patch.object(module.subprocess, 'run', fake_clang(**fake)), contextlib.redirect_stdout(out), \
+             mock.patch.object(sys, 'argv', ['foundation-policy.py', source or self.SOURCE, 'clang-O0', label]):
+            code = module.main()
+        return code, json.loads(out.getvalue().strip().splitlines()[-1]), base
+
+    def test_two_units_leave_no_pch_and_no_ast_dump(self):
+        rows = [self.run_job(f'capacity-{n}') for n in (1, 2)]
+        for code, result, base in rows:
+            with self.subTest(label=base.name):
+                self.assertEqual((code, result['status']), (0, 'PASS'))
+                self.assertEqual(sorted(p.name for p in base.iterdir()), [])        # nothing stays in /work
+                self.assertNotIn('ast_path', result)
+                self.assertNotIn('pch_path', result)
+
+    def test_a_blocked_unit_keeps_only_its_compiler_logs(self):
+        code, result, base = self.run_job('capacity-blocked', fail_ast=True)
+        self.assertEqual((code, result['status'], result['exit_code']), (2, 'BLOCKED', 1))
+        self.assertEqual(sorted(p.name for p in base.iterdir()), ['native-0.log', 'native-1.log'])
+        self.assertEqual(result['file_path'], str(base/'native-1.log'))
+
+    def jobs_left(self, base):
+        return sorted(p.name for p in base.iterdir())
+
+    def test_a_failing_unit_reports_its_findings_after_the_pch_and_the_dump_are_removed(self):
+        """T6R4-A01 (T6-R5): a FAIL result (exit 1) with findings leaves nothing in /work, logs included."""
+        module = policy_job()
+        base = Path('/work/foundation-policy')/'capacity-fail'
+        self.addCleanup(shutil.rmtree, base, True)
+        out = io.StringIO()
+        with mock.patch.object(module.subprocess, 'run', fake_clang()), mock.patch.object(module, 'ast_banned_calls', lambda tree: ['dlsym']), \
+             contextlib.redirect_stdout(out), mock.patch.object(sys, 'argv', ['foundation-policy.py', self.SOURCE, 'clang-O0', 'capacity-fail']):
+            code = module.main()
+        result = json.loads(out.getvalue().strip().splitlines()[-1])
+        self.assertEqual((code, result['status']), (1, 'FAIL'))
+        self.assertEqual(result['findings'], [{'rule': 'existing-api-policy', 'name': 'dlsym', 'source': self.SOURCE}])
+        self.assertEqual(self.jobs_left(base), [])
+
+    def test_the_dump_bound_is_exactly_32_mib(self):
+        """Exactly 32 MiB is parsed (PASS, nothing left); one byte more is BLOCKED and keeps both compiler logs."""
+        head = b'{"kind": "TranslationUnitDecl", "inner": [], "pad": "'
+        tail = b'"}'
+        limit = 32 * 1024 * 1024
+        exact = head + b'x' * (limit - len(head) - len(tail)) + tail
+        self.assertEqual(len(exact), limit)
+        code, result, base = self.run_job('capacity-exact', dump=exact)
+        self.assertEqual((code, result['status']), (0, 'PASS'))
+        self.assertEqual(self.jobs_left(base), [])
+        # The job runs under fsize = 32 MiB (safety/container-policy.json file_bytes), so a stand-in writer cannot create a
+        # 32 MiB + 1 file (EFBIG; a real compiler would die by SIGXFSZ, a nonzero code: BLOCKED as well). The size check is
+        # exercised with a stat that reports one byte more for the dump.
+        real_stat = Path.stat
+
+        def stat_one_more(path, *args, **kwargs):
+            st = real_stat(path, *args, **kwargs)
+            if path.name != 'native-1.json':
+                return st
+            fields = tuple(st)
+            return os.stat_result(fields[:6] + (fields[6]+1,) + fields[7:10])
+        with mock.patch.object(Path, 'stat', stat_one_more):
+            code, result, base = self.run_job('capacity-over', dump=exact)
+        self.assertEqual((code, result['status'], result['exit_code']), (2, 'BLOCKED', 0))
+        self.assertEqual(self.jobs_left(base), ['native-0.log', 'native-1.log'])
+        self.assertEqual(result['file_path'], str(base/'native-1.log'))
+
+    def test_an_invalid_dump_or_a_timeout_removes_the_outputs_and_keeps_the_logs(self):
+        """The exception path: the job raises (the entry point prints BLOCKED and exits 2); outputs gone, logs kept."""
+        import subprocess
+        with self.assertRaises(ValueError):
+            self.run_job('capacity-invalid', dump=b'not json')
+        self.assertEqual(self.jobs_left(Path('/work/foundation-policy')/'capacity-invalid'), ['native-0.log', 'native-1.log'])
+        self.addCleanup(shutil.rmtree, Path('/work/foundation-policy')/'capacity-invalid', True)
+
+        def timeout(command, stdout=None, stderr=None, timeout=None):
+            if '-o' in command:
+                Path(command[command.index('-o')+1]).write_bytes(b'pch')
+                return subprocess.CompletedProcess(command, 0)
+            raise subprocess.TimeoutExpired(command, timeout)
+        module = policy_job()
+        base = Path('/work/foundation-policy')/'capacity-timeout'
+        self.addCleanup(shutil.rmtree, base, True)
+        with mock.patch.object(module.subprocess, 'run', timeout), mock.patch.object(sys, 'argv', ['foundation-policy.py', self.SOURCE, 'clang-O0', 'capacity-timeout']), \
+             self.assertRaises(subprocess.TimeoutExpired):
+            module.main()
+        self.assertEqual(self.jobs_left(base), ['native-0.log', 'native-1.log'])
+
+    def test_a_probe_source_is_read_from_the_protected_probe_file_and_leaves_nothing(self):
+        """The @probe: path: an inventoried probe whose file is as generated runs; an unknown name or a changed file raises."""
+        spec = importlib.util.spec_from_file_location('probe_definitions', ROOT/'container/foundation-policy-probe.py')
+        probes = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probes)
+        row = probes.definitions()['approved']
+        directory = Path('/work/foundation-probes')/'approved'
+        self.addCleanup(shutil.rmtree, directory, True)
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory/'probe.c').write_text(row['source'])
+        code, result, base = self.run_job('capacity-probe', source='@probe:approved')
+        self.assertEqual((code, result['status'], result['source']), (0, 'PASS', '@probe:approved'))
+        self.assertEqual(self.jobs_left(base), [])
+        with self.assertRaises(ValueError):
+            self.run_job('capacity-probe-unknown', source='@probe:no-such-probe')
+        (directory/'probe.c').write_text(row['source'] + '/* changed */\n')
+        with self.assertRaises(ValueError):
+            self.run_job('capacity-probe-changed', source='@probe:approved')
+        self.addCleanup(shutil.rmtree, Path('/work/foundation-policy')/'capacity-probe-unknown', True)
+        self.addCleanup(shutil.rmtree, Path('/work/foundation-policy')/'capacity-probe-changed', True)
+
+    def test_the_dump_bound_and_the_rules_stay(self):
+        text = (ROOT/'container/foundation-policy.py').read_text()
+        self.assertIn('output.stat().st_size > 32 * 1024 * 1024', text)
+        for name in ('ast_foundation_uses(', 'ast_banned_calls(', 'ast_project_findings('):
+            self.assertIn(name, text)
 
 
 if __name__ == '__main__':

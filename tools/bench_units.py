@@ -6,7 +6,10 @@ values (I15; bench_stats.order_stat_rank / order_stat_bounds): no resampling, se
 The C claim uses the median of the per-block paired ratios X_b/P_b. The verdict engine (Task 15) decides real runs with
 these functions. The B09 coverage simulation (benchmarks/performance/python/benchlab/coverage.py) loads this file inside
 the container and checks that its vectorized decisions equal the decisions made here, so the coverage rate is a property
-of this code.
+of this code at the ratio bound 1.0 (h_pi, l_pi, qualifies). EX18a-A02: B09 does not run margin_unit, _base_condition or
+_route_condition. The two-condition rule uses the same order-statistic bounds; its candidate claim at the ratio bound
+1 - m has the false-claim rate that B09 certifies at 1.0, by the scale invariance of the order statistic
+(docs/performance-laboratory.md, section "Protocol data").
 
 Task 15 appends the qualification unit (G9.4: the only reader of the project report, the ci bootstrap report and the
 approval verdicts under a unit-threshold policy) and the unit verdicts (`decide_units`, G9.3 orders 1, 1a and 2-9, the
@@ -336,21 +339,28 @@ def decide_unit(unit,uev,policy,stats):
     rows=[r for r in uev['rows'] if r['unit']==unit];warm=[r for r in rows if r['mode']==mode]
     base={'unit':unit,'look':look,'alpha':a,'blocks':_blocks(look,policy),'envelope_note':_envelope_note(unit,uev),'extension':{'trigger':False,'note':None}}
     if uev['status']!='VALID':return _rec(base,'INVALID_EXPERIMENT','run-invalid',uev,policy)
+    if uev.get('window_chain'):return _rec(dict(base,detail='window-chain'),'INVALID_EXPERIMENT','run-invalid',uev,policy)      # H15.2: a refused window chain
     if unit in uev['window_mismatch']:return _rec(dict(base,detail='window-envelope-mismatch'),'INVALID_EXPERIMENT','run-invalid',uev,policy)
     if unit in uev.get('window_pressure',()):return _rec(dict(base,detail='window-pressure'),'INVALID_EXPERIMENT','run-invalid',uev,policy)   # H15.2 exhausted look-1 window
+    if unit in uev.get('window_invalid',()):return _rec(dict(base,detail='window-run-invalid'),'INVALID_EXPERIMENT','run-invalid',uev,policy)   # EX-18b: a FAIL window position
     if not uev.get('coverage_ok'):return _rec(dict(base,detail='coverage-unqualified'),'INVALID_EXPERIMENT','run-invalid',uev,policy)   # G8.4, H14
     bad=[r for r in rows if r.get('planned',True) and not r['eligible']]
     if bad:return _rec(dict(base,detail=next((r['detail'] for r in bad if r.get('detail')),None)),'INVALID_EXPERIMENT','ineligible-row',uev,policy)   # H21.4 panel-status
+    if policy.get('margin_rule'):return margin_unit(unit,uev,policy,base)      # EX-18a: the two-condition rule of the project protocol
     py=[r for r in warm if r['language'] in policy['python_languages']];c=[r for r in warm if r['language'] in policy['c_languages']]
     pi=[r for r in py if _measured(r,look,policy)];gamma=[r for r in c if _measured(r,look,policy)];gsafe=[r for r in gamma if r.get('route') in policy['safe_routes']]
-    blocked=[b for b in uev['blocked_other'] if b['unit']==unit]
+    blocked=blocked_of(uev,unit,mode)           # EX18a-A01: the missing rows of the verdict mode only
     miss_py=len(pi)<len(py) or any(b['label'].startswith('py-') for b in blocked)
     miss_c=len(gamma)<len(c) or any(b['label'].startswith('c-') for b in blocked)
     miss_c_safe=len(gsafe)<len([r for r in c if r.get('route') in policy['safe_routes']]) or any(b['label'].startswith('c-') and ('[inproc]' not in b['label']) for b in blocked)
     un=unattainable([(_label(r),r['wall']) for r in pi],len(gamma),look)
     if un['U_pi'] or un['L_pi']:return _rec(base,'INCONCLUSIVE','bound-unattainable',uev,policy,pi=pi,gamma=gamma,gsafe=gsafe)   # I15.4 order 1a
     H,h_row=h_pi([(_label(r),r['wall']) for r in pi],look,stats);base.update(k_pi=len(pi),k_gamma=len(gamma),k_safe=len(gsafe),H_pi=(H,h_row))
-    if H<T:return _rec(base,'KEEP_PYTHON','python-under-threshold',uev,policy,pi=pi,gamma=gamma,gsafe=gsafe)
+    if H<T:
+        # EX17-A01: without a measured C row while a C row of the run is missing (blocked, removed by the plan, or not in
+        # every block), the record never reads as a plain KEEP_PYTHON: the C evidence is missing
+        if not gamma and miss_c:return _rec(base,'INCONCLUSIVE','c-evidence-missing',uev,policy,pi=pi,gamma=gamma,gsafe=gsafe)
+        return _rec(base,'KEEP_PYTHON','python-under-threshold',uev,policy,pi=pi,gamma=gamma,gsafe=gsafe)
     L,l_row=l_pi([(_label(r),r['wall']) for r in pi],look,stats);base['L_pi']=(L,l_row)
     if L<T:
         ex=unit in uev.get('extension_exhausted',())
@@ -375,6 +385,123 @@ def _c_orders(P,G,missing,look,stats,uev):
 def decide_units(uev,policy,stats):
     """The unit records in policy['units'] order (I8.1, I8.2)."""
     return [decide_unit(u,uev,policy,stats) for u in policy['units']]
+
+# ---- EX-18a: the two-condition unit rule (`margin_rule` of a unit-threshold policy; project data) ----
+# The project protocol declares the base and candidate variant families, the routes and the relative margin m; the
+# threshold T is the policy's threshold_ns_per_request. The framework names no value. A route prefers the candidate only
+# when both conditions are decided true; every other outcome keeps the base (KEEP_PYTHON) and names each failed or
+# undecided condition. Statistical edges stay with the base: a straddle, an unattainable bound or a missing row decides
+# nothing.
+BASE_REASONS={'not-met':'base-under-threshold','undecided':'base-threshold-undecided','not-measured':'base-not-measured'}
+CANDIDATE_REASONS={'not-met':'candidate-margin-not-met','undecided':'candidate-margin-undecided','not-measured':'candidate-not-measured'}
+NOT_ELIGIBLE='candidate-not-eligible';BOTH_MET='both-conditions-met'
+CANDIDATE_ORDER=('undecided','not-measured','not-met')        # the unit reason when no route meets both conditions
+MISSING_BASE='a planned base row is missing';MISSING_CANDIDATE='a planned candidate row of the route is missing'
+NO_CANDIDATE='no candidate row of the route is planned'
+BLOCKED_LABEL=re.compile(r'^(\S+) x\S+(?: \[([a-z]+)\])?$')
+
+def _blocked_identity(b):
+    """(variant, route) of a blocked_other entry from its label `variant xW [route]` (_blocked, the fixtures)."""
+    m=BLOCKED_LABEL.match(str(b.get('label') or ''))
+    return (m.group(1),m.group(2)) if m else (None,None)
+
+def _base_condition(unit,uev,policy,rule,base,pi,py,missing,look):
+    """Condition 1 on the base family Pi (orders 1a to 5 with the base family): (decision, detail, H, L). met: L_Pi >= T
+    (every base row at or above T); not-met: H_Pi < T (a base row under T); undecided: an unattainable bound or L_Pi < T
+    <= H_Pi (the extension trigger of order 3 applies); not-measured: no base row, a planned base row without every block
+    or blocked, or (a full-dataset unit whose family holds py-reference) the py-reference guard of order 5 fails."""
+    T=policy['threshold_ns_per_request'];a=alpha(look)
+    if not pi:return 'not-measured',None,None,None
+    labelled=[(_label(r),r['wall']) for r in pi];H=h_pi(labelled,look)[0];L=l_pi(labelled,look)[0]
+    un=unattainable(labelled,0,look)
+    if un['U_pi'] or un['L_pi']:return 'undecided','bound-unattainable',H,L
+    if H<T:return 'not-met',None,H,L
+    if L<T:
+        ex=unit in uev.get('extension_exhausted',())
+        base['extension']={'trigger':look==1 and not ex,'note':'extension-not-run' if (unit in uev['extension_not_run'] or ex) else None}
+        if ex:base['detail']='extension-exhausted'
+        return 'undecided','python-near-threshold' if look==1 else 'python-at-threshold',H,L
+    if len(pi)<len(py) or missing:return 'not-measured',MISSING_BASE,H,L
+    if unit.endswith('/full-dataset') and 'py-reference' in rule['base_variants'] and not py_reference_guard(unit,uev,bs.order_stat_bounds(_pick(pi)['wall'],a/len(pi))[1]):
+        return 'not-measured','py-reference-not-measured',H,L
+    return 'met',None,H,L
+
+def _route_condition(route,P,cs,gamma,missing,k,look,limit):
+    """Condition 2 on one route: (decision, detail, chosen row, row entries). Each measured candidate row X of the route
+    gives the order-statistic interval [L, U] at alpha/k of the median of the per-block ratios X_b/P_b (k: every measured
+    candidate row of the unit). met when U < 1 - m for some row (the chosen row: the smallest median of those rows);
+    not-met when L >= 1 - m for every row and no planned row of the route is missing; not-measured without a measured row
+    (or without P), or when a planned row is missing and no row meets the margin; otherwise undecided."""
+    got=[r for r in gamma if r.get('route')==route];planned=[r for r in cs if r.get('route')==route]
+    miss=len(got)<len(planned) or missing
+    if not got or P is None:return 'not-measured',(MISSING_CANDIDATE if miss else None if planned else NO_CANDIDATE),(_pick(got) if got else None),[]
+    entries=[]
+    for x in got:
+        lo,hi=ratio_bounds(P['wall'],x['wall'],k,look);ratio=float(bs.median([x['wall'][b]/P['wall'][b] for b in sorted(P['wall'])]))
+        entries.append({'row':x,'ratio':ratio,'low':lo,'high':hi,'decision':'met' if hi<limit else 'not-met' if lo>=limit else 'undecided'})
+    met=[e['row'] for e in entries if e['decision']=='met']
+    if met:return 'met',None,_pick(met),entries
+    if miss:return 'not-measured',MISSING_CANDIDATE,_pick(got),entries
+    if all(e['decision']=='not-met' for e in entries):return 'not-met',None,_pick(got),entries
+    unatt=any(bs.order_stat_rank(len(x['wall']),alpha(look)/k) is None for x in got)
+    return 'undecided',('bound-unattainable' if unatt else None),_pick(got),entries
+
+def _margin_verdict(routes,g,d1):
+    """(verdict, reason, C) of a set of route records under the two-condition rule; g are the measured candidate rows of
+    those routes. No measured candidate row: candidate-not-measured (EX17-A01, whatever the base); a base condition that
+    is not met: its reason; a route with both conditions met: PREFER_C (C: the smallest median of the chosen rows of such
+    routes); both met but not eligible: candidate-not-eligible; else the first of undecided, not-measured and not-met. A
+    route without any planned candidate row (no row and no blocked or removed row on it) gives no not-measured reason here:
+    it is outside the measured design, and its own record says not-measured."""
+    if not g:return 'KEEP_PYTHON',CANDIDATE_REASONS['not-measured'],None
+    if d1!='met':return 'KEEP_PYTHON',BASE_REASONS[d1],_pick(g)
+    win=[x['_row'] for x in routes if x['verdict']=='PREFER_C']
+    if win:return 'PREFER_C',BOTH_MET,_pick(win)
+    met=[x['_row'] for x in routes if x['decision']=='met']
+    if met:return 'KEEP_PYTHON',NOT_ELIGIBLE,_pick(met)
+    for d in CANDIDATE_ORDER:
+        if any(x['decision']==d and (d!='not-measured' or x['_planned']) for x in routes):return 'KEEP_PYTHON',CANDIDATE_REASONS[d],_pick(g)
+    return 'KEEP_PYTHON',CANDIDATE_REASONS['not-measured'],_pick(g)
+
+def margin_unit(unit,uev,policy,base):
+    """EX-18a: the unit record under the two-condition rule of policy['margin_rule'] {base_variants, candidate_variants,
+    routes, margin}. The base family Pi holds the warm rows of the base variants (a Python language), the candidate rows
+    the warm rows of the candidate variants (a C language) on the declared routes: caller-scope rows, so the time of the
+    route's transfer from the caller into C is in each row (end to end). P is the base row with the smallest median.
+    Each declared route is judged separately (route record: both decisions with their intervals, the verdict and every
+    failed or undecided condition). The unit verdict is PREFER_C when a route is PREFER_C, the safe-route verdict the same
+    rule on the policy's safe routes. Rows outside the families never decide."""
+    rule=policy['margin_rule'];look=base['look'];T=policy['threshold_ns_per_request'];limit=1.0-float(rule['margin'])
+    rows=[r for r in uev['rows'] if r['unit']==unit];warm=[r for r in rows if r['mode']==policy['verdict_mode']]
+    py=[r for r in warm if r['variant'] in rule['base_variants'] and r['language'] in policy['python_languages']]
+    cs=[r for r in warm if r['variant'] in rule['candidate_variants'] and r['language'] in policy['c_languages'] and r.get('route') in rule['routes']]
+    pi=[r for r in py if _measured(r,look,policy)];gamma=[r for r in cs if _measured(r,look,policy)]
+    gsafe=[r for r in gamma if r.get('route') in policy['safe_routes']];k=len(gamma)
+    blocked=[_blocked_identity(b) for b in blocked_of(uev,unit,policy['verdict_mode'])]     # EX18a-A01: a route is judged on the verdict mode only
+    d1,detail1,H,L=_base_condition(unit,uev,policy,rule,base,pi,py,any(v in rule['base_variants'] for v,_ in blocked),look)
+    P=_pick(pi) if pi else None;conds=failed_conditions(uev);routes=[]
+    for route in rule['routes']:
+        miss=any(v in rule['candidate_variants'] and rt==route for v,rt in blocked)
+        d2,detail2,X,entries=_route_condition(route,P,cs,gamma,miss,k,look,limit)
+        reasons=([BASE_REASONS[d1]] if d1!='met' else [])+([CANDIDATE_REASONS[d2]] if d2!='met' else [])
+        if not reasons and conds:reasons=[NOT_ELIGIBLE]
+        e=next((x for x in entries if x['row'] is X),None)
+        routes.append({'route':route,'safe':route in policy['safe_routes'],'candidate':_label(X) if X else None,'ratio':e['ratio'] if e else None,
+                       'ratio_low':_num(e['low']) if e else None,'ratio_high':_num(e['high']) if e else None,'decision':d2,'detail':detail2,
+                       'verdict':'KEEP_PYTHON' if reasons else 'PREFER_C','reasons':reasons,
+                       'rows':[{'label':_label(x['row']),'ratio':x['ratio'],'ratio_low':_num(x['low']),'ratio_high':_num(x['high']),'decision':x['decision']} for x in entries][:12],
+                       '_row':X,'_planned':miss or any(r.get('route')==route for r in cs)})
+    v,r,C=_margin_verdict(routes,gamma,d1)
+    vs,rs,Cs=_margin_verdict([x for x in routes if x['safe']],gsafe,d1)
+    record={'margin':float(rule['margin']),'ratio_bound':limit,'threshold_ms':_ms(T),'base_variants':list(rule['base_variants']),
+            'candidate_variants':list(rule['candidate_variants']),'k':k,
+            'base':{'rows':[_label(x) for x in pi][:12],'P':_label(P) if P else None,'low_ms':_ms(L) if L is not None else None,
+                    'high_ms':_ms(H) if H is not None else None,'decision':d1,'reason':BASE_REASONS.get(d1),'detail':detail1},
+            'routes':[{key:val for key,val in x.items() if not key.startswith('_')} for x in routes]}
+    c={'verdict':v,'reason':r,'C':C,'failed':conds if r==NOT_ELIGIBLE else []}
+    c_safe={'verdict':vs,'reason':rs,'C':Cs,'failed':conds if rs==NOT_ELIGIBLE else []}
+    family={id(x) for x in py+cs}
+    return _rec(dict(base,margin_rule=record,family=family),v,r,uev,policy,pi=pi,gamma=gamma,gsafe=gsafe,P=P,c=c,c_safe=c_safe)
 
 # ---- record helpers (G9.6) ----
 def _ms(v):return None if v is None or not math.isfinite(v) else v/1e6
@@ -506,7 +633,9 @@ def unit_record(base,verdict,reason,uev,policy,pi=None,gamma=None,gsafe=None,P=N
     kg=len(gamma) if gamma is not None else None;ks=len(gsafe) if gsafe is not None else None
     C=(c or {}).get('C');C_safe=(c_safe or {}).get('C')
     vsafe,rsafe=(c_safe['verdict'],c_safe['reason']) if c_safe else (verdict,reason)
-    conds=list(dict.fromkeys(((c or {}).get('failed') or [])+((c_safe or {}).get('failed') or []))) if 'c-not-eligible' in (reason,rsafe) else []
+    margin=base.get('margin_rule')            # EX-18a: the two-condition record (None without the rule or before it is reached)
+    conds=(list(dict.fromkeys(((c or {}).get('failed') or [])+((c_safe or {}).get('failed') or [])))
+           if {'c-not-eligible',NOT_ELIGIBLE}&{reason,rsafe} else [])
     kind,label=kind_label(uev['project_check'],uev['current_identity'])
     H=h_pi([(_label(r),r['wall']) for r in pi],look) if pi else (math.inf,None)
     L=l_pi([(_label(r),r['wall']) for r in pi],look) if pi else (math.inf,None)
@@ -514,7 +643,8 @@ def unit_record(base,verdict,reason,uev,policy,pi=None,gamma=None,gsafe=None,P=N
     ranks=_ranks(pi,P,C,C_safe,kg,ks,look)
     less_safe=any(r.get('route') in policy['less_safe_routes'] for r in rows if r['language'] in policy['c_languages'])
     named_safe=False                 # T15-APP-04: a differing safe-route verdict is always visible in the summary line
-    if conds:summary='C is reliably faster but not eligible: '+', '.join(conds)
+    if margin is not None:summary=_margin_summary(verdict,reason,margin,conds)
+    elif conds:summary='C is reliably faster but not eligible: '+', '.join(conds)
     elif verdict=='PREFER_C' and C is not None and C.get('route') in policy['less_safe_routes'] and vsafe!=verdict:summary=SUMMARY_LESS_SAFE.format(v=vsafe,r=rsafe);named_safe=True
     elif reason=='c-not-reliably-faster' and ranks['C']:
         k,n=ranks['C']['k'],ranks['C']['n'];summary=f'C bound = x_({k}) of {n} per-block ratios, k = {k}; '+_power_text(sens)
@@ -523,11 +653,12 @@ def unit_record(base,verdict,reason,uev,policy,pi=None,gamma=None,gsafe=None,P=N
     else:summary=f'{verdict} ({reason})'+(f", detail {base['detail']}" if base.get('detail') else '')
     if (vsafe,rsafe)!=(verdict,reason) and not named_safe:
         tail=f'; safe routes: {vsafe} ({rsafe})';summary=summary[:600-len(tail)]+tail      # the tail survives the 600-character limit
-    missing=[{'label':b['label'][:200],'reason':str(b.get('reason'))[:300]} for b in uev['blocked_other'] if b['unit']==unit]
+    missing=[{'label':b['label'][:200],'reason':str(b.get('reason'))[:300]} for b in blocked_of(uev,unit,policy['verdict_mode'])]
     if reached:
-        measured={id(r) for r in (pi or [])+(gamma or [])}
+        measured={id(r) for r in (pi or [])+(gamma or [])};family=base.get('family')      # EX-18a: only the rule's families
         missing+=[{'label':_label(r),'reason':'not measured in every block of this look'} for r in rows
-                  if r['mode']==policy['verdict_mode'] and r['language'] in policy['python_languages']+policy['c_languages'] and id(r) not in measured]
+                  if r['mode']==policy['verdict_mode'] and r['language'] in policy['python_languages']+policy['c_languages'] and id(r) not in measured
+                  and (family is None or id(r) in family)]
     lib=_library_selector(unit,policy);one=unit.endswith('/single-record')
     return {'unit':unit,'rows_per_request':(uev.get('rows_per_request') or {}).get(unit),'blocks':base['blocks'],'look':look,'alpha':a,
             'k_pi':len(pi) if reached else None,'k_gamma':kg,'k_safe':ks,
@@ -550,9 +681,19 @@ def unit_record(base,verdict,reason,uev,policy,pi=None,gamma=None,gsafe=None,P=N
             'project_report':_project_report(unit,uev),
             'reference_admit_excluded':uev.get('reference_admit_excluded') if lib else None,'library_label':str(policy['library_report']['label'])[:120] if lib else None,
             'library_overhead_ns_per_row':uev.get('library_overhead_ns_per_row') if lib else None,
-            'envelope_note':base['envelope_note'],'extension':dict(base['extension']),'summary_line':summary[:600],'adoption_authorized':False}
+            'envelope_note':base['envelope_note'],'extension':dict(base['extension']),'summary_line':summary[:600],'adoption_authorized':False,
+            'margin_rule':margin}
 
 _rec=unit_record
+
+def _margin_summary(verdict,reason,m,conds):
+    """The summary line of a unit under the two-condition rule: the verdict, the base condition with its bounds and the
+    decision of each route with its ratio interval (the safe-route tail is added by unit_record)."""
+    b=m['base'];head=f'{verdict} ({reason})'+(': '+', '.join(conds) if conds else '')
+    base=f"base {b['P'] or 'none'} [{_fmt(b['low_ms'])}, {_fmt(b['high_ms'])}] ms vs {_fmt(m['threshold_ms'])} ms: {b['decision']}"
+    routes='; '.join(f"{x['route']} {x['decision']}"+(f" [{_fmt(x['ratio_low'])}, {_fmt(x['ratio_high'])}]" if x['candidate'] and x['ratio'] is not None else '')
+                     for x in m['routes'])
+    return f"{head}; {base}; ratio bound {_fmt(m['ratio_bound'])}: {routes}"
 
 # ---- Task 18 (G6.3, G6.6, G7.1-G7.3, G9.4, G9.6, G9.9, H14, H16, H21.4, H21.6): unit evidence from a recorded run, the
 # coverage record binding and the owner-policy decision record. Host code: these functions import tools modules lazily,
@@ -630,8 +771,9 @@ def planned_passes(plan):
 def trial_wall_flags(observations,unit):
     """T18-APP-03 (G7.3): per warm single-record row of `unit`, the eligible timed trials whose recorded trial wall
     (panel_call_ns, the sum of the 6 x L timed calls) is below the 0.5 s target, and the trials without a recorded wall.
-    Report lines only (diagnostic, never a verdict): L comes from the planned rate, which the calibration never replaces
-    for C rows, so a fast row can give a shorter wall; the recorded medians still decide."""
+    Report lines only (diagnostic, never a verdict): L comes from the plan's one-row wall (T6-R7: the measured wall of the
+    variant and selector after calibration, the planning rate before it), so a row whose calls are faster than that wall
+    gives a shorter trial wall; the recorded medians still decide."""
     import bench_plan as bp
     target=bp.PANEL_TRIAL_SECONDS*1e9;groups={}
     for o in _timed(observations):
@@ -640,7 +782,7 @@ def trial_wall_flags(observations,unit):
     for label,obs in sorted(groups.items()):
         known=[w for w in (o.get('panel_call_ns') for o in obs) if type(w) is int and w>=0];short=[w for w in known if w<target]
         if short:lines.append(f'warm trial wall below the {bp.PANEL_TRIAL_SECONDS:g} s target of G7.3: {label} {len(short)} of {len(obs)} trials, '
-                              f'shortest {_ms(min(short)):.6g} ms (L comes from the planned rate; the recorded medians still decide)')
+                              f'shortest {_ms(min(short)):.6g} ms (L comes from the one-row wall of the plan; the recorded medians still decide)')
         if len(known)<len(obs):lines.append(f'warm trial wall not recorded: {label} {len(obs)-len(known)} of {len(obs)} trials')
     return lines
 
@@ -687,17 +829,25 @@ def _rows_per_request(observations,rows):
         out[unit]=sizes.pop() if len(sizes)==1 and isinstance(next(iter(sizes)),int) and next(iter(sizes))>0 else None
     return out
 
-def _blocked(plan,units):
+def _blocked(plan,units,excluded=()):
     """G6.3 (AG2-11): envelope-blocked rows are not planned (envelope_not_planned); every other BLOCKED row of the plan is
-    planned and missing (blocked_other). A plan row names a variant and workers; it applies to every unit of the run."""
+    planned and missing (blocked_other). A plan row names a variant and workers; it applies to every unit of the run.
+    EX17-A01: `excluded` (bench_plan.excluded_rows: rows of the declared case that the plan removed) are missing too."""
     env,other=[],[]
-    for b in plan.get('blocked_rows') or []:
+    for b in list(plan.get('blocked_rows') or [])+list(excluded):
         if not isinstance(b,dict):continue
         label=f"{b.get('variant')} x{b.get('workers')}"+(f" [{b['route']}]" if b.get('route') else '');reason=str(b.get('reason'))
+        mode={'mode':b['mode']} if isinstance(b.get('mode'),str) else {}       # EX18a-A01: a row blocked in one mode only (the inproc cold cell)
         for u in units:
             if 'envelope' in reason and 'beyond' in reason:env.append({'unit':u,'label':label})
-            else:other.append({'unit':u,'label':label,'reason':reason[:300]})
+            else:other.append({'unit':u,'label':label,'reason':reason[:300],**mode})
     return env,other
+
+def blocked_of(uev,unit,mode):
+    """EX18a-A01: the blocked_other entries of `unit` that are missing rows of the verdict mode `mode`: an entry without a
+    mode applies to every mode; an entry of another mode (a cell that the plan blocks by design, the inproc cold cell) is
+    no missing row of the verdict. T6R8-A06: an entry whose mode is neither warm nor cold is malformed and counts."""
+    return [b for b in uev['blocked_other'] if b['unit']==unit and (b.get('mode') not in ('warm','cold') or b.get('mode')==mode)]
 
 def _count_or_none(v):return v if type(v) is int and v>=0 else None
 
@@ -792,16 +942,19 @@ def confirmed_coverage_path(root,args):
     path=(doc or {}).get('coverage_path')
     return _resolve(root,path) if isinstance(path,str) and path else None
 
-def unit_evidence_from_run(root,run_dir,run,plan,case,policy,args):
+def unit_evidence_from_run(root,run_dir,run,plan,case,policy,args,observations=None):
     """The unit evidence (Task 15 shape) of a recorded run whose status decide_cmd re-derived. `run` holds the plan facts
-    (case, mode, envelope, project_dir) and the re-derived status and reasons; `plan` is the digest-bound plan.json."""
+    (case, mode, envelope, project_dir) and the re-derived status and reasons; `plan` is the digest-bound plan.json.
+    EX-18b: `observations` (with the merged `plan`) are the pooled rows of a window chain (bench_windows.chain_for_decide)
+    in place of the run's observations.jsonl."""
     import bench, bench_decide as bd, bench_model as bm
-    root=Path(root);run_dir=Path(run_dir);obs=bench.read_jsonl(run_dir/'observations.jsonl')
+    root=Path(root);run_dir=Path(run_dir);obs=bench.read_jsonl(run_dir/'observations.jsonl') if observations is None else list(observations)
     import bench_panel
     project=plan.get('project_dir') if plan.get('project_dir') is not None else (run.get('plan') or {}).get('project_dir')
     rows=rows_from_observations(obs,planned=planned_passes(plan),cells=bench_panel.cell_names(root,project))   # FR5: the protocol's cells
     seen=sorted({r['unit'] for r in rows});units=list(policy['units'])
-    env,other=_blocked(plan,seen)
+    import bench_plan
+    env,other=_blocked(plan,seen,bench_plan.excluded_rows(case,plan))     # EX17-A01: the rows that the plan removed
     current=bd._current_identity(root)
     pc=qualify(project_check_from_report(root,PROJECT_REPORT,project),*load_local_evidence(root,getattr(args,'ci_run_id',None),getattr(args,'approval',None) or []),current)[0]
     cov=confirmed_coverage_path(root,args);power_path=cov if cov is not None else _newest_coverage_path(root)
@@ -829,13 +982,16 @@ def _owner_summary(units,uev,case,policy):
     t=lambda s:s[:600]
     P=[f"{u['unit']}: {u['P']['label']} {_fmt(u['P']['median_ms'])} ms" for u in units if u.get('P')]
     C=[f"{u['unit']}: {u['C']['label']} {_fmt(u['C']['median_ms'])} ms" for u in units if u.get('C')]
-    missing=[f"{u['unit']} ({u['reason']})" for u in units if u['reason'] in ('python-evidence-missing','c-evidence-missing','py-reference-not-measured','run-invalid','ineligible-row','bound-unattainable')]
+    missing=[f"{u['unit']} ({u['reason']})" for u in units if u['reason'] in ('python-evidence-missing','c-evidence-missing','py-reference-not-measured','run-invalid','ineligible-row',
+                                                                            'bound-unattainable','base-not-measured','candidate-not-measured')]
     routes={}
     for r in uev.get('rows') or []:
         if r.get('language')=='c' and r.get('route'):routes.setdefault(r['route'],{'route':str(r['route'])[:32],'label':str(r.get('route_label') or '')[:600],'rows':0})['rows']+=1
     nxt=[u['next_action'] for u in units if u.get('next_action')]
-    name=str(policy.get('name'));T=_fmt(policy['threshold_ns_per_request']/1e6)
-    return {'problem':t(f'{name}: does the computation of each unit add {T} ms or more to one request (warm wall per request, G7.1)?'),
+    name=str(policy.get('name'));T=_fmt(policy['threshold_ns_per_request']/1e6);rule=policy.get('margin_rule')
+    both=(f'; and is a candidate row more than {_fmt(float(rule["margin"])*100)} % faster than the base row on each declared route, end to end '
+          '(EX-18a: both conditions decide)') if isinstance(rule,dict) else ''
+    return {'problem':t(f'{name}: does the computation of each unit add {T} ms or more to one request (warm wall per request, G7.1){both}?'),
             'best_python':t('; '.join(P) or 'none measured'),'best_c':t('; '.join(C) or 'none measured'),
             'size_range':t('; '.join(f"{u['unit']}: {_fmt(u['rows_per_request'])} rows per request" for u in units)),
             'caller_latency':t('; '.join(f"{u['unit']}: {u['verdict']} ({u['reason']})" for u in units)),
@@ -864,7 +1020,8 @@ def unit_decision_record(root,run,plan,case,pol,units,uev,opportunity,sensitivit
     stale=run.get('source_identity')!=now;local=(run.get('dataset') or {}).get('kind')=='local'
     quality='stale' if stale else 'owner fixture, local run, aggregate' if local else 'exploratory (smoke)' if run.get('mode')=='smoke' else 'decision'
     return {'schema_version':1,'run_id':run['run_id'],'case':run.get('case') or case.get('case_id'),'local':local,
-            'policy':{'name':policy_name,'sha256':pol['sha256'],'demonstration_only':bool(pol.get('demonstration_only')),'filled':policy_filled(pol)},
+            'policy':{'name':policy_name,'sha256':pol['sha256'],'demonstration_only':bool(pol.get('demonstration_only')),'filled':policy_filled(pol),
+                      **({'windows':True} if isinstance(pol.get('windows'),dict) else {})},     # EX-18b: a window policy record holds its window chain
             'source_identity_run':run.get('source_identity'),'source_identity_decision':now,'stale':stale,'image_id':run.get('image_id'),'evidence_quality':quality,
             'outcome':None,'rule':None,'adoption_outcome':None,'demonstration_outcome':None,'adoption_note':ADOPTION_NOTE,'adoption_authorized':False,
             'cgroup_identity_unrecorded':False,'qualification':qualification_block(uev['project_check'],run['source_identity']),
@@ -877,6 +1034,19 @@ def _c_line(name,c):
     if not c:return f'- {name}: none'
     return (f"- {name}: {c['label']} route {c['route']} ({c['route_label']}); {_ms_range(c)}; ratio C/P {_fmt(c['ratio'])} [{_fmt(c['ratio_low'])}, {_fmt(c['ratio_high'])}]; "
             f"saving {_fmt(c['saving_ms'])} ms; c_under_threshold {c['c_under_threshold']}; CPU {_fmt(c['cpu_ms'])} ms; peak {_fmt(c['peak'])}")
+
+def _margin_lines(m):
+    """EX-18a: the two-condition record of a unit as markdown lines (none without the rule)."""
+    if not m:return []
+    b=m['base']
+    out=[f"- Margin rule: margin {_fmt(m['margin'])} (ratio bound {_fmt(m['ratio_bound'])}), threshold {_fmt(m['threshold_ms'])} ms, k {m['k']}; "
+         f"base {b['P'] or 'none'} [{_fmt(b['low_ms'])}, {_fmt(b['high_ms'])}] ms: {b['decision']}"+(f" ({b['reason']})" if b['reason'] else '')
+         +(f", detail {b['detail']}" if b['detail'] else '')]
+    for x in m['routes']:
+        out.append(f"- Margin route {x['route']}: {x['candidate'] or 'none'}"
+                   +(f" ratio {_fmt(x['ratio'])} [{_fmt(x['ratio_low'])}, {_fmt(x['ratio_high'])}]" if x['candidate'] and x['ratio'] is not None else '')
+                   +f": {x['decision']}; {x['verdict']}"+(f" ({', '.join(x['reasons'])})" if x['reasons'] else '')+(f", detail {x['detail']}" if x['detail'] else ''))
+    return out
 
 def render_units_markdown(record):
     """Markdown of a unit-threshold record with every G9.6 field of every unit: verdicts and reasons, ranks, the trend line,
@@ -900,7 +1070,7 @@ def render_units_markdown(record):
              f"- P: "+(f"{u['P']['label']} {_ms_range(u['P'])}; CPU {_fmt(u['P']['cpu_ms'])} ms; peak {_fmt(u['P']['peak'])}" if u['P'] else 'none'),
              f"- H_Pi: "+(f"{_fmt(u['H_pi']['value_ms'])} ms ({u['H_pi']['row']})" if u['H_pi'] else 'n/a')+"; L_Pi: "+(f"{_fmt(u['L_pi']['value_ms'])} ms ({u['L_pi']['row']})" if u['L_pi'] else 'n/a'),
              *[f"- Python row {r['label']}: {_ms_range(r)}" for r in u['python_rows']],
-             _c_line('C',u['C']),_c_line('C_safe',u['C_safe']),
+             _c_line('C',u['C']),_c_line('C_safe',u['C_safe']),*_margin_lines(u.get('margin_rule')),
              *[f"- C row {r['label']} route {r['route']} ({r['route_label']}): median {_fmt(r['median_ms'])} ms" for r in u['c_rows']],
              *([f"- {u['less_safe_label']}"] if u['less_safe_label'] else []),
              f"- Cold ({u['cold']['label']}): P {_ms_range(u['cold']['P'])}; C {_ms_range(u['cold']['C'])}; C_safe {_ms_range(u['cold']['C_safe'])}"+(f"; {u['cold']['cold_start_flag']}" if u['cold']['cold_start_flag'] else ''),

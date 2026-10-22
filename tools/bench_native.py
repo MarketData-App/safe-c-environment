@@ -51,11 +51,17 @@ def _source(argv):
 
 def check_native_flags(commands,project_root):
     """One problem string per project translation unit (its source lies under project_root) that misses a required flag or
-    carries a forbidden one. Framework units (foundation, cmake/empty.c) are not judged here."""
+    carries a forbidden one. Framework units (foundation, cmake/empty.c) are not judged for flags here. EX1-A02 (b): every
+    unit whose argv names the project wheel layer or the project's third-party tree gives a project-wheel-path problem."""
+    import project_source
     top=posixpath.normpath(str(project_root)).rstrip('/')+'/'
     problems=[]
     for argv in commands:
         source=_source(argv) if isinstance(argv,list) and all(isinstance(a,str) for a in argv) else None
+        # EX1-A02 (b): no compile command (a framework unit too) names the project wheel layer or the project's
+        # third-party tree
+        if source is not None and project_source.wheel_path_hits(argv,project_root=top.rstrip('/')):
+            problems.append(f'{source}: {project_source.WHEEL_PATH_REASON} (names the project wheel layer or the project third-party tree)')
         if source is None or not posixpath.normpath(source).startswith(top):continue
         missing=[f for f in REQUIRED_FLAGS if f not in argv]
         forbidden=[a for a in argv if a.startswith(FORBIDDEN_FLAGS)]

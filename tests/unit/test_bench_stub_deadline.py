@@ -19,7 +19,7 @@ def fixture_stub(reason='stub-hang'):
     F3): the framework tree holds no project that declares a test stub."""
     import bench
     from unittest import mock
-    with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]):return bd.stub_project(ROOT,reason)
+    with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]):return bd.stub_project(ROOT,reason)
 
 class StubFloorTests(unittest.TestCase):
     def test_floor_is_60_s_outside_selftest(self):
@@ -97,7 +97,7 @@ class ReviewFixTests(unittest.TestCase):
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='stub_suites')
         called={c.func.id for c in ast.walk(fn) if isinstance(c,ast.Call) and isinstance(c.func,ast.Name)}
         self.assertTrue({'_stub_run_selftest','_stub_check_selftest'}<=called)
-        self.assertIn('bench_deadline.stub_suites(root,run_dir)',(ROOT/'tools/bench.py').read_text())
+        self.assertIn('bench_deadline.stub_suites(root,run_dir,project)',(ROOT/'tools/bench.py').read_text())
     def test_control_check_uses_the_same_test_floor(self):
         src=(ROOT/'tools/bench_deadline.py').read_text()
         self.assertIn("control=one({'mode':'selftest','test_floor_seconds':TEST_FLOOR}",src)
@@ -113,23 +113,64 @@ class DeclaredStubTests(unittest.TestCase):
     def test_declared_reasons_follow_the_project_protocols(self):
         import bench
         from unittest import mock
-        with mock.patch.object(bench,'example_projects',lambda root:[]):self.assertEqual(bd.declared_stub_reasons(ROOT),[])
-        with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]):self.assertEqual(bd.declared_stub_reasons(ROOT),['stub-hang','stub-overrun'])
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[]):self.assertEqual(bd.declared_stub_reasons(ROOT),[])
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]):self.assertEqual(bd.declared_stub_reasons(ROOT),['stub-hang','stub-overrun'])
     def test_a_malformed_project_declaration_raises(self):
         import bench
         from unittest import mock
-        with mock.patch.object(bench,'example_projects',lambda root:['tests/fixtures/no-such-project']),self.assertRaises(GateError):bd.declared_stub_reasons(ROOT)
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:['tests/fixtures/no-such-project']),self.assertRaises(GateError):bd.declared_stub_reasons(ROOT)
     def test_a_stub_without_a_matching_case_raises(self):
         import bench, copy
         from unittest import mock
         proto=copy.deepcopy(bm.load_protocol(ROOT,FIXTURE));proto['stubs'][0]['variant']='c-threads'     # no case of the project has this variant
-        with mock.patch.object(bench,'example_projects',lambda root:[FIXTURE]),mock.patch.object(bm,'load_protocol',lambda root,p:proto),\
+        with mock.patch.object(bench,'example_projects',lambda root,project=None:[FIXTURE]),mock.patch.object(bm,'load_protocol',lambda root,p:proto),\
              self.assertRaisesRegex(GateError,'no case'):bd.declared_stub_reasons(ROOT)
     def test_the_cases_suite_runs_the_control_and_records_the_stub_suites(self):
         import ast
         src=(ROOT/'tools/bench.py').read_text();tree=ast.parse(src)
         body=ast.get_source_segment(src,next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='selftest_cases'))
-        self.assertIn('stub,not_run=bench_deadline.stub_suites(root,run_dir);suites.update(stub)',body)
+        self.assertIn('stub,not_run=bench_deadline.stub_suites(root,run_dir,project);suites.update(stub)',body)
         self.assertIn("suites['call-deadline']=bench_deadline.selftest_suite(root,run_dir)",body)    # the framework control suite always runs
+
+class StubReferenceDeadlineTests(unittest.TestCase):
+    """T6-R9 FW-CASES (FW-CASES-STUBREF-01; G2.6, I9.3): the once-per-run reference job computes the reference over the
+    largest tier of the session, memory and capacity trials of its plan (bench.run_cmd, Task 22), so its call deadline takes
+    the rows of that same tier (bench_deadline.reference_tiers), from the walls that the plan uses (the planning estimate
+    of a smoke or stub plan). A stub plan keeps the capacity trials of the case's smoke plan; its reference deadline covers
+    their tier. The rule never raises a fixed deadline and never drops a trial."""
+    ENV={'cpus':4,'cpuset':[0,1,2,3],'smt_siblings':[],'reduced':False,'multicore':'PASS'}
+    def test_the_reference_rows_cover_the_capacity_tier(self):
+        sizes=POL['sizes'];plan={'sizes':sizes,'sessions':[{'tier':'tiny'}],'memory':[],'capacity':[{'tier':'small'}]}
+        self.assertEqual(bd.job_inputs('reference',plan,{}),(sizes['small'],1))                          # the capacity tier is above the sessions
+        self.assertEqual(bd.job_inputs('reference',dict(plan,capacity=[]),{}),(sizes['tiny'],1))           # no capacity trial: the session tier
+        self.assertEqual(bd.job_inputs('reference',{k:v for k,v in plan.items() if k!='capacity'},{}),(sizes['tiny'],1))
+        self.assertEqual(bd.job_inputs('reference',dict(plan,sessions=[{'tier':'large'}],capacity=[{'tier':'medium'}]),{}),(sizes['large'],1))
+        self.assertEqual(bd.job_inputs('reference',dict(plan,sessions=[],capacity=[{'tier':'medium'}]),{}),(sizes['medium'],1))
+    def stub_with_capacity(self):
+        """(case, plan) of the stub-overrun stub run of the fixture project, its case given a capacity block at tier small."""
+        import copy
+        project,case,spec=fixture_stub('stub-overrun')
+        cap=copy.deepcopy(case);cap['scopes']=list(cap['scopes'])+['capacity']
+        cap['capacity']={'tier':'small','clients':[1],'requests_per_client':8,'configurations':[{'name':'serial-workers','variant':'py-library'}]}
+        return cap,bd.stub_plan(ROOT,cap,POL,self.ENV,7,spec,project,bm.project_identity(ROOT,project,cap))
+    def test_a_stub_plan_keeps_its_capacity_trial_and_the_reference_deadline_covers_its_tier(self):
+        case,plan=self.stub_with_capacity()
+        self.assertEqual(sorted({c['tier'] for c in plan['capacity']}),['small'])                   # the stub plan keeps the capacity trial
+        (t,)=[t for s in plan['sessions'] for t in s['trials']];self.assertEqual((t['tier'],t['selector']),('tiny','m5'))
+        # the reference job of bench.run_cmd: the plan without the test floor, the selectors of the covered trials, the session deadline
+        ref_plan={k:v for k,v in plan.items() if k!='test_floor_seconds'};trial={'variant':'py-reference','selectors':['m5']}
+        got=bd.deadline_fields(case,POL,'reference',dict(ref_plan,sizes=POL['sizes']),trial,None,POL['job_deadlines']['session'])
+        e=bd.expected_seconds(POL,trial,POL['sizes']['small'],1,None)                                 # 256 rows at the planning rate and the m5 share
+        self.assertGreater(10*e,60.0)                                                                  # the tier decides the value (not the 60 s floor)
+        self.assertEqual(got['call_deadline_reason'],'stub-overrun')
+        self.assertAlmostEqual(got['call_deadline_seconds'],min(max(60.0,10*e),float(POL['job_deadlines']['session'])))
+    def test_the_reference_job_and_its_deadline_take_the_same_tiers(self):
+        import ast
+        src=(ROOT/'tools/bench.py').read_text();tree=ast.parse(src)
+        body=ast.get_source_segment(src,next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='run_cmd'))
+        self.assertIn('bench_deadline.reference_tiers(plan)',body)                                    # the rows of the reference job
+        src=(ROOT/'tools/bench_deadline.py').read_text();tree=ast.parse(src)
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_planned_rows')
+        self.assertIn('reference_tiers',{c.func.id for c in ast.walk(fn) if isinstance(c,ast.Call) and isinstance(c.func,ast.Name)})   # the rows of its deadline
 
 if __name__=='__main__':unittest.main()

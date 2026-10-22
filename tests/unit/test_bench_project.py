@@ -250,6 +250,52 @@ class UnitGroupTests(unittest.TestCase):
         for bad in ({'unit_modules':[]},{'unit_modules':['a']},{'unit_modules':['test_a;x']},{'unit_modules':'test_a'},{'unit_modules':['test_a']*65}):
             with self.subTest(bad=bad),self.assertRaises(ValueError):bc.unit_modules(bad)
 
+class UnitGroupImportTests(unittest.TestCase):
+    """T9 framework hit 1 (T9-A10): a project test module of a unit group that raises while it is imported (any exception,
+    not only ImportError) is one failed test id, and the other modules of the group still run and report their tests."""
+    OK={'schema_version':1,'name':'demo','cases':['demo-case']}
+    def test_an_import_failure_of_any_kind_is_one_failed_id_and_the_group_runs_on(self):
+        d=Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,d,True)
+        tests=d/'p/benchmarks/project/python/tests';tests.mkdir(parents=True);(tests/'__init__.py').write_text('')
+        (d/'p/benchmarks/project/bench.json').write_text(json.dumps(self.OK))
+        (tests/'test_broken.py').write_text("raise KeyError('missing')\n")
+        (tests/'test_missing.py').write_text('import no_such_module_t6_unit_group\n')
+        (tests/'test_fine.py').write_text('import unittest\nclass T(unittest.TestCase):\n    def test_ok(self):pass\n    def test_bad(self):self.fail("x")\n')
+        out=d/'out';out.mkdir();saved=(bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY,list(sys.path))
+        try:
+            bc.SRC=d;bc.configure_project({'project_dir':'p'})
+            row=bc.job_unit({'deadline_seconds':120,'unit_modules':['test_broken','test_missing','test_fine']},out)
+        finally:bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY=saved[:3];sys.path[:]=saved[3]
+        self.assertEqual((row['status'],row['tests']),('FAIL',4),row)
+        self.assertEqual(row['failed'],['tests.test_broken','tests.test_fine.T.test_bad','tests.test_missing'])
+    def test_a_module_that_raises_system_exit_at_import_is_one_failed_id(self):
+        """T6-A07 (the T9-A10 claim): a module that raises SystemExit while it is imported, with exit code 0 or 3, is one
+        failed test id of its group; the group never ends early with that code, and the other modules still run."""
+        for code in (0,3):
+            d=Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,d,True)
+            tests=d/'p/benchmarks/project/python/tests';tests.mkdir(parents=True);(tests/'__init__.py').write_text('')
+            (d/'p/benchmarks/project/bench.json').write_text(json.dumps(self.OK))
+            (tests/'test_exit.py').write_text(f'raise SystemExit({code})\n')
+            (tests/'test_fine.py').write_text('import unittest\nclass T(unittest.TestCase):\n    def test_ok(self):pass\n')
+            out=d/'out';out.mkdir();saved=(bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY,list(sys.path))
+            try:
+                bc.SRC=d;bc.configure_project({'project_dir':'p'})
+                row=bc.job_unit({'deadline_seconds':120,'unit_modules':['test_exit','test_fine']},out)
+            finally:bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY=saved[:3];sys.path[:]=saved[3]
+            with self.subTest(code=code):
+                self.assertEqual((row['status'],row['tests'],row['failed']),('FAIL',2,['tests.test_exit']),row)
+    def test_a_clean_group_passes(self):
+        d=Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,d,True)
+        tests=d/'p/benchmarks/project/python/tests';tests.mkdir(parents=True);(tests/'__init__.py').write_text('')
+        (d/'p/benchmarks/project/bench.json').write_text(json.dumps(self.OK))
+        (tests/'test_a.py').write_text('import unittest\nclass T(unittest.TestCase):\n    def test_ok(self):pass\n')
+        out=d/'out';out.mkdir();saved=(bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY,list(sys.path))
+        try:
+            bc.SRC=d;bc.configure_project({'project_dir':'p'})
+            row=bc.job_unit({'deadline_seconds':120,'unit_modules':['test_a']},out)
+        finally:bc.SRC,bc.PYTHONPATH,bc.PROJECT_PY=saved[:3];sys.path[:]=saved[3]
+        self.assertEqual((row['status'],row['tests'],row['failed']),('PASS',1,[]),row)
+
 class CheckCountTests(unittest.TestCase):
     """Phase 2 merge request (Task A6 lock follow-up, controller-approved): a project declares at most 32 checks (the
     reference example held 18 checks at the time)."""

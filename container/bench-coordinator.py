@@ -22,6 +22,9 @@ STARTUP_HOOKS=frozenset({'sitecustomize','usercustomize'})
 FRAMEWORK_PACKAGES=frozenset({'benchlab','tests'})
 FRAMEWORK_PY=Path('/src/benchmarks/performance/python')
 PROJECT_PY=None;PROJECT_ROOT=None
+# EX-1: the project bench image layer (tools/project_image.py); configure_wheels sets these for a project with wheels.
+PROJECT_LAYER=Path('/opt/project-python');PROJECT_WHEEL_MODULES=frozenset();NATIVE_BUILD_JOBS=('native-build',)
+DIST_INFO_RE=re.compile(r'^[A-Za-z0-9_.]{1,80}-[0-9][A-Za-z0-9.+!_-]{0,40}\.dist-info$');WHEEL_MODULE_RE=re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,62}$')
 POOLED=('py-threads','py-processes')
 NAME_RE=re.compile(r'^[a-z][a-z0-9-]{2,40}$');MODULE_RE=re.compile(r'^[a-z_][a-z0-9_.]{0,80}$')
 LABEL_RE=re.compile(r'^[A-Za-z0-9 ._:,()=+-]{0,120}$');COUNT_RE=re.compile(r'^[a-z][a-z0-9_]{0,40}$')
@@ -33,7 +36,34 @@ def reserved_modules():
     every top-level framework package."""
     try:present={p.name.split('.')[0] for p in FRAMEWORK_PY.iterdir() if not p.name.startswith(('.','__'))}
     except OSError:present=set()
-    return set(sys.stdlib_module_names)|WHEEL_MODULES|STARTUP_HOOKS|FRAMEWORK_PACKAGES|present
+    return set(sys.stdlib_module_names)|WHEEL_MODULES|STARTUP_HOOKS|FRAMEWORK_PACKAGES|present|PROJECT_WHEEL_MODULES
+
+def _with_layer(path):
+    """The import path list with the project layer right after /opt/bench-python (framework wheels stay first)."""
+    parts=[p for p in path.split(':') if p];at=parts.index('/opt/bench-python')+1 if '/opt/bench-python' in parts else 0
+    return ':'.join(parts[:at]+[str(PROJECT_LAYER)]+parts[at:])
+
+def configure_wheels(plan):
+    """EX-1: a project job in the project bench image carries `project_wheels` {path, dist_info, modules} (host-made from
+    the project's checked lock). The layer must exist (no link) and hold exactly the declared dist-info directories; the
+    wheel modules never shadow a container module. The layer joins the import path after /opt/bench-python, also for the
+    project unit suite, and the modules join the reserved names. ValueError for any other form."""
+    global PYTHONPATH,FRAMEWORK_PYTHONPATH,PROJECT_WHEEL_MODULES
+    w=plan.get('project_wheels')
+    if w is None:return None
+    if plan.get('project_dir') is None or not isinstance(w,dict) or set(w)!={'path','dist_info','modules'} or w['path']!=str(PROJECT_LAYER):
+        raise ValueError('project_wheels rejected')
+    if plan.get('job') in NATIVE_BUILD_JOBS:raise ValueError('a first-party C build never sees the project wheels')   # EX1-A02
+    dist,mods=w['dist_info'],w['modules']
+    if not isinstance(dist,list) or not 1<=len(dist)<=16 or any(not isinstance(d,str) or not DIST_INFO_RE.fullmatch(d) for d in dist):raise ValueError('project_wheels rejected')
+    if not isinstance(mods,list) or not 1<=len(mods)<=128 or any(not isinstance(m,str) or not WHEEL_MODULE_RE.fullmatch(m) for m in mods):raise ValueError('project_wheels rejected')
+    if set(mods)&reserved_modules():raise ValueError('a project wheel module shadows a container module')
+    if PROJECT_LAYER.is_symlink() or not PROJECT_LAYER.is_dir():raise ValueError('the project image layer is missing')
+    present={p.name.lower() for p in PROJECT_LAYER.iterdir() if p.name.endswith('.dist-info')}
+    if present!={d.lower() for d in dist}:raise ValueError('the project layer dist-info set differs from the lock')
+    PYTHONPATH=_with_layer(PYTHONPATH);FRAMEWORK_PYTHONPATH=_with_layer(FRAMEWORK_PYTHONPATH);PROJECT_WHEEL_MODULES=frozenset(mods)
+    at=sys.path.index('/opt/bench-python')+1 if '/opt/bench-python' in sys.path else len(sys.path)
+    sys.path.insert(at,str(PROJECT_LAYER));return str(PROJECT_LAYER)
 
 def inside(path,top):
     """The fully resolved path (every link on the way) lies inside the resolved directory `top`."""
@@ -88,6 +118,8 @@ import bench_capacity_job as _bench_capacity;_bench_capacity.register(job,global
 # Phase 2 Task 17 (FR6 N2): generic native support, job `native-build` (not bench_native: tools/bench_native.py has that name;
 # globals(), not a dict of values: child_env and python_argv are defined below this line)
 import bench_native_job as _bench_native;_bench_native.register(job,globals())
+import bench_phase2_job as _bench_phase2;_bench_phase2.register(job,globals())     # EX-13 (Phase 2 Task 23): native-overlap, agreement-controls, failure-controls
+import bench_trial_work as _trial_work      # T5R1-A01: the planned work of a trial, the same file as the host rules (tools/bench_plan.py)
 
 def _read(root,name,unavailable):
     try:return (root/name).read_text()
@@ -307,10 +339,27 @@ def job_doctor(plan,out):
 UNIT_ROW=re.compile(r'^(?:ERROR|FAIL): (\S+) \(([A-Za-z0-9_.]{1,200})\)',re.M)
 
 UNIT_MODULE_RE=re.compile(r'^test_[a-z0-9_]{1,60}$')
+# T9-A10 (T9 framework hit 1): unittest.main with module names lets an import exception other than ImportError end the
+# whole group (no `Ran` line: tests 0). Each module is imported alone; a module that raises while it is imported (any
+# exception, SystemExit too) is one failed test with the module id, and the other modules of the group still run.
 UNIT_CODE=r'''
-import sys,unittest
+import importlib,sys,traceback,unittest
 sys.path.insert(0,sys.argv[1])
-unittest.main(module=None,argv=['unittest']+['tests.'+m for m in sys.argv[2:]])
+class ImportFailed(unittest.TestCase):
+    def __init__(self,name,text):
+        super().__init__('runTest');self.module_name=name;self.text=text
+    def id(self):return self.module_name
+    def __str__(self):return self.module_name+' ('+self.module_name+')'
+    def shortDescription(self):return None
+    def runTest(self):raise ImportError(self.text)
+loader=unittest.TestLoader();suite=unittest.TestSuite()
+for m in sys.argv[2:]:
+    name='tests.'+m
+    try:module=importlib.import_module(name)
+    except (Exception,SystemExit):suite.addTest(ImportFailed(name,traceback.format_exc(limit=-3)))
+    else:suite.addTests(loader.loadTestsFromModule(module))
+result=unittest.TextTestRunner(warnings=None if sys.warnoptions else 'default').run(suite)
+raise SystemExit(0 if result.wasSuccessful() and result.testsRun else 1)
 '''
 
 def unit_modules(plan):
@@ -594,8 +643,11 @@ SYNTH_CODE=("import json,sys;from benchlab.workload import load_case_adapter;a=l
 REFERENCE_CODE=r'''
 import hashlib,json,os,sys,tempfile
 from benchlab.workload import load_case_adapter
-case=json.load(open(sys.argv[1]));a=load_case_adapter(case)
-c=a.slice(a.load({'path':sys.argv[2],'sha256':sys.argv[3]}),int(sys.argv[5]));r=a.reference(c);json.dump(r,open(sys.argv[4],'w'))
+case=json.load(open(sys.argv[1]));a=load_case_adapter(case,selector=sys.argv[8] if len(sys.argv)>8 else 'all')
+cover=json.loads(sys.argv[9]) if len(sys.argv)>9 else [];f=getattr(a,'reference_cover',None);hook=bool(cover) and callable(f)
+if hook and any(s not in case.get('selectors',['all']) for s in cover):raise SystemExit('reference selectors: a selector is not declared by the case manifest')
+c=a.slice(a.load({'path':sys.argv[2],'sha256':sys.argv[3]}),int(sys.argv[5]));r=f(c,list(cover)) if hook else a.reference(c);json.dump(r,open(sys.argv[4],'w'))
+hook and json.dump(cover,open(sys.argv[4]+'.cover','w'))
 rc=getattr(a,'reference_counts',None);rc is None or json.dump(rc(r),open(sys.argv[4]+'.evals','w'))
 rx=getattr(a,'reference_exclusions',None);x=None if rx is None else rx(r);x is None or json.dump(x,open(sys.argv[4]+'.admit','w'))
 ov={}
@@ -660,33 +712,75 @@ def materialize_dataset(plan):
         target.write_bytes(data)          # private tmpfs copy: every variant is charged the same bytes (shmem)
     return {'path':str(target),'sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
 
+REFERENCE_SELECTORS_MAX=16
+
+def reference_selectors(plan):
+    """R48 (T6-R6, rulings R48 and R51): the plan's `reference_selectors`, [] when the key is absent. In the reference job of
+    a synthetic run, and in a local job, it is the request: the selectors of the trials that validate against the reference,
+    which the adapter's optional reference_cover hook covers in one reference. In a timing or capacity job of a synthetic run
+    it is the list that the restored run reference covers (the host binds it beside reference_sha256). 1 to 16 distinct
+    selector strings in sorted order; ValueError for anything else (an explicit null too)."""
+    if 'reference_selectors' not in plan:return []
+    sel=plan['reference_selectors']
+    if (not isinstance(sel,list) or not 1<=len(sel)<=REFERENCE_SELECTORS_MAX or not all(isinstance(s,str) and SELECTOR_RE.fullmatch(s) for s in sel)
+            or sel!=sorted(set(sel))):raise ValueError('reference selectors rejected')
+    return sel
+
+def check_reference_cover(plan):
+    """R48 (no cross-use): with a selector list, the selector of every trial of the job plan (a trial without one is `all`)
+    must be in the list, so no trial validates against a reference that was computed for other selectors. Returns the list;
+    ValueError otherwise."""
+    cover=reference_selectors(plan)
+    if cover and {t.get('selector','all') for t in plan.get('trials') or []}-set(cover):raise ValueError('a trial selector outside the run reference')
+    return cover
+
+def reference_cover_file(path,plan):
+    """R48: the selector list that the reference child wrote beside the reference when the adapter's reference_cover hook
+    computed it; None when the file is absent (no list, or an adapter without the hook). It must equal the job's request
+    (ValueError otherwise)."""
+    p=Path(path)
+    if not p.is_file():return None
+    try:d=json.loads(p.read_text())
+    except ValueError:raise ValueError('reference cover file is not JSON') from None
+    if d!=reference_selectors(plan) or not d:raise ValueError('reference cover file differs from the request')
+    return d
+
 def reference_path(plan,dataset):
     """Spec 4: the reference output is computed once per run, outside timing, and bound by digest. A synthetic job verifies the copy the
-    host restored; only the `reference` job and a local run (single container) compute it, over the largest planned tier."""
+    host restored; only the `reference` job and a local run (single container) compute it, over the largest planned tier.
+    R48 (rulings R48 and R51): with `reference_selectors` the child passes the list to the adapter's optional hook
+    reference_cover(data, selectors), which returns one reference for every listed selector (one digest); an adapter without
+    the hook computes reference(data) of the reference selector, as before, and a plan without the list keeps the child's
+    argv. A job whose trials hold a selector outside the list is refused (check_reference_cover)."""
     target=WORK/'bench/private/reference.json';target.parent.mkdir(parents=True,exist_ok=True)
     if plan.get('reference_sha256'):
         if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest()!=plan['reference_sha256']:raise ValueError('restored reference digest mismatch')
+        check_reference_cover(plan)
         return str(target)
     if plan['dataset']['kind']=='synthetic' and plan.get('job')!='reference':raise ValueError('a synthetic job needs the run reference digest')
     sel=plan.get('overhead_selectors',[])      # G2.3 (Task 6): opaque selector strings; each adapter decides whether it reports an overhead
     if not isinstance(sel,list) or len(sel)>16 or not all(isinstance(s,str) and SELECTOR_RE.fullmatch(s) for s in sel):raise ValueError('overhead selectors rejected')
     if sel and not plan['sizes']['small']>=OVERHEAD_ROWS:   # G2.3 (P3R2-04): the overhead runs on the first 256 rows of the synthetic dataset
         raise ValueError(f"reference overhead needs sizes.small >= {OVERHEAD_ROWS} (the first {OVERHEAD_ROWS} rows of the synthetic dataset); the policy gives {plan['sizes']['small']}")
+    ref_sel=plan.get('reference_selector','all')   # EX-19 (Task 31): a single-selector local job computes the reference of its one selector
+    if not isinstance(ref_sel,str) or not SELECTOR_RE.fullmatch(ref_sel):raise ValueError('reference selector rejected')
+    cover=check_reference_cover(plan)
     run_deadline(python_argv(PYTHONPATH,'-c',REFERENCE_CODE,_manifest(plan),dataset['path'],dataset['sha256'],str(target),str(plan['rows']),json.dumps(sel),
-                             str(plan['sizes']['small']) if sel else '0'),plan,plan['deadline_seconds'],child_env(),check=True)
+                             str(plan['sizes']['small']) if sel else '0',ref_sel,*([json.dumps(cover)] if cover else [])),plan,plan['deadline_seconds'],child_env(),check=True)
     return str(target)
 
 @job('reference')
 def job_reference(plan,out):
     dataset=materialize_dataset(plan);evals=WORK/'bench/private/reference.json.evals';admit=WORK/'bench/private/reference.json.admit'
-    over=WORK/'bench/private/reference.json.overhead'
-    evals.unlink(missing_ok=True);admit.unlink(missing_ok=True);over.unlink(missing_ok=True)      # only the counts of this job's reference child count
+    over=WORK/'bench/private/reference.json.overhead';cover=WORK/'bench/private/reference.json.cover'
+    evals.unlink(missing_ok=True);admit.unlink(missing_ok=True);over.unlink(missing_ok=True);cover.unlink(missing_ok=True)      # only the files of this job's reference child count
     try:data=Path(reference_path(plan,dataset)).read_bytes()
     except DeadlineKilled as killed:return {'status':'FAIL','failure_reason':killed.reason}
     (out/'reference.json').write_bytes(data);counts=reference_evals(evals);excluded=reference_admit_excluded(admit);overhead=reference_overhead(over)
+    covered=reference_cover_file(cover,plan)        # R48: the selectors that the adapter's reference_cover hook covered (absent without the hook)
     return {'status':'PASS','files':['reference.json'],'reference_sha256':hashlib.sha256(data).hexdigest(),'dataset_sha256':dataset['sha256'],
             **({'reference_evals':counts} if counts is not None else {}),**({'reference_admit_excluded':excluded} if excluded is not None else {}),
-            **({'reference_overhead':overhead} if overhead is not None else {})}
+            **({'reference_overhead':overhead} if overhead is not None else {}),**({'reference_selectors':covered} if covered is not None else {})}
 
 # ---- Amendment G3.3, G3.7 (Task 7): the panel candidate inputs of the synthetic large dataset ----
 PANEL_CODE=r'''
@@ -931,6 +1025,24 @@ def run_kernel(channel,plan,trial,dataset,reference,deadline,out):
 
 def _pairs_of(channel,start,trial_id,phase):return list(zip(_events(channel,start,trial_id,'begin',phase),_events(channel,start,trial_id,'end',phase)))
 
+def trial_dataset(plan,trial,dataset,cache):
+    """EX-19 (Task 31, H10): a single-record (panel) trial of a local run measures synthetic panel rows, never rows of the local
+    dataset: the named synthetic dataset of its dataset_ref (plan.datasets: kind synthetic, a policy size and an integer
+    seed), synthesized once per job from the case's adapter. Every other trial, and every trial of a synthetic run, uses the
+    run dataset. ValueError for a panel trial of a local run without that synthetic dataset."""
+    if 'panel' not in trial or (plan.get('dataset') or {}).get('kind')!='local':return dataset
+    ref=trial.get('dataset_ref');rec=(plan.get('datasets') or {}).get(ref) if isinstance(ref,str) else None
+    if (not isinstance(rec,dict) or rec.get('kind')!='synthetic' or rec.get('size') not in (plan.get('sizes') or {}) or isinstance(rec.get('seed'),bool)
+            or not isinstance(rec.get('seed'),int) or rec['seed']<0):
+        raise ValueError('a panel trial of a local run needs its synthetic dataset_ref')
+    key=(rec['size'],rec['seed'])
+    if key not in cache:
+        target=WORK/'bench/data'/f"panel-{rec['size']}-{rec['seed']}"
+        subprocess.run(python_argv(PYTHONPATH,'-c',SYNTH_CODE,str(target),str(plan['sizes'][rec['size']]),str(rec['seed']),_manifest(plan)),env=child_env(),check=True,
+                       stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=plan['deadline_seconds']//2)
+        cache[key]={'path':str(target),'sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
+    return cache[key]
+
 @job('timing')
 def job_timing(plan,out):
     try:extra=_bench_native.caller_env(plan)            # Task 19: verified restored binaries before any child starts
@@ -938,6 +1050,7 @@ def job_timing(plan,out):
     before=_bench_native.native_shm_snapshot()          # Task 19 (Amendment F item 10 (d))
     channel=Channel(WORK/'bench/marker.sock');deadline=time.monotonic()+plan['deadline_seconds']-30;observations=[];phases=[];files=[];children={};exits=[];identities=[];killed=[]
     blocked={}         # N4-A10: child key -> the BLOCKED row of a warm C child that exited during its start
+    panels={}          # EX-19 (H10): the synthetic panel datasets of the panel trials of a local job
     (WORK/'bench/private').mkdir(parents=True,exist_ok=True)
     first=(read_counters().get('cpu') or {}).get('usage_usec')       # B15 (Amendment H7): the coordinator window starts here
     try:
@@ -953,7 +1066,7 @@ def job_timing(plan,out):
             key=child_key(trial)
             if key in blocked:blocked[key]['trials'].append(trial['trial_id']);continue      # N4-A10: one start attempt per row
             if key not in children:
-                try:children[key]=CallerChild(channel,plan,trial,dataset,reference,deadline,extra=extra)
+                try:children[key]=CallerChild(channel,plan,trial,trial_dataset(plan,trial,dataset,panels),reference,deadline,extra=extra)
                 except ChildExited as error:     # N4-A10: a failed warm C start BLOCKS that row only; a Python start failure ends the job
                     if not (trial['variant'].startswith('c-') and trial['mode']=='warm'):raise
                     blocked[key]=blocked_start_row(trial,error);blocked[key]['trials'].append(trial['trial_id']);continue
@@ -1096,38 +1209,269 @@ LOCAL_EXC=('TimeoutError','MemoryError','OSError','ValueError')      # framework
 AGGREGATE_SCHEMA=SRC/'schemas/bench-local-aggregate.json'
 STATS_KEYS=('rows','result_sha256','reference_sha256')    # FR3: the framework keys of local_summary; every other key is the project summary
 LOCAL_NAMES=[]     # the protocol's local_exceptions of the running local job (set by job_local)
-LOCAL_HAS_SUMMARY=("import json,sys;from benchlab.workload import load_case_adapter;a=load_case_adapter(json.load(open(sys.argv[1])));"
+# EX-19 (Task 31): the adapter of the job's reference selector (argv: has-summary 2, summary 6; `all` when absent)
+LOCAL_HAS_SUMMARY=("import json,sys;from benchlab.workload import load_case_adapter;"
+                   "a=load_case_adapter(json.load(open(sys.argv[1])),selector=sys.argv[2] if len(sys.argv)>2 else 'all');"
                    "sys.exit(0 if callable(getattr(a,'local_summary',None)) else 3)")
-LOCAL_SUMMARY=("import json,sys;from benchlab.workload import load_case_adapter;a=load_case_adapter(json.load(open(sys.argv[4])));"
+LOCAL_SUMMARY=("import json,sys;from benchlab.workload import load_case_adapter;"
+               "a=load_case_adapter(json.load(open(sys.argv[4])),selector=sys.argv[6] if len(sys.argv)>6 else 'all');"
                "n=int(sys.argv[2]);d=a.slice(a.load({'path':sys.argv[1],'sha256':sys.argv[5]}),n);ref=a.slice_result(json.load(open(sys.argv[3])),n,d);"
                "sys.stdout.write(json.dumps(a.local_summary(d,ref))+'\\n')")
 
 def _exception_row(error):
     name=type(error).__name__;return {'type':name if name in LOCAL_EXC or name in LOCAL_NAMES else 'Other','row_index':None}
 
-def _local_timings(obs):
+LOCAL_ROWS=256          # EX-19 (H10): the timings bound of the aggregate
+BLOCKS_MAX=24           # H10: 12 per window; an extension row holds blocks 12-23
+
+def _median(xs):
+    s=sorted(xs);n=len(s)
+    return None if not n else s[n//2] if n%2 else (s[n//2-1]+s[n//2])/2.0       # the host's bench_stats.median
+
+def _per_unit(t,field,scale=1.0):
+    """F-07: the per-unit value of one trial: the median over its inner samples of field / (loops x records), with one
+    (loops, records) shape (host bench_stats.per_trial_values); None when no inner sample has the field and records."""
+    use=[o for o in t if o.get('work_units') and o.get(field) is not None]
+    if not use or len({(o.get('loops',1),o['work_units']) for o in use})!=1:return None
+    v=_median([o[field]/(o.get('loops',1)*o['work_units']) for o in use]);return None if v is None else v*scale
+
+def _block_fields(trials,failed):
+    """EX-19 (Task 31, H10): the per-block values of one timing row, in block order: block_ids, block_eligible (every inner
+    sample eligible and the trial not in `failed`), blocks and cpu_blocks (per-unit wall ns and CPU ns, _per_unit),
+    pressure_blocks (the trial's cpu_pressure_total; the largest of a kernel trial's inner samples; null when one is
+    unreadable), request_records (the records of one request) and, for a single-record (panel) row, panel_passes (L), the
+    per-cell medians (cells), the trial walls (call_blocks) and panel_status (a panel status difference in any trial).
+    {} when a trial has no block, two trials share a block or the row holds more than 24 trials. Timings and counters only."""
+    if len(trials)>BLOCKS_MAX:return {}
+    blocks=[t[0].get('block') for t in trials]
+    if any(type(b) is not int for b in blocks) or len(set(blocks))!=len(blocks):return {}
+    order=sorted(range(len(trials)),key=lambda i:blocks[i]);ts=[trials[i] for i in order]
+    def pressure(t):
+        vals=[o.get('cpu_pressure_total') for o in t]
+        return None if any(type(v) is not int for v in vals) else max(vals)
+    def records(t):
+        units={o.get('work_units') for o in t};u=units.pop() if len(units)==1 else None
+        return u if type(u) is int and u>=0 else None
+    out={'block_ids':[t[0]['block'] for t in ts],'block_eligible':[all(o.get('eligible') is True for o in t) and t[0]['trial_id'] not in failed for t in ts],
+         'blocks':[_per_unit(t,'wall_ns') for t in ts],'cpu_blocks':[_per_unit(t,'cpu_usage_usec',1000.0) for t in ts],
+         'pressure_blocks':[pressure(t) for t in ts],'request_records':[records(t) for t in ts]}
+    panel=[t for t in ts if any(isinstance(o.get('panel_stats'),dict) or 'panel_passes' in o for o in t)]
+    if panel:
+        cells=sorted({c for t in panel for o in t for c in (o.get('panel_stats') or {})})
+        def cell(t,c):
+            m=((t[0].get('panel_stats') or {}).get(c) or {}).get('median_ns')
+            return m if isinstance(m,(int,float)) and not isinstance(m,bool) and math.isfinite(m) and m>=0 else None
+        passes={t[0].get('panel_passes') for t in ts}
+        out.update(panel_passes=passes.pop() if len(passes)==1 and type(next(iter(passes)))is int else None,
+                   panel_status=any(o.get('panel_status_diff') or o.get('detail')=='panel-status' for t in ts for o in t),
+                   call_blocks=[t[0].get('panel_call_ns') if type(t[0].get('panel_call_ns')) is int else None for t in ts],
+                   cells=[{'cell':c,'blocks':[cell(t,c) for t in ts]} for c in cells] if 0<len(cells)<=6 and all(re.fullmatch(r'[a-z0-9-]{1,32}',c) for c in cells) else [])
+    return out
+
+def _local_timings(obs,failed=frozenset()):
+    """The timing rows of a local job: one row per (point, scope, mode, variant, workers, tier, route, selector, unit) of its
+    non-warmup caller and kernel observations, with the trial count, eligibility and the per-unit wall and CPU distributions
+    of its trials; EX-19 adds the route, selector and unit and the per-block fields (_block_fields). `failed`: trial ids
+    that a container check made ineligible (native_timing_failures). At most LOCAL_ROWS rows."""
     groups={}
     for o in obs:
-        if not o['warmup'] and o['scope'] in ('caller','kernel'):groups.setdefault((o['point'],o['scope'],o['mode'],o['variant'],o['workers'],o['tier']),[]).append(o)
+        if not o['warmup'] and o['scope'] in ('caller','kernel'):
+            groups.setdefault((o['point'],o['scope'],o['mode'],o['variant'],o['workers'],o['tier'],o.get('route'),o.get('selector','all'),o.get('unit')),[]).append(o)
     def per_trial(v,field):   # F-07: per unit = loops x records; inner samples of one trial collapse to their median
         by={}
         for o in v:
             if o['work_units'] and o.get(field) is not None:by.setdefault(o['trial_id'],[]).append(o[field]/(o.get('loops',1)*o['work_units']))
         return [_dist(x)['median'] for x in by.values()]
-    return [{'point':k[0],'scope':k[1],'mode':k[2],'variant':k[3],'workers':k[4],'tier':k[5],'trials':len({o['trial_id'] for o in v}),'eligible':all(o['eligible'] for o in v),
-             'wall_ns_per_unit':_dist(per_trial(v,'wall_ns')),'cpu_ns_per_unit':_dist([x*1000.0 for x in per_trial(v,'cpu_usage_usec')])}
-            for k,v in sorted(groups.items(),key=str)][:64]
+    rows=[]
+    for k,v in sorted(groups.items(),key=str):
+        trials={}
+        for o in v:trials.setdefault(o['trial_id'],[]).append(o)
+        row={'point':k[0],'scope':k[1],'mode':k[2],'variant':k[3],'workers':k[4],'tier':k[5],'trials':len(trials),
+             'eligible':all(o['eligible'] for o in v) and not (set(trials)&set(failed)),
+             'wall_ns_per_unit':_dist(per_trial(v,'wall_ns')),'cpu_ns_per_unit':_dist([x*1000.0 for x in per_trial(v,'cpu_usage_usec')]),
+             'route':k[6],'selector':k[7] if isinstance(k[7],str) and SELECTOR_RE.fullmatch(k[7]) else 'all','unit':k[8]}
+        row.update(_block_fields(list(trials.values()),failed));rows.append(row)
+    return rows[:LOCAL_ROWS]
 
-def local_aggregate(plan,stats,timings,obs,exceptions,ok):
+def native_timing_failures(obs,plan,policy_path=None):
+    """EX-19: the host check bench.check_native_timing inside a local decision job (its observations never leave the
+    container): the trial ids of the non-warmup C kernel rows without a self-timing or bracket wall, whose self-timing
+    differs from the bracket wall by more than max(abs_ns, rel x wall), whose self CPU exceeds the cgroup CPU plus abs_ns,
+    or whose native_sha256 is not the run build's kernel binary (plan native and native_kernel). An unreadable policy
+    makes every such trial fail. The aggregate marks those trials ineligible."""
+    try:
+        nt=json.loads(Path(policy_path or POLICY_FILE).read_text())['native_timing'];abs_ns,rel=nt['abs_ns'],nt['rel']
+    except (OSError,ValueError,KeyError,TypeError):abs_ns=rel=None
+    program=(plan.get('native_kernel') or {}).get('program');want=(plan.get('native') or {}).get(program) if isinstance(program,str) else None
+    bad=set()
+    for o in obs:
+        if o.get('scope')!='kernel' or not str(o.get('variant','')).startswith('c-') or o.get('warmup'):continue
+        st=o.get('self_timing');wall=o.get('wall_ns');cpu=o.get('cpu_usage_usec')
+        if abs_ns is None or not isinstance(st,dict) or type(st.get('mono_ns')) is not int or type(st.get('cpu_ns')) is not int or type(wall) is not int:bad.add(o['trial_id']);continue
+        if abs(st['mono_ns']-wall)>max(abs_ns,rel*wall) or type(cpu) is not int or st['cpu_ns']>cpu*1000+abs_ns or o.get('native_sha256')!=want:bad.add(o['trial_id'])
+    return bad
+
+# T5-A02 (EX-19 approver finding): the synthetic run rule set inside a local decision job. The observations and phases of
+# a local job never leave its container, so the host cannot apply bench.run_status, bench_evidence.check_integrity,
+# bench.check_native_timing and bench_guardrails.orphan_reasons to them. The job applies the same predicates to its own
+# trials and reports per rule the number of trials that break it (the aggregate's closed `rules` block: counts of trials,
+# never a value); a count above zero makes the job, and so the run, INVALID_EXPERIMENT, as the same evidence makes a
+# synthetic run INVALID_EXPERIMENT. tests/unit/test_bench_local_decision.py RuleTests runs every rule against the
+# host functions. Not applied here (docs/performance-laboratory.md, "Local decision runs"): the bench-observation schema
+# and the FR5 verdict count names (the observations never leave the container; the host validates the closed aggregate
+# and its rows), the B15 CPU inequalities (the host checks the cgroup identity of each job, Task 31 P3R5-01), the
+# memory eligibility (a local decision run holds no memory trial) and the dataset identity (the host merge, dataset-differs).
+LOCAL_RULES=('call-deadline','trial-design','missing-trial','duplicate-rows','unplanned-row','cross-run','work-count','rows-dropped','pyperf-agreement',
+             'control-zero','timed-launch','memory-in-timing','metrics','caller-semantics','pool-identity','native-timing','orphans')
+CHUNK_RULE='one-per-worker'           # the host's bench_plan.CHUNK_RULE
+PY_POOL_KEYS=('max_pending','window','pids_distinct','caller_pid_included','start_method')     # the host's bench.PY_POOL_KEYS
+
+def expected_chunk_sizes(n,workers,limit):
+    """The host's bench_plan.expected_chunk_sizes (Amendment E): per request of m rows, w = min(workers, m) chunks of
+    floor((k+1)m/w) - floor(km/w) rows."""
+    out=[]
+    for a in range(0,n,limit):
+        m=min(n,a+limit)-a;w=min(workers,m);out+=[(k+1)*m//w-k*m//w for k in range(w)]
+    return out
+
+def _chunks_ok(p,rows,workers,limit):
+    if p.get('chunk_rule')!=CHUNK_RULE or type(rows) is not int or type(workers) is not int:return False
+    if p.get('chunk_sizes')!=expected_chunk_sizes(rows,workers,limit) or p.get('chunks')!=len(p.get('chunk_sizes') or []):return False
+    return isinstance(p.get('chunk_wall_ns'),list) and len(p['chunk_wall_ns'])==p['chunks']
+
+def _pool_ok(o,rows,limit):
+    """B10 (bench.check_concurrency_identity, bench._c_threads_identity) of one eligible non-warmup pooled row. The rows of
+    a trial of a local job are the rows of its tier, the rows that the job slices for it; each pooled call of a
+    single-record trial holds one row (bench_trial_work.request_rows, T5R1-A01)."""
+    p=o.get('pool');w=o.get('workers')
+    if o.get('variant')=='c-threads':return isinstance(p,dict) and _chunks_ok(p,rows,w,limit)
+    if not p or not isinstance(p,dict) or any(k not in p for k in PY_POOL_KEYS):return False
+    ok=not (p['max_pending']>p['window'] or p['window']!=2*w) and _chunks_ok(p,rows,w,limit)
+    if o['variant']=='py-threads':ok=ok and bool(p['caller_pid_included'] and p['pids_distinct']==1 and p['start_method']=='thread')
+    if o['variant']=='py-processes':
+        ok=ok and not (p['caller_pid_included'] or not 1<=p['pids_distinct']<=w or p['start_method']!='spawn') and p.get('tracker_session_setup') is True
+    return ok
+
+def self_timing_forged(pw,wall,tol,abs_ns,rel):
+    """T6 item 5 (finding T5-A05), the in-job copy of tools/bench_evidence.self_timing_forged (B15 `forged self-timing`,
+    one-sided): the bracket nests the self-timed loops (Channel acknowledges a begin marker only after its sample, and the
+    worker reads its clock after that acknowledgement), so a self-timing above its bracket by more than tol, a bracket
+    above its self-timing by more than max(abs_ns, rel x wall), or a value that is not a non-negative integer is forged."""
+    if type(pw) is not int or type(wall) is not int or pw<0 or wall<0:return True
+    return pw-wall>tol or wall-pw>max(abs_ns,rel*wall)
+
+def local_rule_counts(plan,obs,phases,timing=None,failed=frozenset(),policy_path=None):
+    """T5-A02: {rule: the number of trials of the job that break it} for every rule of LOCAL_RULES (a job-level rule counts
+    1). Rules, as the host applies them to a synthetic run: call-deadline (G2.6: a trial, a warmup too, killed at its call
+    deadline); trial-design (B09: each planned trial observed exactly once, a Python kernel trial pyperf values + warmups
+    times, the warmup label, no trial outside the plan); missing-trial, duplicate-rows, unplanned-row (a trial id outside
+    the plan, another scope or point), cross-run (B15, P10); work-count and rows-dropped (P07: the planned work units of
+    the trial, bench_trial_work.planned_work_units: the rows of its tier, or len(panel) x panel_passes one-row calls of a
+    single-record trial (T5R1-A01); no dropped result rows); pyperf-agreement (B15 `forged self-timing`, one-sided: self_timing_forged with the policy's
+    clock_tolerance_ns, agreement_abs_ns and agreement_rel); control-zero, timed-launch, memory-in-timing (B13); metrics (the mandatory wall and cgroup CPU, no unavailable
+    counter); caller-semantics (B10/B13 pool starts); pool-identity (B10 chunk rule and pool identity; the chunks of one
+    row for each pooled call of a single-record trial, bench_trial_work.request_rows); native-timing
+    (bench.check_native_timing: the trial ids in `failed`); orphans (B12: a process outside a killed group alive after the
+    reap). An unreadable policy breaks pyperf-agreement and pool-identity for every row that needs it."""
+    try:
+        pol=json.loads(Path(policy_path or POLICY_FILE).read_text());py_pol=pol['pyperf']
+        tol,abs_ns,rel=py_pol['clock_tolerance_ns'],py_pol['agreement_abs_ns'],py_pol['agreement_rel'];limit=pol['pools']['request_limit']
+    except (OSError,ValueError,KeyError,TypeError):tol=abs_ns=rel=limit=None
+    bad={k:set() for k in LOCAL_RULES};planned={t['trial_id']:t for t in plan.get('trials') or []}
+    sizes=plan.get('sizes') or {};py=plan.get('pyperf') or {};pyn=py.get('values',1)+py.get('warmups',0)
+    def tier_rows(t):return sizes.get(t.get('tier'))
+    def planned_units(t):return _trial_work.planned_work_units(t,sizes)          # T5R1-A01: one definition with the host rules
+    timed=[o for o in obs if o.get('scope') in ('caller','kernel')];by={};design={}
+    for o in obs:by.setdefault(o.get('trial_id'),[]).append(o)
+    for o in timed:design.setdefault(o.get('trial_id'),[]).append(o)
+    for o in obs:
+        if o.get('failure_reason'):bad['call-deadline'].add(o.get('trial_id'))
+    for tid,t in planned.items():                                    # B09 (bench_plan.check_trial_design)
+        got=design.get(tid,[]);want=pyn if t.get('scope')=='kernel' and not str(t.get('variant','')).startswith('c-') else 1
+        if len(got)!=want or (t.get('scope')!='kernel' and any(o.get('warmup')!=t.get('warmup') for o in got)):bad['trial-design'].add(tid)
+    bad['trial-design']|={tid for tid in design if tid not in planned}
+    for tid,t in planned.items():                                    # P07 (bench.check_completeness)
+        if t.get('warmup'):continue
+        got=by.get(tid)
+        if not got:bad['missing-trial'].add(tid);continue
+        for o in got:
+            if not o.get('work_units') or o.get('work_units')!=planned_units(t):bad['work-count'].add(tid)
+            if (o.get('verdict') or {}).get('reduction') in ('ROW_COUNT','MISSING_ROWS'):bad['rows-dropped'].add(tid)
+    seen={}
+    for o in list(obs)+list(phases):                                 # B15, P10 (bench_evidence.check_integrity)
+        if o.get('phase') in ('pool_start','teardown','control-zero'):continue
+        tid=o.get('trial_id');seen.setdefault(tid,[]).append(o);t=planned.get(tid)
+        if o.get('run_id')!=plan.get('run_id'):bad['cross-run'].add(tid)
+        if t is None or o.get('scope')!=t.get('scope') or (t.get('point') and o.get('point')!=t.get('point')):bad['unplanned-row'].add(tid)
+        pw=o.get('pyperf_wall_ns');wall=o.get('wall_ns')
+        if pw is not None and wall is not None and (abs_ns is None or self_timing_forged(pw,wall,tol,abs_ns,rel)):bad['pyperf-agreement'].add(tid)
+    for tid,t in planned.items():
+        got=seen.get(tid,[])
+        if not got:bad['missing-trial'].add(tid)
+        elif len(got)>(pyn if t.get('scope')=='kernel' else 1):bad['duplicate-rows'].add(tid)
+        elif not t.get('warmup') and any(o.get('eligible') and o.get('work_units')!=planned_units(t) for o in got):bad['work-count'].add(tid)
+    starts={(p.get('variant'),p.get('workers')) for p in phases if p.get('phase')=='pool_start'}
+    for o in obs:
+        tid=o.get('trial_id')
+        if o.get('phase') in ('import','pool_start','teardown'):bad['timed-launch'].add(tid)          # B13 (bench.check_perturbation)
+        if o.get('scope') in ('caller','kernel') and o.get('memory') is not None:bad['memory-in-timing'].add(tid)
+        if o.get('scope')=='caller' and o.get('variant') in POOLED:                                    # B10/B13 (bench.check_caller_semantics)
+            inside=(o.get('phases') or {}).get('pool_start')
+            if (o.get('mode')=='cold' and inside is None) or (o.get('mode')=='warm' and (inside is not None or (o.get('variant'),o.get('workers')) not in starts)):
+                bad['caller-semantics'].add(tid)
+        if o.get('warmup') or o.get('scope') not in ('caller','kernel'):continue
+        if o.get('wall_ns') is None or o.get('cpu_usage_usec') is None or o.get('unavailable'):bad['metrics'].add(tid)     # bench.check_metrics
+        pooled=(o.get('scope')=='caller' and o.get('variant')=='c-threads') or o.get('variant') in POOLED
+        if pooled and o.get('eligible') is True:
+            t=planned.get(tid) or o
+            if limit is None or not _pool_ok(o,_trial_work.request_rows(t,tier_rows(t)),limit):bad['pool-identity'].add(tid)
+    if any(t.get('scope')=='kernel' and not str(t.get('variant','')).startswith('c-') for t in planned.values()) and not any(p.get('phase')=='control-zero' for p in phases):
+        bad['control-zero'].add('job')
+    bad['native-timing']|=set(failed)
+    kills=(timing or {}).get('deadline_kills') or []
+    if any(not isinstance(k,dict) or type(k.get('foreign_orphans')) is not int or k['foreign_orphans']!=0 for k in (kills if isinstance(kills,list) else [kills])):
+        bad['orphans'].add('job')
+    return {k:len(v) for k,v in bad.items()}
+
+COUNT_FILES={'reference_evals':('.evals',lambda p:reference_evals(p)),'reference_admit_excluded':('.admit',lambda p:reference_admit_excluded(p)),
+             'reference_overhead':('.overhead',lambda p:reference_overhead(p))}
+
+def local_job_fields(plan,timing,reference=None):
+    """EX-19 (Task 31): the job keys of a decision job's aggregate: cgroup_inode (the inode of the container cgroup; the host
+    compares it with the launcher's, B15), isolated (every trial child of the job started isolated), selector (the job's
+    reference selector) and the closed count blocks that the reference child wrote beside the job's reference
+    (reference_evals, reference_admit_excluded, reference_overhead), each only when present. ValueError for a malformed
+    count file. T5-A01 (spec 12 L4): `partial` (the job plan's flag: the job's rows are fewer than the run's rows); a partial
+    job's count blocks are of a subset of the run's rows, so they stay in the container."""
+    ref=Path(reference or WORK/'bench/private/reference.json');partial=plan.get('partial') is True
+    out={'cgroup_inode':os.stat(CG).st_ino,'isolated':all(isinstance(c,dict) and c.get('isolated') is True for c in (timing or {}).get('children') or []),
+         'selector':plan.get('reference_selector','all'),'partial':partial}
+    for key,(suffix,read) in ({} if partial else COUNT_FILES).items():
+        value=read(str(ref)+suffix)
+        if value is not None:out[key]=value
+    return out
+
+def local_aggregate(plan,stats,timings,obs,exceptions,ok,partial=False):
     """The closed aggregate (schemas/bench-local-aggregate.json): the framework envelope (rows, timings, counters, exceptions,
     whole-run digests) and `summary`, the project's case block: every key of the adapter's local_summary other than
     STATS_KEYS (FR3: its shape is project data, validated on the host with the protocol's aggregate schema). Without a
-    summary it is null and the status is INVALID_EXPERIMENT."""
-    summary={k:v for k,v in stats.items() if k not in STATS_KEYS} if stats else None
-    return {'schema_version':2,'run_id':plan['run_id'],'case':plan['case'],'dataset_sha256':plan['dataset']['sha256'],'rows':stats['rows'] if stats else 0,
+    summary it is null and the status is INVALID_EXPERIMENT. T5-A01 (spec 12 L4): a partial job of a decision run computes
+    no summary and exports rows 0, the zero digests and no summary; its status follows `ok` alone."""
+    summary={k:v for k,v in stats.items() if k not in STATS_KEYS} if stats and not partial else None
+    whole=stats if stats and not partial else None
+    return {'schema_version':2,'run_id':plan['run_id'],'case':plan['case'],'dataset_sha256':plan['dataset']['sha256'],'rows':whole['rows'] if whole else 0,
             'summary':summary,'timings':timings,'counters':{'cpu_usage_usec':sum(o['cpu_usage_usec'] or 0 for o in obs),'memory_peak_bytes':read_counters().get('memory_peak')},
-            'exceptions':exceptions[:64],'output_digests':{'result_sha256':stats['result_sha256'] if stats else '0'*64,'reference_sha256':stats['reference_sha256'] if stats else '0'*64},
-            'status':'VALID' if ok and summary is not None else 'INVALID_EXPERIMENT'}
+            'exceptions':exceptions[:64],'output_digests':{'result_sha256':whole['result_sha256'] if whole else '0'*64,'reference_sha256':whole['reference_sha256'] if whole else '0'*64},
+            'status':'VALID' if ok and (summary is not None or partial) else 'INVALID_EXPERIMENT'}
+
+JOB_KEYS=('cgroup_inode','isolated','selector','partial','rules')
+
+def _empty_aggregate(plan):
+    """The INVALID_EXPERIMENT aggregate of a local job that stopped before its trials; a decision job keeps its partial flag
+    (T5-A01), so the host does not take the document for a partial slice."""
+    agg=local_aggregate(plan,None,[],[],[],False)
+    if plan.get('decision') is True and isinstance(plan.get('partial'),bool):agg['partial']=plan['partial']
+    return agg
 
 def _write_aggregate(out,agg,plan=None):
     """One JSON document without NaN or infinity; a summary that holds one is replaced by the empty INVALID_EXPERIMENT block."""
@@ -1136,6 +1480,7 @@ def _write_aggregate(out,agg,plan=None):
         try:json.dumps(agg['timings'],allow_nan=False);timings=agg['timings']
         except ValueError:timings=[]
         empty=local_aggregate(plan,None,timings,[],agg['exceptions'][:63]+[{'type':'ValueError','row_index':None}],False)
+        empty.update({k:agg[k] for k in JOB_KEYS if k in agg})        # T5-R1: the job keys stay (no count block, no summary)
         empty['counters']=agg['counters'];text=json.dumps(empty,sort_keys=True,separators=(',',':'),allow_nan=False)
     (out/'aggregate.json').write_text(text)
 
@@ -1152,31 +1497,49 @@ def set_local_names(plan):
 def job_local(plan,out):
     """Owner fixture: trials run into a private directory; the only artifact is the closed aggregate document. A case whose
     adapter has no local_summary is refused before any trial (exit 3, aggregate status INVALID_EXPERIMENT; Amendment A).
-    FR3: the market step of the example project left the framework (FR3 handoff list)."""
+    FR3: the market step of the example project left the framework (FR3 handoff list). EX-19 (Task 31): a job of a local
+    decision run (plan `decision`) uses the adapter of its reference selector (one selector for every trial, else `all`)."""
     private=WORK/'bench/private/out';private.mkdir(parents=True,exist_ok=True);exceptions=[];stats=None
-    try:set_local_names(plan)
-    except ValueError:_write_aggregate(out,local_aggregate(plan,None,[],[],[],False));return {'status':'FAIL'}
-    has=subprocess.run(python_argv(PYTHONPATH,'-c',LOCAL_HAS_SUMMARY,_manifest(plan)),env=child_env(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=120)
+    try:
+        set_local_names(plan);sel=plan.get('reference_selector','all')
+        if not isinstance(sel,str) or not SELECTOR_RE.fullmatch(sel):raise ValueError('reference selector rejected')
+        if plan.get('decision') is True and not isinstance(plan.get('partial'),bool):raise ValueError('a decision job needs its partial flag')   # T5-A01
+    except ValueError:_write_aggregate(out,_empty_aggregate(plan));return {'status':'FAIL'}
+    has=subprocess.run(python_argv(PYTHONPATH,'-c',LOCAL_HAS_SUMMARY,_manifest(plan),sel),env=child_env(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=120)
     if has.returncode!=0:
-        _write_aggregate(out,local_aggregate(plan,None,[],[],[],False));return {'status':'REFUSED' if has.returncode==3 else 'FAIL'}
+        _write_aggregate(out,_empty_aggregate(plan));return {'status':'REFUSED' if has.returncode==3 else 'FAIL'}
     return _local_trials(plan,out,private,exceptions,stats)
 
 def _local_trials(plan,out,private,exceptions,stats):
     try:timing=job_timing(dict(plan,local=False),private)
     except Exception as error:timing={'status':'FAIL'};exceptions.append(_exception_row(error))
     obs=[json.loads(x) for x in (private/'observations.jsonl').read_text().splitlines()] if (private/'observations.jsonl').is_file() else []
+    phases=[json.loads(x) for x in (private/'phases.jsonl').read_text().splitlines()] if (private/'phases.jsonl').is_file() else []
     reference=WORK/'bench/private/reference.json'
-    if reference.is_file():
+    decision=plan.get('decision') is True;partial=decision and plan.get('partial') is True     # T5-A01: a partial job computes no summary
+    if reference.is_file() and not partial:
         try:
-            run=subprocess.run(python_argv(PYTHONPATH,'-c',LOCAL_SUMMARY,str(WORK/'bench/data/dataset'),plan['rows'],str(reference),_manifest(plan),plan['dataset']['sha256']),
+            run=subprocess.run(python_argv(PYTHONPATH,'-c',LOCAL_SUMMARY,str(WORK/'bench/data/dataset'),plan['rows'],str(reference),_manifest(plan),plan['dataset']['sha256'],
+                                           plan.get('reference_selector','all')),
                                env=child_env(),stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=600)
             stats=json.loads(run.stdout.splitlines()[-1]) if run.returncode==0 and run.stdout.strip() else None
             if stats is not None and not (isinstance(stats,dict) and all(k in stats for k in STATS_KEYS) and len(stats)<=32+len(STATS_KEYS)):stats=None
             if stats is None:exceptions.append({'type':'Other','row_index':None})
         except Exception as error:exceptions.append(_exception_row(error))
-    timings=_local_timings(obs)
-    ok=timing['status']=='PASS' and stats is not None and bool(timings) and all(t['eligible'] for t in timings)
-    _write_aggregate(out,local_aggregate(plan,stats,timings,obs,exceptions,ok),plan)
+    fields={};failed=set();rules={}
+    if decision:          # EX-19 (Task 31): the job keys and the in-container native timing check; T5-A02: the synthetic run rule set
+        try:fields=local_job_fields(plan,timing,reference)
+        except (OSError,ValueError) as error:exceptions.append(_exception_row(error));fields=None
+        failed=native_timing_failures(obs,plan)
+        rules=local_rule_counts(plan,obs,phases,timing,failed)
+    timings=_local_timings(obs,failed)
+    ok=(timing['status']=='PASS' and (stats is not None or partial) and bool(timings) and all(t['eligible'] for t in timings) and fields is not None
+        and not any(rules.values()))
+    agg=local_aggregate(plan,stats,timings,obs,exceptions,ok,partial)
+    if decision:agg['partial']=partial      # T5R1-A04: from the plan first, so a failure of the job fields is never a partial slice
+    agg.update(fields or {})
+    if decision:agg['rules']=rules
+    _write_aggregate(out,agg,plan)
     return {'status':'PASS' if ok else 'FAIL'}
 
 JOBS['coverage']=lambda plan,out:importlib.import_module('benchlab.coverage').job(plan,out)    # Amendment G8.4 (Task 3): B09 coverage
@@ -1187,6 +1550,8 @@ def _configured_job(plan,out):
     except ValueError:return {'status':'FAIL','reason':'request_limit rejected'}
     try:set_test_env(plan)
     except ValueError:return {'status':'FAIL','reason':'test_env rejected'}
+    try:configure_wheels(plan)
+    except ValueError:return {'status':'FAIL','reason':'project_wheels rejected'}
     try:configure_project(plan)
     except ValueError:return {'status':'FAIL','reason':'project_dir rejected'}
     return JOBS[plan['job']](plan,out)

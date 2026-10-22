@@ -122,6 +122,40 @@ class SimulatedProtocolTests(unittest.TestCase):
         for broken in [rows[:1],rows+[rows[0]],[{'unit':'unknown','question':'bounds','locations':[10]}]]:
             with self.assertRaises(GateError):ledger.account(broken,'a'*64)
         with self.assertRaises(GateError):ledger.account(rows,'b'*64)
+    LABEL='TEST-STRENGTH EVIDENCE'
+    def test_test_strength_closure_needs_the_exact_label(self):
+        """R41 (T6-R5): before_failed false closes a row VERIFIED only through verify_test_strength and the exact label."""
+        ledger=self.ledger();ledger.add(finding())
+        self.assertEqual(ledger.verify_test_strength('F1',label=self.LABEL,regression_identity='added-assertions',source_identity='b'*64),'VERIFIED')
+        row=ledger.findings['F1']
+        self.assertEqual((row['attempts'],row['verification']),(1,row['history'][-1]))
+        self.assertEqual({k:row['verification'][k] for k in ('before_failed','after_passed','label')},{'before_failed':False,'after_passed':True,'label':self.LABEL})
+        validate(Path(__file__).resolve().parents[2],'ledger',{'schema_version':1,'source_identity':'a'*64,'units':{'C33/main':['bounds']},'findings':[row],'review':[{'unit':'C33/main','question':'bounds','locations':[1]}]})
+    def test_test_strength_closure_refuses_a_missing_or_wrong_label(self):
+        for label in (None,'','test-strength evidence','TEST-STRENGTH EVIDENCE ','TEST STRENGTH',1):
+            with self.subTest(label=label):
+                ledger=self.ledger();ledger.add(finding())
+                with self.assertRaises(GateError):ledger.verify_test_strength('F1',label=label,regression_identity='added-assertions',source_identity='b'*64)
+                self.assertEqual((ledger.findings['F1']['state'],ledger.findings['F1']['attempts'],ledger.findings['F1']['history']),('OPEN',0,[]))
+        ledger=self.ledger();ledger.add(finding())
+        for bad in ({'regression_identity':'','source_identity':'b'*64},{'regression_identity':'x','source_identity':''}):
+            with self.assertRaises(GateError):ledger.verify_test_strength('F1',label=self.LABEL,**bad)
+        self.assertEqual(ledger.findings['F1']['attempts'],0)
+    def test_test_strength_closure_leaves_terminal_rows_terminal(self):
+        for end in ('verified','rejected','blocked'):
+            with self.subTest(end=end):
+                ledger=self.ledger();ledger.add(finding())
+                if end=='verified':ledger.repair('F1',before_failed=True,after_passed=True,regression_identity='r',source_identity='b'*64)
+                elif end=='rejected':ledger.reject('F1','not a defect')
+                else:
+                    for i in range(5):ledger.repair('F1',before_failed=True,after_passed=False,regression_identity='r',source_identity=str(i)*64)
+                state=ledger.findings['F1']['state'];history=copy.deepcopy(ledger.findings['F1']['history'])
+                with self.assertRaises(GateError):ledger.verify_test_strength('F1',label=self.LABEL,regression_identity='r',source_identity='c'*64)
+                self.assertEqual((ledger.findings['F1']['state'],ledger.findings['F1']['history']),(state,history))
+    def test_repair_never_verifies_with_before_failed_false(self):
+        ledger=self.ledger();ledger.add(finding())
+        self.assertEqual(ledger.repair('F1',before_failed=False,after_passed=True,regression_identity='r',source_identity='b'*64),'UNRESOLVED')
+        self.assertIsNone(ledger.findings['F1']['verification'])
     def test_ledger_schema_rejects_invalid_types(self):
         value={'schema_version':1,'source_identity':'a'*64,'units':{'C33/main':['bounds']},'findings':[finding()],'review':[{'unit':'C33/main','question':'bounds','locations':[10]}]}
         validate(ROOT,'ledger',value);value['findings'][0]['attempts']='five'

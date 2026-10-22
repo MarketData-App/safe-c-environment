@@ -1,0 +1,3 @@
+{"schema_version":1,
+ "description":"A recorded look-1 unit record without an extension trigger (B09 extension sub-check: an extension of it is refused, extension without trigger)",
+ "units":[{"unit":"all/full-dataset","look":1,"extension":{"trigger":false,"note":null}}]}

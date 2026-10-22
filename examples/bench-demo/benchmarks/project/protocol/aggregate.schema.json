@@ -1,0 +1,4 @@
+{"type":"object","additionalProperties":false,"required":["records"],
+ "description":"bench-demo (EX-19): the project block of the summary of a local run: record count, step count and whether a fresh py-reference result equals the reference.",
+ "properties":{"records":{"type":"object","additionalProperties":false,"required":["count","steps","match"],
+  "properties":{"count":{"type":"integer","minimum":0},"steps":{"type":"integer","minimum":0},"match":{"type":"boolean"}}}}}

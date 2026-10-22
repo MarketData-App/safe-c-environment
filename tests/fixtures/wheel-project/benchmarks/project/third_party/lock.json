@@ -1,0 +1,11 @@
+{"schema_version":1,"owner":"MarketData-App",
+ "sanitizer_boundary":"fixture wheel: pure Python, it runs only inside bench containers and is never linked into first-party C",
+ "wheels":[{"name":"scfixturewheel","version":"1.0.0","filename":"scfixturewheel-1.0.0-py3-none-any.whl","tag":"py3-none-any",
+   "modules":["scfixturewheel"],
+   "sha256":"aa865186cc69aeeb34a48f649682b18da0b2caa9d254bb910b7bb1418519a840","bytes":2605,
+   "parts":[],"source_dir":"third_party/wheel-source",
+   "origin":{"kind":"first-party-fixture","url":null},
+   "provenance":{"path":"third_party/provenance/scfixturewheel.json","sha256":"59b5d3fdf2cfb4525062e1bd505bf65c68bfb9818ae2884e636b2eebf0b7357e"},
+   "notice":{"path":"third_party/notices/scfixturewheel/LICENSE","sha256":"610e32ab933b5a258a190058a7314f2bfb5d2f6c62cb1cd0451c2eef771490ca"},
+   "license":{"tags":["MIT"],"owner":"MarketData-App","review_status":"APPROVED"}}],
+ "sources":[]}

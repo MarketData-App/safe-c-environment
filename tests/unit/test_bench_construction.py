@@ -1,7 +1,8 @@
 """G-ALO-CO part 1 (spec Amendment I, item I13.1): one construction path for every adapter.
 
-(a) Guard: every non-test Python file of benchlab, container/, tools/ and each example's benchmarks/project/python
-    package is scanned. A factory call outside benchlab.workload.construct_adapter, a direct constructor call of a class
+(a) Guard: every non-test Python file of benchlab, container/, tools/ and each framework example's
+    benchmarks/project/python package is scanned (FIX1 T3-A02: a standalone example is outside the framework scope,
+    framework_examples). A factory call outside benchlab.workload.construct_adapter, a direct constructor call of a class
     that a case manifest names as `adapter` (FR5C-01: no project method name is exempt) and a bench_ref
     of a pooled adapter class (one with chunks or run_chunk) that is not one four-item tuple fail.
     G-ALO-CO part 2 (Task A2, part 1 review Minors 1-2): aliased imports and assignments of a manifest class, type(a)(...),
@@ -26,8 +27,17 @@ P={'rounds':1,'seed':20261007}
 SCAN={'day_min':7,'day_max':60,'ratio_lo':0.9,'ratio_hi':1.1,'seed':1}
 ENV='SAFE_C_BENCH_REQUEST_LIMIT'
 
+def framework_examples(root=ROOT):
+    """FIX1 T3-A02 (amendment E rule S): the example directories of the framework scope: every examples/<name> except the
+    standalone examples (project_model.standalone_examples). A standalone example's Python package and case manifests
+    never enter the framework unit gate; an examples/<name> without project.json stays framework content."""
+    import project_model
+    standalone=set(project_model.standalone_examples(root))
+    return [p for p in sorted(root.glob('examples/*')) if p.is_dir() and p.relative_to(root).as_posix() not in standalone]
+
 def scanned_files(root=ROOT):
-    tops=[root/'benchmarks/performance/python/benchlab',root/'container',root/'tools']+sorted(root.glob('examples/*/benchmarks/project/python'))
+    tops=[root/'benchmarks/performance/python/benchlab',root/'container',root/'tools']+[p for e in framework_examples(root)
+                                                                                         for p in [e/'benchmarks/project/python'] if p.is_dir()]
     out=[]
     for top in tops:
         for p in sorted(top.rglob('*.py')):
@@ -37,9 +47,9 @@ def scanned_files(root=ROOT):
     return out
 
 def manifest_adapters(root=ROOT):
-    """Class names that a case manifest names as `adapter` (framework cases and every example's cases)."""
+    """Class names that a case manifest names as `adapter` (framework cases and every framework example's cases)."""
     names=set()
-    for p in sorted(root.glob('benchmarks/performance/cases/*.json'))+sorted(root.glob('examples/*/benchmarks/project/cases/*.json')):
+    for p in sorted(root.glob('benchmarks/performance/cases/*.json'))+[c for e in framework_examples(root) for c in sorted(e.glob('benchmarks/project/cases/*.json'))]:
         doc=json.loads(p.read_text())
         if isinstance(doc,dict) and isinstance(doc.get('adapter'),str) and ':' in doc['adapter']:names.add(doc['adapter'].rpartition(':')[2])
     return names
@@ -104,9 +114,10 @@ def _trigger(classes):
     return re.compile(r'\bfactory\b|bench_ref|\bgetattr\s*\(|\btype\s*\(|__class__|'+'|'.join(r'\b'+re.escape(c)+r'\b' for c in sorted(classes)))
 
 def example_adapter_classes(root=ROOT):
-    """{case file: adapter class} of every example case manifest (review Minor 2: read from the manifests, never named here)."""
+    """{case file: adapter class} of every framework example case manifest (review Minor 2: read from the manifests, never
+    named here)."""
     out={}
-    for p in sorted(root.glob('examples/*/benchmarks/project/cases/*.json')):
+    for p in [c for e in framework_examples(root) for c in sorted(e.glob('benchmarks/project/cases/*.json'))]:
         doc=json.loads(p.read_text())
         if isinstance(doc,dict) and isinstance(doc.get('adapter'),str) and ':' in doc['adapter']:out[p.relative_to(root).as_posix()]=doc['adapter'].rpartition(':')[2]
     return out
@@ -181,6 +192,29 @@ class GuardTests(unittest.TestCase):
         for form in ('alias import','alias assignment','type of an adapter','class attribute'):
             with self.subTest(named=form):self.assertTrue(all(HELPER in r for _,_,r in violations(forms[form],'x/mod.py',classes)))
         self.assertTrue(_trigger(classes).search('x=getattr (m, "n")\n'))      # spacing before the parenthesis
+
+class FrameworkScopeTests(unittest.TestCase):
+    """FIX1 T3-A02 (amendment E rule S): the guard scans the framework examples only. A standalone example's Python package
+    and case manifests never enter the framework unit gate; an examples/<name> without project.json stays framework
+    content (fail closed). Decision recorded in the ledger row T3-A02: no framework gate scans a standalone example's
+    Python for this rule; its project scope owns it."""
+    def test_a_standalone_example_is_not_scanned(self):
+        files={'examples/fw-demo/project.json':'{}\n','examples/fw-demo/benchmarks/project/python/fwpkg/a.py':'x=1\n',
+               'examples/fw-demo/benchmarks/project/cases/fw-case.json':json.dumps({'adapter':'fwpkg.a:FwAdapter'}),
+               'examples/loose-notes/benchmarks/project/python/lpkg/c.py':'z=1\n',
+               'examples/loose-notes/benchmarks/project/cases/loose-case.json':json.dumps({'adapter':'lpkg.c:LooseAdapter'}),
+               'examples/solo-demo/project.json':'{}\n','examples/solo-demo/benchmarks/project/python/solopkg/b.py':'y=1\n',
+               'examples/solo-demo/benchmarks/project/cases/solo-case.json':json.dumps({'adapter':'solopkg.b:SoloAdapter'})}
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t)
+            for rel,text in files.items():p=root/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
+            listed=sorted(rel for rel in files if rel.startswith('examples/fw-demo/'))+['starter-export.json']
+            (root/'starter-export.json').write_text(json.dumps({'schema_version':1,'substitutions':[],'files':listed}))
+            scanned=sorted(p.relative_to(root).as_posix() for p in scanned_files(root))
+            self.assertEqual(scanned,['examples/fw-demo/benchmarks/project/python/fwpkg/a.py','examples/loose-notes/benchmarks/project/python/lpkg/c.py'])
+            self.assertEqual(manifest_adapters(root),{'FwAdapter','LooseAdapter'})
+            self.assertEqual(example_adapter_classes(root),{'examples/fw-demo/benchmarks/project/cases/fw-case.json':'FwAdapter',
+                                                            'examples/loose-notes/benchmarks/project/cases/loose-case.json':'LooseAdapter'})
 
 class LimitTests(unittest.TestCase):
     def setUp(self):

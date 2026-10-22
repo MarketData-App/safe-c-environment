@@ -10,7 +10,7 @@ on:
       - 'fuzz/project/**'
       - 'specs/project/**'
       - 'review/**'
-      - 'examples/**/README.md'
+      - 'examples/**'
 permissions:
   contents: read
 jobs:

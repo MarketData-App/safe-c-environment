@@ -5,7 +5,33 @@ on:
 permissions:
   contents: read
 jobs:
+  select:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      framework: ${{ steps.select.outputs.framework }}
+      examples: ${{ steps.select.outputs.examples }}
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install hashed controller dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/controller"
+          "$RUNNER_TEMP/controller/bin/python" -m pip install --require-hashes --only-binary=:all: -r ci/controller-requirements.txt
+          echo "$RUNNER_TEMP/controller/bin" >> "$GITHUB_PATH"
+      - name: Select the changed examples
+        id: select
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
+          PR_FILES: ${{ github.event.pull_request.changed_files }}
+        run: python3 ci/changed-examples --base "$BASE" --head "$HEAD" --event "$EVENT" --pr-files "$PR_FILES" >> "$GITHUB_OUTPUT"
   project:
+    needs: select
+    if: needs.select.outputs.framework == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -60,6 +86,72 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: project-report
+          path: artifacts/project-report.json
+          retention-days: 14
+          if-no-files-found: ${{ job.status == 'success' && 'error' || 'warn' }}
+  examples:
+    needs: select
+    if: needs.select.outputs.examples != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.select.outputs.examples) }}
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          persist-credentials: false
+      - name: Install hashed controller dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/controller"
+          "$RUNNER_TEMP/controller/bin/python" -m pip install --require-hashes --only-binary=:all: -r ci/controller-requirements.txt
+          echo "$RUNNER_TEMP/controller/bin" >> "$GITHUB_PATH"
+      - name: Use a plain core pattern on the ephemeral runner
+        run: sudo sysctl -w kernel.core_pattern=core
+      - name: Enable the Docker containerd image store
+        run: |
+          sudo python3 - <<'EOF'
+          import json, os
+          path = '/etc/docker/daemon.json'
+          config = {}
+          if os.path.exists(path):
+              with open(path, 'rb') as f:
+                  data = f.read(1048577)
+              if len(data) > 1048576:
+                  raise SystemExit('daemon.json exceeds 1048576 bytes')
+              text = data.decode('utf-8').strip()
+              try:
+                  config = json.loads(text) if text else {}
+              except RecursionError:
+                  raise SystemExit('daemon.json nests too deep')
+          config.setdefault('features', {})['containerd-snapshotter'] = True
+          os.makedirs('/etc/docker', exist_ok=True)
+          with open(path, 'w') as f:
+              json.dump(config, f, indent=2)
+              f.write('\n')
+          EOF
+          sudo systemctl restart docker
+          status=$(docker info -f '{{json .DriverStatus}}')
+          case "$status" in
+            *io.containerd.snapshotter.v1*) echo "containerd image store: active" ;;
+            *) echo "containerd image store: not active" >&2; exit 1 ;;
+          esac
+      - name: Load the qualified images
+        run: |
+          url=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['url'])")
+          sha=$(python3 -c "import json;print(json.load(open('ci/image-bundle.json'))['archive_sha256'])")
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' --max-filesize 3221225472 -o "$RUNNER_TEMP/images.tar.gz" "$url"
+          ci/images load --archive "$RUNNER_TEMP/images.tar.gz" --sha256 "$sha"
+      - name: Project gates
+        env:
+          EXAMPLE: ${{ matrix.example }}
+        run: ./tools/safety project check --project "$EXAMPLE"
+      - name: Upload the project report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: project-report-${{ strategy.job-index }}
           path: artifacts/project-report.json
           retention-days: 14
           if-no-files-found: ${{ job.status == 'success' && 'error' || 'warn' }}

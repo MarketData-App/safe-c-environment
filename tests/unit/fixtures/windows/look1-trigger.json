@@ -1,0 +1,3 @@
+{"schema_version":1,
+ "description":"A recorded look-1 unit record whose unit triggered the extension window (the valid control of the B09 extension sub-checks)",
+ "units":[{"unit":"all/full-dataset","look":1,"extension":{"trigger":true,"note":null}}]}

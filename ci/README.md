@@ -7,7 +7,7 @@ permission and runs on `ubuntu-24.04`.
 
 ## Workflows
 
-Three workflows share the same setup steps:
+The workflows that run project or framework checks share the same setup steps:
 
 1. Use a plain core pattern. The step runs `sudo sysctl -w
    kernel.core_pattern=core`. This is the reviewed platform setting for
@@ -41,18 +41,81 @@ framework files.
 
 The workflows differ in the steps after setup:
 
-- `.github/workflows/example.yml` runs on every push and pull request. It runs
-  `./tools/safety project check --project examples/hello-world` and uploads
-  `artifacts/project-report.json` as the `project-report` artifact (14 days).
-  The timeout is 30 minutes. The target time is 6 to 10 minutes; nobody has
-  measured it yet.
+- `.github/workflows/example.yml` runs on every push and pull request. It has
+  three jobs:
+  - `select` (5 minutes) checks out the full history and runs
+    `python3 ci/changed-examples --base B --head H --event E`. B is
+    `github.event.before` on a push and the base commit on a pull request; H is
+    `github.sha`; E is the event name (`push` or `pull_request`). The
+    script reads rule S from `tools/project_model.py` (`standalone_examples`):
+    `examples/<name>` is a standalone example when it holds `project.json` and
+    `starter-export.json` does not list `examples/<name>/project.json`. It
+    prints two outputs. `framework` is `true` when a changed path is outside
+    every standalone example tree. `examples` is the list of the changed
+    standalone examples, or of every standalone example when `framework` is
+    `true`. An absent or all-zero B (a new branch) and a B that git cannot
+    compare select every example and `framework=true`.
+    A pull request that changes only `examples/` skips `safety.yml`, so the
+    framework inventory and B18 do not run for it. Before it prints, `select`
+    therefore fails (exit 1) in these cases (fail closed):
+    - At H, `starter-export.json` must list every file under a framework
+      example tree and under an `examples/<name>` without `project.json`. It
+      must also list every file directly under `examples/`, and it must list
+      no missing file under `examples/`.
+    - An `examples/<name>` that exists at B and at H must keep its scope
+      (framework example, standalone example, or no `project.json`). A scope
+      change fails without a change of `starter-export.json`. A pull request
+      that changes that file runs the full qualification.
+    - On a pull request, a framework change with 300 or more changed paths
+      (or an unknown count) fails. GitHub evaluates path filters over at most
+      300 files, so `safety.yml` could skip such a pull request. Split it.
+      The job passes GitHub's own count of the pull request's changed files
+      (`--pr-files`, from `github.event.pull_request.changed_files`). That
+      count covers the three-dot diff, which can be larger than the merge
+      diff. The larger count decides, and an empty count is unknown.
+    - In framework mode (no root `project.json` at H), a tracked file under a
+      project path (`src/`, `include/`, `tests/project/`, `fuzz/project/`,
+      `specs/project/`, `review/`) fails, and a root `project.json` that H
+      adds to the framework repository fails. `safety.yml` ignores these
+      paths, and in the framework repository `src/` and `include/` stay empty.
+    `select` exits 2 for a malformed commit id or `--pr-files` value, an
+    unreadable export list, a symbolic link at `examples/`, `examples/<name>`
+    or `examples/<name>/project.json`, a listed file inside a standalone
+    example tree, a refused example directory name, a head that git cannot
+    read, and a checkout whose standalone examples differ from those of H.
+    A deeper link follows the listing rule: it is a tracked path like any
+    other (exit 1 when it is unlisted outside a standalone example tree).
+  - `project` runs only when `framework` is `true`. It runs
+    `./tools/safety project check --project examples/hello-world` and uploads
+    `artifacts/project-report.json` as the `project-report` artifact (14 days).
+    The timeout is 30 minutes. The target time is 6 to 10 minutes; nobody has
+    measured it yet.
+  - `examples` runs one matrix job per entry of `examples` (45 minutes each).
+    After setup it runs `./tools/safety project check --project <dir>`, which
+    must exit 0 (the project check includes the framework manifest check), and
+    uploads the report as `project-report-<index>` (14 days).
+  So a push that changes only a standalone example runs the privacy checks and
+  that example's project check. It starts no framework qualification and no
+  hello-world job. The workflow names no standalone example.
 - `ci/project-ci.yml` is the template that `instantiate` copies into a new
-  project as `.github/workflows/project-ci.yml`. It is the same as `example.yml`,
-  except that it runs `./tools/safety project check` at the project root.
+  project as `.github/workflows/project-ci.yml`. It runs on every push and
+  pull request. It has one job, `project`, and no `select` or `examples` job.
+  Its steps are the steps of the `project` job of `example.yml`, except that it
+  runs `./tools/safety project check` at the project root.
 - `.github/workflows/safety.yml` runs the full framework qualification. It starts
   manually and on pull requests, except pull requests that change only project
   paths (`project.json`, `src/`, `include/`, `tests/project/`, `fuzz/project/`,
-  `specs/project/`, `review/`) or example READMEs. After setup it runs
+  `specs/project/`, `review/`) or paths under `examples/`. A push never starts
+  it. GitHub skips a `paths-ignore` workflow only when every changed path
+  matches a pattern, so a pull request that also changes a framework file runs
+  the full qualification. A pull request that changes only a framework example
+  (one that `starter-export.json` lists, such as `examples/bench-demo` or
+  `examples/hello-world`) skips it. The manifest check of the `example.yml`
+  `project` job then fails on an edit or a removal of a listed file, and the
+  `select` job fails on an unlisted file and on a scope change (fail closed).
+  GitHub evaluates path filters over at most 300 files, so `select` fails on a
+  pull request with a framework change and 300 or more changed paths. After
+  setup it runs
   `./tools/safety sandbox doctor` and `./tools/safety ci`, then uploads
   `artifacts/bootstrap-report.json` and `artifacts/bootstrap-report.md` as
   `bounded-safety-evidence` (14 days). The timeout is 240 minutes.

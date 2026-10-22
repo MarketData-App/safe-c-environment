@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "row": "quantlib",
+  "distribution": "QuantLib",
+  "version": "1.43",
+  "filename": "quantlib-1.43-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+  "sha256": "35cd2c178aa9a30c3b7a9ca050536037c3185afd6728e6a1cf2085adef54464e",
+  "bytes": 20376095,
+  "parts": 1,
+  "url": "https://files.pythonhosted.org/packages/2e/39/2df89a3f4fe6668535d7c56f29ee646f7642e46b7fc6a9db1707804c7520/quantlib-1.43-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+  "index": "https://pypi.org/pypi/QuantLib/1.43/json",
+  "acquired": "2026-10-17",
+  "acquisition": {
+    "approval": "artifacts/approvals/ex-option-T14-online/verdict.md (APPROVE, option A, bounds B1-B9)",
+    "task": "T14 (EX-5) of the benchmark-readiness goal, branch ex-option, run from the worktree root",
+    "command": "python3 -B tools/acquire_bench_wheels.py fetch-project --project examples/option-pricing-benchmark --name QuantLib --version 1.43",
+    "tool": "tools/acquire_bench_wheels.py",
+    "tool_sha256": "4e5239600892cc4f1488a437edc3313ba2d0959cba7b00842336c23858b9d35c",
+    "printed_status": "FETCHED, bytes 20376095, parts 1, exit 0",
+    "checks_of_the_tool": "exactly one compatible, non-yanked bdist_wheel on files.pythonhosted.org; the size and sha256 of the PyPI JSON entry"
+  },
+  "perf_lab_equality": {
+    "reference": "perf-lab b8dd615 third_party/developer/provenance/wheel-selection.json (sha256 c124a34298946133d4edd939d53733efbfaf279c5a3bfc681c5c099fa0f7026f) and third_party/developer/wheels/ of the same commit",
+    "result": "EQUAL: the whole sha256 and bytes, the part basename, sha256 and bytes, and the filename and URL of the PyPI entry equal the perf-lab file and its wheel-selection.json row (bound B7)"
+  },
+  "lock_row_name": "quantlib: the wheel filename form of the name; the fetch used the PyPI project name QuantLib (finding T14ON-A06; the bytes do not depend on the name)",
+  "modules": ["QuantLib"],
+  "notice_member": "quantlib-1.43.data/data/share/doc/quantlib/LICENSE.TXT: the dist-info directory of this wheel holds no license file; the lock declares this member (T6-R3), and the files of the data directory do not enter the image",
+  "host_members": "the two members above the container file bound (33554432 bytes): QuantLib/_QuantLib.abi3.so (38682729 bytes) and quantlib.libs/libQuantLib-4575fab8.so.0.0.0 (41628617 bytes). Their size and sha256 were computed read-only from the fetched wheel with the Python standard library (zipfile, hashlib); they equal the perf-lab record. The extraction job hashes each one and the trusted host writes it into the layer (T6-R2)",
+  "sanitizer_boundary": "the wheel native code runs only inside bench containers in the project bench image; it is never linked into first-party C, so sanitizer qualification does not apply (EX1-A02)",
+  "license": "BSD-3-Clause and BSL-1.0. The QuantLib-SWIG bindings (QuantLib/QuantLib.py, QuantLib/_QuantLib.abi3.so) are BSD-3-Clause; notice: the notice member above (third_party/notices/quantlib/LICENSE.TXT). The bundled quantlib.libs/libQuantLib-4575fab8.so.0.0.0 is the QuantLib 1.43 C++ library: BSD-3-Clause (the QuantLib license), with MINPACK code (ql/math/optimization/lmdif.cpp; acknowledgment: \"This product includes software developed by the University of Chicago, as Operator of Argonne National Laboratory.\"; full MINPACK notice: third_party/notices/QuantLib-source/MINPACK-NOTICE.txt), code from Peter J\u00e4ckel's book and the Joe-Kuo numbers; notice: third_party/notices/QuantLib-source/LICENSE.TXT. Both libraries hold compiled Boost 1.90.0 code (BSL-1.0; no notice duty for object code). The wheel bundles no GCC runtime file; the libraries need libstdc++.so.6 and libgcc_s.so.1 of the image (LR-EX 2026-10-18)",
+  "license_review": "agent engineering license review LR-EX performed 2026-10-18 (not legal advice): no license conflict with the first-party MIT license; the notices of this row meet the license conditions; legal-team confirmation received 2026-10-19 for QuantLib: BSD-3-Clause, permissive, commercial and proprietary use permitted; the row stays PENDING: the wheel also holds compiled Boost 1.90.0 code (BSL-1.0), which that confirmation does not name; review_status PENDING",
+  "owner": "option example (examples/option-pricing-benchmark); license: legal team"
+}

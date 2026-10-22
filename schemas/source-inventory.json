@@ -184,7 +184,11 @@
         "tests/fixtures/project-library/fuzz/project/entry_fuzz.c",
         "examples/bench-demo/src/bd_spread.c",
         "examples/bench-demo/tests/project/test_bd_spread.c",
-        "examples/bench-demo/tests/project/test_bd_spread_threads.c"
+        "examples/bench-demo/tests/project/test_bd_spread_threads.c",
+        "examples/bench-demo/src/bd_spread_cli.c",
+        "examples/bench-demo/src/spread_main.c",
+        "examples/bench-demo/tests/project/test_bd_spread_trace.c",
+        "examples/bench-demo/tests/project/test_bd_spread_cli.c"
       ],
       "properties": {
         "safety/qualification/support.c": {
@@ -4076,8 +4080,11 @@
             },
             "targets": {
               "const": [
+                "bd-spread",
                 "project.bd_spread.test_bd_spread",
-                "project.bd_spread.test_bd_spread_threads"
+                "project.bd_spread.test_bd_spread_threads",
+                "project.bd_spread.test_bd_spread_trace",
+                "project.bd_spread.test_bd_spread_cli"
               ]
             }
           }
@@ -4124,6 +4131,102 @@
             "targets": {
               "const": [
                 "project.bd_spread.test_bd_spread_threads"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/bd_spread_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-spread",
+                "project.bd_spread.test_bd_spread",
+                "project.bd_spread.test_bd_spread_threads",
+                "project.bd_spread.test_bd_spread_trace",
+                "project.bd_spread.test_bd_spread_cli"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/src/spread_main.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "bd-spread"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_spread_trace.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_spread.test_bd_spread_trace"
+              ]
+            }
+          }
+        },
+        "examples/bench-demo/tests/project/test_bd_spread_cli.c": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "role",
+            "targets"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "role": {
+              "const": "example"
+            },
+            "targets": {
+              "const": [
+                "project.bd_spread.test_bd_spread_cli"
               ]
             }
           }
@@ -4290,7 +4393,11 @@
         "examples/bench-demo/include/bd_spread.h",
         "examples/bench-demo/src/bd_spread.c",
         "examples/bench-demo/tests/project/test_bd_spread.c",
-        "examples/bench-demo/tests/project/test_bd_spread_threads.c"
+        "examples/bench-demo/tests/project/test_bd_spread_threads.c",
+        "examples/bench-demo/src/bd_spread_cli.c",
+        "examples/bench-demo/src/spread_main.c",
+        "examples/bench-demo/tests/project/test_bd_spread_trace.c",
+        "examples/bench-demo/tests/project/test_bd_spread_cli.c"
       ]
     }
   },

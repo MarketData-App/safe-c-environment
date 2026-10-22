@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "name": "Boost",
+  "version": "1.90.0",
+  "boost_version_macro": 109000,
+  "archive_url": "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.bz2",
+  "archive_sha256": "49551aff3b22cbc5c5a9ed3dbc92f0e23ea50a0f7325b0d198b705e8ee3fc305",
+  "archive_bytes": 170662122,
+  "archive_retained": false,
+  "published_sha256_source": "https://www.boost.org/releases/1.90.0/ (the release page publishes the sha256 of boost_1_90_0.tar.bz2); the same value in https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.bz2.json (release commit 1bed2b0712b2119f20d66c5053def9173c8462a5, created 2025-12-03T13:42:35Z)",
+  "version_evidence": {
+    "wheel": "quantlib-1.43-cp39-abi3-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (sha256 35cd2c178aa9a30c3b7a9ca050536037c3185afd6728e6a1cf2085adef54464e)",
+    "wheel_member": "quantlib.libs/libQuantLib-4575fab8.so.0.0.0 (sha256 5abeaac950562bf6fae354aa55ec473f9c5c874e7db1d781a7d297206d0578b8)",
+    "static": "QuantLib::compiledBoostVersion() (ql/version.cpp:38-41 returns BOOST_VERSION) disassembles to mov $0x1a9c8,%eax; ret: 0x1a9c8 = 109000",
+    "container": "the same function called through ctypes on the loaded wheel library in the bench container returned 109000 (spec Appendix I-ALO R1a, R13)",
+    "path": "the library exports boost::math::quadrature::tanh_sinh<double> instantiations called from QuantLib::TanhSinhIntegral::integrate, so QL_BOOST_HAS_TANH_SINH (tanhsinhintegral.hpp:30-31, BOOST_VERSION >= 106900) is defined"
+  },
+  "files": [
+    {
+      "path_in_archive": "boost_1_90_0/LICENSE_1_0.txt",
+      "retained_path": "third_party/sources/boost-1.90.0/LICENSE_1_0.txt",
+      "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+      "bytes": 1338,
+      "role": "Boost Software License 1.0 text (notice of every retained file)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/constants/constants.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/constants/constants.hpp",
+      "sha256": "20103a024e17fdf199bcdebda721c0686e00ec5e2191f7965a4b7afbb0a43c6a",
+      "bytes": 27581,
+      "role": "half_pi and pi literals of the tables and the row extension"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/policies/error_handling.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/policies/error_handling.hpp",
+      "sha256": "5e814d688c6450caa45e4e18934dd9e713d49204800be7829b8f9d5091096e03",
+      "bytes": 40434,
+      "role": "raise_evaluation_error: the exception that QuantLib propagates (record R8)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/policies/policy.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/policies/policy.hpp",
+      "sha256": "0f0006710174f5bd9bacb6bdd860cf512282124f19c621877741822c9c135375",
+      "bytes": 42405,
+      "role": "default evaluation_error policy throw_on_error (policy.hpp:92-93)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/quadrature/detail/tanh_sinh_detail.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/quadrature/detail/tanh_sinh_detail.hpp",
+      "sha256": "a50d3c2f3ece219885eb998951428d3afabe1326ae7d52057297b877d858f3e4",
+      "bytes": 289177,
+      "role": "tanh_sinh_detail: double tables (init selector 2), row extension, level loop, error estimate, stop and thrash rules (record R2, R3)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/quadrature/tanh_sinh.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/quadrature/tanh_sinh.hpp",
+      "sha256": "d2a3d463c412b3a06b1aa136bfe2137d7420a6b32a30d8ee83574df31c358869",
+      "bytes": 11760,
+      "role": "tanh_sinh<Real>::integrate: finite-interval map, end-point complements, integrand wrapper (record R2)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/special_functions/next.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/special_functions/next.hpp",
+      "sha256": "2b784dfb30b490f43ac08b12cd6b1eb00c19e487211dd89909e6bd0d5eada207",
+      "bytes": 30828,
+      "role": "float_next / float_prior of the end-point complements (tanh_sinh.hpp:171-177)"
+    },
+    {
+      "path_in_archive": "boost_1_90_0/boost/math/tools/precision.hpp",
+      "retained_path": "third_party/sources/boost-1.90.0/boost/math/tools/precision.hpp",
+      "sha256": "c7b2319376b3c8abf10e93eaf7f96be5d9e603ab5e4be05ea6c9bd57c824d353",
+      "bytes": 16219,
+      "role": "tools::min_value, epsilon and root_epsilon<double> (0.1490116119384765625e-7)"
+    }
+  ],
+  "closure_not_retained": [
+    {
+      "path": "boost/math/tools/atomic.hpp",
+      "reason": "thread-safety types of the row counter (tanh_sinh_detail.hpp:13, 181-186); no arithmetic"
+    },
+    {
+      "path": "boost/math/tools/config.hpp",
+      "reason": "configuration macros; no arithmetic"
+    },
+    {
+      "path": "boost/math/special_functions/fpclassify.hpp, boost/math/special_functions/sign.hpp",
+      "reason": "isfinite, isnan and signbit with IEEE-754 semantics; no other arithmetic"
+    },
+    {
+      "path": "boost/math/special_functions/trunc.hpp",
+      "reason": "itrunc sizes only the reserve() of a new row (tanh_sinh_detail.hpp:129); no effect on values"
+    },
+    {
+      "path": "boost/math/special_functions/math_fwd.hpp, boost/math/tools/traits.hpp, boost/math/tools/type_traits.hpp, boost/math/tools/numeric_limits.hpp, boost/math/tools/assert.hpp",
+      "reason": "declarations, type traits and asserts; no arithmetic on a value"
+    },
+    {
+      "path": "boost/math/tools/convert_from_string.hpp, boost/math/tools/cxx03_warn.hpp, boost/math/constants/calculate_constants.hpp",
+      "reason": "constants of non-builtin types and warnings; a double constant is the literal of constants.hpp"
+    },
+    {
+      "path": "boost/math/tools/mp.hpp, boost/math/tools/cstdint.hpp",
+      "reason": "included from policies/policy.hpp:11, 14; template metaprogramming and integer typedefs; no arithmetic on a value (ALO1-04)"
+    },
+    {
+      "path": "boost/math/tools/tuple.hpp, boost/math/tools/throw_exception.hpp",
+      "reason": "included from policies/error_handling.hpp:15, 21; a tuple type and the throw helper; no arithmetic on a value (ALO1-04)"
+    },
+    {
+      "path": "xmmintrin.h (compiler header)",
+      "reason": "included from special_functions/next.hpp:28-30 (the guarding #if lines 28 and 29, the include at line 30; ALO2-02) for the SSE DAZ test in float_next; with DAZ off float_next(0) is 2^-1074, and tanh_sinh.hpp:172-174 raises it to the limit anyway; no effect on a value on this path. The record's arithmetic assumes the default MXCSR (DAZ and FTZ off) (ALO1-04)"
+    },
+    {
+      "path": "detail/tanh_sinh_constants.hpp",
+      "reason": "does not exist in Boost 1.90.0; the double tables are in tanh_sinh_detail.hpp:695-744"
+    }
+  ],
+  "acquired": "2026-10-10",
+  "acquirer": "controller",
+  "performed_by": "performance-lab Phase 3 addendum Task A3 implementer, under the controller one-time networked authorization (Amendment I3 R1a.2); outside every ordinary check",
+  "role": "transcription and verification reference only; never built, linked or on an include path",
+  "native_boundary": "the files are read for transcription and verification only (as the QuantLib source, Amendment B item 8); no sanitizer boundary applies to them",
+  "license": "Boost Software License 1.0 (LICENSE_1_0.txt)",
+  "notice": "each retained file keeps its own notice; examples/option-pricing-benchmark/NOTICE-QuantLib.md holds the Boost Software License 1.0 text; the lock notice of the retained row Boost is third_party/notices/Boost/LICENSE_1_0.txt (the same bytes as the retained LICENSE_1_0.txt)",
+  "license_review": "agent engineering license review LR-EX performed 2026-10-18 (not legal advice): no license conflict with the first-party MIT license; the notices of this row meet the license conditions; no separate legal-team statement for the Boost 1.90.0 material (BSL-1.0) (the legal-team confirmation of 2026-10-19 names QuantLib only); review_status PENDING",
+  "owner": "option example (examples/option-pricing-benchmark); license: legal team",
+  "lock": "benchmarks/project/third_party/lock.json retained row Boost binds each retained file (path, sha256, bytes); bench.json binds the lock by sha256",
+  "derived_from": "perf-lab b8dd615 third_party/developer/provenance/boost-source.json (sha256 d9988d4652f590d9a0ef18b7cea3952b1b431bf0ada7c241ffafc8f125342f1e). FR4 removed it from the framework (FR4-REPORT section 3); T14 (EX-5) keeps it here with the paths of this project: every retained_path (relative to benchmarks/project), notice and owner changed, lock and derived_from added, every other value unchanged."
+}

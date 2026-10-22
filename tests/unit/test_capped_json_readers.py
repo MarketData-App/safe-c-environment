@@ -35,7 +35,9 @@ TRUSTED={('tools/bench_plan.py','artifact_bytes'):'safety/container-policy.json 
 # FR4P-01 (ruling FR5-R2): container files that host tools load with exec_module (file: (host loader, the names it uses)).
 # They are scanned like every host file; the host uses only the listed names, which parse no JSON.
 HOST_LOADED={'container/build-foundation.py':('tools/build_foundation_sdk.py','recipe',('PROFILES','UPSTREAM_TESTS')),
-             'container/foundation-policy-probe.py':('tools/foundation.py','module',('definitions',))}
+             'container/foundation-policy-probe.py':('tools/foundation.py','module',('definitions',)),
+             # T5R1-A01: the planned work of a trial, one file for the host rules and the rules inside a local decision job
+             'container/bench_trial_work.py':('tools/bench_plan.py','trial_work',('PANEL_ROWS_PER_CALL','planned_work_units','request_rows'))}
 
 # FR4P-02 (ruling FR5-R2): every json.load/json.loads call of the inline Python of the CI workflow files (a heredoc
 # `python3 - <<'EOF'` block or a `python3 -c "..."` command), with its reason. CAPPED: the inline script reads at most
@@ -113,7 +115,7 @@ class InventoryTests(unittest.TestCase):
         reason and holds exported files."""
         files=set(host_python_files())
         for rel in ('.githooks/personal_info_check.py','ci/runner-request','ci/images','tools/safety','tools/evidence.py',
-                    'tools/acquire_bench_wheels.py'):
+                    'tools/acquire_bench_wheels.py','ci/changed-examples'):      # amendment E: the example.yml job selection
             with self.subTest(path=rel):self.assertIn(rel,files)
         self.assertEqual(sorted(rel for rel in files if rel.startswith('tools/') and rel.count('/')==1 and rel.endswith('.py')),
                          sorted('tools/'+p.name for p in (ROOT/'tools').glob('*.py')))

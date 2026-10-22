@@ -106,14 +106,17 @@
       "name": "bd_spread",
       "spec": "specs/project/bd_spread.md",
       "sources": [
-        "src/bd_spread.c"
+        "src/bd_spread.c",
+        "src/bd_spread_cli.c"
       ],
       "headers": [
         "include/bd_spread.h"
       ],
       "tests": [
         "tests/project/test_bd_spread.c",
-        "tests/project/test_bd_spread_threads.c"
+        "tests/project/test_bd_spread_threads.c",
+        "tests/project/test_bd_spread_trace.c",
+        "tests/project/test_bd_spread_cli.c"
       ],
       "foundation": "glib-parallel",
       "reads_external_input": false,
@@ -140,6 +143,13 @@
       "main": "src/worker_main.c",
       "modules": [
         "bd_wire"
+      ]
+    },
+    {
+      "name": "bd-spread",
+      "main": "src/spread_main.c",
+      "modules": [
+        "bd_spread"
       ]
     }
   ],

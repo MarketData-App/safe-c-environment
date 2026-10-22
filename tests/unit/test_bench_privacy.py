@@ -434,6 +434,15 @@ class LocalCollectionTests(unittest.TestCase):
     def test_a_summary_outside_the_protocol_schema_is_rejected(self):
         bad=closed_aggregate();bad['summary']={'other':1}
         rc,run=self.run_local(0,bad);self.assertEqual((rc,run['status'],run['evidence']['aggregate']),(1,'INVALID_EXPERIMENT',None))
+    def test_a_smoke_row_outside_the_plan_is_invalid(self):
+        """T5-A11: the host row check of the decision jobs also applies to a Phase 1 smoke aggregate: a timing row that is
+        no planned row makes the run INVALID_EXPERIMENT; the record names the problem code, never the row's values."""
+        dist={'n':1,'median':1.0,'iqr':0.0,'min':1.0,'max':1.0}
+        row={'point':'unplanned-point','scope':'caller','mode':'warm','variant':'py-reference','workers':'direct','tier':'small','trials':1,'eligible':True,
+             'wall_ns_per_unit':dist,'cpu_ns_per_unit':dist}
+        rc,run=self.run_local(0,dict(closed_aggregate(),timings=[row]))
+        self.assertEqual((rc,run['status']),(1,'INVALID_EXPERIMENT'));self.assertIn('local rows: rows-unplanned',run['reasons'])
+        self.assertNotIn('unplanned-point',json.dumps(run))
     def test_a_passing_job_and_a_failed_directory_check(self):
         rc,run=self.run_local(0,closed_aggregate());self.assertEqual((rc,run['status'],run['reasons']),(0,'VALID',[]))
         rc,run=self.run_local(0,closed_aggregate(),check_exit=3)
@@ -499,10 +508,18 @@ class LocalGateTests(unittest.TestCase):
                 def close(self):pass
             with self.subTest(want=want),mock.patch.object(bench,'BenchSession',ProbeSession):
                 self.assertEqual(bp.privacy_probe(ROOT,Path(tempfile.mkdtemp()))['status'],want)
-    def test_decision_mode_is_refused_on_the_owner_fixture(self):
+    def test_decision_mode_runs_the_local_decision_runner(self):
+        """EX-19 (Task 31): the decision branch replaces the Phase 1 refusal ('decision runs on the owner fixture belong to
+        Phase 3'); the fixture path leaves the plan first. Any other mode is still refused."""
         import argparse
         plan={'mode':'decision','dataset':{'kind':'local','sha256':'a'*64,'path':'/nonexistent/dataset.json'}}
-        with self.assertRaises(GateError):bp.run_local(Path(tempfile.mkdtemp()),argparse.Namespace(format='json'),plan,{'case_id':'record-scan','version':1},{})
+        with mock.patch('bench_local_decision.run_local_decision',return_value=0) as run:
+            self.assertEqual(bp.run_local(Path(tempfile.mkdtemp()),argparse.Namespace(format='json'),plan,{'case_id':'record-scan','version':1},{}),0)
+        self.assertEqual(run.call_args[0][5],'/nonexistent/dataset.json');self.assertNotIn('path',run.call_args[0][2]['dataset'])
+        self.assertNotIn('belong to Phase 3',(ROOT/'tools/bench_privacy.py').read_text())
+        for mode in ('profile','selftest'):
+            with self.subTest(mode=mode),self.assertRaises(GateError):
+                bp.run_local(Path(tempfile.mkdtemp()),argparse.Namespace(format='json'),dict(plan,mode=mode,dataset=dict(plan['dataset'])),{'case_id':'record-scan','version':1},{})
 
 class LocalCheckTests(unittest.TestCase):
     """The coordinator's --local-check: exactly one regular aggregate.json of at most 256 KiB in the artifact directory."""

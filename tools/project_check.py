@@ -537,6 +537,27 @@ def inventory_gate(root, project_dir, project, framework_root):
     return gate_row('inventory', 'PASS', {'files': len(pm.project_files(root, project_dir))})
 
 
+TEST_STRENGTH_LABEL = 'TEST-STRENGTH EVIDENCE'      # tools/ledger.py TEST_STRENGTH_LABEL (R41)
+
+
+def unlabeled_test_strength(findings):
+    """R41 (T6-R5): the IDs of VERIFIED findings whose verification has before_failed false and carries no label. The label
+    is the field `label` of the verification (Ledger.verify_test_strength); a row written before that field holds the exact
+    text in the row. Behavioral rows (before_failed true) and rows without a verification are not
+    test-strength rows."""
+    found = []
+    for row in findings:
+        verification = row.get('verification')
+        if row['state'] != 'VERIFIED' or not verification or verification['before_failed']:
+            continue
+        if verification.get('label') == TEST_STRENGTH_LABEL:
+            continue
+        if TEST_STRENGTH_LABEL in json.dumps(row):
+            continue
+        found.append(row['id'])
+    return found
+
+
 def review_gate(root, project_dir, framework_root):
     path = Path(root)/project_dir/'review/ledger.json'
     if path.is_symlink() or not path.is_file():
@@ -547,6 +568,7 @@ def review_gate(root, project_dir, framework_root):
         validate(Path(framework_root), 'ledger', value)
         got['blocking'] = [f['id'] for f in value['findings'] if f['state'] in BLOCKING_STATES
                            and re.match(r'\s*(high|critical)\b', f['severity'], re.I)]
+        got['unlabeled'] = unlabeled_test_strength(value['findings'])
         got['details'] = {'findings': len(value['findings']), 'review_records': len(value['review'])}
     try:
         # FR3-17: project data through the one boundary; the checks of the parsed ledger run inside it
@@ -557,6 +579,11 @@ def review_gate(root, project_dir, framework_root):
     details = dict(got['details'], blocking_findings=blocking)
     if blocking:
         details['reason'] = 'high-severity findings are OPEN, UNRESOLVED or BLOCKED'
+        return gate_row('review-protocol', 'FAIL', details)
+    if got['unlabeled']:
+        details['unlabeled_test_strength'] = got['unlabeled']
+        details['reason'] = ('VERIFIED findings whose verification has before_failed false need the label '
+                             + TEST_STRENGTH_LABEL + ' (Ledger.verify_test_strength)')
         return gate_row('review-protocol', 'FAIL', details)
     return gate_row('review-protocol', 'PASS', details)
 
@@ -702,6 +729,12 @@ class ProjectCheck:
     # One protected `docker exec` in the project container; evidence on disk.
     # Container or exec failures raise GateError (BLOCKED), never a project FAIL.
     def step(self, label, argv, *, timeout, env=None, keep_output=True):
+        # EX1-A02 (b): no first-party job names the project wheel layer or a project third-party tree (BLOCKED: the
+        # framework built this argv and environment, a project cannot supply them).
+        problem = project_source.wheel_path_problem('step '+label, [*argv, *(env or {}).values()],
+                                                    project_root=container_dir(self.project_dir))
+        if problem:
+            raise GateError(problem)
         if not self.running():
             raise InfrastructureError('infrastructure: project container is not running before step '+label)
         timeout, capped = capped_timeout(timeout, self.wall, self.deadline, time.monotonic())
@@ -796,6 +829,12 @@ class ProjectCheck:
             text, path = self.read_text(gate+'-compile-database', '/work/'+directory+'/compile_commands.json')
             evidence.append(path)
             database = loads_capped(text)
+            wheel_root = container_dir(self.project_dir)        # EX1-A02 (b): no compile command names the wheel layer
+            for row in database:
+                problem = project_source.wheel_path_problem(gate+' compile command', row.get('arguments') or shlex.split(row['command']),
+                                                            project_root=wheel_root, cwd=row.get('directory') or '/')
+                if problem:
+                    raise GateError(problem)
             details['build_audit'] = policy.build_audit(database, audit_sources(self.project_dir, self.project), profile)
             # Amendment F item 3: library objects are PIC in every build (-fPIC after -fPIE).
             library_units = library_sources(self.project_dir, self.project)
@@ -819,6 +858,10 @@ class ProjectCheck:
             if not passed(links):
                 raise GateError('link command inventory unavailable')
             actual = [shlex.split(line) for line in links['output'].splitlines() if ' -o ' in line and ' -c ' not in line]
+            for row in actual:                                   # EX1-A02 (b): no link input or library path in the layer
+                problem = project_source.wheel_path_problem(gate+' link command', row, project_root=wheel_root, cwd='/work/'+directory)
+                if problem:
+                    raise GateError(problem)
             if not actual:
                 raise GateError('no final link commands')
             if profile in PROFILE_FLAGS and any(PROFILE_FLAGS[profile] not in row for row in actual):
@@ -1156,9 +1199,14 @@ def runtime_start(launcher, run_dir, project, members):
         old = launcher.docker(['image', 'ls', '--filter', 'label='+label, '--filter', 'label=org.safe-c.project-name='+project['name'], '--format', '{{.ID}}'])
         for image_id in sorted(set(old['output'].split())) if passed(old) else []:
             launcher.docker(['image', 'rm', image_id], timeout=30)
-        listed = launcher.docker(['image', 'ls', '--filter', 'label='+label, '--format', '{{.ID}}'])
-        if not passed(listed) or len(set(listed['output'].split())) >= launcher.value['aggregate']['max_owned_images']:
-            raise GateError('owned project runtime-image budget exhausted; remove obsolete project runtime images')
+        # EX-1: max_owned_images bounds both cache kinds together (project runtime and project bench images).
+        from runtime_cache import cache_ids
+        try:
+            count = len(cache_ids(launcher.docker))
+        except GateError:
+            count = None
+        if count is None or count >= launcher.value['aggregate']['max_owned_images']:
+            raise GateError('owned project cache-image budget exhausted; evict unused caches with tools/runtime_cache.py')
         c = launcher.value['common']
         imported = launcher.docker(['import', '--change', f"USER {c['uid']}:{c['gid']}", '--change', 'WORKDIR /work',
                                     '--change', 'CMD []', '--change', 'LABEL '+label,
@@ -1311,6 +1359,103 @@ def run_project_check(framework_root, project_dir='.', *, development=False):
     for line in report['blockers']:
         print('project blocker: '+line, flush=True)
     print(f'project check verdict: {report["verdict"]} ({report["elapsed_seconds"]} s)', flush=True)
+    return report
+
+
+# EX-13 fix round 2 (EX13-A08): the sanitizer evidence of bench case B11. The four sanitizer gate builds of the project
+# check (same build plan, same build and test code, same sanitizer banner rule), bound to the source identity of an
+# immutable snapshot, in a report of its own. It is no project check: it never writes artifacts/project-report.json.
+SANITIZER_GATES = ('ubsan', 'asan', 'msan', 'tsan')
+
+
+def sanitizer_builds(project_dir):
+    """The build_plan rows of the sanitizer gates, in build order."""
+    return [b for b in build_plan(project_dir) if b['gate'] in SANITIZER_GATES]
+
+
+def sanitizer_verdict(rows, stopped_after, blockers):
+    """PASS only when every sanitizer gate ran and passed; FAIL when one failed; BLOCKED otherwise."""
+    if blockers:
+        return 'BLOCKED'
+    if stopped_after or any(r.get('status') == 'FAIL' for r in rows.values()):
+        return 'FAIL'
+    return 'PASS' if all(rows.get(g, {}).get('status') == 'PASS' for g in SANITIZER_GATES) else 'BLOCKED'
+
+
+def run_sanitizer_evidence(framework_root, project_dir, report_path):
+    """Run the sanitizer gates of `project_dir` in one project container and write the sanitizer-evidence report to
+    `report_path` (and to its run directory). It does not compare the framework with the framework manifest and records
+    no framework differences (EX13-A10): the report binds the source identity of the whole tree, framework files
+    included, and B11 accepts it only for the same source identity."""
+    started = time.monotonic()
+    root = Path(framework_root).resolve()
+    run_id = uuid.uuid4().hex
+    run_dir = root/'artifacts/project-sanitizer-runs'/run_id
+    report_path = Path(report_path)
+    if report_path.is_file() or report_path.is_symlink():
+        report_path.unlink()          # a stale report never stands in for this run
+    run_dir.mkdir(parents=True)
+    report = {'schema_version': 1, 'kind': 'sanitizer-evidence', 'run_id': run_id, 'project': None, 'project_dir': project_dir,
+              'started_at': datetime.now(timezone.utc).isoformat(), 'finished_at': '', 'elapsed_seconds': 0.0,
+              'project_identity': None, 'source_identity': None, 'image_id': None, 'gates': [], 'verdict': 'BLOCKED',
+              'stopped_after': None, 'blockers': [], 'evidence_directory': str(run_dir)}
+    rows = {}
+    launcher = None
+    scratch = None
+    try:
+        environment_gate()
+        project_policy = pm.project_policy(root)
+        gate_plan(project_policy)
+        lock = read_json(root/'toolchain.lock.json')
+        report['image_id'] = lock['image_id']
+        project = pm.load_project(root, project_dir, framework_root=root)
+        report['project'] = project['name']
+        report['project_identity'] = project_identity(root, project_dir)
+        report['source_identity'] = policy.source_identity(root)[0]
+        from container_policy import Launcher
+        scratch = Path(tempfile.mkdtemp(prefix='safe-c-sanitizers-'))
+        snapshot = snapshot_sources(root, scratch)
+        if policy.source_identity(snapshot)[0] != report['source_identity']:
+            raise GateError('source changed during the immutable project snapshot')
+        launcher = Launcher(root, run_dir, lock, purpose='project')
+        deadline = time.monotonic()+container_seconds(launcher.value)
+        record = launcher.create('project', {'/src': snapshot})
+        check = ProjectCheck(root, project_dir, project, run_dir, launcher, record, project_policy,
+                             snapshot=snapshot, deadline=deadline)
+        try:
+            setup = check.step('setup', ['mkdir', '-p', '/work/project/analysis', '/work/project/profiles', '/work/project/fuzz'], timeout=10)
+            if not passed(setup):
+                raise GateError('project scratch preparation failed')
+            for build in sanitizer_builds(project_dir):
+                check.build(build)
+        finally:
+            rows.update(check.rows)
+        launcher.dispose(record)
+    except Stop as stop:
+        report['stopped_after'] = str(stop)
+    except Exception as exc:  # every other failure is infrastructure: BLOCKED, never a traceback
+        report['blockers'].append(f'{type(exc).__name__}: {str(exc)[:500]}' if isinstance(exc, GateError) else type(exc).__name__)
+    finally:
+        if launcher is not None:
+            try:
+                launcher.close()
+            except Exception as exc:
+                report['blockers'].append('container cleanup: '+(str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__))
+        if scratch is not None:
+            shutil.rmtree(scratch, ignore_errors=True)
+    report['gates'] = [rows[g] for g in SANITIZER_GATES if g in rows]
+    report['verdict'] = sanitizer_verdict(rows, report['stopped_after'], report['blockers'])
+    report['finished_at'] = datetime.now(timezone.utc).isoformat()
+    report['elapsed_seconds'] = round(time.monotonic()-started, 1)
+    try:
+        validate(root, 'project-sanitizer-report', report)
+    except Exception as exc:
+        report['blockers'].append('report schema: '+(str(exc)[:300] if isinstance(exc, GateError) else type(exc).__name__))
+        report['verdict'] = 'BLOCKED'
+    atomic_json(run_dir/'sanitizer-report.json', report)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_json(report_path, report)
+    print(f'sanitizer evidence {project_dir}: {report["verdict"]} ({report["elapsed_seconds"]} s)', flush=True)
     return report
 
 

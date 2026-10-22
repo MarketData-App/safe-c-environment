@@ -1,10 +1,10 @@
-import copy, json, sys, unittest
+import copy, json, math, sys, unittest
 from unittest import mock
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'tools'))
 from evidence import GateError
-import bench_model as bm, bench_plan as bp, bench_stats as bs
+import bench_model as bm, bench_plan as bp, bench_stats as bs, bench_windows as bw
 import schema_check
 # Amendment A: a framework fixture with the shape of the Task 2 example manifest (the example case moved to the example project).
 CASE=json.loads((ROOT/'tests/unit/data/bench-plan-case.json').read_text());schema_check.validate(ROOT,'bench-case',CASE);POLICY=bm.load_policy(ROOT)
@@ -227,7 +227,8 @@ class ReviewFixTests(unittest.TestCase):
         self.assertAlmostEqual(q['estimate_seconds'],sum(s['estimate_seconds'] for s in q['sessions'])+mem+13230*0.2,delta=0.1)
     def test_smoke_total_over_the_job_deadline_is_refused(self):
         cal={'py-reference':0.14,'py-optimized':0.035,'c':0.0004}
-        with self.assertRaises(GateError) as ctx:bp.build_plan(CASE,POLICY,mode='smoke',dataset=DS,seed=1,envelope=ENV4,calibration=cal)
+        case=copy.deepcopy(CASE);case['points']=[p for p in case['points'] if p['name']!='crossover-tiny']   # T6-R7 (R87): no probe point, so the 600 s rule
+        with self.assertRaises(GateError) as ctx:bp.build_plan(case,POLICY,mode='smoke',dataset=DS,seed=1,envelope=ENV4,calibration=cal)
         self.assertIn('smoke',str(ctx.exception))
     def test_memory_trial_over_its_limit_is_refused(self):
         policy=copy.deepcopy(POLICY);policy['job_deadlines']['memory']=60
@@ -294,3 +295,67 @@ class PyLibraryPlanTests(unittest.TestCase):
         with mock.patch.object(bp,'family',lambda v:'py-other' if v=='py-library' else 'py-optimized' if v=='py-optimized' else 'py-reference'):
             with self.assertRaises(GateError) as ctx:bp.calibration_from_observations(obs,POLICY)
         self.assertIn('unknown family py-other',str(ctx.exception))
+    def test_the_required_families_follow_the_case(self):       # EX-18b: a case without a py-optimized row needs no py-optimized rate
+        obs=[{'warmup':False,'eligible':True,'work_units':256,'phase':'caller','workers':'direct','variant':'py-reference','trial_id':f't{b}','block':b,
+              'loops':1,'wall_ns':256*1000} for b in range(2)]
+        with self.assertRaises(GateError):bp.calibration_from_observations(obs,POLICY)
+        self.assertEqual(sorted(bp.calibration_from_observations(obs,POLICY,required=('py-reference',))),['c','py-reference'])
+        case={'variants':[{'id':'py-reference','language':'python','status':'implemented'},{'id':'py-optimized','language':'python','status':'same-as-reference'},
+                          {'id':'c-serial','language':'c','status':'implemented'}]}
+        self.assertEqual(bp.calibration_families(case),('py-reference',))
+        self.assertEqual(bp.calibration_families({'variants':[dict(v,status='implemented') for v in case['variants']]}),('py-reference','py-optimized'))
+        self.assertEqual(bp.calibration_families(None),('py-reference','py-optimized'))
+
+# EX-18b (Phase 3 addendum Task A8, Amendment H15.1): the deterministic 24-hour split of a window plan (bench_windows)
+L=86400-1800
+def grp(gid,order,secs,ref=0.0):return {'id':gid,'order':order,'sessions':[{'id':f'{gid}-s{i}','seconds':s} for i,s in enumerate(secs)],'reference':ref}
+
+class SplitTests(unittest.TestCase):                    # Amendment H15.1 split tests
+    def test_group_just_under_L_stays_one_group(self):
+        self.assertEqual(len(bw.cut(grp('mc/full-dataset',2,[L-1000.0],ref=999.0),L)),1)
+    def test_greedy_cut_points(self):
+        g=grp('me/full-dataset',4,[(2*L+1)/9]*9);parts=bw.cut(g,L)
+        self.assertEqual([len(p['sessions']) for p in parts],[4,4,1])
+    def test_indivisible_part_refuses(self):
+        with self.assertRaises(bw.PlanRefusal) as e:bw.cut(grp('me/full-dataset',4,[1000.0],ref=L),L)
+        self.assertEqual(e.exception.reason,'window-cap-infeasible')
+    def test_every_window_with_controls_is_within_a_day(self):
+        gs=[grp('mc/full-dataset',2,[10000.0]*5,ref=1852.0),grp('me/full-dataset',4,[10000.0]*8,ref=5000.0),grp('one',5,[5000.0]),grp('diag',6,[900.0])]
+        wins=bw.split_windows(gs,1800.0)
+        self.assertTrue(all(w['estimate']<=86400 for w in wins));self.assertEqual([w['id'] for w in wins][:2],['1a','1b'])
+    def test_loop_ends_only_at_one_group_per_window(self):
+        gs=[grp(f'g{i}',i,[50000.0]) for i in range(3)]               # W = 151,800 s: n starts at 2, two groups do not fit one window
+        self.assertEqual(math.ceil((1800.0+3*50000.0)/86400),2)
+        wins=bw.split_windows(gs,1800.0)
+        self.assertEqual((len(wins),[len(w['parts']) for w in wins]),(3,[1,1,1]))
+    def test_session_above_the_cap_refuses(self):
+        with self.assertRaises(bw.PlanRefusal) as e:bw.check_sessions([grp('mc/full-dataset',2,[10800.5])])
+        self.assertEqual(e.exception.reason,'session-cap-infeasible')
+        bw.check_sessions([grp('mc/full-dataset',2,[10800.0])])                 # exactly at the cap
+    def test_look2_is_bounded_by_its_window(self):
+        w=bw.split_windows([grp('mc/full-dataset',2,[10000.0]*3,ref=1852.0),grp('diag',6,[900.0])],1800.0)[0]
+        self.assertLessEqual(bw.look2_worst_case(w,1800.0),w['estimate'])
+    def test_cap_formula(self):
+        self.assertEqual(bw.cap(754*60),600*math.ceil(1.2*754*60/600))
+        self.assertEqual(bw.cap(754*60,1.5,300),300*math.ceil(1.5*754*60/300))       # the protocol's headroom and step
+    def test_equal_count_partitions_resolve_to_the_greedy_one(self):
+        g=grp('me/full-dataset',4,[30000.0,30000.0,30000.0,30000.0])     # [2,2] and [3,1] both give 2 parts; greedy is [2,2] at L = 84,600
+        self.assertEqual([len(p['sessions']) for p in bw.cut(g,L)],[2,2])
+    def test_a_shorter_protocol_window_splits_earlier(self):
+        gs=[grp(f'g{i}',i,[20000.0]) for i in range(3)]
+        self.assertEqual(len(bw.split_windows(gs,1800.0)),1);self.assertEqual(len(bw.split_windows(gs,1800.0,day=43200)),2)
+    # EX-18c (EX18b-A09): the exact bounds of the cut and of the window
+    def test_a_part_exactly_at_L_is_one_part_and_one_past_refuses(self):
+        parts=bw.cut(grp('mc/full-dataset',2,[L-999.0],ref=999.0),L)
+        self.assertEqual((len(parts),parts[0]['estimate']),(1,float(L)))
+        with self.assertRaises(bw.PlanRefusal) as e:bw.cut(grp('mc/full-dataset',2,[L-998.0],ref=999.0),L)       # L + 1: indivisible
+        self.assertEqual(e.exception.reason,'window-cap-infeasible');self.assertEqual(e.exception.estimates[0]['estimate'],L+1.0)
+        self.assertEqual([len(p['sessions']) for p in bw.cut(grp('mc/full-dataset',2,[L/2,L/2]),L)],[2])          # two sessions summing to L
+        self.assertEqual([len(p['sessions']) for p in bw.cut(grp('mc/full-dataset',2,[L/2,L/2+1.0]),L)],[1,1])    # to L + 1
+    def test_a_window_exactly_at_the_window_length_and_one_past(self):
+        wins=bw.split_windows([grp('g0',0,[L/2]),grp('g1',1,[L/2])],1800.0)                # 1,800 + 2 x 42,300 = 86,400 s
+        self.assertEqual([(w['id'],w['estimate']) for w in wins],[('1a',86400.0)])
+        wins=bw.split_windows([grp('g0',0,[L/2]),grp('g1',1,[L/2+1.0])],1800.0)            # 86,401 s: two windows
+        self.assertEqual([w['estimate'] for w in wins],[1800.0+L/2+1.0,1800.0+L/2])
+        wins=bw.split_windows([grp('g0',0,[20000.0]),grp('g1',1,[21400.0])],1800.0,day=43200)   # a protocol window length: exactly 43,200 s
+        self.assertEqual([w['estimate'] for w in wins],[43200.0])

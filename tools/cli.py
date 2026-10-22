@@ -397,6 +397,10 @@ def main(argv=None):
                 # Task 19a: the bench laboratory qualification on the framework controls (own bench containers; the
                 # parent session sits idle meanwhile).
                 runner.refresh(idle=True)
+                # EX13-A08: the sanitizer evidence of every native example project (one report each) before the bench
+                # gates, so bench case B11 has current evidence here and in the fresh child ci.
+                from bench_phase2 import sanitizer_evidence_all
+                sanitizer_evidence_all(root)       # the reports are artifacts/project-sanitizers/<project>.json; B11 reads them
                 from bench import ci_gates
                 bench_gates,bench_additions=ci_gates(root)
                 report['gates']+=bench_gates

@@ -57,6 +57,14 @@ def suite_status(report,name):
     gate=_gate(report,'bench-selftest');details=gate.get('details') if gate else None
     return _status(details.get(name)) if isinstance(details,dict) else None
 
+def b17_not_run(report):
+    """EX17-A02: the open B17 entries ('B17 <dimension>') of the cases.json `not_run` list that the bench-selftest gate
+    details carry (bench.cases_not_run); [] when none is open; None when the list is missing or malformed (unknown)."""
+    gate=_gate(report,'bench-selftest');details=gate.get('details') if gate else None
+    rows=details.get('not_run') if isinstance(details,dict) else None
+    if not isinstance(rows,list) or not all(isinstance(r,str) for r in rows):return None
+    return [r for r in rows if r.startswith(DEMO_SUITE+' ')]
+
 def _combine(statuses):
     """FAILED when any status is FAIL (a real failure); PASSED only when every status is PASS; else BLOCKED (missing or blocked)."""
     if 'FAIL' in statuses:return 'FAILED'
@@ -124,17 +132,18 @@ def matrix_missing(root,plan,observations):
         return list(check(plan,observations,bm.load_case(Path(root),plan['case'],plan.get('project_dir'))))
     except (GateError,OSError,ValueError,KeyError,TypeError) as exc:return [f'matrix check failed: {type(exc).__name__}']
 
-def demo_cases(root):
+def demo_cases(root,project=None):
     """(project_dir, case_id) of every case of every framework example project (bench.example_projects, found by layout;
-    the framework names no example, Amendment A). The demo decision run of Task 35 is a run of one of these cases."""
+    the framework names no example, Amendment A), or of the explicit `project` (dev readiness --project DIR, amendment E
+    1.2 item 3). The demo decision run of Task 35 is a run of one of these cases."""
     import bench, bench_model as bm
     out=set()
-    for project in bench.example_projects(root):
-        try:doc=load_project_json(Path(root)/project/bm.PROJECT_AREA/'bench.json','bench-json',PROJECT_JSON_MAX_BYTES,
+    for example in bench.example_projects(root,project):
+        try:doc=load_project_json(Path(root)/example/bm.PROJECT_AREA/'bench.json','bench-json',PROJECT_JSON_MAX_BYTES,
                                   label='benchmarks/project/bench.json')      # FR3-17: a malformed example is skipped
         except GateError:doc=None
         cases=doc.get('cases') if isinstance(doc,dict) else None
-        out|={(project,c) for c in (cases if isinstance(cases,list) else []) if isinstance(c,str)}
+        out|={(example,c) for c in (cases if isinstance(cases,list) else []) if isinstance(c,str)}
     return out
 
 def is_demo_run(run,plan,cases):
@@ -147,11 +156,11 @@ def is_demo_run(run,plan,cases):
     return ((project,run.get('case')) in cases and (data.get('kind'),data.get('size'))==DEMO_DATASET
             and plan.get('case')==run.get('case') and plan.get('project_dir')==project and not _unit_policy_plan(plan))
 
-def demo_run(root,identity):
+def demo_run(root,identity,project=None):
     """The newest current demo decision run (is_demo_run; other decision runs are skipped, never a stop) or None:
     {run_id, valid, primary_missing, matrix}. valid needs the bound run record and evidence, status VALID and the current
-    decision records of every rule policy."""
-    cases=demo_cases(root)
+    decision records of every rule policy. `project`: the example scope (demo_cases)."""
+    cases=demo_cases(root,project)
     for run_dir,run in _runs(root,identity,'decision'):
         plan=_read(run_dir/'plan.json') or {}
         if not is_demo_run(run,plan,cases):continue
@@ -161,14 +170,16 @@ def demo_run(root,identity):
                 'matrix':matrix_missing(root,plan,obs) if valid else None}
     return None
 
-def _smoke_evidence(root,identity):
-    """A current VALID bound smoke run of an example project case (exploratory demo evidence; a control-case smoke run is none)."""
-    cases=demo_cases(root)
+def _smoke_evidence(root,identity,project=None):
+    """A current VALID bound smoke run of an example project case of the scope `project` (exploratory demo evidence; a
+    control-case smoke run is none)."""
+    cases=demo_cases(root,project)
     return any(((run.get('plan') or {}).get('project_dir') if isinstance(run.get('plan'),dict) else None,run.get('case')) in cases
                and run.get('status')=='VALID' and not _bound(d,run) for d,run in _runs(root,identity,'smoke'))
 
-def performance_axes(root,identity,developer_axes):
-    """The ten axes of brief section 18 in brief order (Amendment H9)."""
+def performance_axes(root,identity,developer_axes,project=None):
+    """The ten axes of brief section 18 in brief order (Amendment H9). `project` (dev readiness --project DIR): the demo
+    axes read the cases of that project instead of the framework examples (amendment E 1.2 item 3)."""
     root=Path(root);rep=current_report(root,identity)
     if rep is None:tooling=measurement=multicore='BLOCKED'
     else:
@@ -176,12 +187,13 @@ def performance_axes(root,identity,developer_axes):
         tooling=_combine([_status(doctor.get('status')) if doctor else None]+[suite_status(rep,n) for n in TOOLING_SUITES])
         measurement=_combine([suite_status(rep,n) for n in MEASUREMENT_SUITES])
         multicore=_combine([suite_status(rep,n) for n in MULTICORE_SUITES]+[_multicore(rep)])
-    run=demo_run(root,identity);b17=rep is not None and suite_status(rep,DEMO_SUITE)=='PASS';b17_failed=rep is not None and suite_status(rep,DEMO_SUITE)=='FAIL'
-    if b17 and run and run['valid'] and run['matrix']==[]:execution='COMPLETE'
+    run=demo_run(root,identity,project);b17=rep is not None and suite_status(rep,DEMO_SUITE)=='PASS';b17_failed=rep is not None and suite_status(rep,DEMO_SUITE)=='FAIL'
+    # EX17-A02: a B17 dimension in cases.json not_run (or an unknown not_run list) keeps the axis below COMPLETE
+    if b17 and run and run['valid'] and run['matrix']==[] and b17_not_run(rep)==[]:execution='COMPLETE'
     elif b17 or run or b17_failed:execution='PARTIAL'     # only one of them exists, the matrix has missing cells, or B17 ran and failed (T24-APP-02)
     else:execution='NOT_EXECUTED'
     if run:evidence='DECISION_GRADE' if run['valid'] and run['primary_missing']==[] else 'INCONCLUSIVE'
-    else:evidence='EXPLORATORY' if _smoke_evidence(root,identity) else 'INCONCLUSIVE'
+    else:evidence='EXPLORATORY' if _smoke_evidence(root,identity,project) else 'INCONCLUSIVE'
     return {'benchmark_tooling':tooling,'measurement_qualification':measurement,'multicore_qualification':multicore,
             'demo_experiment_execution':execution,'demo_performance_evidence':evidence,
             'combined_local_checks':developer_axes['combined_local_checks'],'independent_enforcement':developer_axes['independent_enforcement'],

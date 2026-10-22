@@ -1,0 +1,4 @@
+{"schema_version":1,"name":"scfixturewheel","version":"1.0.0",
+ "origin":"first-party fixture: built from third_party/wheel-source of this project by the deterministic stored-zip rule of tools/project_third_party.py (build_source_wheel); no wheel archive is tracked",
+ "acquisition":"none: tracked source, no network step",
+ "owner":"MarketData-App"}

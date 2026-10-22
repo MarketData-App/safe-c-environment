@@ -33,7 +33,20 @@ author/committer and tag tagger emails must be GitHub noreply addresses (GitHub'
 web-flow committer is also accepted), and their names and messages are checked
 like content. Content of a file under third_party/ or container/foundation-inputs/,
 or of an upstream archive (.whl, .zip, .tar.*), is exempt only when a lock file of
-the same revision binds that path to that sha256; names are always checked and
+the same revision binds that path to that sha256. Content of a file under
+<project>/benchmarks/project/third_party/, where <project> is a project root of
+the same revision (the repository root or examples/<name>/, with a project.json
+there), is exempt only when the protected
+project lock there (third_party/lock.json) of the same revision binds that exact
+path to its sha256 and size in a row whose origin URL is on the upstream
+allowlist (UPSTREAM_URL: PyPI files, GitHub release downloads and archives, Boost
+release archives; the lock schema holds the same list): under third_party/wheels/
+only a part of a PyPI wheel row whose URL names the wheel file, elsewhere a source
+part, a retained upstream file, or a provenance or notice record that binds its
+size. The project lock itself is never exempt, and a path that it binds to other
+bytes is a finding (project-lock-mismatch). A look-alike lock outside a project
+root exempts nothing. A symlink entry under a project third_party area is a
+finding (project-third-party-symlink) and is never exempt. Names are always checked and
 first-party files get every rule. A first-party (unpinned) zip, tar (ustar, or a
 pre-POSIX tar whose first header checksum validates), gzip, xz or bzip2 file is
 itself a finding. A listed zip member whose local header disagrees with its
@@ -45,7 +58,18 @@ Threat model: these hooks and the privacy workflow guard against accidental
 commits of personal data. They are not a defence against a deliberate committer
 (client hooks can be bypassed). An archive crafted on purpose so that standard
 tools parse it differently from Python's zipfile and tarfile is a documented
-residual.
+residual. Every lock exemption trusts the lock of the same revision, and exempt
+content (also archive member names) is never searched: a commit that changes a
+bound file together with its lock entry passes, so the review of each lock change
+is the control (for a project lock, the approver of the protected
+benchmarks/project/third_party/ directory). The upstream allowlist checks the
+text of the origin URL only: the hook downloads nothing, so it cannot prove that
+the bound bytes came from that URL, anyone can publish a GitHub release, and a
+provenance or notice record that the project wrote itself is exempt when it is
+bound in such a row. A project root is known by its path and its project.json
+of the same revision only: a commit that adds examples/<name>/project.json and a
+lock makes that directory a project root, and the approver of the protected
+directory is again the control.
 
 Findings print the path, line and category;
 every matched value, also one inside a printed path or label, is masked, archive
@@ -87,6 +111,98 @@ GENERIC = {
 VENDORED = ('third_party/', 'container/foundation-inputs/')
 UPSTREAM_ARCHIVES = ('.whl', '.zip', '.tar.gz', '.tgz', '.tar.xz', '.tar.bz2', '.tar.zst')
 LOCKS = ('upstream.lock.json', 'developer.lock.json', 'foundation.lock.json', 'toolchain.lock.json')
+# EX1-A03, FW-HOOK (fact F14): a file under <project>/benchmarks/project/third_party/ is pinned only by the protected
+# project lock of the same project at the same revision (Scanner.project_binding).
+PROJECT_AREA = 'benchmarks/project/third_party/'
+PROJECT_LOCK = 'benchmarks/project/third_party/lock.json'
+PROJECT_LOCK_REL = 'third_party/lock.json'
+PROJECT_WHEELS = 'third_party/wheels/'
+# T4-A02: a project lock counts only in a project root of the same revision: the repository root or examples/<name>/,
+# with a project.json there (a JSON object). T4-A04: a symlink entry under a project third_party area is a finding.
+PROJECT_FILE = 'project.json'
+EXAMPLE_ROOT = re.compile(r'examples/[^/]+/')
+SYMLINK = '120000'
+PYPI_URL = re.compile(r'https://files\.pythonhosted\.org/[A-Za-z0-9._/+%-]+')
+# FW-HOOK: the upstream origins whose bound project files are exempt from the content rules: PyPI files, GitHub release
+# downloads and archives, and Boost release archives (no '..' anywhere). schemas/project-third-party.json
+# $defs.exempt_origin_url holds the same pattern (a unit test keeps both equal); a row of any other origin exempts nothing.
+UPSTREAM_URL = re.compile(r'https://(?!.*\.\.)(?:files\.pythonhosted\.org/[A-Za-z0-9._/+%-]+'
+                          r'|github\.com/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*/(?:releases/download|archive)/'
+                          r'[A-Za-z0-9._/+%~-]+|archives\.boost\.io/release/[A-Za-z0-9._/+%~-]+)')
+WHEEL_PART_SUFFIX = re.compile(r'\.part-[0-9]{2}')
+
+
+def wheel_part_name(name, filename):
+    """EX1-R1-02: True when `name` is the wheel `filename` or `filename` plus the fixed part suffix .part-NN."""
+    return name == filename or (name.startswith(filename) and WHEEL_PART_SUFFIX.fullmatch(name[len(filename):]) is not None)
+
+
+def project_area(path):
+    """FW-HOOK: (project prefix, path relative to benchmarks/project) of a file under <prefix>benchmarks/project/third_party/,
+    the prefix empty or ending in '/'; None for any other path and for a path that names that area twice (a lock inside
+    the third-party area of another project is no project lock)."""
+    head, found, tail = path.partition(PROJECT_AREA)
+    if not found or (head and not head.endswith('/')) or not tail or PROJECT_AREA in tail:
+        return None
+    return head, 'third_party/' + tail
+
+
+def project_root(head):
+    """T4-A02: True for the prefix of a project root: the repository root ('') or examples/<name>/."""
+    return head == '' or EXAMPLE_ROOT.fullmatch(head) is not None
+
+
+def project_refs(value):
+    """FW-HOOK: (row key, row, role, reference) of every file that a project lock binds: the parts and files of each
+    wheel, source and retained row, and its provenance and notice record."""
+    for key in ('wheels', 'sources', 'retained'):
+        rows = value.get(key)
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict):
+                continue
+            for role in ('parts', 'files'):
+                refs = row.get(role)
+                for ref in refs if isinstance(refs, list) else []:
+                    if isinstance(ref, dict):
+                        yield key, row, role, ref
+            for role in ('provenance', 'notice'):
+                if isinstance(row.get(role), dict):
+                    yield key, row, role, row[role]
+
+
+def same_bytes(ref, digest, size, sized):
+    """True when a lock reference binds these bytes: its sha256, and its size (required when `sized`, else checked when
+    the reference has one; an integer only)."""
+    if sized or 'bytes' in ref:
+        if type(ref.get('bytes')) is not int or ref['bytes'] != size:
+            return False
+    return ref.get('sha256') == digest
+
+
+def pypi_wheel(row):
+    """EX1-A03, EX1-R1-02: a wheel row with origin kind pypi whose files.pythonhosted.org URL ends with its filename, a .whl."""
+    origin, filename = row.get('origin'), row.get('filename')
+    return (isinstance(origin, dict) and origin.get('kind') == 'pypi' and isinstance(origin.get('url'), str)
+            and PYPI_URL.fullmatch(origin['url']) is not None and isinstance(filename, str) and bool(filename)
+            and origin['url'].endswith('/' + filename) and filename.endswith('.whl'))
+
+
+def upstream_row(key, row):
+    """FW-HOOK: True when a lock row (key wheels, sources or retained) has an allowlisted upstream origin: a wheel row only
+    as a PyPI wheel (pypi_wheel); another row with origin kind upstream-archive and an UPSTREAM_URL, or kind pypi and a
+    files.pythonhosted.org URL on that list (a source row: the URL ends with its filename)."""
+    if key == 'wheels':
+        return pypi_wheel(row)
+    origin = row.get('origin')
+    if not isinstance(origin, dict) or not isinstance(origin.get('url'), str) or UPSTREAM_URL.fullmatch(origin['url']) is None:
+        return False
+    if origin.get('kind') == 'pypi':
+        filename = row.get('filename')
+        return PYPI_URL.fullmatch(origin['url']) is not None and (key != 'sources' or (
+            isinstance(filename, str) and bool(filename) and origin['url'].endswith('/' + filename)))
+    return origin.get('kind') == 'upstream-archive'
+
+
 NOREPLY = re.compile(r'(?:[0-9]+\+)?[A-Za-z0-9-]+@users\.noreply\.github\.com', re.I)
 WEB_FLOW = 'noreply@github.com'
 ZERO = re.compile(r'^0+$')
@@ -484,6 +600,15 @@ def mask(value):
 LOCK_MAX_BYTES = 64 * 1024 * 1024
 
 
+def read_at(rev, path):
+    """The bytes of `path` at rev (None: the working tree, a regular file only; ':' the index; else a commit or tree),
+    or b'' when it is absent."""
+    if rev is None:
+        candidate = Path(path)
+        return candidate.read_bytes() if candidate.is_file() and not candidate.is_symlink() else b''
+    return git('cat-file', 'blob', f':{path}' if rev == ':' else f'{rev}:{path}', binary=True, check=False)
+
+
 def lock_json(raw):
     """A lock file through a capped parse (FR3-22): at most LOCK_MAX_BYTES bytes; a malformed, too deep or too large
     document gives None (no pins, so more digests stay findings), never an exception that stops the hook."""
@@ -531,6 +656,45 @@ class Scanner:
             self.pins[rev] = pairs
         return self.pins[rev]
 
+    def project_binding(self, path, data, rev):
+        """EX1-A03, FW-HOOK (fact F14): (pinned, mismatch) of a file under <project>/benchmarks/project/third_party/,
+        judged only against the project lock <project>/benchmarks/project/third_party/lock.json of the same rev (None the
+        working tree, ':' the index, else a commit or tree), so a lock edit in the same commit decides for that commit.
+        pinned (the content is exempt): under third_party/wheels/ only a part of a PyPI wheel row (EX1-A03, EX1-R1-02:
+        origin kind pypi, a files.pythonhosted.org URL that ends with the row filename, a .whl; the part file name is that
+        filename or that filename plus the split-part suffix .part-NN) with this exact path (relative to benchmarks/project),
+        sha256 and size; any other path only as a part, a retained file, or a provenance or notice record with this exact
+        path, sha256 and size (a record without its size is not exempt) of a row whose origin is upstream (upstream_row).
+        The lock itself, a nested project area and every other file are never pinned.
+        T4-A02: the lock counts only in a project root (project_root: the repository root or examples/<name>/) that holds
+        project.json (a JSON object) at the same rev; a look-alike lock anywhere else gives (False, False).
+        mismatch (the finding project-lock-mismatch): the lock binds this path, but no binding has these bytes (sha256,
+        and the size where one is bound)."""
+        area = project_area(path)
+        if area is None or area[1] == PROJECT_LOCK_REL or not project_root(area[0]):
+            return False, False
+        value = lock_json(read_at(rev, area[0] + PROJECT_LOCK) or b'')
+        if not isinstance(value, dict):
+            return False, False
+        rel, digest, size = area[1], hashlib.sha256(data).hexdigest(), len(data)
+        bound = [(key, row, role, ref) for key, row, role, ref in project_refs(value) if ref.get('path') == rel]
+        if not bound or not isinstance(lock_json(read_at(rev, area[0] + PROJECT_FILE) or b''), dict):
+            return False, False
+        mismatch = bool(bound) and not any(same_bytes(ref, digest, size, False) for _, _, _, ref in bound)
+        if rel.startswith(PROJECT_WHEELS):
+            leaf = rel[len(PROJECT_WHEELS):]
+            pinned = '/' not in leaf and any(
+                key == 'wheels' and role == 'parts' and pypi_wheel(row) and wheel_part_name(leaf, row['filename'])
+                and same_bytes(ref, digest, size, True) for key, row, role, ref in bound)
+        else:
+            pinned = any(not (key == 'wheels' and role == 'parts') and upstream_row(key, row)
+                         and same_bytes(ref, digest, size, True) for key, row, role, ref in bound)
+        return pinned, mismatch
+
+    def project_pinned(self, path, data, rev):
+        """EX1-A03, FW-HOOK: True when the content of `path` is exempt through its project lock (project_binding)."""
+        return self.project_binding(path, data, rev)[0]
+
     def text(self, label, text):
         for number, line in enumerate(text.splitlines(), 1):
             for name, rx in self.rules:
@@ -550,11 +714,21 @@ class Scanner:
             if match:
                 self.findings.append(f'{label}: file-name {name} ({mask(match.group(0))})')
 
-    def content(self, label, path, data, rev):
+    def content(self, label, path, data, rev, mode=None):
         self.name(label, path)
-        upstream = path.startswith(VENDORED) or path.endswith(UPSTREAM_ARCHIVES)
-        if upstream and (path, hashlib.sha256(data).hexdigest()) in self.pinned(rev):
-            return
+        if mode == SYMLINK and project_area(path) is not None:
+            # T4-A04: a symlink entry under a project third_party area is a finding and is never exempt (the project tool
+            # refuses links there); its link text gets every content rule below.
+            self.findings.append(f'{label}: project-third-party-symlink')
+        else:
+            upstream = path.startswith(VENDORED) or path.endswith(UPSTREAM_ARCHIVES)
+            if upstream and (path, hashlib.sha256(data).hexdigest()) in self.pinned(rev):
+                return
+            pinned, mismatch = self.project_binding(path, data, rev)
+            if mismatch:
+                self.findings.append(f'{label}: project-lock-mismatch')
+            if pinned:
+                return
         if archive_like(data):
             # First-party archives are not allowed: pin reviewed upstream archives in a lock.
             self.findings.append(f'{label}: unpinned-archive')
@@ -580,14 +754,14 @@ class Scanner:
                     if match:
                         self.findings.append(f'{label}: binary local-identity ({mask(match.group(0).decode("latin-1"))})')
 
-    def blob(self, label, path, rev):
+    def blob(self, label, path, rev, mode=None):
         spec = f':{path}' if rev == ':' else f'{rev}:{path}'
         # Staged, committed and tagged paths: the base name against the private path
         # patterns before the content scan; a match masks the path in every label.
         if any(rx.search(path.rsplit('/', 1)[-1]) for rx in self.path_rules):
             label = label[:len(label) - len(path)] + mask(path) if label.endswith(path) else mask(label)
             self.findings.append(f'{label}: private-path-pattern')
-        self.content(label, path, git('cat-file', 'blob', spec, binary=True), rev)
+        self.content(label, path, git('cat-file', 'blob', spec, binary=True), rev, mode)
 
     def identity(self, label, role, email, name=''):
         self.text(f'{label}: {role}-name', name)
@@ -609,8 +783,9 @@ class Scanner:
         base = ['--root'] if not parents else ['-m'] if len(parents) > 1 else []
         listing = git('diff-tree', '-r', '-z', '--no-commit-id', '--raw', '--diff-filter=ACMRT',
                       '--no-renames', *base, sha)
-        for path in sorted(changed(listing)):
-            self.blob(f'{label}:{path}', path, sha)
+        modes = changed(listing)
+        for path in sorted(modes):
+            self.blob(f'{label}:{path}', path, sha, modes[path])
 
     def tag(self, obj):
         """Check a tag chain and return the final non-tag object; tagged blobs and
@@ -639,7 +814,7 @@ class Scanner:
             for row in filter(None, git('ls-tree', '-r', '-z', obj).split('\0')):
                 meta, _, path = row.partition('\t')
                 if meta.split()[1] == 'blob':
-                    self.blob(f'tagged-tree {obj[:12]}:{path}', path, obj)
+                    self.blob(f'tagged-tree {obj[:12]}:{path}', path, obj, meta.split()[0])
         return obj
 
 
@@ -649,19 +824,20 @@ def staged(scanner):
         scanner.identity('index', role.split('_')[1].lower(), match.group(2) if match else '',
                          match.group(1) if match else '')
     listing = git('diff', '--cached', '-z', '--raw', '--diff-filter=ACMRT', '--no-renames')
-    for path in sorted(changed(listing)):
-        scanner.blob(path, path, ':')
+    modes = changed(listing)
+    for path in sorted(modes):
+        scanner.blob(path, path, ':', modes[path])
 
 
 def changed(listing):
-    """Paths of a -z --raw listing, without submodule (gitlink) entries."""
-    fields, paths, index = listing.split('\0'), set(), 0
+    """{path: new mode} of a -z --raw listing, without submodule (gitlink) entries."""
+    fields, paths, index = listing.split('\0'), {}, 0
     while index + 1 < len(fields):
         meta, path = fields[index], fields[index + 1]
         if not meta.startswith(':'):
             raise ValueError('unexpected raw listing record')
         if meta.split()[1] != GITLINK:
-            paths.add(path)
+            paths[path] = meta.split()[1]
         index += 2
     return paths
 
@@ -711,7 +887,7 @@ def main():
             for row in filter(None, git('ls-files', '-s', '-z').split('\0')):
                 meta, _, path = row.partition('\t')
                 if meta.split()[0] != GITLINK:
-                    scanner.content(path, path, Path(path).read_bytes(), None)
+                    scanner.content(path, path, Path(path).read_bytes(), None, meta.split()[0])
         else:
             staged(scanner)
     except (OSError, RuntimeError, ValueError) as error:

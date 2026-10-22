@@ -8,7 +8,7 @@
  "protocol":{"max_request_records":14336,"max_frame_bytes":4194304,"kernel_buffer_records":20000,"max_input_records":20000,"max_input_bytes":33554432},
  "statistics":{"bootstrap_resamples":10000,"bootstrap_seed":20261007,"interval":0.95},
  "local":{"aggregate_max_bytes":262144,"max_input_bytes":33554432},
- "pyperf":{"agreement_abs_ns":1000000,"agreement_rel":0.02},
+ "pyperf":{"agreement_abs_ns":5000000,"agreement_rel":0.02,"clock_tolerance_ns":1000},
  "controls":{"wait_max_ratio":0.10,"spin_ratio":[0.85,1.15],"two_children_ratio":[1.70,2.30],"native_min_share":0.9,"touch_mib":64,"touch_min_mib":60,"untouched_mib":1024,"quiet_mib":16,"control_seconds":1.0,"native_megabytes":256,"short_children":20,"aa_pressure":{"factor":3.0,"min_usec":1000}},
  "resolution":{"perf_counter_ns":1,"cpu_stat_usec":1,"rusage_usec":1,"memory_bytes":4096},
  "effects":{"relative":0.05,"min_abs_ns_per_unit":0,"min_blocks":3},

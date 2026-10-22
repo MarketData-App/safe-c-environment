@@ -251,8 +251,26 @@ def check_replay_fresh(old,new):
     if any(o.get('run_id') in old_ids for o in new):problems.append('replay reused the run identity')
     return problems
 
+def self_timing_forged(observation,policy):
+    """B15 `forged self-timing` (spec 8.2; T6 item 5, finding T5-A05). The bracket nests the self-timed loops: the
+    coordinator takes the begin sample before it acknowledges the begin marker, the worker reads its clock only after that
+    acknowledgement and stops it before it sends the end marker, and both read CLOCK_MONOTONIC in one container. So an
+    honest self-timing exceeds its bracket by the clock tolerance at most (float rounding of the worker clock), and the
+    bracket exceeds it by the handshake overhead only (the cgroup read of the begin sample and two wake-ups: 0.49 to 1.66 ms
+    in 212 distinct honest trials, 424 recorded rows; the largest, 1,661,031 ns, on a 274.8 ms wall). True when the row
+    has both values and one of them is not a non-negative integer, the
+    self-timing exceeds the bracket by more than pyperf.clock_tolerance_ns, or the bracket exceeds the self-timing by more
+    than max(pyperf.agreement_abs_ns, pyperf.agreement_rel x wall). A row without one of the values is not judged here.
+    container/bench-coordinator.py self_timing_forged is the in-job copy (rule pyperf-agreement)."""
+    pw,wall=observation.get('pyperf_wall_ns'),observation.get('wall_ns')
+    if pw is None or wall is None:return False
+    if type(pw) is not int or type(wall) is not int or pw<0 or wall<0:return True
+    p=policy['pyperf']
+    return pw-wall>p['clock_tolerance_ns'] or wall-pw>max(p['agreement_abs_ns'],p['agreement_rel']*wall)
+
 def check_integrity(plan,run,observations,policy):
     """B15 (brief section 15) and P10 dataset/scope binding on recorded evidence."""
+    import bench_plan as bp
     problems=[];planned={}
     for sess in plan.get('sessions',[]):
         for t in sess['trials']:planned[t['trial_id']]=t
@@ -267,15 +285,15 @@ def check_integrity(plan,run,observations,policy):
         t=planned.get(o['trial_id'])
         if t is None:problems.append('unplanned row: '+o['trial_id'])           # T16-APP-02: an added row is a B15 duplicate or altered row
         if t is not None and (o.get('scope')!=t.get('scope') or (t.get('point') and o.get('point')!=t.get('point'))):problems.append('scope mismatch: '+o['trial_id'])
-        pw=o.get('pyperf_wall_ns')
-        if pw is not None and o.get('wall_ns') is not None and abs(pw-o['wall_ns'])>max(policy['pyperf']['agreement_abs_ns'],policy['pyperf']['agreement_rel']*o['wall_ns']):
-            problems.append('forged self-timing: '+o['trial_id'])
+        if self_timing_forged(o,policy):problems.append('forged self-timing: '+o['trial_id'])
     for tid,t in planned.items():
         got=seen.get(tid,[])
         if not got:problems.append('missing failed attempt: '+tid)
         elif len(got)>want(t):problems.append('duplicate rows: '+tid)
         elif not t.get('warmup'):
-            n=policy['sizes'][t['tier']]*(t['clients']*t['requests_per_client'] if t.get('scope')=='capacity' else 1)   # Task 22: every request of a capacity trial
+            # T5R1-A01: the planned work of the trial (tier rows; every request of a capacity trial, Task 22; len(panel) x
+            # panel_passes one-row calls of a single-record trial), one definition with the P07 and in-job rules
+            n=bp.planned_work_units(t,policy['sizes'])
             if any(o.get('eligible') and o.get('work_units')!=n for o in got):problems.append('wrong work count: '+tid)
     if dataset_differs(plan.get('dataset'),run.get('dataset')):problems.append('dataset mismatch: primary dataset')    # T16-APP-03: full identity
     named=plan.get('datasets') or {};recorded=run.get('datasets') or {}

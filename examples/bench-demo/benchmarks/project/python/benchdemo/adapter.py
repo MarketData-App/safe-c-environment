@@ -81,3 +81,12 @@ class DemoDigest:
         ok=result==reference;count=len(result.get('values',[]))!=len(reference['values'])
         return {'eligible':ok,'failures':{} if ok else {'values':1},'reduction':'MATCH' if ok else 'ROW_COUNT' if count else 'MISMATCH'}
     def digest(self,result):return hashlib.sha256(json.dumps(result,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    def local_summary(self,data,reference):
+        """Spec 12 (EX-19, the framework control of a local run): the closed summary of the sliced dataset `data` and its
+        reference: the framework keys rows, result_sha256 (a fresh py-reference result of the whole slice) and
+        reference_sha256 (whole-run digests only), and the project block `records` (protocol/aggregate.schema.json): the
+        record count, the step count of the case and whether the fresh result equals the reference. Counts only, never a
+        record value."""
+        result=self.reference(data);n=self.work_units(result)
+        return {'rows':n,'result_sha256':self.digest(result),'reference_sha256':self.digest(reference),
+                'records':{'count':n,'steps':self.steps,'match':result==reference}}

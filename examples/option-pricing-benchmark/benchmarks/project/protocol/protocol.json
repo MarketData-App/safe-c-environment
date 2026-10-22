@@ -1,0 +1,356 @@
+{
+ "schema_version": 1,
+ "cases": [
+  "option-chain-greeks",
+  "echo-control"
+ ],
+ "echo_case": "echo-control",
+ "agreement_mutations": [
+  "wrong-model",
+  "not-requested-garbage",
+  "misplaced-flag"
+ ],
+ "approval": {
+  "state": "APPROVED",
+  "reference": "artifacts/approvals/ex-option-E1c/verdict.md"
+ },
+ "models": [
+  "bsm",
+  "bjs",
+  "crr",
+  "baw",
+  "alo"
+ ],
+ "tolerances": {
+  "state": "calibrated-phase-2",
+  "calibration": {
+   "proposal": "protocol/tolerance-proposal.json",
+   "proposal_sha256": "429faa0887ad6bfcea1d8763921cedac24a231e9914297775eecc4a2302c2e64",
+   "verdict": "artifacts/approvals/ex-option-T23/verdict.md"
+  },
+  "iv_abs": 1e-08,
+  "iv_ulp_rel": 1e-13,
+  "price_rel": 1e-12,
+  "fit_nu": 1e-10,
+  "fit_rel": 1e-12,
+  "greek_abs": 1e-09,
+  "greek_rel": 1e-06,
+  "flat_vega": 1e-12,
+  "ambiguity_rel": 1e-09,
+  "provider_mid_diff": 0.005,
+  "baw": {
+   "state": "locked-g-baw2",
+   "approval": "perf-lab-t7-baw-lock",
+   "iv_abs": 1e-08,
+   "iv_ulp_rel": 1e-13,
+   "price_rel": 1e-12,
+   "fit_nu": 1e-10,
+   "fit_rel": 1e-12,
+   "greek_abs": 1e-09,
+   "greek_rel": 1e-06,
+   "flat_vega": 1e-12,
+   "sstar_k": {
+    "delta": 0,
+    "gamma": 0,
+    "theta": 0,
+    "vega": 0,
+    "rho": 0
+   }
+  },
+  "alo": {
+   "state": "locked-g-alo2",
+   "approval": "perf-lab-alo-panel",
+   "iv_abs": 1e-08,
+   "iv_ulp_rel": 1e-13,
+   "price_rel": 1e-12,
+   "fit_nu": 1e-10,
+   "fit_rel": 1e-12,
+   "greek_abs": 1e-09,
+   "greek_rel": 1e-06,
+   "flat_vega": 1e-12
+  }
+ },
+ "solver": {
+  "tolerance": 1e-10,
+  "max_iterations": 200,
+  "sigma_hi": 5.0,
+  "slow_steps": 3,
+  "multi_root_grid": 64
+ },
+ "budgets": {
+  "estimate_share_per_selector": {
+   "bsm": 0.05,
+   "bjs": 0.1,
+   "crr": 1.0,
+   "baw": 0.15,
+   "alo": 3.14
+  },
+  "share_required": [
+   "alo"
+  ]
+ },
+ "before_run_required": {
+  "option-chain-greeks": [
+   "b06-prerequisite-oracle",
+   "quantlib-alignment",
+   "optimized-agreement",
+   "b06-prerequisite-agreement",
+   "baw-agreement",
+   "alo-agreement",
+   "alo-agreement-edges",
+   "c-vectors",
+   "c-census"
+  ]
+ },
+ "decision_policies": {
+  "unit-200ms-and-20pct": {
+   "state": "approved",
+   "demonstration_only": false,
+   "kind": "unit-threshold",
+   "source": "owner 2026-10-15/16: Python adds 200 ms or more AND C consistently >20% faster per route (Amendment D, E C15)",
+   "case": "option-chain-greeks",
+   "metric": "wall_ns_per_request",
+   "verdict_mode": "warm",
+   "reported_modes": [
+    "warm",
+    "cold"
+   ],
+   "threshold_ns_per_request": 200000000,
+   "units": [
+    "bsm/full-dataset",
+    "bjs/full-dataset",
+    "crr/full-dataset",
+    "baw/full-dataset",
+    "alo/full-dataset",
+    "bsm/single-record",
+    "bjs/single-record",
+    "crr/single-record",
+    "baw/single-record",
+    "alo/single-record"
+   ],
+   "python_languages": [
+    "python",
+    "python-library"
+   ],
+   "c_languages": [
+    "c"
+   ],
+   "safe_routes": [
+    "stdio",
+    "shm"
+   ],
+   "less_safe_routes": [
+    "inproc"
+   ],
+   "panel_statistic": "max",
+   "primary_blocks": 12,
+   "interval_method": "order-statistic",
+   "alpha_one_sided": [
+    0.025,
+    0.0125
+   ],
+   "multiplicity": "bonferroni",
+   "extension_blocks": 12,
+   "extension_trigger": "python-near-threshold",
+   "extension_window": "separate-lock-window",
+   "c_project_check": {
+    "accept_exit": [
+     0,
+     3
+    ],
+    "exit_3_requires": "local-framework-qualification-g9.4",
+    "exit_3_label": "framework qualified locally, not published"
+   },
+   "pool_cpu_guard": null,
+   "limits": {
+    "cpu_regression": null,
+    "latency_regression": null,
+    "memory_regression": null
+   },
+   "margin_rule": {
+    "base_variants": [
+     "py-reference",
+     "py-optimized"
+    ],
+    "candidate_variants": [
+     "c-serial"
+    ],
+    "routes": [
+     "stdio",
+     "shm",
+     "inproc"
+    ],
+    "margin": 0.2
+   },
+   "windows": {
+    "window_seconds": 86400,
+    "cap_headroom": 1.2,
+    "cap_step_seconds": 600,
+    "calibration_deadline_seconds": 3600,
+    "caps_seconds": {
+     "synthetic": 30600,
+     "local": 103800
+    },
+    "controls": {
+     "base": {
+      "point": "baseline",
+      "variant": "py-optimized"
+     },
+     "candidate": {
+      "point": "baseline",
+      "variant": "c-serial",
+      "route": "stdio"
+     }
+    }
+   }
+  }
+ },
+ "stubs": [
+  {
+   "reason": "baw-hang",
+   "check": "baw-hang-stub",
+   "variant": "py-library",
+   "label": "BAW py-library blocks (call deadline baw-hang)"
+  },
+  {
+   "reason": "alo-overrun",
+   "check": "alo-overrun-stub",
+   "variant": "py-library",
+   "label": "ALO py-library blocks (call deadline alo-overrun)"
+  }
+ ],
+ "panel": {
+  "models": [
+   "bsm",
+   "bjs",
+   "crr",
+   "baw",
+   "alo"
+  ],
+  "digest_form": "ocg-v1m",
+  "cell_rule": {
+   "category": {
+    "column": "side",
+    "labels": {
+     "call": 0,
+     "put": 1
+    }
+   },
+   "position": "x",
+   "scale": "t",
+   "level_ratios": [
+    2.0,
+    4.0
+   ],
+   "grid": {
+    "upper": 5.0,
+    "points": 64
+   },
+   "report": [
+    {
+     "name": "k_over_s",
+     "column": "k_over_s"
+    },
+    {
+     "name": "x",
+     "column": "x"
+    },
+    {
+     "name": "t_years",
+     "column": "t"
+    },
+    {
+     "name": "t_days",
+     "column": "t",
+     "factor": 365.0
+    }
+   ],
+   "cells": [
+    {
+     "name": "itm-put-30d",
+     "category": "put",
+     "band": {
+      "op": "gt",
+      "bound": 0.0
+     },
+     "position_target": 0.09531017980432493,
+     "scale_target": 0.0821917808219178
+    },
+    {
+     "name": "itm-put-1y",
+     "category": "put",
+     "band": {
+      "op": "gt",
+      "bound": 0.0
+     },
+     "position_target": 0.09531017980432493,
+     "scale_target": 1.0
+    },
+    {
+     "name": "atm-call-30d",
+     "category": "call",
+     "band": {
+      "op": "abs_le",
+      "bound": 0.04879016416943205
+     },
+     "position_target": 0.0,
+     "scale_target": 0.0821917808219178
+    },
+    {
+     "name": "atm-call-1y",
+     "category": "call",
+     "band": {
+      "op": "abs_le",
+      "bound": 0.04879016416943205
+     },
+     "position_target": 0.0,
+     "scale_target": 1.0
+    },
+    {
+     "name": "otm-put-30d",
+     "category": "put",
+     "band": {
+      "op": "lt",
+      "bound": 0.0
+     },
+     "position_target": -0.10536051565782628,
+     "scale_target": 0.0821917808219178
+    },
+    {
+     "name": "otm-put-1y",
+     "category": "put",
+     "band": {
+      "op": "lt",
+      "bound": 0.0
+     },
+     "position_target": -0.10536051565782628,
+     "scale_target": 1.0
+    }
+   ]
+  }
+ },
+ "verdict_counts": [
+  "multi_root",
+  "boundary_ambiguous",
+  "flat_vega"
+ ],
+ "library_report": {
+  "selectors": [
+   "baw"
+  ],
+  "label": "py-library: Python S* side test included"
+ },
+ "local_exceptions": [
+  "ChainError",
+  "ModelDefect",
+  "TailCondition"
+ ],
+ "oracle": {
+  "file": "oracle.json",
+  "sha256": "307a47f5d002847f0a44d6b5c6e9f4a7f7960af75355a8038108945b3ff1c060"
+ },
+ "aggregate_schema": {
+  "file": "aggregate.schema.json",
+  "sha256": "d51e483e93eb33d8ab62bedff2c846cf6d85481928bad06b84d9e78f4627a3ea"
+ }
+}

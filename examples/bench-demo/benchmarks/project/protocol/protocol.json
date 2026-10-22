@@ -1,3 +1,16 @@
 {"schema_version":1,"cases":["demo-digest"],
  "approval":{"state":"PENDING","reference":null},
- "before_run_required":{"demo-digest":["demo-agreement"]}}
+ "before_run_required":{"demo-digest":["demo-agreement"]},
+ "aggregate_schema":{"file":"aggregate.schema.json","sha256":"1ef6df1f4c70edeee5557a877f47b6dc6576bf0b3c447e76272e983d6a724ab0"},
+ "decision_policies":{"example-window-units":{"state":"approved","demonstration_only":false,"kind":"unit-threshold",
+  "source":"framework example (EX-18b): the framework control of the window plan, the window attempts and the unit smoke job; never an adoption decision",
+  "case":"demo-digest","metric":"wall_ns_per_request","verdict_mode":"warm","reported_modes":["warm","cold"],
+  "threshold_ns_per_request":1000000,
+  "units":["all/full-dataset"],
+  "python_languages":["python","python-library"],"c_languages":["c"],"safe_routes":["stdio","shm"],"less_safe_routes":["inproc"],
+  "panel_statistic":"max","primary_blocks":12,"interval_method":"order-statistic","alpha_one_sided":[0.025,0.0125],"multiplicity":"bonferroni",
+  "extension_blocks":12,"extension_trigger":"python-near-threshold","extension_window":"separate-lock-window",
+  "c_project_check":{"accept_exit":[0,3],"exit_3_requires":"local-framework-qualification-g9.4","exit_3_label":"framework qualified locally, not published"},
+  "pool_cpu_guard":null,"limits":{"cpu_regression":null,"latency_regression":null,"memory_regression":null},
+  "windows":{"window_seconds":86400,"cap_headroom":1.2,"cap_step_seconds":600,
+   "controls":{"base":{"point":"demo-control","variant":"py-reference"},"candidate":{"point":"demo-control","variant":"c-serial","route":"stdio"}}}}}}

@@ -15,6 +15,8 @@ import this module.
   macros whose definition differs between configurations.
 - `parse_depfile`, `preprocess_argv` and `dependency_problems` turn compiler
   dependency output into policy findings.
+- `wheel_path_hits` and `wheel_path_problem` (EX1-A02) find the job values that
+  name the project wheel layer or a project third-party tree.
 
 No function here prints; results hold paths, line numbers and short check names
 only, never source text.
@@ -26,6 +28,14 @@ import struct
 from typing import NamedTuple
 
 PROJECT_PATHS = ('src/', 'include/', 'tests/project/', 'fuzz/project/', 'specs/project/', 'review/')
+# EX1-A02 (b): native code of a third-party project wheel stays outside every first-party C build, analyzer, sanitizer
+# and fuzz profile. PROJECT_WHEEL_LAYER is tools/project_third_party.py LAYER_PATH (a unit test keeps them equal).
+PROJECT_WHEEL_LAYER = '/opt/project-python'
+PROJECT_THIRD_PARTY = 'benchmarks/project/third_party'
+WHEEL_PATH_REASON = 'project-wheel-path'
+_WHEEL_LAYER_NAME = PROJECT_WHEEL_LAYER.rsplit('/', 1)[1]
+_PATH_PART = re.compile(r'(?:\.{1,2}/|/)[^\s,:;=]*')
+_PATH_FLAG = re.compile(r'^-(?:isystem|iquote|idirafter|isysroot|imacros|include|iprefix|iwithprefixbefore|iwithprefix|-sysroot|I|L|B|F)')
 TRIGRAPHS = {'=': '#', '/': '\\', "'": '^', '(': '[', ')': ']', '!': '|', '<': '{', '>': '}', '-': '~'}
 PUNCTUATORS = sorted(['%:%:', '...', '<<=', '>>=', '->', '++', '--', '<<', '>>', '<=', '>=', '==', '!=', '&&',
                       '||', '*=', '/=', '%=', '+=', '-=', '&=', '^=', '|=', '##', '<:', ':>', '<%', '%>', '%:',
@@ -628,6 +638,45 @@ DIRECTIVES_PASS = ('-E', '-fdirectives-only')
 MACROS_PASS = ('-E', '-dM')
 
 
+def wheel_path_hits(values, project_root=None, cwd='/'):
+    """EX1-A02 (b): the values (argv elements, environment values, compiler dependencies, link inputs) of a first-party C
+    build, analyzer, sanitizer or fuzz job that name the project wheel layer or the project's third-party tree
+    (<project_root>/benchmarks/project/third_party). A value names the layer when it holds the layer's name anywhere (fail
+    closed). Each value is split at white space, `,`, `:`, `;` and `=`; a part that starts with `-` gives its path parts
+    (and the rest after an include, library or sysroot flag), any other part is a path; a relative path is resolved
+    against cwd."""
+    roots = [PROJECT_WHEEL_LAYER]
+    if project_root:
+        roots.append(posixpath.normpath(posixpath.join(project_root, PROJECT_THIRD_PARTY)))
+    hits = []
+    for value in values:
+        text = str(value)
+        if _WHEEL_LAYER_NAME in text:
+            hits.append(value)
+            continue
+        for token in re.split(r'[\s,:;=]+', text):
+            if token.startswith('-'):
+                flag = _PATH_FLAG.match(token)
+                parts = _PATH_PART.findall(token) + ([token[flag.end():]] if flag and token[flag.end():] else [])
+            else:
+                parts = [token] if token else []
+            if any(_under(posixpath.normpath(posixpath.join(cwd or '/', part)), roots) for part in parts):
+                hits.append(value)
+                break
+    return hits
+
+
+def _under(path, roots):
+    return any(path == root or path.startswith(root + '/') for root in roots)
+
+
+def wheel_path_problem(where, values, project_root=None, cwd='/'):
+    """The stable refusal (`project-wheel-path: <where> names <the first hit>`) of a first-party job whose values name the
+    project wheel layer or a project third-party tree (wheel_path_hits), else None."""
+    hits = wheel_path_hits(values, project_root, cwd)
+    return f'{WHEEL_PATH_REASON}: {where} names {str(hits[0])[:160]}' if hits else None
+
+
 def dependency_problems(dependencies, unit, project_dir, headers, framework_headers,
                         system_prefixes=('/usr/', '/opt/foundation/')):
     """Findings for the compiler dependencies of one translation unit (paths absolute, in /src).
@@ -644,6 +693,10 @@ def dependency_problems(dependencies, unit, project_dir, headers, framework_head
             problems.append({'file': raw, 'problem': 'relative dependency'})
             continue
         if path == posixpath.normpath(unit if unit.startswith('/') else '/src/'+unit):
+            continue
+        if _under(path, (PROJECT_WHEEL_LAYER, posixpath.join(root, PROJECT_THIRD_PARTY))):       # EX1-A02 (b)
+            problems.append({'file': path, 'problem': WHEEL_PATH_REASON+': dependency in the project wheel layer or the '
+                                                      'project third-party tree'})
             continue
         inside_project = path.startswith(root+'/') if root != '/src' else False
         rel = path[len(root)+1:] if path.startswith(root+'/') else None

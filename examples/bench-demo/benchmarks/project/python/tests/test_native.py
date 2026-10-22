@@ -119,7 +119,7 @@ class AdapterNativeTests(unittest.TestCase):
         import json
         decl=json.loads((Path(__file__).resolve().parents[2]/'bench.json').read_text())['native']
         self.assertEqual(decl,{'kernel':{'program':'bd-kernel','args':['--input','{input}','--records','{records}','--loops','{loops}','--handshake','--output','{output}']},
-                               'agreement':'demo-native'})
+                               'agreement':'demo-native','trace':{'program':'bd-spread'}})     # EX-13: the B04 pool trace program
         usage=(Path(__file__).resolve().parents[4]/'src'/'bd_kernel_cli.c').read_text()
         self.assertIn('--input F --records N --loops L [--handshake] [--output F]',usage)
 

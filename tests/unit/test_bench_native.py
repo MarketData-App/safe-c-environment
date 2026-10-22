@@ -20,7 +20,7 @@ class NativeBuildTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(bn.native_targets(d,temp_project(d,['tool-a','tool-b'],['lib_x'])),['tool-a','tool-b','liblib_x.so'])
         self.assertEqual(bn.native_targets(ROOT,'examples/hello-world'),['hello'])
-        self.assertEqual(bn.native_targets(ROOT,'examples/bench-demo'),['bd-digest','bd-kernel','bd-worker','libbd_inproc.so'])   # FR6-R2 delta 2: the declared targets
+        self.assertEqual(bn.native_targets(ROOT,'examples/bench-demo'),['bd-digest','bd-kernel','bd-worker','bd-spread','libbd_inproc.so'])   # FR6-R2 delta 2: the declared targets; EX-13: bd-spread (the B04 trace program)
     def test_flag_check(self):
         good=['clang','-O2','-ffp-contract=off','-c','/src/examples/x/src/a.c']
         self.assertEqual(bn.check_native_flags([good],'/src/examples/x'),[])
@@ -71,7 +71,7 @@ class BuildNativeTests(unittest.TestCase):
     def setUp(self):
         import project_check
         self.glib=project_check.closure_allowlist(ROOT)['libglib-2.0.so.0']
-        self.files={'bd-digest':b'digest-binary','bd-kernel':b'kernel-binary','bd-worker':b'worker-binary','libbd_inproc.so':b'library'}
+        self.files={'bd-digest':b'digest-binary','bd-kernel':b'kernel-binary','bd-worker':b'worker-binary','bd-spread':b'spread-binary','libbd_inproc.so':b'library'}
         tu=['clang','-O2','-ffp-contract=off','-c','/src/examples/bench-demo/src/bd_digest.c']
         self.row={'status':'PASS','files':list(self.files),'sha256':{k:sha(v) for k,v in self.files.items()},'glib_sha256':self.glib,
                   'compiler':'clang version 19.1.7','commands':[tu],'commands_cut':False,'smoke_exit':0}

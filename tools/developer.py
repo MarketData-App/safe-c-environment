@@ -58,6 +58,9 @@ def configure_parser(parser):
             command.add_argument('--run-id')
         if name == 'replay':
             command.add_argument('--snapshot', choices=['original'], required=True)
+        if name == 'readiness':
+            # Amendment E 1.2 item 3: the example project of the demo axes (default: the framework examples).
+            command.add_argument('--project')
         if name == 'debug':
             command.add_argument('--recipe', choices=['breakpoint', 'crash'], required=True)
             command.add_argument('--location')
@@ -162,9 +165,14 @@ def request(args, policy):
         raise GateError('unknown developer profile')
     value = {'operation': args.operation, 'profile': args.profile}
     for name in ['target', 'test_id', 'kind', 'file', 'line', 'column', 'tu', 'symbol',
-                 'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps','demo_workspace']:
+                 'run_id', 'snapshot', 'recipe', 'location', 'values', 'arguments', 'steps','demo_workspace','project']:
         if hasattr(args, name) and getattr(args, name) is not None:
             value[name] = getattr(args, name)
+    if 'project' in value:
+        path=Path(value['project'])
+        if (not value['project'] or path.is_absolute() or '..' in path.parts or
+                any(c in value['project'] for c in '\0\n\r\\')):
+            raise GateError('readiness --project must be a project directory inside the framework root')
     if value.get('target') and not __import__('re').fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',value['target']):
         raise GateError('developer target must be an actual local registered CMake identifier')
     if args.operation == 'build' and not value.get('target'):

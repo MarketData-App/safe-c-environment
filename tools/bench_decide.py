@@ -220,6 +220,15 @@ def _done(d,outcome,rule,reasons):
     best={f'{p}/{m}':label(d.best_python(p,m)) for p,m in _pm(d)} if d.metric else {}
     return {'outcome':outcome,'rule':rule,'reasons':[r[:300] for r in reasons[:50]],'comparisons':d.comparisons[:600],'items':d.items[:600],'best':best}
 
+def _counts_missing(b,modes):
+    """FW-DECIDE-NAMODE-01 (R94): does the blocked plan row b count as required evidence missing? A not-applicable cell (evidence()
+    marks it from the reason code of bench_phase3.matrix_cells: the inproc cold cell) never counts, in any mode. Any other row counts in its own
+    mode when the policy decides that mode; a row without a mode, and a row whose mode is neither warm nor cold (a malformed
+    mode never hides a row), always counts."""
+    if b.get('not_applicable') is True:return False        # set by evidence() from the reason code (bench_plan.INPROC_COLD)
+    m=b.get('mode')
+    return m not in ('warm','cold') or m in modes
+
 def decide(ev,policy,opportunity,stats):
     if policy.get('kind')=='unit-threshold':raise ValueError('unit-threshold policies decide through bench_units.decide_units')
     d=Decider(ev,policy,opportunity,stats)
@@ -229,7 +238,7 @@ def decide(ev,policy,opportunity,stats):
     if bad:return _done(d,'INVALID_EXPERIMENT',1,['ineligible required row: '+b for b in bad])
     from bench_model import policy_filled
     if not policy_filled(policy):return _done(d,'INCONCLUSIVE',2,['policy objective missing: the owner template is not filled'])
-    missing=[f"{b['variant']} x{b['workers']}"+(f" [{b['route']}]" if b.get('route') else '')+': '+b['reason'] for b in ev.get('blocked',[])]
+    missing=[f"{b['variant']} x{b['workers']}"+(f" [{b['route']}]" if b.get('route') else '')+': '+b['reason'] for b in ev.get('blocked',[]) if _counts_missing(b,d.modes)]
     missing+=[f'baseline row py-reference missing at baseline/{m}' for m in d.modes if d.row('baseline',m,'py-reference','direct') is None]
     missing+=[f'decision point {p} not measured' for p in d.points if not any(r['point']==p for r in d.caller)]
     if missing:return _done(d,'INCONCLUSIVE',2,['required evidence missing: '+x for x in missing])
@@ -290,22 +299,36 @@ def _language(case,variant):
     return next((v['language'] for v in case.get('variants',[]) if v['id']==variant),'python')
 
 def _suite_status(root,run,names):
-    """True when every named suite is PASS in the newest bench-selftest record (artifacts/bench/*/selftest.json) and that
-    record names the run's source identity; else None (missing evidence is unknown, never false or true). A selftest
-    record without a source identity is never current."""
+    """True when every named suite is PASS in the newest bench-selftest record (artifacts/bench/*/selftest.json) of the
+    run's scope and that record names the run's source identity; else None (missing evidence is unknown, never false or
+    true). A selftest record without a source identity is never current. FIX1 T3-A07: a record names its scope (None: the
+    framework scope; else the --project directory of bench selftest); only a record whose scope equals the run's
+    plan.project_dir counts, and a record without a scope key is no record of any scope."""
     from evidence import read_json
     paths=[p for p in Path(root).glob('artifacts/bench/*/selftest.json') if p.is_file() and not p.is_symlink()]
     if not paths or not run.get('source_identity'):return None
-    try:doc=read_json(max(paths,key=lambda p:p.stat().st_mtime))
-    except (OSError,ValueError):return None
-    if not isinstance(doc,dict) or doc.get('source_identity')!=run['source_identity']:return None
+    scope=(run.get('plan') or {}).get('project_dir') if isinstance(run.get('plan'),dict) else None
+    doc=None
+    for p in sorted(paths,key=lambda p:p.stat().st_mtime,reverse=True):
+        try:value=read_json(p)
+        except (OSError,ValueError):return None        # an unreadable newer record leaves the evidence unknown
+        if isinstance(value,dict) and 'scope' in value and value['scope']==scope:doc=value;break
+    if doc is None or doc.get('source_identity')!=run['source_identity']:return None
     suites=doc.get('suites') if isinstance(doc.get('suites'),dict) else {}
     return True if all(isinstance(suites.get(n),dict) and suites[n].get('status')=='PASS' for n in names) else None
 
-def evidence_from_run(root,run_dir,run,plan,case):
+def _not_applicable_cell(b,code):
+    """FW-DECIDE-NAMODE-01 (R94; T6R8-A10): True only for the not-applicable cell as bench_phase3 matrix_cells defines it: the
+    reason code `code` (bench_plan.INPROC_COLD) on route inproc in mode cold. The same reason on another route, in another
+    mode or without a mode is no such cell, and a `not_applicable` key of the plan row is never read."""
+    return b.get('reason')==code and b.get('route')=='inproc' and b.get('mode')=='cold'
+
+def evidence_from_run(root,run_dir,run,plan,case,observations=None):
+    """The rule-policy evidence of a recorded run: the rows of its caller and kernel observations (observations.jsonl, or
+    EX-19 `observations`: the per-block rows of a local run's merged document; a local run has no memory row)."""
     import bench, bench_model as bm
     from evidence import read_json, file_hash
-    policy=bm.load_policy(root);obs=bench.read_jsonl(run_dir/'observations.jsonl');groups={}
+    policy=bm.load_policy(root);obs=bench.read_jsonl(run_dir/'observations.jsonl') if observations is None else list(observations);groups={}
     for o in obs:
         if o['warmup'] or o['scope'] not in ('caller','kernel'):continue     # Task 22 (H6): capacity rows are reported by bench compare only and never decide
         groups.setdefault((o.get('point'),o['scope'],o['mode'],o['variant'],o['workers'],o.get('route')),[]).append(o)
@@ -320,7 +343,11 @@ def evidence_from_run(root,run_dir,run,plan,case):
                      'route_label':next((o.get('route_label') for o in os_ if o.get('route_label')),None),'language':_language(case,variant),
                      'eligible':all(o['eligible'] for o in os_),'wall':bench.per_trial(os_,'wall_ns'),
                      'cpu':{b:v*1000.0 for b,v in bench.per_trial(os_,'cpu_usage_usec').items()},'peak':bs.median(peaks) if peaks and point=='baseline' else None})
-    blocked=[{'variant':b.get('variant'),'workers':b.get('workers'),'route':b.get('route'),'reason':str(b.get('reason'))[:200]} for b in plan.get('blocked_rows') or []]
+    import bench_plan
+    blocked=[{'variant':b.get('variant'),'workers':b.get('workers'),'route':b.get('route'),'reason':str(b.get('reason'))[:200],
+              **({'mode':b['mode']} if isinstance(b.get('mode'),str) else {}),
+              **({'not_applicable':True} if _not_applicable_cell(b,bench_plan.INPROC_COLD) else {})} for b in plan.get('blocked_rows') or []]      # FW-DECIDE-NAMODE-01: a row keeps its mode; the not-applicable cell is marked by its reason code
+    blocked+=bench_plan.excluded_rows(case,plan)        # EX17-A01: a row that the plan removed (--matrix python) is missing evidence (rule 2)
     units={s['point']:policy['sizes'][s['tier']] for s in plan.get('sessions',[])}
     gates=None
     if any(v['language']=='c' for v in case.get('variants',[]) if v.get('status')=='implemented'):
@@ -393,6 +420,54 @@ def decision_record(root,run,plan,case,policy_name,result,ev,opportunity,cgroup_
             'source_identity_run':run.get('source_identity'),'source_identity_decision':now,'stale':stale,'image_id':run.get('image_id'),'evidence_quality':quality,
             'outcome':result['outcome'],'rule':result['rule'],'adoption_outcome':adopt,'demonstration_outcome':demo,'adoption_note':note,'adoption_authorized':False,'cgroup_identity_unrecorded':bool(cgroup_unrecorded),'qualification':None,'sensitivity':None,'windows':None,
             'reasons':result['reasons'],'comparisons':result['comparisons'],'items':result['items'],'summary':summary(ev,result,opportunity,case,stats)}
+
+# ---- Task 25 (spec 13): failed-row investigation links of bench report ----
+INVESTIGATION_TITLE='## Investigation of failed rows'
+INVESTIGATION_ONLY='investigation only; nothing timed under GDB or a sanitizer is a release measurement'
+LOCAL_REPLAY='no input-replay artifact exists for a local: run; build a synthetic reproducer (spec 12) first'
+DEV_RUN='<failed dev run id>'
+
+def native_agreement_name(root,project_dir):
+    """The native agreement check that the project's bench.json `native.agreement` names; None without a project, without a
+    native declaration or when bench.json cannot be read (the report then names no check)."""
+    if project_dir is None:return None
+    import bench_model as bm
+    from evidence import GateError
+    try:decl=bm.project_bench(root,project_dir)
+    except (GateError,OSError,ValueError):return None
+    name=((decl or {}).get('native') or {}).get('agreement') if isinstance(decl,dict) else None
+    return name if isinstance(name,str) else None
+
+def _failed(r):
+    """A row needs an investigation unless its failure count is exactly the integer 0 (an unreadable count is investigated)."""
+    n=r.get('failures');return not (type(n) is int and n==0)
+
+def investigation_lines(rows,project_dir,local,agreement=None):
+    """Spec 13 (Task 25): markdown lines for bench report. For each compare row with failures (failures > 0, or a count that
+    is not an integer), a heading line and three labeled steps: (1) correctness: a C row names `bench check --native
+    --check <agreement>` (the check that bench.json `native.agreement` names; `agreement`), a Python row names
+    `bench validate`; (2) `dev test`, then `dev diagnose` and `dev replay` of the failed dev run, or for a `local:` run the
+    synthetic reproducer instead of the replay; (3) the debugger or sanitizer step, labeled investigation only. [] when no
+    row failed. The framework names no project: `project_dir` comes from the run."""
+    failed=[r for r in rows if isinstance(r,dict) and _failed(r)]
+    if not failed:return []
+    text=lambda x,n=80:str(x)[:n]
+    proj=f' --project {text(project_dir,200)}' if project_dir is not None else ''
+    out=[INVESTIGATION_TITLE,'',f'Every step is {INVESTIGATION_ONLY}. Replace {DEV_RUN} with the run id that `dev test` records.','']
+    for r in failed:
+        workers=r.get('workers');route=r.get('route');c=(r.get('language') or ('c' if text(r.get('variant')).startswith('c-') else 'python'))=='c'
+        name=f"{text(r.get('variant'))} "+('direct' if workers=='direct' else f'x{text(workers)}')+(f' [{text(route)}]' if route else '')
+        out.append(f"### {name} ({text(r.get('scope'))}/{text(r.get('mode'))} at {text(r.get('point'))}): {text(r.get('failures'))} failed trials ({text(r.get('correctness'))})")
+        if c and agreement:
+            out.append(f'1. Correctness: `./tools/safety bench check{proj} --native --check {text(agreement)}` (the native agreement check of bench.json '
+                       '`native.agreement`: the C result equals the Python reference on every route).')
+        elif c:out.append('1. Correctness: the project declares no native agreement check (bench.json `native.agreement`); declare one before an investigation.')
+        else:out.append(f"1. Correctness: `./tools/safety bench validate --case {text(r.get('case') or '<case>')}{proj}` (the Python variants against the reference).")
+        steps=f'`./tools/safety dev test --id <test id>` records a dev run id; then `./tools/safety dev diagnose --run-id {DEV_RUN}`'
+        out.append('2. Diagnose and replay: '+steps+('; '+LOCAL_REPLAY+'.' if local else f' and `./tools/safety dev replay --run-id {DEV_RUN} --snapshot original`.'))
+        out.append(f'3. Debugger or sanitizer ({INVESTIGATION_ONLY}): `./tools/safety dev debug --recipe crash --run-id {DEV_RUN}`'
+                   +(f' or `./tools/safety bench sanitizer-evidence{proj}`.' if project_dir is not None else '.'))
+    return out+['']
 
 def render_markdown(records):
     md=['# Decision','','No single score. Each policy gives the rule outcome and the adoption outcome; a demonstration policy never adopts.','']

@@ -5,8 +5,10 @@ an independent statement of the header `<4sHHQIHHI`.
 Modes: echo (RESPONSE with the request payload and the request's selector mask, until SHUTDOWN or EOF), sleep (reads the
 request, never answers), truncate (half a header, then exit), garbage (28 bytes that are no SCPL header), exit (exits
 after the request header), error (ERROR code 9 with selector mask 0), error-unknown and error-zero (ERROR codes 99
-and 0, outside 1-12), mask (RESPONSE whose selector mask differs)."""
-import os, struct, sys, time
+and 0, outside 1-12), mask (RESPONSE whose selector mask differs). EX-13 (B16 failure controls): partial (a RESPONSE
+header with the request's length, half of the payload, then exit) and segv (reads the request, then ends by SIGSEGV
+with no core file)."""
+import os, signal, struct, sys, time
 HEADER=struct.Struct('<4sHHQIHHI');REQUEST,RESPONSE,ERROR,SHUTDOWN=1,2,3,4
 ERROR_CODES={'error':9,'error-unknown':99,'error-zero':0}      # N3-A02: codes outside 1-12
 
@@ -35,6 +37,10 @@ def main(mode):
         elif mode=='truncate':write_all(1,head[:HEADER.size//2]);return 0
         elif mode=='garbage':write_all(1,b'XCPL'+bytes(range(24)));return 0
         elif mode in ERROR_CODES:write_all(1,HEADER.pack(b'SCPL',2,ERROR,rid,0,0,0,4)+struct.pack('<I',ERROR_CODES[mode]));return 1
+        elif mode=='partial':write_all(1,HEADER.pack(b'SCPL',2,RESPONSE,rid,count,threads,mask,len(payload))+payload[:len(payload)//2]);return 0
+        elif mode=='segv':
+            import resource
+            resource.setrlimit(resource.RLIMIT_CORE,(0,0));os.kill(os.getpid(),signal.SIGSEGV);time.sleep(60);return 5
         elif mode=='mask':write_all(1,HEADER.pack(b'SCPL',2,RESPONSE,rid,count,threads,mask%31+1,len(payload))+payload)
         else:write_all(1,HEADER.pack(b'SCPL',2,RESPONSE,rid,count,threads,mask,len(payload))+payload)
 
