@@ -46,6 +46,16 @@ def holder_seconds(resources):
 def holder_command(resources):
     return ['python3','-c',f'import time; time.sleep({holder_seconds(resources)})']
 
+# A short host-memory dip (another workload on a shared host) waits, bounded, before the admission
+# critical section; the admission then checks the same headroom again and BLOCKS when it is still short.
+MEMORY_WAIT_SECONDS=300
+MEMORY_WAIT_POLL_SECONDS=1.0
+MEMORY_HEADROOM_ERROR='insufficient independent finite-probe memory headroom'   # the admission's exact refusal text
+
+def available_memory():
+    """The host MemAvailable in bytes; the admission and its memory wait read the same value."""
+    return int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:')))*1024
+
 SESSION_RESTARTED='session container stopped or was restarted outside the launcher'
 D_IDS=[f'D{i:02}' for i in range(1,15)]
 # Bench profile (performance lab): fixed single-thread math-library environment,
@@ -341,7 +351,7 @@ class Launcher:
         if len(active)>=a['max_active']:raise GateError('aggregate concurrency budget exhausted')
         for field,key,convert in [('Memory','memory_bytes',1),('NanoCpus','cpus',1e-9),('PidsLimit','pids',1)]:
             if sum(r['HostConfig'][field]*convert for r in active)+p[key]>a[key]:raise GateError('aggregate '+key+' reservation exhausted')
-        available=int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:')))*1024
+        available=available_memory()
         if available<a['reserved_memory_bytes']+max(p['memory_bytes'],finite_memory):raise GateError('insufficient independent finite-probe memory headroom')
         free=os.statvfs(self.run_dir).f_bavail*os.statvfs(self.run_dir).f_frsize
         if free<a['reserved_disk_bytes']+self.value['common']['artifact_total_bytes']:raise GateError('insufficient collector/daemon disk admission headroom')
@@ -349,6 +359,31 @@ class Launcher:
         sizes=[x.stat().st_size for x in files if x.is_file() and not x.is_symlink()]
         if len(sizes)>a['evidence_files'] or sum(sizes)>a['evidence_bytes']:raise GateError('evidence retention budget exhausted; archive owned prior evidence')
         return {'active_before':len(active),'available_memory_bytes':available,'reserved_memory_bytes':a['reserved_memory_bytes'],'finite_probe_memory_bytes':finite_memory,'disk_free_bytes':free,'retained_evidence_bytes':sum(sizes),'max_active':a['max_active']}
+    def memory_wait(self,plan,finite_memory=0,seconds=MEMORY_WAIT_SECONDS,poll=MEMORY_WAIT_POLL_SECONDS,clock=time.monotonic,sleep=time.sleep):
+        """Wait (bounded) while the host memory headroom is short; never admits: the admission checks again."""
+        need=self.value['aggregate']['reserved_memory_bytes']+max(plan['resources']['memory_bytes'],finite_memory)
+        deadline=clock()+seconds
+        while available_memory()<need:
+            if clock()>=deadline:return False
+            sleep(poll)
+        return True
+    def admit_locked(self,plan,finite_memory=0,seconds=MEMORY_WAIT_SECONDS,clock=time.monotonic,sleep=time.sleep):
+        """Take the cross-process admission lock and admit; return (fd, reservation) with the lock held.
+        Only the memory headroom refusal is retried: release the lock, wait (same deadline), admit again (R125)."""
+        if isinstance(seconds,bool) or not isinstance(seconds,(int,float)) or not 0<=seconds<=MEMORY_WAIT_SECONDS:
+            raise GateError('memory wait bound out of range')
+        deadline=clock()+seconds
+        while True:
+            self.memory_wait(plan,finite_memory,seconds=max(0.0,deadline-clock()),clock=clock,sleep=sleep)
+            fd=os.open('/tmp/safe-c-containment-admission-'+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+            try:
+                fcntl.flock(fd,fcntl.LOCK_EX)
+                return fd,self.admission(plan,finite_memory)
+            except GateError as exc:
+                os.close(fd)
+                if str(exc)!=MEMORY_HEADROOM_ERROR or clock()>=deadline:raise
+            except BaseException:
+                os.close(fd);raise
     def bench_wait(self,seconds=60,poll=1.0,clock=time.monotonic,sleep=time.sleep):
         """Every non-bench admission waits (bounded) while a bench session holds the exclusive lock, then BLOCKS."""
         if self.bench_lock is not None:raise GateError('a bench session admits only bench jobs')
@@ -373,7 +408,7 @@ class Launcher:
             self.bench_lock=fd;self.bench_started=time.monotonic_ns()
         return True
     def bench_interval(self):return self.bench_held_ns
-    def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0,file_mounts=None,redacted=False):
+    def create(self,profile,mounts, *,image=None,network=None,command=None,finite_memory=0,file_mounts=None,redacted=False,memory_wait_seconds=MEMORY_WAIT_SECONDS):
         if profile!='bench' and (file_mounts or redacted):raise GateError('file mounts and redaction are bench-only')
         # Fail closed: a fixture file mount exists only in a redacted session, so its path never reaches evidence.
         if file_mounts and not redacted:raise GateError('a fixture file mount requires a redacted session')
@@ -410,11 +445,10 @@ class Launcher:
         for target,m in plan['mounts'].items():argv+=['--mount',f"type=bind,src={m['source']},dst={target},readonly,bind-recursive=disabled"]
         for target,m in plan['file_mounts'].items():argv+=['--mount',f"type=bind,src={m['source']},dst={target},readonly"]
         argv+=[image,*(command or holder_command(p))]
-        # Cross-process admission and creation are one short critical section.
-        fd=os.open('/tmp/safe-c-containment-admission-'+str(os.getuid()),os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+        # Cross-process admission and creation are one short critical section. R123/R125: a short memory dip waits
+        # (bounded) outside it; admit_locked returns with the lock held and the unchanged admission passed.
+        fd,reservation=self.admit_locked(plan,finite_memory,seconds=memory_wait_seconds)
         try:
-            fcntl.flock(fd,fcntl.LOCK_EX)
-            reservation=self.admission(plan,finite_memory)
             if profile=='bench':self.bench_exclusive(reservation['active_before'])
             else:self.bench_wait(seconds=0)
             r=self.docker(argv)

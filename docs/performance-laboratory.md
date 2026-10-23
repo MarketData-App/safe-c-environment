@@ -1165,7 +1165,9 @@ Other labels:
 A bench session holds exclusive admission for its whole duration: the ci
 bench gates take about 17 min, and a decision run can take hours. While it
 holds the lock, every other container admission of the same uid waits 60 s
-and then BLOCKS. Before a long run, hold the launcher lock
+and then BLOCKS. A job that
+already waits for memory headroom BLOCKS at once when a bench session takes exclusive admission during that wait.
+Before a long run, hold the launcher lock
 (`flock /tmp/safe-c-launcher.lock`) and tell the other session first.
 Run `tools/runtime_cache.py` directly, never under that lock: it takes the
 launcher lock itself, so an outer `flock` makes it wait and then refuse.

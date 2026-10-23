@@ -1,4 +1,4 @@
-import copy, fcntl, os, sys, tempfile, unittest
+import copy, fcntl, inspect, os, sys, tempfile, unittest
 from pathlib import Path
 from unittest import mock
 ROOT=Path(__file__).resolve().parents[2]
@@ -139,6 +139,114 @@ class BenchSessionTests(unittest.TestCase):
         for active in (-1,1,4):
             with self.subTest(active=active),self.assertRaises(GateError):bare_launcher(self.dir.name+'/c').bench_exclusive(active)
 
+class MemoryWaitTests(unittest.TestCase):
+    PLAN={'resources':{'memory_bytes':3*1024**3}}
+    def setUp(self):
+        self.launcher=bare_launcher();self.launcher.value=cp.policy(ROOT)
+        self.need=self.launcher.value['aggregate']['reserved_memory_bytes']+3*1024**3
+        self.now=[0.0];self.sleeps=[]
+    def sleep(self,s):self.sleeps.append(s);self.now[0]+=s
+    def wait(self,readings,**kw):
+        it=iter(readings);last=[0]
+        def available():
+            last[0]=next(it,last[0]);return last[0]
+        with mock.patch.object(cp,'available_memory',side_effect=available):
+            return self.launcher.memory_wait(self.PLAN,clock=lambda:self.now[0],sleep=self.sleep,**kw)
+    def test_memory_wait_returns_at_once_with_headroom(self):
+        self.assertTrue(self.wait([self.need]));self.assertEqual(self.sleeps,[])
+    def test_memory_wait_rides_over_a_short_dip(self):
+        self.assertTrue(self.wait([self.need-1,self.need-1,self.need]));self.assertEqual(self.sleeps,[1.0,1.0])
+    def test_memory_wait_is_bounded(self):
+        self.assertFalse(self.wait([self.need-1],seconds=3));self.assertEqual(self.sleeps,[1.0,1.0,1.0])
+    def test_memory_wait_uses_the_finite_probe_need(self):
+        self.assertTrue(self.wait([self.need],finite_memory=0));self.assertEqual(self.sleeps,[])
+        self.assertFalse(self.wait([self.need],finite_memory=3*1024**3+1,seconds=2));self.assertEqual(self.sleeps,[1.0,1.0])
+    def test_admission_blocks_when_memory_is_short(self):
+        l=self.launcher;l.root=ROOT;l.run_dir=Path(tempfile.mkdtemp());self.addCleanup(lambda:l.run_dir.rmdir())
+        l.docker=lambda argv,**kw:{'exit_code':0,'failure':None,'output':''}
+        plan={'resources':dict(l.value['profiles']['build'])}
+        need=l.value['aggregate']['reserved_memory_bytes']+plan['resources']['memory_bytes']
+        with mock.patch.object(cp,'available_memory',return_value=need-1):
+            with self.assertRaises(GateError) as ctx:l.admission(plan)
+        self.assertEqual(str(ctx.exception),cp.MEMORY_HEADROOM_ERROR)
+    def test_create_admits_through_admit_locked(self):
+        calls=[];temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
+        def admit_locked(plan,finite_memory=0,seconds=None):
+            calls.append((plan,finite_memory,seconds));return os.open(temp.name+'/lock',os.O_RDWR|os.O_CREAT),{'active_before':0}
+        l=bare_launcher(temp.name+'/cfg');l.root=ROOT;l.run_dir=Path(temp.name);l.value=cp.policy(ROOT);l.lock={'image_id':IMAGE}
+        l.purpose='unit';l.worktree_scope='w';l.info={'SecurityOptions':['name=apparmor']};l.prefix=['docker'];l.endpoint='unix:///fake'
+        l.runner_identity=None;l.approved_runtime_images=set();l.preflight=lambda:None
+        l.bench_wait=lambda seconds=60:None;l.bench_exclusive=lambda active:None
+        l.admit_locked=admit_locked;l.effective=lambda container,plan:{}
+        l.docker=lambda argv,**kw:{'exit_code':0,'failure':None,'output':'c'*64+'\n'}
+        with mock.patch.object(cp,'host_topology',return_value=([0,1,2,3],{c:frozenset({c}) for c in range(4)})):
+            l.create('build',{},finite_memory=7)
+            l.create('build',{},memory_wait_seconds=0)
+        self.assertEqual(len(calls),2)
+        self.assertEqual((calls[0][1],calls[0][2]),(7,300));self.assertEqual((calls[1][1],calls[1][2]),(0,0))
+        self.assertEqual(calls[0][0]['resources']['memory_bytes'],l.value['profiles']['build']['memory_bytes'])
+    def test_memory_wait_defaults_are_pinned(self):
+        self.assertEqual((cp.MEMORY_WAIT_SECONDS,cp.MEMORY_WAIT_POLL_SECONDS),(300,1.0))
+        d=lambda f,n:inspect.signature(f).parameters[n].default
+        self.assertEqual((d(cp.Launcher.memory_wait,'seconds'),d(cp.Launcher.memory_wait,'poll')),(300,1.0))
+        self.assertEqual(d(cp.Launcher.admit_locked,'seconds'),300);self.assertEqual(d(cp.Launcher.create,'memory_wait_seconds'),300)
+        self.assertEqual(cp.MEMORY_HEADROOM_ERROR,'insufficient independent finite-probe memory headroom')
+    def test_memory_wait_zero_bound(self):
+        self.assertFalse(self.wait([self.need-1],seconds=0));self.assertEqual(self.sleeps,[])
+    def locked(self,refusals,seconds=300,short=True,admission_error=None):
+        """Drive admit_locked with a temporary lock file; returns (result or exception, admission calls)."""
+        l=self.launcher;calls=[];real_open=os.open
+        def admission(plan,finite_memory=0):
+            calls.append(1)
+            if admission_error is not None:raise admission_error
+            if len(calls)<=refusals:raise GateError(cp.MEMORY_HEADROOM_ERROR)
+            return {'active_before':0}
+        l.admission=admission
+        lock=tempfile.mkdtemp();self.addCleanup(lambda:os.rmdir(lock))
+        with mock.patch.object(cp,'available_memory',return_value=self.need-1 if short else self.need),\
+             mock.patch.object(cp.os,'open',side_effect=lambda path,flags,mode=0o777:real_open(lock+'/l',flags,mode)):
+            self.addCleanup(lambda:os.path.exists(lock+'/l') and os.unlink(lock+'/l'))
+            try:out=l.admit_locked(self.PLAN,0,seconds=seconds,clock=lambda:self.now[0],sleep=self.sleep)
+            except GateError as exc:out=exc
+        return out,calls
+    def test_admit_locked_retries_only_the_headroom_refusal(self):
+        out,calls=self.locked(1,short=False)
+        fd,res=out;os.close(fd)
+        self.assertEqual(res,{'active_before':0});self.assertEqual(len(calls),2)
+    def test_admit_locked_does_not_retry_another_refusal(self):
+        out,calls=self.locked(0,short=False,admission_error=GateError('aggregate concurrency budget exhausted'))
+        self.assertIsInstance(out,GateError);self.assertEqual(str(out),'aggregate concurrency budget exhausted')
+        self.assertEqual((len(calls),self.sleeps),(1,[]))
+    def test_admit_locked_is_bounded(self):
+        out,calls=self.locked(10**6,seconds=3)
+        self.assertIsInstance(out,GateError);self.assertEqual(str(out),cp.MEMORY_HEADROOM_ERROR)
+        self.assertLessEqual(self.now[0],3+1.0);self.assertTrue(all(x==1.0 for x in self.sleeps))
+    def test_admit_locked_zero_bound_is_the_old_behavior(self):
+        out,calls=self.locked(10**6,seconds=0,short=False)
+        self.assertIsInstance(out,GateError);self.assertEqual(str(out),cp.MEMORY_HEADROOM_ERROR)
+        self.assertEqual((len(calls),self.sleeps),(1,[]))
+    def test_admit_locked_releases_the_lock_between_tries(self):
+        l=self.launcher;log=[];real_flock=cp.fcntl.flock;real_close=cp.os.close;real_open=os.open;n=[0]
+        lock=tempfile.mkdtemp();self.addCleanup(lambda:os.rmdir(lock));self.addCleanup(lambda:os.path.exists(lock+'/l') and os.unlink(lock+'/l'))
+        def admission(plan,finite_memory=0):
+            n[0]+=1;log.append('admission')
+            if n[0]==1:raise GateError(cp.MEMORY_HEADROOM_ERROR)
+            return {'active_before':0}
+        def flock(fd,op):log.append('flock');return real_flock(fd,op)
+        def close(fd):log.append('close');return real_close(fd)
+        l.admission=admission;l.memory_wait=lambda plan,finite_memory=0,**kw:log.append('memory_wait') or True
+        with mock.patch.object(cp.fcntl,'flock',side_effect=flock),mock.patch.object(cp.os,'close',side_effect=close),\
+             mock.patch.object(cp.os,'open',side_effect=lambda path,flags,mode=0o777:real_open(lock+'/l',flags,mode)):
+            fd,res=l.admit_locked(self.PLAN,0,seconds=300,clock=lambda:self.now[0],sleep=self.sleep)
+        real_close(fd)
+        self.assertEqual(log,['memory_wait','flock','admission','close','memory_wait','flock','admission'])
+    def test_admit_locked_rejects_an_unbounded_wait(self):
+        calls=[];self.launcher.admission=lambda plan,finite_memory=0:calls.append(1)
+        for bad in (float('inf'),-1,301,True,'5'):
+            with self.subTest(bad=bad),self.assertRaises(GateError) as ctx:self.launcher.admit_locked(self.PLAN,0,seconds=bad)
+            self.assertEqual(str(ctx.exception),'memory wait bound out of range')
+        self.assertEqual(calls,[])
+
 class LauncherRedactionTests(unittest.TestCase):
     def launcher(self,output):
         launcher=bare_launcher();launcher.value=cp.policy(ROOT);launcher.runner_identity=None
@@ -181,7 +289,7 @@ class FixturePrivacyTests(unittest.TestCase):
         l=bare_launcher(self.dir.name+'/cfg');l.root=ROOT;l.run_dir=Path(self.dir.name);l.value=cp.policy(ROOT);l.lock={'image_id':IMAGE}
         l.purpose='bench';l.worktree_scope='w';l.info={'SecurityOptions':['name=apparmor']};l.prefix=['docker'];l.endpoint='unix:///fake'
         l.runner_identity=None;l.approved_runtime_images=set();l.preflight=lambda:None
-        l.admission=lambda plan,finite_memory=0:{'active_before':0}
+        l.admission=lambda plan,finite_memory=0:{'active_before':0};l.memory_wait=lambda plan,finite_memory=0,**kw:True
         def docker(argv,**kw):self.calls.append(list(argv));return {'exit_code':0,'failure':None,'output':'c'*64+'\n'}
         l.docker=docker
         l.effective=lambda container,plan:{'inspect':{'mounts':[{'Source':plan['file_mounts'][self.T]['source'],'Destination':self.T,'RW':False}]}}

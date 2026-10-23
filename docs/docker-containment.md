@@ -107,7 +107,10 @@ qualification budgets, not recommendations for an eventual application.
 
 At most four project containers, 12 GiB aggregate memory, eight CPUs and 512 tasks
 are admitted; compiler parallelism is two and fuzz workers one. Eight GiB memory
-and eight GiB disk headroom are checked before admission. Fixtures, nested child
+and eight GiB disk headroom are checked before admission. A short memory
+shortfall first waits up to 300 s, polled each second, outside the admission
+critical section; the admission then checks again, and only its memory refusal is retried within the same 300 s
+before the job BLOCKS. Probe launches that run while a timed fixture lives (D03, D05) never wait. Fixtures, nested child
 jobs, normal builds and runtime helpers all count. The network probe disposes its
 offline job before creating the permitted job so nested qualification fits this
 budget. An external owner must protect host-wide capacity against unrelated jobs.

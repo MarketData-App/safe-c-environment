@@ -104,8 +104,9 @@ class Suite:
         r=self.launch();out,d=self.probe(r,'immutability');l.dispose(r)
         denies=d.get('denials',{})
         self.case('D02',{'root-write':denies.get('/usr/containment-canary')==errno.EROFS,'source-write':denies.get('/src/containment-canary')==errno.EROFS,'input-write':denies.get('/fixture/input-canary')==errno.EROFS,'hash-preserved':self.unchanged(),'scratch-control':d.get('scratch')=='safe' and d.get('source_read')=='source-safe' and d.get('input_read')=='input-safe'},{'operation':d,'outer_hashes':self.hashes},[r],passed(out))
+        # R125 (T30F03-A02): the launches below run while a timed fixture lives; they never wait for memory.
         sibling=self.launch(command=['python3','-c','import time; time.sleep(30)','safe-c-sibling-marker']);sibling['effective']=l.effective(sibling['container_id'],sibling['plan'])
-        r=self.launch();out,d=self.probe(r,'resources',extra=[str(self.outside)])
+        r=self.launch(memory_wait_seconds=0);out,d=self.probe(r,'resources',extra=[str(self.outside)])
         separation=all(r['effective']['inside']['namespaces'][n]!=sibling['effective']['inside']['namespaces'][n] for n in ['pid','net','ipc','mnt'])
         l.dispose(r);l.dispose(sibling)
         self.case('D03',{'unshared-canary':d.get('outside_visible') is False,'sibling-process':d.get('sibling_marker_visible') is False,'namespace-separation':separation,'mount-inventory':len(r['effective']['inspect']['mounts'])==2,'fixture-control':d.get('supplied')=='input-safe'},{'operation':d,'sibling_container':sibling['container_id']},[r,sibling],passed(out))
@@ -159,12 +160,13 @@ class Suite:
         if not passed(made):raise GateError('disposable internal network unavailable')
         records=[]
         try:
+            # R125 (T30F03-A02): the launches below run while a timed fixture lives; they never wait for memory.
             fixture=l.create('integration',{},network=name,command=['python3','-c','import socket,time; s=socket.socket();s.bind(("0.0.0.0",23456));s.listen();s.settimeout(20);end=time.monotonic()+20\nwhile time.monotonic()<end:\n try:\n  c,_=s.accept();c.sendall(b"synthetic-fixture");c.close()\n except TimeoutError:break'])
             fixture['effective']=l.effective(fixture['container_id'],fixture['plan']);records.append(fixture)
             obj=l.json(['inspect',fixture['container_id']])[0];ip=obj['NetworkSettings']['Networks'][name]['IPAddress']
-            offline=self.launch();records.append(offline);out,d=self.probe(offline,'network',extra=[ip,'23456'])
+            offline=self.launch(memory_wait_seconds=0);records.append(offline);out,d=self.probe(offline,'network',extra=[ip,'23456'])
             l.dispose(offline)
-            permitted=self.launch('integration',network=name);records.append(permitted);positive,c=self.probe(permitted,'network',control=True,extra=[ip,'23456'])
+            permitted=self.launch('integration',network=name,memory_wait_seconds=0);records.append(permitted);positive,c=self.probe(permitted,'network',control=True,extra=[ip,'23456'])
             network=l.json(['network','inspect',name])[0]
             checks={'loopback-control':d.get('loopback')=='loopback','offline-denial':d.get('fixture_reached') is False and d.get('interfaces')==['lo'],'live-fixture-control':c.get('fixture_reached') is True,'internal-network':network['Internal'] is True and network['Name']==name,'no-ports':all(not r['effective']['inspect']['host_config'].get('PortBindings') for r in records),'attachment-policy':set(permitted['effective']['inspect']['network'])=={name} and set(offline['effective']['inspect']['network'])=={'none'}}
             for r in records:l.dispose(r)

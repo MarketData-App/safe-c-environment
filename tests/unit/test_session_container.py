@@ -277,7 +277,7 @@ class HolderLifetimeTests(unittest.TestCase):
         l.purpose='unit';l.worktree_scope='w';l.info={'SecurityOptions':['name=apparmor']};l.prefix=['docker'];l.endpoint='unix:///fake'
         l.runner_identity=None;l.records=[];l.bench_lock=None
         l.preflight=lambda:None;l.bench_wait=lambda seconds=60:None;l.bench_exclusive=lambda active:None
-        l.admission=lambda plan,finite_memory=0:{'active_before':0};l.effective=lambda container,plan:{}
+        l.admission=lambda plan,finite_memory=0:{'active_before':0};l.memory_wait=lambda plan,finite_memory=0,**kw:True;l.effective=lambda container,plan:{}
         def docker(argv,**kw):
             calls.append(list(argv));return {'exit_code':0,'failure':None,'output':'c'*64+'\n'}
         l.docker=docker

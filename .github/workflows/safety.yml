@@ -76,3 +76,22 @@ jobs:
             artifacts/bootstrap-report.md
           retention-days: 14
           if-no-files-found: ${{ job.status == 'success' && 'error' || 'warn' }}
+      - name: Upload the failure evidence
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: failure-evidence
+          path: |
+            artifacts/runs/*/evidence/
+            artifacts/runs/*/starter-child-*.json
+            artifacts/instances/*/*/artifacts/*.json
+            artifacts/instances/*/*/artifacts/*.md
+            artifacts/instances/*/*/artifacts/runs/
+            artifacts/instances/*/*/artifacts/bench/
+            artifacts/instances/*/*/artifacts/project-selftest/
+            artifacts/instances/*/*/artifacts/project-sanitizers/
+            artifacts/instances/*/*/artifacts/project-sanitizer-runs/
+            artifacts/instances/*/*/artifacts/developer/runs/
+            artifacts/instances/*/*/artifacts/developer/state/
+          retention-days: 14
+          if-no-files-found: warn

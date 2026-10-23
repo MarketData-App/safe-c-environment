@@ -70,10 +70,11 @@ EXPECTED={'P2-T13-FETCH-01':'REJECTED','P2-T14-TSAN-01':'UNRESOLVED','P3-T15-CHI
           'FW-CASES-B08PROBE-01':'VERIFIED','FW-CASES-STUBREF-01':'VERIFIED','FW-CASES-KERNELWALL-01':'OPEN',   # T6-R9 (R95, R96): panel phases; reference deadline tiers; kernel estimate backlog
           # T6-R7 item 4(b): the framework backlog rows of board item sc-doj (R66, R86); all OPEN, none fixed
           **{rid:'OPEN' for rid in ('T7-HIT-AA','T7-HIT-BB','T7-HIT-CC','T7-HIT-DD','T7-HIT-EE','T7-HIT-FF','ML-A05','T7-HIT-M2','T7-A04',
-                                    'M2d-A05','FW-TOPLOCK-01','T20c-A02','FW-CAPNATIVE-01','FW-IMAGEBUDGET-01')}}
+                                    'M2d-A05','FW-TOPLOCK-01','T20c-A02','FW-CAPNATIVE-01','FW-IMAGEBUDGET-01')},
+          'T30-F01':'OPEN','T30-F02':'OPEN','T30-F03':'OPEN'}                                                               # T30: the child qualification evidence upload; the B13 A/A outlier; the launcher memory wait
 # FR3-06 (ruling FR3-R3): framework rows use neutral references. The verbatim history stays in the example ledger.
 # FR3-14: also the framework release branch names; the generic word "worktree" stays (ruling: restore the source wording).
-INTERNAL=re.compile(r'(?i)perf-lab|fw-release|fw-license|t3fix|artifacts/(runs|approvals|instances|bench)/|\.superpowers|/home/|batch-S\d|task-(DD|F1)|alo-reference')
+INTERNAL=re.compile(r'(?i)perf-lab|fw-release|fw-license|t3fix|artifacts/(runs|approvals|instances|bench)/|\.superpowers|/home/|batch-S\d|task-(DD|F1)|alo-reference|(?-i:fw-(?:diag|next|qual\d+))')
 
 def load():return json.loads((ROOT/LEDGER).read_text())
 
@@ -175,6 +176,9 @@ class FrameworkLedgerTests(unittest.TestCase):
                                                    'test_a_final_pass_with_a_bound_triggered_look1_record_extends',
                                                    "AttributeError: bench_windows has no record_digest",
                                                    'no unit of window 1a triggered an extension'),
+                          'T30-F01':('39820667487','39856471775','39867628190','db6cf7f8','914a4458','not RED/GREEN'),
+                          'T30-F02':('39856471775','0.8956'),
+                          'T30-F03':('6f35e164','8f38ca54','300 s','admit_locked'),
                           'EX18b-A08':('168c7e0f','645541c4','5cfa9b29','a1b2dc01','039059a','72f9080','identical inputs',
                                         'T5-A04','7a9924e','1 != 0','T5-A03','LocalWindowChainTests','LocalDecideTests',
                                         # T6-R1 (T5R1-A05): the sentence break, text only
